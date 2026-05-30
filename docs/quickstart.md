@@ -4,7 +4,7 @@ Get multimodel-dev-os into your project in under 2 minutes.
 
 ## Option A: One-Line Install
 
-**macOS / Linux / WSL:**
+**macOS / Linux / WSL (bash):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/install.sh | bash
 ```
@@ -14,7 +14,7 @@ curl -fsSL https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scrip
 irm https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/install.ps1 | iex
 ```
 
-## Option B: Manual Copy
+## Option B: Manual Scaffolding
 
 ```bash
 git clone https://github.com/rizvee/multimodel-dev-os.git /tmp/mmdos
@@ -22,14 +22,27 @@ cp /tmp/mmdos/AGENTS.md    your-project/
 cp /tmp/mmdos/MEMORY.md    your-project/
 cp /tmp/mmdos/TASKS.md     your-project/
 cp /tmp/mmdos/RUNBOOK.md   your-project/
+cp /tmp/mmdos/.gitattributes your-project/
 cp -r /tmp/mmdos/.ai       your-project/
 ```
 
 ## Option C: Caveman Mode (Minimal Tokens)
 
 ```bash
-curl -fsSL .../scripts/install.sh | bash -s -- --caveman
+curl -fsSL https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/install.sh | bash -s -- --caveman
 ```
+
+## Option D: Node.js CLI Scaffolding (v0.2.0+)
+
+For a direct, highly customized local setup using our zero-dependency CLI utility:
+1. Clone this repository locally:
+   ```bash
+   git clone https://github.com/rizvee/multimodel-dev-os.git
+   ```
+2. Run the CLI to scaffold into your target project:
+   ```bash
+   node bin/multimodel-dev-os.js init --target /path/to/your-project --template nextjs-saas --adapter cursor
+   ```
 
 ## After Install
 
@@ -43,7 +56,12 @@ curl -fsSL .../scripts/install.sh | bash -s -- --caveman
 
 ## Verify
 
+You can run our strict verification script to validate structural health:
 ```bash
+# Via CLI
+node bin/multimodel-dev-os.js verify --target /path/to/your-project
+
+# Via verification shell script
 bash scripts/verify.sh
 ```
 

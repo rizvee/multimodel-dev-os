@@ -1,45 +1,44 @@
 # CLI Roadmap
 
-> Future `npx multimodel-dev-os init` command. Not implemented in v0.1.
+> The local `node bin/multimodel-dev-os.js` CLI tool is fully implemented in v0.2.0!
 
-## Planned Usage
+## Current CLI Usage
 
 ```bash
-# Interactive setup
-npx multimodel-dev-os init
+# Initialize project with configurations
+node bin/multimodel-dev-os.js init
 
-# With options
-npx multimodel-dev-os init --adapters codex,cursor
-npx multimodel-dev-os init --caveman
-npx multimodel-dev-os init --example nextjs-app
+# Initialize with specific template and adapters
+node bin/multimodel-dev-os.js init --template nextjs-saas --adapter cursor --adapter claude
 
-# Check health
-npx multimodel-dev-os verify
+# Run dry-run preview
+node bin/multimodel-dev-os.js init --dry-run
 
-# Sync adapters from source of truth
-npx multimodel-dev-os sync
+# Force overwrite existing files
+node bin/multimodel-dev-os.js init --force
+
+# Check structural health of target directory
+node bin/multimodel-dev-os.js verify
 ```
 
-## Planned Commands
+## CLI Roadmap & Commands Status
 
-| Command | Purpose | Target Version |
-|---------|---------|----------------|
-| `init` | Scaffold multimodel-dev-os into a project | v0.2 |
-| `verify` | Check that all required files exist and are valid | v0.2 |
-| `sync` | Regenerate adapter files from root AGENTS.md | v0.3 |
-| `add-adapter` | Add a new adapter to the project | v0.3 |
-| `caveman` | Convert standard templates to caveman mode | v0.3 |
+| Command | Purpose | Target Version | Status |
+|---------|---------|----------------|--------|
+| `init` | Scaffold multimodel-dev-os into a project | v0.2.0 | ✅ Completed |
+| `verify` | Check that all required files exist and are valid | v0.2.0 | ✅ Completed |
+| `sync` | Regenerate adapter files from root AGENTS.md | v0.3.0 | 📋 Planned |
+| `add-adapter` | Add a new adapter to the project | v0.3.0 | 📋 Planned |
 
-## Requirements for v0.2
+## Requirements Completed in v0.2.0
 
-- [ ] `package.json` with `bin` entry
-- [ ] CLI argument parser (no heavy dependencies)
-- [ ] Template bundling with `scripts/pack-template.sh`
-- [ ] Published to npm as `multimodel-dev-os`
-- [ ] Tested on Node 18+
+- [x] `package.json` with `bin` entry
+- [x] CLI argument parser (implemented purely with Node.js built-ins)
+- [x] Template profile injection (Next.js SaaS, WordPress, etc.)
+- [x] Conflict protection and `--force` overrides
+- [x] Dry-run preview mode
+- [x] Tested on Node 18+ and Windows/macOS/Linux
 
-## Why Not Yet
-
-v0.1 focuses on getting the file structure and content right.
-The CLI is a convenience layer on top of a working convention —
-the convention needs to prove itself first.
+## Future Releases (v0.3.0+)
+- Publish package to npm as `multimodel-dev-os` to support `npx` execution.
+- Implement the `sync` subcommand to parse custom override markers inside adapters and align them with changes in root instructions.

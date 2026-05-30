@@ -95,6 +95,8 @@ else {
   New-ProjectFile "TASKS.md" "$RepoUrl/TASKS.md"
   New-ProjectFile "RUNBOOK.md" "$RepoUrl/RUNBOOK.md"
 }
+New-ProjectFile ".gitattributes" "$RepoUrl/.gitattributes"
+New-ProjectFile "bin/multimodel-dev-os.js" "$RepoUrl/bin/multimodel-dev-os.js"
 
 # --- Phase 2: .ai/ Directory ---
 

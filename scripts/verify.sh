@@ -179,6 +179,19 @@ echo ""
 echo "GitHub Workflows:"
 check_file ".github/workflows/verify.yml"
 
+# --- Documentation ---
+echo ""
+echo "Extended Documentation:"
+check_file "docs/quickstart.md"
+check_file "docs/architecture.md"
+check_file "docs/multimodel-workflow.md"
+check_file "docs/caveman-mode.md"
+check_file "docs/adapters.md"
+check_file "docs/installers.md"
+check_file "docs/cli-roadmap.md"
+check_file "docs/faq.md"
+check_file "docs/testing-v0.2.md"
+
 # --- Summary ---
 echo ""
 echo "====================================================="

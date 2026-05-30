@@ -36,6 +36,8 @@
   ],
   "scripts": {
     "verify": "bash scripts/verify.sh",
+    "test:cli": "node bin/multimodel-dev-os.js verify",
+    "pack:template": "bash scripts/pack-template.sh",
     "pack": "bash scripts/pack-template.sh"
   }
 }

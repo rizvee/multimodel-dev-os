@@ -104,6 +104,8 @@ else
   create_file "TASKS.md" "${REPO_URL}/TASKS.md"
   create_file "RUNBOOK.md" "${REPO_URL}/RUNBOOK.md"
 fi
+create_file ".gitattributes" "${REPO_URL}/.gitattributes"
+create_file "bin/multimodel-dev-os.js" "${REPO_URL}/bin/multimodel-dev-os.js"
 
 # --- Phase 2: .ai/ Directory ---
 

@@ -2,8 +2,7 @@
 
 ## Overview
 
-Cross-platform scripts that scaffold multimodel-dev-os into any project.
-Located in `scripts/`.
+Cross-platform scripts that scaffold multimodel-dev-os into any project. Located in `scripts/`.
 
 ## Usage
 
@@ -14,13 +13,13 @@ Located in `scripts/`.
 curl -fsSL https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/install.sh | bash
 
 # Caveman Mode (minimal tokens)
-curl -fsSL .../scripts/install.sh | bash -s -- --caveman
+curl -fsSL https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/install.sh | bash -s -- --caveman
 
 # All adapters, no prompts
-curl -fsSL .../scripts/install.sh | bash -s -- --all
+curl -fsSL https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/install.sh | bash -s -- --all
 
 # Dry run (preview only)
-curl -fsSL .../scripts/install.sh | bash -s -- --dry-run
+curl -fsSL https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/install.sh | bash -s -- --dry-run
 ```
 
 ### Windows (`install.ps1`)
@@ -30,7 +29,7 @@ curl -fsSL .../scripts/install.sh | bash -s -- --dry-run
 irm https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/install.ps1 | iex
 
 # With flags (download first, then run)
-Invoke-WebRequest -Uri ".../scripts/install.ps1" -OutFile install.ps1
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/install.ps1" -OutFile install.ps1
 .\install.ps1 -Caveman -All
 ```
 
@@ -45,14 +44,15 @@ Invoke-WebRequest -Uri ".../scripts/install.ps1" -OutFile install.ps1
 
 ## Behavior
 
-- **Non-destructive** — never overwrites existing files
-- **Idempotent** — safe to run multiple times
-- **Selective** — choose which adapters to install
-- **Offline-safe** — fails gracefully if downloads fail
+- **Non-destructive** — never overwrites existing files by default.
+- **CLI-integrated** — bundles our zero-dependency CLI `bin/multimodel-dev-os.js` script so you can perform advanced target-directory routing and local schema verifications after installation.
+- **Selective** — choose which adapters to install.
+- **Offline-safe** — fails gracefully if downloads fail.
 
 ## What Gets Created
 
 The installer creates:
 1. Root files: `AGENTS.md`, `MEMORY.md`, `TASKS.md`, `RUNBOOK.md`
-2. `.ai/` directory with config, skills, checks, templates
-3. Selected adapter directories under `adapters/`
+2. Core configuration utilities: `.gitattributes` (enforces LF line endings) and `bin/multimodel-dev-os.js` CLI
+3. `.ai/` directory with config, skills, checks, templates
+4. Selected adapter directories under `adapters/`
