@@ -13,12 +13,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const sourceRoot = resolve(__dirname, '..');
 
+let version = '0.3.0';
+try {
+  const pkgData = JSON.parse(readFileSync(resolve(sourceRoot, 'package.json'), 'utf8'));
+  version = pkgData.version;
+} catch (e) {}
+
 const ARGS = process.argv.slice(2);
-const COMMAND = ARGS[0];
 
 // Parse parameters manually to avoid external dependencies
 function parseArgs(args) {
   const params = {
+    command: null,
     target: process.cwd(),
     template: 'general-app',
     adapters: [],
@@ -28,7 +34,7 @@ function parseArgs(args) {
     help: false
   };
 
-  for (let i = 1; i < args.length; i++) {
+  for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (arg === '--target' || arg === '-t') {
       params.target = resolve(args[++i]);
@@ -44,12 +50,15 @@ function parseArgs(args) {
       params.force = true;
     } else if (arg === '--help' || arg === '-h') {
       params.help = true;
+    } else if (!params.command && !arg.startsWith('-')) {
+      params.command = arg;
     }
   }
   return params;
 }
 
 const params = parseArgs(ARGS);
+const COMMAND = params.command;
 
 if (params.help || !COMMAND) {
   showHelp();
@@ -67,7 +76,7 @@ if (COMMAND === 'init') {
 }
 
 function showHelp() {
-  console.log('\n🧠 \x1b[36mmultimodel-dev-os CLI v0.1.1\x1b[0m');
+  console.log(`\n🧠 \x1b[36mmultimodel-dev-os CLI v${version}\x1b[0m`);
   console.log('====================================');
   console.log('Usage: node bin/multimodel-dev-os.js <command> [options]\n');
   console.log('Commands:');

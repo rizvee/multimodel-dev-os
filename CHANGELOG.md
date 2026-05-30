@@ -4,6 +4,23 @@ All notable changes to multimodel-dev-os will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.3.0] - 2026-05-30
+
+### Added
+- Dynamic CLI Version Tracking: Programmed CLI to dynamically parse version metadata from `package.json` to prevent drifts.
+- npm & npx Scaffolding Integration: Fully whitelisted packaging scopes and configured bin executables to support standard `npx` global installations.
+- Pre-Flight Verification Checks: Added strict automated asserts verifying package.json specifications and npm tarball dry-runs in verify script.
+- NPM Publishing Runbook: Created `docs/npm-publishing.md` detailed guide.
+
+## [0.2.0] - 2026-05-30
+
+### Added
+- Dependency-Free Local CLI: Implemented core Node-based CLI `bin/multimodel-dev-os.js` supporting recursive scaffolding (`init`), option parsing, and directory validations (`verify`).
+- Template Profiles: Added stack-specific template selections (`nextjs-saas`, `wordpress-site`, `ecommerce-store`, `seo-landing-page`, `general-app`).
+- Overwrite Conflict Prevention: CLI automatically audits files and lists overwrite conflicts before touching the disk. Bypassed only via `-f, --force` flags.
+- Dry-Run Option: Integrates `-d, --dry-run` to preview planned operations without mutating files.
+- Testing Guide: Added `docs/testing-v0.2.md` comprehensive testing document.
+
 ## [0.1.1] - 2026-05-30
 
 ### Fixed

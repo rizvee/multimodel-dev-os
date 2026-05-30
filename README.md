@@ -162,8 +162,11 @@ See [docs/caveman-mode.md](docs/caveman-mode.md).
 
 | Project Type | Files |
 |---|---|
-| [Next.js App](examples/nextjs-app/) | AGENTS.md, MEMORY.md, config |
-| [Python API](examples/python-api/) | AGENTS.md, MEMORY.md, config |
+| [Next.js SaaS](examples/nextjs-saas/) | AGENTS.md, MEMORY.md, config |
+| [WordPress Site](examples/wordpress-site/) | AGENTS.md, MEMORY.md, config |
+| [E-commerce Headless Store](examples/ecommerce-store/) | AGENTS.md, MEMORY.md, config |
+| [SEO Static Landing Page](examples/seo-landing-page/) | AGENTS.md, MEMORY.md, config |
+| [General AppScaffold](examples/general-app/) | AGENTS.md, MEMORY.md, config |
 
 ## "multimodel" ≠ "multimodal"
 
@@ -181,6 +184,8 @@ This project is about the first one.
 - [Caveman Mode](docs/caveman-mode.md)
 - [Installers](docs/installers.md)
 - [CLI Roadmap](docs/cli-roadmap.md)
+- [Testing Guide](docs/testing-v0.2.md)
+- [NPM Publishing Runbook](docs/npm-publishing.md)
 - [FAQ](docs/faq.md)
 
 ## Contributing

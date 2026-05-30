@@ -44,6 +44,17 @@ For a direct, highly customized local setup using our zero-dependency CLI utilit
    node bin/multimodel-dev-os.js init --target /path/to/your-project --template nextjs-saas --adapter cursor
    ```
 
+## Option E: npx Scaffolding (Planned v0.3.0+)
+
+Once published to the public npm registry, you can initialize any project globally without local clones using:
+```bash
+# General setup
+npx multimodel-dev-os init
+
+# Target specific layouts and templates
+npx multimodel-dev-os init --template nextjs-saas --adapter cursor
+```
+
 ## After Install
 
 1. **Edit `AGENTS.md`** — fill in your project name, stack, and build commands
@@ -71,3 +82,4 @@ bash scripts/verify.sh
 - [Adapter setup](adapters.md)
 - [Multi-agent workflows](multimodel-workflow.md)
 - [Caveman Mode](caveman-mode.md)
+- [NPM Publishing Runbook](npm-publishing.md)

@@ -191,6 +191,70 @@ check_file "docs/installers.md"
 check_file "docs/cli-roadmap.md"
 check_file "docs/faq.md"
 check_file "docs/testing-v0.2.md"
+check_file "docs/npm-publishing.md"
+
+# --- CLI & Packaging Pre-Flight Tests ---
+echo ""
+echo "Running CLI & Packaging Pre-Flight Tests..."
+
+# Verify package.json version is exactly 0.3.0
+if ! grep -q '"version": "0.3.0"' package.json; then
+  echo -e "  ${RED}✗${NC} package.json version is not 0.3.0"
+  FAIL=$((FAIL + 1))
+else
+  echo -e "  ${GREEN}✓${NC} package.json version is exactly 0.3.0"
+  PASS=$((PASS + 1))
+fi
+
+# Verify CLI version matches v0.3.0
+if ! node bin/multimodel-dev-os.js --help | grep -q 'v0.3.0'; then
+  echo -e "  ${RED}✗${NC} CLI help does not display v0.3.0"
+  FAIL=$((FAIL + 1))
+else
+  echo -e "  ${GREEN}✓${NC} CLI help displays v0.3.0"
+  PASS=$((PASS + 1))
+fi
+
+# Verify npm pack dry-run shows v0.3.0
+if ! npm pack --dry-run 2>&1 | grep -q 'multimodel-dev-os@0.3.0'; then
+  echo -e "  ${RED}✗${NC} npm pack --dry-run does not report version 0.3.0"
+  FAIL=$((FAIL + 1))
+else
+  echo -e "  ${GREEN}✓${NC} npm pack --dry-run reports version 0.3.0"
+  PASS=$((PASS + 1))
+fi
+
+if ! node bin/multimodel-dev-os.js --help >/dev/null; then
+  echo -e "  ${RED}✗${NC} node bin/multimodel-dev-os.js --help failed"
+  FAIL=$((FAIL + 1))
+else
+  echo -e "  ${GREEN}✓${NC} node bin/multimodel-dev-os.js --help"
+  PASS=$((PASS + 1))
+fi
+
+if ! node bin/multimodel-dev-os.js init --dry-run --force >/dev/null; then
+  echo -e "  ${RED}✗${NC} node bin/multimodel-dev-os.js init --dry-run failed"
+  FAIL=$((FAIL + 1))
+else
+  echo -e "  ${GREEN}✓${NC} node bin/multimodel-dev-os.js init --dry-run"
+  PASS=$((PASS + 1))
+fi
+
+if ! node bin/multimodel-dev-os.js verify >/dev/null; then
+  echo -e "  ${RED}✗${NC} node bin/multimodel-dev-os.js verify failed"
+  FAIL=$((FAIL + 1))
+else
+  echo -e "  ${GREEN}✓${NC} node bin/multimodel-dev-os.js verify"
+  PASS=$((PASS + 1))
+fi
+
+if ! npm pack --dry-run >/dev/null 2>&1; then
+  echo -e "  ${RED}✗${NC} npm pack --dry-run failed"
+  FAIL=$((FAIL + 1))
+else
+  echo -e "  ${GREEN}✓${NC} npm pack --dry-run"
+  PASS=$((PASS + 1))
+fi
 
 # --- Summary ---
 echo ""
@@ -199,7 +263,7 @@ TOTAL=$((PASS + FAIL + WARN))
 echo -e "  ${GREEN}Pass: $PASS${NC}  ${RED}Fail: $FAIL${NC}  ${YELLOW}Warn: $WARN${NC}  Total: $TOTAL"
 
 if [ "$FAIL" -gt 0 ]; then
-  echo -e "\n${RED}Verification failed. Fix missing files listed above.${NC}"
+  echo -e "\n${RED}Verification failed. Fix issues listed above.${NC}"
   exit 1
 else
   echo -e "\n${GREEN}Verification passed successfully.${NC}"
