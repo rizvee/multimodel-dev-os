@@ -4,11 +4,15 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![v0.1](https://img.shields.io/badge/version-0.1-orange.svg)](CHANGELOG.md)
+[![v0.1](https://img.shields.io/badge/version-0.1.1-orange.svg)](CHANGELOG.md)
 
 A shared set of markdown files that any AI coding tool can read — Codex,
 Antigravity, Cursor, Claude, Gemini, VS Code, or whatever comes next.
-Not an AI agent. Not an operating system. Think `.editorconfig` for AI tools.
+Think `.editorconfig` for AI tools.
+
+> [!IMPORTANT]
+> **v0.1 is a Markdown-first convention/specification layer.**
+> It is a set of structured directory/file guidelines that AI models can natively parse, not a daemon process, autonomous runtime engine, or background executor. Command Line Interface (CLI) automation and runtime engine tools are scheduled for the **v0.2+** releases.
 
 ## The Problem
 
@@ -40,9 +44,22 @@ adapters/gemini/       → GEMINI.md
 adapters/vscode/       → .vscode/settings.json
 ```
 
+## Supported Tool Matrix
+
+| Tool | Adapter File | Reads Source of Truth From | Status |
+|------|--------------|----------------------------|--------|
+| OpenAI Codex | `adapters/codex/AGENTS.md` | `/AGENTS.md` | ✅ v0.1 |
+| Google Antigravity | `adapters/antigravity/AGENTS.md` | `/AGENTS.md` | ✅ v0.1 |
+| Cursor | `adapters/cursor/.cursorrules` | `/AGENTS.md`, `/MEMORY.md`, `/TASKS.md` | ✅ v0.1 |
+| Claude Code | `adapters/claude/CLAUDE.md` | `/AGENTS.md`, `/MEMORY.md`, `/TASKS.md` | ✅ v0.1 |
+| Gemini | `adapters/gemini/GEMINI.md` | `/AGENTS.md` | ✅ v0.1 |
+| VS Code | `adapters/vscode/.vscode/settings.json` | `/AGENTS.md` (via exclusions) | ✅ v0.1 |
+
 ## Quick Start
 
-**macOS / Linux / WSL:**
+### Option 1: Automated Installation
+
+**macOS / Linux / WSL (bash):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/install.sh | bash
 ```
@@ -52,10 +69,17 @@ curl -fsSL https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scrip
 irm https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/install.ps1 | iex
 ```
 
-**Caveman Mode** (~79% fewer tokens):
+**Caveman Mode Installation** (~79% fewer tokens):
 ```bash
-curl -fsSL .../scripts/install.sh | bash -s -- --caveman
+curl -fsSL https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/install.sh | bash -s -- --caveman
 ```
+
+### Option 2: Manual Setup
+
+If you prefer not to execute external shell scripts:
+1. Clone this repository locally.
+2. Copy the core markdown files (`AGENTS.md`, `MEMORY.md`, `TASKS.md`, `RUNBOOK.md`) and the `.ai/` directory into your project root.
+3. Select the adapter configurations you need from the `adapters/` directory and copy them to your project root (e.g., `adapters/cursor/.cursorrules`).
 
 See [docs/quickstart.md](docs/quickstart.md) for all options.
 
