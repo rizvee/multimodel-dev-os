@@ -4,6 +4,15 @@ All notable changes to multimodel-dev-os will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.5.1] - 2026-05-30
+
+### Fixed
+- **Cross-Platform Verifier:** Created `scripts/verify.js` Node script for cross-platform release verification with zero external dependencies (working on Windows, macOS, and Linux).
+- **Default Template Validation:** Set default template adapter states to `false` in `.ai/config.yaml` templates so that default `init` command runs validate without errors.
+- **Strict Adapter Requirements:** Updated `validate` and `doctor` commands to strictly require root adapter rules files (`.cursorrules`, `CLAUDE.md`, `.vscode/settings.json`, `.gemini/settings.json`) *only* when the adapter is explicitly marked `true` (enabled) in `.ai/config.yaml`.
+- **Improved Root Adapter Installation:** When running `init` with `--adapter <name>`, automatically copies the corresponding rule files (e.g. `.cursorrules`, `CLAUDE.md`, etc.) directly to the root of the project target, and dynamically sets the adapter status to `true` in target `.ai/config.yaml`.
+- **Installer Version Sync:** Synchronized `install.sh` and `install.ps1` to reflect `v0.5.1` version parity.
+
 ## [0.5.0] - 2026-05-30
 
 ### Added

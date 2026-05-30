@@ -1,7 +1,7 @@
 adapters:
-  cursor: true
-  claude: true
-  vscode: true
+  cursor: false
+  claude: false
+  vscode: false
 mode: standard
 orchestrator:
   mode: sequential

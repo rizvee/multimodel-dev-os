@@ -1,6 +1,6 @@
 {
   "name": "multimodel-dev-os",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "bin": {
     "multimodel-dev-os": "bin/multimodel-dev-os.js"
   },
@@ -35,7 +35,8 @@
     "bin/"
   ],
   "scripts": {
-    "verify": "bash scripts/verify.sh",
+    "verify": "node scripts/verify.js",
+    "verify:bash": "bash scripts/verify.sh",
     "test:cli": "node bin/multimodel-dev-os.js verify",
     "pack:template": "bash scripts/pack-template.sh",
     "pack": "bash scripts/pack-template.sh"

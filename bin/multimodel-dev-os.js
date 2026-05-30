@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const sourceRoot = resolve(__dirname, '..');
 
-let version = '0.5.0';
+let version = '0.5.1';
 try {
   const pkgData = JSON.parse(readFileSync(resolve(sourceRoot, 'package.json'), 'utf8'));
   version = pkgData.version;
@@ -333,6 +333,73 @@ function handleInit(options) {
     }
   });
 
+  // Copy root-level adapter rule files if selected
+  if (!options.dryRun) {
+    options.adapters.forEach(adapter => {
+      if (adapter === 'cursor') {
+        const srcFile = join(sourceRoot, 'adapters/cursor/.cursorrules');
+        const destFile = join(options.target, '.cursorrules');
+        if (existsSync(srcFile)) {
+          writeFileSync(destFile, readFileSync(srcFile));
+          console.log(`  \x1b[32mCREATE ROOT ADAPTER FILE:\x1b[0m .cursorrules`);
+        }
+      } else if (adapter === 'claude') {
+        const srcFile = join(sourceRoot, 'adapters/claude/CLAUDE.md');
+        const destFile = join(options.target, 'CLAUDE.md');
+        if (existsSync(srcFile)) {
+          writeFileSync(destFile, readFileSync(srcFile));
+          console.log(`  \x1b[32mCREATE ROOT ADAPTER FILE:\x1b[0m CLAUDE.md`);
+        }
+      } else if (adapter === 'vscode') {
+        const srcFile = join(sourceRoot, 'adapters/vscode/.vscode/settings.json');
+        const destDir = join(options.target, '.vscode');
+        const destFile = join(destDir, 'settings.json');
+        if (existsSync(srcFile)) {
+          if (!existsSync(destDir)) mkdirSync(destDir, { recursive: true });
+          writeFileSync(destFile, readFileSync(srcFile));
+          console.log(`  \x1b[32mCREATE ROOT ADAPTER FILE:\x1b[0m .vscode/settings.json`);
+        }
+      } else if (adapter === 'gemini') {
+        const srcFile = join(sourceRoot, 'adapters/gemini/GEMINI.md');
+        const destFile = join(options.target, 'GEMINI.md');
+        if (existsSync(srcFile)) {
+          writeFileSync(destFile, readFileSync(srcFile));
+          console.log(`  \x1b[32mCREATE ROOT ADAPTER FILE:\x1b[0m GEMINI.md`);
+        }
+      } else if (adapter === 'antigravity') {
+        const srcFile = join(sourceRoot, 'adapters/antigravity/.gemini/settings.json');
+        const destDir = join(options.target, '.gemini');
+        const destFile = join(destDir, 'settings.json');
+        if (existsSync(srcFile)) {
+          if (!existsSync(destDir)) mkdirSync(destDir, { recursive: true });
+          writeFileSync(destFile, readFileSync(srcFile));
+          console.log(`  \x1b[32mCREATE ROOT ADAPTER FILE:\x1b[0m .gemini/settings.json`);
+        }
+      }
+    });
+
+    // Dynamically enable selected adapters in the target .ai/config.yaml
+    const targetConfigPath = join(options.target, '.ai/config.yaml');
+    if (existsSync(targetConfigPath) && options.adapters.length > 0) {
+      let configContent = readFileSync(targetConfigPath, 'utf8');
+      options.adapters.forEach(adapter => {
+        const regex = new RegExp(`${adapter}:\\s*false`, 'g');
+        configContent = configContent.replace(regex, `${adapter}: true`);
+      });
+      writeFileSync(targetConfigPath, configContent, 'utf8');
+      console.log(`  \x1b[32mUPDATE CONFIG:\x1b[0m Enabled selected adapters [${options.adapters.join(', ')}] in .ai/config.yaml`);
+    }
+  } else {
+    // Dry run notes
+    options.adapters.forEach(adapter => {
+      if (adapter === 'cursor') console.log(`  \x1b[36m[DRY-RUN] WOULD CREATE ROOT ADAPTER FILE:\x1b[0m .cursorrules`);
+      else if (adapter === 'claude') console.log(`  \x1b[36m[DRY-RUN] WOULD CREATE ROOT ADAPTER FILE:\x1b[0m CLAUDE.md`);
+      else if (adapter === 'vscode') console.log(`  \x1b[36m[DRY-RUN] WOULD CREATE ROOT ADAPTER FILE:\x1b[0m .vscode/settings.json`);
+      else if (adapter === 'gemini') console.log(`  \x1b[36m[DRY-RUN] WOULD CREATE ROOT ADAPTER FILE:\x1b[0m GEMINI.md`);
+      else if (adapter === 'antigravity') console.log(`  \x1b[36m[DRY-RUN] WOULD CREATE ROOT ADAPTER FILE:\x1b[0m .gemini/settings.json`);
+    });
+  }
+
   console.log(`\n\x1b[32m✔ Project initialized successfully! [Total Operations: ${operations.length}]\x1b[0m\n`);
 }
 
@@ -468,6 +535,7 @@ function handleDoctor(options) {
     checkAdapter('claude', 'CLAUDE.md');
     checkAdapter('gemini', 'GEMINI.md');
     checkAdapter('vscode', '.vscode/settings.json');
+    checkAdapter('antigravity', '.gemini/settings.json');
   } else {
     warn('.ai/config.yaml is missing from project. Active adapters could not be audited.');
   }
@@ -570,6 +638,7 @@ function handleValidate(options) {
     assertAdapter('claude', 'CLAUDE.md');
     assertAdapter('gemini', 'GEMINI.md');
     assertAdapter('vscode', '.vscode/settings.json');
+    assertAdapter('antigravity', '.gemini/settings.json');
   }
 
   console.log('\n==================================================');
