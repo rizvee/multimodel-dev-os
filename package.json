@@ -17,7 +17,7 @@
   "homepage": "https://github.com/rizvee/multimodel-dev-os",
   "repository": {
     "type": "git",
-    "url": "https://github.com/rizvee/multimodel-dev-os.git"
+    "url": "git+https://github.com/rizvee/multimodel-dev-os.git"
   },
   "license": "MIT",
   "author": "rizvee",
