@@ -4,6 +4,18 @@ All notable changes to multimodel-dev-os will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.6.1] - 2026-05-30
+
+### Fixed
+- **Dynamic Version Verification:** Hardened release audit verifiers (`verify.js` and `verify.sh`) to extract target versions dynamically from `package.json` with zero hardcoding, resolving GitHub Actions "Verify Repository Structure" failure.
+- **NPM Package Hygiene:** Filtered VitePress local cache (`docs/.vitepress/cache`) and built distribution (`docs/.vitepress/dist`) directories from published npm tarballs while retaining required documentation source files.
+
+## [0.6.0] - 2026-05-30
+
+### Added
+- **VitePress Docs Site:** Developed a premium, lightweight interactive documentation site with dynamic search, optimized styling, and clear design blueprints.
+- **Auto-deployment Flow:** Configured GitHub Actions integration to auto-compile and deploy VitePress static distribution bundles directly to GitHub Pages.
+
 ## [0.5.1] - 2026-05-30
 
 ### Fixed

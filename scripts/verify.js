@@ -198,14 +198,16 @@ checkFile('docs/templates-guide.md');
 // --- CLI & Packaging Pre-Flight Tests ---
 console.log('\nRunning CLI & Packaging Pre-Flight Tests...');
 
-// Verify package.json version is exactly 0.5.1
+// Verify package.json version dynamically
+let expectedVersion = '';
 try {
   const pkgData = JSON.parse(readFileSync(join(projectRoot, 'package.json'), 'utf8'));
-  if (pkgData.version !== '0.5.1') {
-    console.error(`  ${RED}✗${NC} package.json version is not 0.5.1 (found ${pkgData.version})`);
+  expectedVersion = pkgData.version;
+  if (!expectedVersion || !/^\d+\.\d+\.\d+/.test(expectedVersion)) {
+    console.error(`  ${RED}✗${NC} package.json version is invalid (found ${expectedVersion})`);
     fail++;
   } else {
-    console.log(`  ${GREEN}✓${NC} package.json version is exactly 0.5.1`);
+    console.log(`  ${GREEN}✓${NC} package.json version is valid: ${expectedVersion}`);
     pass++;
   }
 } catch (e) {
@@ -213,14 +215,14 @@ try {
   fail++;
 }
 
-// Verify CLI help displays v0.5.1
+// Verify CLI help displays current version dynamically
 try {
   const helpOutput = execSync('node bin/multimodel-dev-os.js --help', { cwd: projectRoot, encoding: 'utf8' });
-  if (!helpOutput.includes('v0.5.1')) {
-    console.error(`  ${RED}✗${NC} CLI help does not display v0.5.1`);
+  if (!helpOutput.includes(`v${expectedVersion}`)) {
+    console.error(`  ${RED}✗${NC} CLI help does not display v${expectedVersion}`);
     fail++;
   } else {
-    console.log(`  ${GREEN}✓${NC} CLI help displays v0.5.1`);
+    console.log(`  ${GREEN}✓${NC} CLI help displays v${expectedVersion}`);
     pass++;
   }
 } catch (e) {
@@ -228,25 +230,24 @@ try {
   fail++;
 }
 
-// Verify npm pack dry-run shows v0.5.1
+// Verify npm pack dry-run shows current version dynamically
 try {
   const packOutput = execSync('npm pack --dry-run', { cwd: projectRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
-  if (packOutput.includes('multimodel-dev-os@0.5.1') || packOutput.includes('multimodel-dev-os-0.5.1.tgz') || packOutput.includes('version: 0.5.1')) {
-    console.log(`  ${GREEN}✓${NC} npm pack --dry-run reports version 0.5.1`);
+  if (packOutput.includes(`multimodel-dev-os@${expectedVersion}`) || packOutput.includes(`multimodel-dev-os-${expectedVersion}.tgz`) || packOutput.includes(`version: ${expectedVersion}`)) {
+    console.log(`  ${GREEN}✓${NC} npm pack --dry-run reports version ${expectedVersion}`);
     pass++;
   } else {
-    // Check stderr
-    console.error(`  ${RED}✗${NC} npm pack --dry-run did not report 0.5.1 in stdout`);
+    console.error(`  ${RED}✗${NC} npm pack --dry-run did not report ${expectedVersion} in stdout`);
     fail++;
   }
 } catch (e) {
   const stdErrOut = e.stderr ? e.stderr.toString() : '';
   const stdOutOut = e.stdout ? e.stdout.toString() : '';
-  if (stdErrOut.includes('multimodel-dev-os@0.5.1') || stdErrOut.includes('multimodel-dev-os-0.5.1.tgz') || stdOutOut.includes('multimodel-dev-os-0.5.1.tgz')) {
-    console.log(`  ${GREEN}✓${NC} npm pack --dry-run reports version 0.5.1`);
+  if (stdErrOut.includes(`multimodel-dev-os@${expectedVersion}`) || stdErrOut.includes(`multimodel-dev-os-${expectedVersion}.tgz`) || stdOutOut.includes(`multimodel-dev-os-${expectedVersion}.tgz`)) {
+    console.log(`  ${GREEN}✓${NC} npm pack --dry-run reports version ${expectedVersion}`);
     pass++;
   } else {
-    console.error(`  ${RED}✗${NC} npm pack --dry-run failed or did not report 0.5.1: ${e.message}`);
+    console.error(`  ${RED}✗${NC} npm pack --dry-run failed or did not report ${expectedVersion}: ${e.message}`);
     fail++;
   }
 }
