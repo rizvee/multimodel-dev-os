@@ -1,0 +1,15 @@
+# Enforce LF endings on checkouts for most text files to prevent issues with AI tooling on Linux/macOS
+* text=auto
+
+# Code, Markdown, JSON, YAML files
+*.md text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.js text eol=lf
+
+# Shell scripts (must be LF to prevent syntax errors on Unix-like environments)
+*.sh text eol=lf
+
+# PowerShell scripts (keep compatible across Windows/Linux)
+*.ps1 text eol=crlf

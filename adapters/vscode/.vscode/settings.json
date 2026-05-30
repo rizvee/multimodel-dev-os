@@ -1,0 +1,21 @@
+{
+  "//": "VS Code adapter settings for multimodel-dev-os",
+  "//note": "Source of truth is /AGENTS.md — this file provides editor-level settings only",
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": null,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "files.exclude": {
+    "node_modules": true,
+    ".next": true,
+    "dist": true,
+    "__pycache__": true
+  },
+  "search.exclude": {
+    "node_modules": true,
+    ".ai/session-logs": true
+  }
+}

@@ -1,0 +1,4 @@
+version: "0.1"
+project:
+  name: "custom-wordpress-theme"
+  mode: "standard"

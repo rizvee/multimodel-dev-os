@@ -1,0 +1,41 @@
+# === OS ===
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# === Editors ===
+.idea/
+*.swp
+*.swo
+*~
+.vscode/*
+!.vscode/settings.json
+
+# === Node ===
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# === Python ===
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# === Environment ===
+.env
+.env.local
+.env.*.local
+
+# === Build ===
+dist/
+build/
+out/
+.next/
+
+# === Session logs (session-specific, opt-in to commit) ===
+.ai/session-logs/*.md
+!.ai/session-logs/README.md
+
+# === Pack output ===
+*.tar.gz

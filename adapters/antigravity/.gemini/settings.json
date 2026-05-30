@@ -1,0 +1,13 @@
+{
+  "//": "Antigravity adapter settings for multimodel-dev-os",
+  "//note": "Source of truth is /AGENTS.md — this file provides IDE-level overrides only",
+  "agent": {
+    "preferredModel": null,
+    "contextFiles": [
+      "AGENTS.md",
+      "MEMORY.md",
+      "TASKS.md",
+      "RUNBOOK.md"
+    ]
+  }
+}

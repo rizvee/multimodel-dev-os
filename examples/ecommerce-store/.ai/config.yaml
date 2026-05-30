@@ -1,0 +1,4 @@
+version: "0.1"
+project:
+  name: "ecommerce-headless-store"
+  mode: "standard"

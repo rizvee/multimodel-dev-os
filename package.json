@@ -1,0 +1,41 @@
+{
+  "name": "multimodel-dev-os",
+  "version": "0.1.0",
+  "bin": {
+    "multimodel-dev-os": "bin/multimodel-dev-os.js"
+  },
+  "description": "Portable, vendor-neutral AI Dev OS for multi-agent coding workflows",
+  "keywords": [
+    "ai",
+    "agents",
+    "coding",
+    "multi-agent",
+    "developer-tools",
+    "agents-md",
+    "ai-dev-os"
+  ],
+  "homepage": "https://github.com/rizvee/multimodel-dev-os",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rizvee/multimodel-dev-os.git"
+  },
+  "license": "MIT",
+  "author": "rizvee",
+  "type": "module",
+  "files": [
+    "AGENTS.md",
+    "MEMORY.md",
+    "TASKS.md",
+    "RUNBOOK.md",
+    ".ai/",
+    "adapters/",
+    "scripts/",
+    "docs/",
+    "examples/",
+    "bin/"
+  ],
+  "scripts": {
+    "verify": "bash scripts/verify.sh",
+    "pack": "bash scripts/pack-template.sh"
+  }
+}

@@ -1,0 +1,60 @@
+# multimodel-dev-os configuration
+# Source of truth for AI operating layer settings
+
+project:
+  name: null                    # Your project name
+  description: null             # One-line description
+  version: null                 # Project version
+
+# Mode: "standard" (full templates) or "caveman" (minimal tokens)
+mode: "standard"
+
+# Orchestrator configuration
+# See .ai/agents/orchestrator.md for full protocol spec
+orchestrator:
+  version: "0.1"
+  mode: "sequential"           # sequential | parallel | supervised
+  session_logs:
+    format: "markdown"
+    location: ".ai/session-logs/"
+    required_fields:
+      - agent_name
+      - timestamp
+      - action_summary
+      - files_changed
+      - next_steps
+
+  agents:
+    - name: "default"
+      tool: "any"
+      role: "General development"
+      files: ["**"]
+      permissions: "read+write"
+
+# Adapter configuration
+# Only enable adapters for tools you use
+adapters:
+  codex: false
+  antigravity: false
+  cursor: false
+  claude: false
+  gemini: false
+  vscode: false
+
+# Checks configuration
+checks:
+  pre_commit:
+    enabled: false
+    file: ".ai/checks/pre-commit.md"
+  post_commit:
+    enabled: false
+    file: null
+
+# Skills
+skills:
+  directory: ".ai/skills/"
+  auto_load: true
+
+# Prompts
+prompts:
+  directory: ".ai/prompts/"

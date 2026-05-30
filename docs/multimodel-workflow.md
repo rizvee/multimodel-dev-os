@@ -1,0 +1,121 @@
+# Orchestrator Guide
+
+> How to coordinate multiple AI coding agents on a single project.
+
+## Overview
+
+The Multimodel Orchestrator defines how different AI agents share work, avoid conflicts, and hand off context. In v0.1, it's a **protocol specification** — a set of conventions your team follows manually.
+
+## Quick Start
+
+### 1. Define Roles
+
+Edit `.ai/config.yaml`:
+
+```yaml
+orchestrator:
+  mode: "sequential"
+  agents:
+    - name: "planner"
+      tool: "claude"
+      role: "Architecture and planning"
+      files: ["docs/**", "AGENTS.md", "MEMORY.md"]
+      permissions: "read+write"
+
+    - name: "builder"
+      tool: "cursor"
+      role: "Implementation"
+      files: ["src/**", "lib/**", "tests/**"]
+      permissions: "read+write"
+
+    - name: "checker"
+      tool: "codex"
+      role: "Code review and testing"
+      files: ["**"]
+      permissions: "read-only"
+```
+
+### 2. Choose a Mode
+
+| Mode | How It Works | Best For |
+|------|-------------|----------|
+| `sequential` | One agent at a time, session log between each | Solo devs switching tools |
+| `parallel` | Multiple agents on different file scopes | Teams with clear boundaries |
+| `supervised` | Human reviews between each agent | Critical/production code |
+
+### 3. Use Handoff Logs
+
+When switching from one agent to another, the outgoing agent writes a session log:
+
+```markdown
+# Handoff: planner → builder
+
+**Timestamp:** 2026-05-30T12:00:00Z
+**Agent:** Claude (planner)
+
+## Action Summary
+Designed the auth module with JWT tokens and refresh token rotation.
+
+## Files Changed
+- docs/auth-design.md (created)
+- TASKS.md (updated)
+
+## Next Steps
+1. Implement /auth/login endpoint
+2. Implement /auth/refresh endpoint
+
+## Blockers
+- Need to decide: Redis vs PostgreSQL for refresh token storage
+```
+
+Save to: `.ai/session-logs/2026-05-30-planner-auth-design.md`
+
+## Common Workflows
+
+### Solo Dev, Multiple Tools
+
+```
+Morning:  Claude (architecture) → session log
+Afternoon: Cursor (implementation) → session log
+Evening:  Codex (review) → session log
+```
+
+### Pair: Human + AI
+
+```
+Human: writes TASKS.md with requirements
+Agent: reads TASKS.md, implements, updates MEMORY.md
+Human: reviews, provides feedback
+Agent: iterates, writes session log
+```
+
+### Team: Multiple Humans + Multiple AIs
+
+```
+Dev A + Claude: works on auth module (src/auth/**)
+Dev B + Cursor: works on dashboard (src/dashboard/**)
+Both: read shared MEMORY.md, coordinate via TASKS.md
+```
+
+## Conflict Prevention
+
+1. **Define file scopes** — each agent role specifies which files it can touch
+2. **Check before writing** — agents should read `TASKS.md` and recent session logs first
+3. **Atomic tasks** — each agent completes a coherent unit before handing off
+4. **Single writer** — only one agent should modify a given file at a time
+
+## Limitations (v0.1)
+
+- Manual enforcement only — no runtime checks
+- No automatic conflict detection
+- No real-time agent-to-agent messaging
+- Handoff logs must be written manually by the agent
+
+## Roadmap
+
+| Version | Feature |
+|---------|---------|
+| v0.2 | CLI reads config and routes tasks |
+| v0.3 | Automatic session log generation |
+| v0.4 | Conflict detection |
+| v0.5 | Real-time coordination |
