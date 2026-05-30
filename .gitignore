@@ -39,3 +39,6 @@ out/
 
 # === Pack output ===
 *.tar.gz
+.npmrc
+*.tgz
+npm-debug.log*

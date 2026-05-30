@@ -2,7 +2,24 @@
 
 Get multimodel-dev-os into your project in under 2 minutes.
 
-## Option A: One-Line Install
+## Option A: NPX Scaffolding (Recommended)
+
+Initialize any project immediately without local clones using our public npm registry:
+
+```bash
+# Standard interactive initialization in current directory
+npx multimodel-dev-os@latest init
+
+# Target specific stack templates and specific tool adapters
+npx multimodel-dev-os@latest init --template nextjs-saas --adapter cursor --adapter claude
+
+# Run a dry-run preview before executing file writes
+npx multimodel-dev-os@latest init --dry-run
+```
+
+## Option B: Fallback One-Line Scripts
+
+If you choose to run installation scripts directly:
 
 **macOS / Linux / WSL (bash):**
 ```bash
@@ -14,7 +31,29 @@ curl -fsSL https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scrip
 irm https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/install.ps1 | iex
 ```
 
-## Option B: Manual Scaffolding
+## Option C: Caveman Mode (Minimal Tokens)
+
+Reduce token footprint by **~79%** with our lightweight variants:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/install.sh | bash -s -- --caveman
+```
+
+## Option D: Node.js Local Scaffolding CLI
+
+For offline execution or customized packaging within a cloned workspace:
+1. Clone this repository locally:
+   ```bash
+   git clone https://github.com/rizvee/multimodel-dev-os.git
+   ```
+2. Run the CLI directly using the absolute target path:
+   ```bash
+   node bin/multimodel-dev-os.js init --target /path/to/your-project --template nextjs-saas --adapter cursor
+   ```
+
+## Option E: Manual Scaffolding
+
+If you prefer absolute manual control over copying files:
 
 ```bash
 git clone https://github.com/rizvee/multimodel-dev-os.git /tmp/mmdos
@@ -24,35 +63,6 @@ cp /tmp/mmdos/TASKS.md     your-project/
 cp /tmp/mmdos/RUNBOOK.md   your-project/
 cp /tmp/mmdos/.gitattributes your-project/
 cp -r /tmp/mmdos/.ai       your-project/
-```
-
-## Option C: Caveman Mode (Minimal Tokens)
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/install.sh | bash -s -- --caveman
-```
-
-## Option D: Node.js CLI Scaffolding (v0.2.0+)
-
-For a direct, highly customized local setup using our zero-dependency CLI utility:
-1. Clone this repository locally:
-   ```bash
-   git clone https://github.com/rizvee/multimodel-dev-os.git
-   ```
-2. Run the CLI to scaffold into your target project:
-   ```bash
-   node bin/multimodel-dev-os.js init --target /path/to/your-project --template nextjs-saas --adapter cursor
-   ```
-
-## Option E: npx Scaffolding (Planned v0.3.0+)
-
-Once published to the public npm registry, you can initialize any project globally without local clones using:
-```bash
-# General setup
-npx multimodel-dev-os init
-
-# Target specific layouts and templates
-npx multimodel-dev-os init --template nextjs-saas --adapter cursor
 ```
 
 ## After Install

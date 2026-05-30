@@ -2,7 +2,7 @@
 
 ## Overview
 
-Cross-platform scripts that scaffold multimodel-dev-os into any project. Located in `scripts/`.
+While `npx multimodel-dev-os@latest init` is the primary and recommended route to bootstrap your project, we provide cross-platform automated shell script installers as robust, dependency-free fallbacks for environments without Node.js. These are located in `scripts/`.
 
 ## Usage
 

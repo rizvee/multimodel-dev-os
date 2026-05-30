@@ -1,89 +1,89 @@
 # multimodel-dev-os
 
-> Portable, vendor-neutral project configuration for AI coding tools.
+> Portable, vendor-neutral project configuration and CLI tool for AI coding agents.
 
+[![npm version](https://img.shields.io/npm/v/multimodel-dev-os.svg?color=blue)](https://www.npmjs.com/package/multimodel-dev-os)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/rizvee/multimodel-dev-os?include_prereleases)](https://github.com/rizvee/multimodel-dev-os/releases)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/rizvee/multimodel-dev-os/verify.yml?branch=main)](https://github.com/rizvee/multimodel-dev-os/actions)
+[![npm downloads](https://img.shields.io/npm/dm/multimodel-dev-os.svg?color=green)](https://www.npmjs.com/package/multimodel-dev-os)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![v0.1](https://img.shields.io/badge/version-0.1.1-orange.svg)](CHANGELOG.md)
 
-A shared set of markdown files that any AI coding tool can read — Codex,
-Antigravity, Cursor, Claude, Gemini, VS Code, or whatever comes next.
-Think `.editorconfig` for AI tools.
+---
 
-> [!IMPORTANT]
-> **v0.1 is a Markdown-first convention/specification layer.**
-> It is a set of structured directory/file guidelines that AI models can natively parse, not a daemon process, autonomous runtime engine, or background executor. Command Line Interface (CLI) automation and runtime engine tools are scheduled for the **v0.2+** releases.
+## 10-Second Quickstart
 
-## The Problem
+Bootstrap your project instantly via `npx`:
 
-You use Cursor for implementation, Claude for architecture, Codex for review.
-Each tool has its own config format, context window, and memory system.
-When you switch tools, context is lost. When two agents work on the same
-repo, they step on each other.
-
-## The Solution
-
-One set of markdown files that all AI tools read:
-
-```
-AGENTS.md   → What this project is and how to work on it
-MEMORY.md   → What we've learned and decided
-TASKS.md    → What needs to be done
-RUNBOOK.md  → How to deploy, rollback, and respond to incidents
-.ai/        → Agent config, skills, checks, prompts, session logs
+```bash
+npx multimodel-dev-os@latest init
 ```
 
-Tool-specific adapters translate these into native formats:
+`multimodel-dev-os` is a lightweight, vendor-neutral configuration specification and local CLI utility that scaffolds a standardized operational context layout for your AI pair-programmers (such as Codex, Antigravity, Cursor, Claude Code, Gemini, or VS Code). It acts like `.editorconfig` but is optimized for multi-model AI coding agents.
 
-```
-adapters/codex/        → Codex-native config
-adapters/antigravity/  → Antigravity/Gemini-native config
-adapters/cursor/       → .cursorrules
-adapters/claude/       → CLAUDE.md
-adapters/gemini/       → GEMINI.md
-adapters/vscode/       → .vscode/settings.json
-```
+---
+
+## Why This Exists
+
+AI coding tools are incredibly fast, but switching between them introduces context fragmentation:
+1. **Context Loss:** You use **Cursor** for quick code completions, **Claude Code** for command-line implementations, and **Gemini/Antigravity** for auditing large code volumes. Every context switch drops your operational parameters.
+2. **Instruction Drift:** Different tools look for different files (`.cursorrules`, `CLAUDE.md`, `.vscode/settings.json`, `.gemini/settings.json`). If you modify build scripts or styling rules in one place, they quickly drift across others, causing confusing compile failures.
+
+`multimodel-dev-os` establishes a single source of truth inside your repository using a standardized root structure (`AGENTS.md`, `MEMORY.md`, `TASKS.md`, `RUNBOOK.md`) and a `.ai/` context configuration directory.
+
+---
+
+## Why Not Just AGENTS.md?
+
+While you can write a raw instruction file manually, `multimodel-dev-os` provides a robust, standardized context-management architecture:
+
+| Feature | AGENTS.md Only | Tool-Specific Prompt Packs | MultiModel Dev OS |
+| :--- | :--- | :--- | :--- |
+| **Portability** | Hard to coordinate across different IDEs/CLIs | None (locked to one platform) | **Universal** (Single source of truth) |
+| **Drift Prevention** | Manual copy-pasting of rules | None | **Automated** (Adapters sync root rules instantly) |
+| **Token Optimization** | Read entire file every turn | Basic prompts | **Caveman Mode** (cuts token consumption by **~79%**) |
+| **Tool Translation** | None (IDE files must be managed manually) | None | **Zero-Duplication** (Dynamic reference generation) |
+| **Quality Gates** | None | None | **Verify checkup** (`npx multimodel-dev-os verify`) |
+
+---
 
 ## Supported Tool Matrix
 
 | Tool | Adapter File | Reads Source of Truth From | Status |
 |------|--------------|----------------------------|--------|
-| OpenAI Codex | `adapters/codex/AGENTS.md` | `/AGENTS.md` | ✅ v0.1 |
-| Google Antigravity | `adapters/antigravity/AGENTS.md` | `/AGENTS.md` | ✅ v0.1 |
-| Cursor | `adapters/cursor/.cursorrules` | `/AGENTS.md`, `/MEMORY.md`, `/TASKS.md` | ✅ v0.1 |
-| Claude Code | `adapters/claude/CLAUDE.md` | `/AGENTS.md`, `/MEMORY.md`, `/TASKS.md` | ✅ v0.1 |
-| Gemini | `adapters/gemini/GEMINI.md` | `/AGENTS.md` | ✅ v0.1 |
-| VS Code | `adapters/vscode/.vscode/settings.json` | `/AGENTS.md` (via exclusions) | ✅ v0.1 |
+| OpenAI Codex | `adapters/codex/AGENTS.md` | `/AGENTS.md` | ✅ Production-Ready |
+| Google Antigravity | `adapters/antigravity/AGENTS.md` | `/AGENTS.md` | ✅ Production-Ready |
+| Cursor | `adapters/cursor/.cursorrules` | `/AGENTS.md`, `/MEMORY.md`, `/TASKS.md` | ✅ Production-Ready |
+| Claude Code | `adapters/claude/CLAUDE.md` | `/AGENTS.md`, `/MEMORY.md`, `/TASKS.md` | ✅ Production-Ready |
+| Gemini | `adapters/gemini/GEMINI.md` | `/AGENTS.md` | ✅ Production-Ready |
+| VS Code | `adapters/vscode/.vscode/settings.json` | `/AGENTS.md` (via exclusions) | ✅ Production-Ready |
 
-## Quick Start
+---
 
-### Option 1: Automated Installation
+## Extended Quickstart Options
 
-**macOS / Linux / WSL (bash):**
+Customize your scaffolding instantly via CLI argument flags:
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/install.sh | bash
+# 1. Scaffolding with standard template profile
+npx multimodel-dev-os@latest init
+
+# 2. Scaffolding for a specific tech stack (e.g. Next.js App Router)
+npx multimodel-dev-os@latest init --template nextjs-saas
+
+# 3. Injecting a specific tool adapter profile (e.g. OpenAI Codex)
+npx multimodel-dev-os@latest init --adapter codex
+
+# 4. Bootstrapping with Caveman Mode (slashes token footprints by ~79%)
+npx multimodel-dev-os@latest init --caveman
+
+# 5. Verifying the structural health of your workspace directories
+npx multimodel-dev-os@latest verify
 ```
 
-**Windows (PowerShell):**
-```powershell
-irm https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/install.ps1 | iex
-```
+---
 
-**Caveman Mode Installation** (~79% fewer tokens):
-```bash
-curl -fsSL https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/install.sh | bash -s -- --caveman
-```
-
-### Option 2: Manual Setup
-
-If you prefer not to execute external shell scripts:
-1. Clone this repository locally.
-2. Copy the core markdown files (`AGENTS.md`, `MEMORY.md`, `TASKS.md`, `RUNBOOK.md`) and the `.ai/` directory into your project root.
-3. Select the adapter configurations you need from the `adapters/` directory and copy them to your project root (e.g., `adapters/cursor/.cursorrules`).
-
-See [docs/quickstart.md](docs/quickstart.md) for all options.
-
-## Architecture
+## Architecture Layout
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -102,10 +102,11 @@ See [docs/quickstart.md](docs/quickstart.md) for all options.
 Codex  Antigrav  Cursor  Claude  Gemini    VS Code
 ```
 
-Adapters are **readers, not writers.** The root markdown files are the
-single source of truth. Adapters translate into tool-native formats.
+Adapters are **readers, not writers.** The root markdown files are the single source of truth. Adapters translate these into tool-native formats without duplicating instructions.
 
-## Core Files
+---
+
+## Core Operational Files
 
 | File | Purpose | Audience |
 |------|---------|----------|
@@ -115,23 +116,11 @@ single source of truth. Adapters translate into tool-native formats.
 | [`RUNBOOK.md`](RUNBOOK.md) | Deploy, rollback, incident response | AI + humans |
 | [`.ai/config.yaml`](.ai/config.yaml) | Mode, orchestrator, adapter settings | System |
 
-## Supported Tools
-
-| Tool | Adapter | Native File | Status |
-|------|---------|-------------|--------|
-| OpenAI Codex | [`adapters/codex/`](adapters/codex/) | `AGENTS.md` | ✅ v0.1 |
-| Google Antigravity | [`adapters/antigravity/`](adapters/antigravity/) | `.gemini/settings.json` | ✅ v0.1 |
-| Cursor | [`adapters/cursor/`](adapters/cursor/) | `.cursorrules` | ✅ v0.1 |
-| Claude Code | [`adapters/claude/`](adapters/claude/) | `CLAUDE.md` | ✅ v0.1 |
-| Gemini | [`adapters/gemini/`](adapters/gemini/) | `GEMINI.md` | ✅ v0.1 |
-| VS Code | [`adapters/vscode/`](adapters/vscode/) | `.vscode/settings.json` | ✅ v0.1 |
-
-Want to add a tool? See [docs/adapters.md](docs/adapters.md).
+---
 
 ## Multimodel Orchestrator
 
-Coordinate multiple AI agents on one project. Define roles in
-`.ai/config.yaml`, detail coordination in `.ai/agents/multimodel-orchestrator.md`.
+Coordinate multiple AI agents on one project. Define roles in `.ai/config.yaml`, detail coordination in `.ai/agents/multimodel-orchestrator.md`.
 
 ```yaml
 orchestrator:
@@ -147,6 +136,8 @@ orchestrator:
 
 See [docs/multimodel-workflow.md](docs/multimodel-workflow.md).
 
+---
+
 ## Caveman Mode
 
 Minimal-token templates. Same structure, ~79% fewer tokens.
@@ -158,40 +149,44 @@ Minimal-token templates. Same structure, ~79% fewer tokens.
 
 See [docs/caveman-mode.md](docs/caveman-mode.md).
 
-## Examples
+---
 
-| Project Type | Files |
-|---|---|
-| [Next.js SaaS](examples/nextjs-saas/) | AGENTS.md, MEMORY.md, config |
-| [WordPress Site](examples/wordpress-site/) | AGENTS.md, MEMORY.md, config |
-| [E-commerce Headless Store](examples/ecommerce-store/) | AGENTS.md, MEMORY.md, config |
-| [SEO Static Landing Page](examples/seo-landing-page/) | AGENTS.md, MEMORY.md, config |
-| [General AppScaffold](examples/general-app/) | AGENTS.md, MEMORY.md, config |
+## Scaffolding Templates
 
-## "multimodel" ≠ "multimodal"
+We provide target-specific layouts for common application architectures:
+* [Next.js SaaS Stack](examples/nextjs-saas/) (TypeScript, Prisma, Tailwind)
+* [WordPress Custom Plugin/Site](examples/wordpress-site/) (PHP, standard blocks)
+* [Headless E-commerce Store](examples/ecommerce-store/) (Payment processing, Webhooks)
+* [SEO Static Landing Page](examples/seo-landing-page/) (Astro, static optimizations)
+* [General Application](examples/general-app/) (Default baseline configuration)
 
-- **multimodel** = multiple AI models/tools on the same project
-- **multimodal** = AI processing multiple input types (text, image, audio)
+See [docs/use-cases.md](docs/use-cases.md) for full stack examples.
 
-This project is about the first one.
+---
 
-## Docs
+## Documentation
 
-- [Quickstart](docs/quickstart.md)
-- [Architecture](docs/architecture.md)
-- [Adapters](docs/adapters.md)
-- [Multi-agent Workflow](docs/multimodel-workflow.md)
-- [Caveman Mode](docs/caveman-mode.md)
-- [Installers](docs/installers.md)
-- [CLI Roadmap](docs/cli-roadmap.md)
-- [Testing Guide](docs/testing-v0.2.md)
-- [NPM Publishing Runbook](docs/npm-publishing.md)
-- [FAQ](docs/faq.md)
+* [Quickstart Guide](docs/quickstart.md)
+* [Comparison Matrix](docs/comparison.md)
+* [Use Cases & Stack Templates](docs/use-cases.md)
+* [Social Launch Kit](docs/launch-kit.md)
+* [Architecture Overview](docs/architecture.md)
+* [Adapters Guide](docs/adapters.md)
+* [Multi-agent Workflows](docs/multimodel-workflow.md)
+* [Caveman Mode](docs/caveman-mode.md)
+* [Script Installers Guide](docs/installers.md)
+* [CLI Development Roadmap](docs/cli-roadmap.md)
+* [NPM Publishing Runbook](docs/npm-publishing.md)
+* [Frequently Asked Questions (FAQ)](docs/faq.md)
+
+---
 
 ## Contributing
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
+---
+
 ## License
 
-[MIT](LICENSE)
+This project is licensed under the [MIT License](LICENSE).

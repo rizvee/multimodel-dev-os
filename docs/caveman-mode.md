@@ -21,12 +21,16 @@ AI agents consume tokens for every file they read. In large projects, context wi
 | `RUNBOOK.md` | ~400 tokens | ~80 tokens | 80% |
 | **Total** | **~1,600** | **~340** | **~79%** |
 
-## How to Use
-
 ### Fresh Install
 
+**Via npx (Recommended):**
 ```bash
-curl -fsSL .../install.sh | bash -s -- --caveman
+npx multimodel-dev-os@latest init --caveman
+```
+
+**Via shell script installer:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/install.sh | bash -s -- --caveman
 ```
 
 ### Convert Existing Project

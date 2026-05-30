@@ -4,6 +4,14 @@ All notable changes to multimodel-dev-os will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.4.0] - 2026-05-30
+
+### Added
+- GitHub Community Templates: Configured standardized bug reports, feature requests, and support templates in `.github/ISSUE_TEMPLATE/`.
+- Modern NPX Quickstart Focus: Rewrote `README.md` and `quickstart.md` to establish global execution of `npx multimodel-dev-os@latest init` as the primary installation path.
+- In-depth FAQ context: Explained the comparative value of `multimodel-dev-os` over manual unstructured rules configuration.
+- Installer script parity: Synchronized fallback bash and PowerShell installer version pins to current release status.
+
 ## [0.3.0] - 2026-05-30
 
 ### Added
