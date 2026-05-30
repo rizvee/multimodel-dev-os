@@ -79,6 +79,15 @@ npx multimodel-dev-os@latest init --caveman
 
 # 5. Verifying the structural health of your workspace directories
 npx multimodel-dev-os@latest verify
+
+# 6. Strict validation check for structural compliance
+npx multimodel-dev-os@latest validate
+
+# 7. Run advisory doctor checkup on target workspace
+npx multimodel-dev-os@latest doctor
+
+# 8. List all built-in template profiles with details
+npx multimodel-dev-os@latest templates
 ```
 
 ---
@@ -167,6 +176,7 @@ See [docs/use-cases.md](docs/use-cases.md) for full stack examples.
 ## Documentation
 
 * [Quickstart Guide](docs/quickstart.md)
+* [Templates Upgrade Guide](docs/templates-guide.md)
 * [Comparison Matrix](docs/comparison.md)
 * [Use Cases & Stack Templates](docs/use-cases.md)
 * [Social Launch Kit](docs/launch-kit.md)

@@ -75,15 +75,18 @@ cp -r /tmp/mmdos/.ai       your-project/
    - VS Code: `cp -r adapters/vscode/.vscode/ .vscode/`
 4. **Start coding** — your AI tools will read the shared config
 
-## Verify
+## Verify & Diagnose
 
-You can run our strict verification script to validate structural health:
+You can run our strict validation check or advisory doctor checkup to validate structural health:
 ```bash
-# Via CLI
-node bin/multimodel-dev-os.js verify --target /path/to/your-project
+# Strict directory schema validation
+node bin/multimodel-dev-os.js validate --target /path/to/your-project
 
-# Via verification shell script
-bash scripts/verify.sh
+# Advisory doctor workspace compatibility audit
+node bin/multimodel-dev-os.js doctor --target /path/to/your-project
+
+# Legacy verification script
+node bin/multimodel-dev-os.js verify --target /path/to/your-project
 ```
 
 ## Next Steps

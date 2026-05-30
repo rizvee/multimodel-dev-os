@@ -4,6 +4,17 @@ All notable changes to multimodel-dev-os will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.5.0] - 2026-05-30
+
+### Added
+- **v0.5.0 Real-World Template Upgrade:** Replaced generic placeholders in all 5 built-in templates (`nextjs-saas`, `wordpress-site`, `ecommerce-store`, `seo-landing-page`, `general-app`) with rich, practical, high-fidelity real-world profiles.
+- **Template Context Scaffolding:** Added essential layout files inside each template: `AGENTS.md`, `MEMORY.md`, `TASKS.md`, `.ai/config.yaml`, `.ai/context/project-brief.md`, `.ai/context/architecture.md`, `.ai/context/model-map.md`, `.ai/context/context-budget.md`, and custom `.ai/skills/[template-specific-skill].md`.
+- **Command Diagnostics & Templates Commands:** Implemented pure Node zero-dependency commands: `templates`, `list-templates`, `show-template <name>`, `validate`, and `doctor`.
+- **Validation Gates & Advisory Audits:** Strict compliance assertions via `validate` and advisory warning loops via `doctor` commands.
+- **Improved Scaffolding Copy Pipelines:** Dynamic copy of template-specific directory overrides and global folders ensures pristine layout integrity.
+- **Scaffolding Directories Guarantee:** Ensures `.ai/context`, `.ai/skills`, and `.ai/session-logs` are created during standard and `--caveman` runs.
+- **Extended Documentation:** Added `docs/templates-guide.md` and updated all existing manuals.
+
 ## [0.4.0] - 2026-05-30
 
 ### Added

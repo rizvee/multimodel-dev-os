@@ -29,24 +29,28 @@ node bin/multimodel-dev-os.js init
 node bin/multimodel-dev-os.js verify
 ```
 
-## CLI Roadmap & Commands Status
-
 | Command | Purpose | Target Version | Status |
 |---------|---------|----------------|--------|
 | `init` | Scaffold multimodel-dev-os into a project | v0.2.0 | ✅ Completed |
 | `verify` | Check that all required files exist and are valid | v0.2.0 | ✅ Completed |
-| `sync` | Regenerate adapter files from root AGENTS.md | v0.4.0 | 📋 Planned |
-| `add-adapter` | Add a new adapter to the project | v0.4.0 | 📋 Planned |
+| `templates` | List all built-in template profiles with details | v0.5.0 | ✅ Completed |
+| `show-template` | Inspect stack specifications of a template | v0.5.0 | ✅ Completed |
+| `doctor` | Advisory checkup of workspace compatibility | v0.5.0 | ✅ Completed |
+| `validate` | Strict directory schema compliance checks | v0.5.0 | ✅ Completed |
+| `sync` | Regenerate adapter files from root AGENTS.md | v0.6.0 | 📋 Planned |
+| `add-adapter` | Add a new adapter to the project | v0.6.0 | 📋 Planned |
 
-## Requirements Completed in v0.3.0
+## Requirements Completed in v0.5.0
 
-- [x] Published package to npm registry as `multimodel-dev-os` supporting `npx` global launches
-- [x] Configured whitelisted dynamic `package.json` version reading in CLI
-- [x] Programmed strict packaging dry-runs and automated bundle structure audits
-- [x] Standardized zero-dependency command option parsers
+- [x] Implemented strict `validate` CLI command for structural directory validation.
+- [x] Implemented advisory `doctor` command for project compatibility warnings.
+- [x] Implemented `templates` and `show-template` commands for built-in profiles inspection.
+- [x] Upgraded all 5 built-in template profiles with practical real-world contents.
+- [x] Implemented dynamic context budgetary constraints and skills validation.
+- [x] Preserved zero-dependency pure Node CLI implementations.
 
-## Future Releases (v0.4.0+)
+## Future Releases (v0.6.0+)
 
-* **Public Adoption Polish:** Update README, docs architecture, and shell installers to prioritize `npx` workflows.
 * **Adapter Autoregeneration (`sync`):** Parse custom override boundaries inside adapters and automatically synchronize them with updates in the root markdown source of truth.
 * **Interactive Mode:** Provide step-by-step CLI options if run without arguments.
+

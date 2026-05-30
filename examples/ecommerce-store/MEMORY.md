@@ -1,4 +1,5 @@
-# E-commerce Store — Memory
+# E-commerce Store — Project Memory
 
-## Architecture Decisions
-- Integrated static generation ISR for product details pages.
+## Architectural Decisions
+- **Stripe Session Handlers:** Utilized Stripe checkout sessions directly to minimize custom database operations for token vaults.
+- **Webhook Security:** Configured secure, cryptographically validated stripe webhook receivers in order routers to mitigate replay attacks.

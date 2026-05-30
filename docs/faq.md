@@ -71,3 +71,13 @@ should coordinate. Runtime orchestration is planned for v0.2+.
 **Do I need the orchestrator for single-agent workflows?**
 No. The orchestrator is only relevant when multiple agents work
 on the same codebase.
+
+## Diagnostics & Validation
+
+**What is the difference between `validate` and `doctor`?**
+* **`validate`** is strict and verifies that your workspace strictly complies with the multimodel-dev-os directory schema. It checks for the existence of core files/directories and ensures enabled adapter rule references are not broken. If any checks fail, it exits with an error status (exit code 1).
+* **`doctor`** is advisory. It inspects compatibility constraints, warning you about potential context bloat (e.g. missing `.gitignore` files or non-ignored build directories) or active rules missing matching files. It reports warnings without blocking execution.
+
+**How do I view available scaffolding templates?**
+You can use `node bin/multimodel-dev-os.js templates` (or `list-templates`) to view all available tech stacks and detailed blueprints, or `show-template <name>` to inspect a specific template's specifications.
+

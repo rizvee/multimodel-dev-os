@@ -197,30 +197,30 @@ check_file "docs/npm-publishing.md"
 echo ""
 echo "Running CLI & Packaging Pre-Flight Tests..."
 
-# Verify package.json version is exactly 0.3.0
-if ! grep -q '"version": "0.3.0"' package.json; then
-  echo -e "  ${RED}✗${NC} package.json version is not 0.3.0"
+# Verify package.json version is exactly 0.5.0
+if ! grep -q '"version": "0.5.0"' package.json; then
+  echo -e "  ${RED}✗${NC} package.json version is not 0.5.0"
   FAIL=$((FAIL + 1))
 else
-  echo -e "  ${GREEN}✓${NC} package.json version is exactly 0.3.0"
+  echo -e "  ${GREEN}✓${NC} package.json version is exactly 0.5.0"
   PASS=$((PASS + 1))
 fi
 
-# Verify CLI version matches v0.3.0
-if ! node bin/multimodel-dev-os.js --help | grep -q 'v0.3.0'; then
-  echo -e "  ${RED}✗${NC} CLI help does not display v0.3.0"
+# Verify CLI version matches v0.5.0
+if ! node bin/multimodel-dev-os.js --help | grep -q 'v0.5.0'; then
+  echo -e "  ${RED}✗${NC} CLI help does not display v0.5.0"
   FAIL=$((FAIL + 1))
 else
-  echo -e "  ${GREEN}✓${NC} CLI help displays v0.3.0"
+  echo -e "  ${GREEN}✓${NC} CLI help displays v0.5.0"
   PASS=$((PASS + 1))
 fi
 
-# Verify npm pack dry-run shows v0.3.0
-if ! npm pack --dry-run 2>&1 | grep -q 'multimodel-dev-os@0.3.0'; then
-  echo -e "  ${RED}✗${NC} npm pack --dry-run does not report version 0.3.0"
+# Verify npm pack dry-run shows v0.5.0
+if ! npm pack --dry-run 2>&1 | grep -q 'multimodel-dev-os@0.5.0'; then
+  echo -e "  ${RED}✗${NC} npm pack --dry-run does not report version 0.5.0"
   FAIL=$((FAIL + 1))
 else
-  echo -e "  ${GREEN}✓${NC} npm pack --dry-run reports version 0.3.0"
+  echo -e "  ${GREEN}✓${NC} npm pack --dry-run reports version 0.5.0"
   PASS=$((PASS + 1))
 fi
 

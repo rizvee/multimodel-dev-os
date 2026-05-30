@@ -1,4 +1,7 @@
-version: "0.1"
-project:
-  name: "custom-wordpress-theme"
-  mode: "standard"
+adapters:
+  cursor: true
+  claude: true
+  vscode: true
+mode: standard
+orchestrator:
+  mode: sequential

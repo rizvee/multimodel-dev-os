@@ -33,3 +33,7 @@ The universal fallback layout for Python, Go, Rust, or general backend setups.
 * **Command:** `npx multimodel-dev-os@latest init --template general-app`
 * **Scaffolds:** High-level project specifications, basic memory structures, and generic agent build instructions.
 * **Benefits:** Fast, lightweight starting point for any software repository.
+
+---
+
+For a complete breakdown of all files, scaffolding structures, and custom developer skills included in each profile, refer to the [Templates Guide](templates-guide.md).
