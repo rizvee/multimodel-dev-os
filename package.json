@@ -1,6 +1,6 @@
 {
   "name": "multimodel-dev-os",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "bin": {
     "multimodel-dev-os": "bin/multimodel-dev-os.js"
   },
@@ -31,6 +31,8 @@
     "adapters/",
     "scripts/",
     "docs/",
+    "!docs/.vitepress/dist/",
+    "!docs/.vitepress/cache/",
     "examples/",
     "bin/"
   ],
@@ -39,6 +41,12 @@
     "verify:bash": "bash scripts/verify.sh",
     "test:cli": "node bin/multimodel-dev-os.js verify",
     "pack:template": "bash scripts/pack-template.sh",
-    "pack": "bash scripts/pack-template.sh"
+    "pack": "bash scripts/pack-template.sh",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.4"
   }
 }
