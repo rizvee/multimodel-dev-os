@@ -19,15 +19,15 @@ Selecting how to manage AI instructions inside a codebase significantly impacts 
 
 ### 1. The DIY Approach (AGENTS.md Only)
 Many developers start by dropping a single `AGENTS.md` file in their root. While better than nothing, this approach quickly breaks down:
-* **Drift:** You modify a build command in `AGENTS.md`, but forget to update Cursor's `.cursorrules`. Cursor continues running the old build script, causing confusing errors.
-* **Clutter:** A single markdown file gets bloated with styling guidelines, deployment procedures, and troubleshooting steps. Soon, the AI spends 10,000 tokens just reading instructions on every turn.
+- **Drift:** You modify a build command in `AGENTS.md`, but forget to update Cursor's `.cursorrules`. Cursor continues running the old build script, causing confusing errors.
+- **Clutter:** A single markdown file gets bloated with styling guidelines, deployment procedures, and troubleshooting steps. Soon, the AI spends 10,000 tokens just reading instructions on every turn.
 
 ### 2. Tool-Specific Prompt Packs
 Using tools like `Cursorrules` websites or Claude Code presets locks your project configuration into one vendor's ecosystem:
-* **Vendor Lock:** If your team uses Cursor for coding and Claude Code for debugging, you must duplicate and manually translate the syntax for both tools.
-* **No Collaboration:** Co-workers using different IDEs or terminal utilities cannot benefit from the unified context.
+- **Vendor Lock:** If your team uses Cursor for coding and Claude Code for debugging, you must duplicate and manually translate the syntax for both tools.
+- **No Collaboration:** Co-workers using different IDEs or terminal utilities cannot benefit from the unified context.
 
 ### 3. MultiModel Dev OS
 `multimodel-dev-os` establishes a lightweight, vendor-neutral layer that decouples your project's rules from specific tools:
-* **Translate once, read everywhere:** You write build parameters once in the root. The CLI and adapters expose these configurations cleanly to Cursor, Claude, Antigravity, VS Code, and Codex.
-* **Continuous Integration:** You can add `multimodel-dev-os verify` to your CI pipeline or pre-commit hooks to guarantee that all developers share healthy, correctly-formatted AI configurations.
+- **Translate once, read everywhere:** You write build parameters once in the root. The CLI and adapters expose these configurations cleanly to Cursor, Claude, Antigravity, VS Code, and Codex.
+- **Continuous Integration:** You can add `multimodel-dev-os verify` to your CI pipeline or pre-commit hooks to guarantee that all developers share healthy, correctly-formatted AI configurations.

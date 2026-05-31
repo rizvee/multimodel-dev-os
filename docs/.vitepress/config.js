@@ -16,6 +16,7 @@ export default {
         text: 'Getting Started',
         items: [
           { text: 'Introduction', link: '/' },
+          { text: 'Interactive CLI Demo', link: '/demo' },
           { text: 'Quickstart', link: '/quickstart' },
           { text: 'FAQ', link: '/faq' }
         ]
@@ -33,6 +34,7 @@ export default {
         text: 'Templates & Use Cases',
         items: [
           { text: 'Template Gallery', link: '/templates/' },
+          { text: 'Before/After Workflows', link: '/workflow-examples' },
           { text: 'Use Cases Guide', link: '/use-cases' },
           { text: 'Templates Architecture', link: '/templates-guide' }
         ]
@@ -40,6 +42,8 @@ export default {
       {
         text: 'Operations & Publishing',
         items: [
+          { text: 'Public Launch Checklist', link: '/launch-checklist' },
+          { text: 'Release Playbook Template', link: '/release-template' },
           { text: 'CLI Roadmap', link: '/cli-roadmap' },
           { text: 'NPM Publishing Runbook', link: '/npm-publishing' },
           { text: 'Pre-flight Release Testing', link: '/testing-v0.2' }

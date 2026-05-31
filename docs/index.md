@@ -13,6 +13,9 @@ hero:
       text: Get Started Quick
       link: /quickstart
     - theme: alt
+      text: View CLI Demo
+      link: /demo
+    - theme: alt
       text: View Template Gallery
       link: /templates/
     - theme: alt
@@ -28,15 +31,21 @@ features:
     details: Includes Caveman Mode to slash model context footprint by ~79%, saving massive API bill budgets.
   - icon: 🛡️
     title: Local Quality Gates
-    details: Build-in zero-dependency validate and doctor checkups ensure pristine workspace rules layout.
+    details: Built-in zero-dependency validate and doctor checkups ensure pristine workspace rules layout.
 ---
 
 <style>
 :root {
   --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: linear-gradient(135deg, #646cff 0%, #42b883 100%);
+  --vp-home-hero-name-background: linear-gradient(135deg, #6366f1 0%, #10b981 100%);
 }
 </style>
+
+## Interactive CLI Demo
+
+<p align="center">
+  <img src="/assets/terminal-demo.svg" alt="Terminal Demo Scaffolding" width="100%">
+</p>
 
 ## 10-Second Quickstart
 

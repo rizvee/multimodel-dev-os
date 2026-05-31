@@ -1,6 +1,6 @@
 {
   "name": "multimodel-dev-os",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "bin": {
     "multimodel-dev-os": "bin/multimodel-dev-os.js"
   },
@@ -34,7 +34,8 @@
     "!docs/.vitepress/dist/",
     "!docs/.vitepress/cache/",
     "examples/",
-    "bin/"
+    "bin/",
+    "assets/"
   ],
   "scripts": {
     "verify": "node scripts/verify.js",

@@ -4,6 +4,19 @@ All notable changes to multimodel-dev-os will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.7.0] - 2026-05-31
+
+### Added
+- **Premium Asset Designs:** Re-designed and expanded `assets/terminal-demo.svg`, `assets/social-preview.svg`, and `assets/architecture-preview.svg` to feature polished, modern vector art, system font stacks, and HSL gradients.
+- **Interactive CLI Manual:** Developed a rich manual at `docs/demo.md` detailing the visual init pipeline and pure Node.js zero-dependency CLI subcommands.
+- **Detailed Workflow Studies:** Added before/after workflow case studies at `docs/workflow-examples.md` showcasing context sync drift prevention and token saving capabilities.
+- **Pre-Flight Release Templates:** Authored a standardized release checklist (`docs/launch-checklist.md`) and patch release playbook template (`docs/release-template.md`).
+- **Improved Sharing Kit:** Polished ready-to-share promotional copy blocks inside `docs/launch-kit.md` for Twitter/X, LinkedIn, Hacker News, and Reddit campaigns.
+
+### Changed
+- **Redesigned Landing Hubs:** Completely overhauled `README.md` and VitePress `docs/index.md` homepage designs with embedded vector previews and instant quickstarts.
+- **Aligned Comparison Matrix:** Refined comparison guide details inside `docs/comparison.md` and `docs/quickstart.md` options.
+
 ## [0.6.1] - 2026-05-30
 
 ### Fixed
