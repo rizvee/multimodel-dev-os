@@ -63,3 +63,9 @@ node bin/multimodel-dev-os.js show-template nextjs-saas
 # Bootstrap target using a template
 node bin/multimodel-dev-os.js init --target ../my-new-app --template nextjs-saas
 ```
+
+---
+
+## Template Quality Assurance
+
+To ensure all contributed templates meet our rigorous quality standards before packaging, refer to our [Template Quality Assurance Blueprint](/template-qa).

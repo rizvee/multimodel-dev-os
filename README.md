@@ -72,6 +72,21 @@ See our step-by-step timeline: [5-Day Adoption Roadmap Playbook](https://rizvee.
 
 ---
 
+## Protocol Stability & v1.0.0 Readiness
+
+As we prepare for the `v1.0.0` freeze, MultiModel Dev OS enforces:
+- **Strict Backward-Compatibility:** The core CLI commands and root folder directory schemas are officially frozen.
+- **Robust JSON Schemas:** Native verification schemas guard your `.ai/config.yaml` against broken configurations.
+
+Explore our stabilization playbooks directly:
+- 🛡️ [Official Protocol Specification](https://rizvee.github.io/multimodel-dev-os/protocol)
+- 🔌 [Multi-Agent Compatibility Guides](https://rizvee.github.io/multimodel-dev-os/compatibility)
+- 📈 [Templates Quality Assurance Playbook](https://rizvee.github.io/multimodel-dev-os/template-qa)
+- 💡 [Upgrade & Migration Guide](https://rizvee.github.io/multimodel-dev-os/migration-guide)
+- 🏁 [v1.0.0 Readiness Roadmap](https://rizvee.github.io/multimodel-dev-os/v1-readiness)
+
+---
+
 ## Real-World Case Studies
 
 Discover how engineering teams deploy MultiModel Dev OS:

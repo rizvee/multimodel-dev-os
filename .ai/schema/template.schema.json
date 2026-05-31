@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MultiModel Dev OS Template Schema",
+  "description": "JSON schema reference defining expectations for pre-configured stack templates",
+  "type": "OBJECT",
+  "required": ["name", "requiredFiles"],
+  "properties": {
+    "name": {
+      "type": "STRING",
+      "description": "The unique identifying template name"
+    },
+    "description": {
+      "type": "STRING",
+      "description": "A description of the technology stack profile"
+    },
+    "requiredFiles": {
+      "type": "ARRAY",
+      "items": { "type": "STRING" },
+      "description": "Baseline contracts and subfolders required to scaffold"
+    },
+    "optionalFiles": {
+      "type": "ARRAY",
+      "items": { "type": "STRING" },
+      "description": "Optional overrides or specific skill prompts files"
+    },
+    "supportedAdapters": {
+      "type": "ARRAY",
+      "items": { "type": "STRING" },
+      "description": "IDE and terminal adapters validated for the template"
+    }
+  },
+  "additionalProperties": false
+}

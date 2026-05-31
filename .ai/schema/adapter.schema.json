@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MultiModel Dev OS Adapter Schema",
+  "description": "JSON schema reference detailing tool/IDE adapter expected boundaries and setup layouts",
+  "type": "OBJECT",
+  "required": ["adapterName", "targetFile", "setupDocs"],
+  "properties": {
+    "adapterName": {
+      "type": "STRING",
+      "description": "Unique identifier of the target programming tool (e.g. cursor, claude)"
+    },
+    "targetFile": {
+      "type": "STRING",
+      "description": "The rule configuration file mapped by the adapter"
+    },
+    "setupDocs": {
+      "type": "STRING",
+      "description": "Relative reference to the adapter setup markdown instructions"
+    },
+    "requiredRootFiles": {
+      "type": "ARRAY",
+      "items": { "type": "STRING" },
+      "description": "Root workspace contracts verified by the adapter schema"
+    }
+  },
+  "additionalProperties": false
+}

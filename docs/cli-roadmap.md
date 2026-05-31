@@ -54,3 +54,11 @@ node bin/multimodel-dev-os.js verify
 * **Adapter Autoregeneration (`sync`):** Parse custom override boundaries inside adapters and automatically synchronize them with updates in the root markdown source of truth.
 * **Interactive Mode:** Provide step-by-step CLI options if run without arguments.
 
+## Protocol Stabilization & v1.0.0 Freeze (v0.9.0)
+
+In version **v0.9.0**, we pivot the roadmap to focus on **stabilization and hardening** ahead of the official `v1.0.0` freeze:
+- **API Freeze:** The CLI syntax, standard command names (`init`, `verify`, `validate`, `doctor`, `templates`), and dynamic flags are frozen to ensure zero breaking changes in future minor patches.
+- **Robust JSON Schemas:** Added standard validators inside `.ai/schema/` to define config and template formats.
+- **Continuous Integration Gates:** Transitioning `validate` to serve as a strict build blocker for pulling and publishing code.
+- **Enhanced Warning Paths:** Hardened CLI error messaging when directory write conflicts occur, mapping absolute paths cleanly.
+

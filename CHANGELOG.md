@@ -4,6 +4,19 @@ All notable changes to multimodel-dev-os will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.9.0] - 2026-05-31
+
+### Added
+- **Protocol & Specification Docs:** Published official specifications at `docs/protocol.md` mapping layers, adapters, and CLI contratos, plus compatibility guides across 6 tools (`docs/compatibility.md`).
+- **JSON Validation Schemas:** Designed standard configuration JSON schemas inside `.ai/schema/` (`config.schema.json`, `template.schema.json`, `adapter.schema.json`) to enforce expected file formats.
+- **Migration & QA Timelines:** Created a complete migration upgrade path playbook (`docs/migration-guide.md`) and template scaffolding acceptance playbook (`docs/template-qa.md`).
+- **Freeze Readiness Audits:** Added strict v1.0.0 freeze checklist controls inside `docs/v1-readiness.md`.
+- **Linter Expansions:** Hardened the dynamic zero-dependency verifier script (`scripts/verify.js`) to assert new protocol schemas and test blueprints exist.
+
+### Changed
+- **Visual Landing Redesign:** Overhauled `README.md` and VitePress homepage (`docs/index.md`) to integrate protocol stability guidelines.
+- **Enhanced CLI Warning paths:** Improved error warning paths inside the binary CLI `bin/multimodel-dev-os.js` to log descriptive warnings when requested templates do not exist.
+
 ## [0.8.0] - 2026-05-31
 
 ### Added

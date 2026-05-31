@@ -194,6 +194,23 @@ checkFile('docs/faq.md');
 checkFile('docs/testing-v0.2.md');
 checkFile('docs/npm-publishing.md');
 checkFile('docs/templates-guide.md');
+checkFile('docs/protocol.md');
+checkFile('docs/compatibility.md');
+checkFile('docs/migration-guide.md');
+checkFile('docs/template-qa.md');
+checkFile('docs/v1-readiness.md');
+
+// --- JSON Schemas ---
+console.log('\nJSON Schemas:');
+checkFile('.ai/schema/config.schema.json');
+checkFile('.ai/schema/template.schema.json');
+checkFile('.ai/schema/adapter.schema.json');
+
+// --- Test Blueprints ---
+console.log('\nTest Manuals:');
+checkFile('tests/README.md');
+checkFile('tests/fixtures/README.md');
+checkFile('tests/smoke/README.md');
 
 // --- CLI & Packaging Pre-Flight Tests ---
 console.log('\nRunning CLI & Packaging Pre-Flight Tests...');

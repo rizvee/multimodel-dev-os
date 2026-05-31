@@ -22,6 +22,16 @@ export default {
         ]
       },
       {
+        text: 'Protocol & QA Specifications',
+        items: [
+          { text: 'Protocol Specification', link: '/protocol' },
+          { text: 'Adapter Compatibility', link: '/compatibility' },
+          { text: 'Upgrades & Migration', link: '/migration-guide' },
+          { text: 'Templates QA Blueprint', link: '/template-qa' },
+          { text: 'v1.0.0 Readiness Checklist', link: '/v1-readiness' }
+        ]
+      },
+      {
         text: 'Case Studies & Playbooks',
         items: [
           { text: 'Case Studies Gallery', link: '/case-studies/' },

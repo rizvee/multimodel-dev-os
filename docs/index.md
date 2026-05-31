@@ -13,14 +13,14 @@ hero:
       text: Get Started Quick
       link: /quickstart
     - theme: alt
+      text: Protocol Specs
+      link: /protocol
+    - theme: alt
+      text: v1.0 Readiness
+      link: /v1-readiness
+    - theme: alt
       text: View Case Studies
       link: /case-studies/
-    - theme: alt
-      text: Cost Playbook
-      link: /cost-optimization
-    - theme: alt
-      text: 5-Day Roadmap
-      link: /5-day-roadmap
     - theme: alt
       text: View on GitHub
       link: https://github.com/rizvee/multimodel-dev-os

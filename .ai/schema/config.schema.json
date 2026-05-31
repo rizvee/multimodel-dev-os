@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MultiModel Dev OS Config Schema",
+  "description": "JSON schema reference validating standard .ai/config.yaml workspace settings",
+  "type": "OBJECT",
+  "required": ["version", "adapters"],
+  "properties": {
+    "version": {
+      "type": "STRING",
+      "description": "The configuration protocol version matching semantic limits"
+    },
+    "adapters": {
+      "type": "OBJECT",
+      "description": "Enabled state of target IDE and terminal programming adapters",
+      "properties": {
+        "codex": { "type": "BOOLEAN" },
+        "antigravity": { "type": "BOOLEAN" },
+        "cursor": { "type": "BOOLEAN" },
+        "claude": { "type": "BOOLEAN" },
+        "gemini": { "type": "BOOLEAN" },
+        "vscode": { "type": "BOOLEAN" }
+      },
+      "additionalProperties": false
+    },
+    "caveman": {
+      "type": "BOOLEAN",
+      "description": "Toggled state of minimal-token prompt rules"
+    },
+    "template": {
+      "type": "STRING",
+      "description": "Selected baseline technology stack template name"
+    }
+  },
+  "additionalProperties": false
+}

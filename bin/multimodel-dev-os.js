@@ -202,6 +202,7 @@ function handleInit(options) {
   // Source path mapping for core files
   let templateDir = join(sourceRoot, 'examples', options.template);
   if (!existsSync(templateDir)) {
+    console.warn(`  \x1b[33m[WARNING] Template '${options.template}' not found. Falling back to 'general-app' profile.\x1b[0m`);
     templateDir = join(sourceRoot, 'examples', 'general-app');
   }
 
