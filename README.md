@@ -9,12 +9,12 @@
 </p>
 
 <p align="center">
-  [![NPM Version](https://img.shields.io/npm/v/multimodel-dev-os.svg?color=blue&style=flat-square)](https://www.npmjs.com/package/multimodel-dev-os)
-  [![NPM Package](https://img.shields.io/badge/npm-package-cb3837.svg?style=flat-square)](https://www.npmjs.com/package/multimodel-dev-os)
-  [![License](https://img.shields.io/npm/l/multimodel-dev-os.svg?color=green&style=flat-square)](https://github.com/rizvee/multimodel-dev-os/blob/main/LICENSE)
-  [![GitHub Release](https://img.shields.io/github/v/release/rizvee/multimodel-dev-os?color=indigo&style=flat-square)](https://github.com/rizvee/multimodel-dev-os/releases)
-  [![Build Verification](https://img.shields.io/github/actions/workflow/status/rizvee/multimodel-dev-os/verify.yml?branch=main&style=flat-square&label=verification)](https://github.com/rizvee/multimodel-dev-os/actions)
-  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-emerald.svg?style=flat-square)](https://github.com/rizvee/multimodel-dev-os/blob/main/CONTRIBUTING.md)
+  <a href="https://www.npmjs.com/package/multimodel-dev-os"><img src="https://img.shields.io/npm/v/multimodel-dev-os.svg?color=blue&style=flat-square" alt="NPM Version"></a>
+  <a href="https://www.npmjs.com/package/multimodel-dev-os"><img src="https://img.shields.io/badge/npm-package-cb3837.svg?style=flat-square" alt="NPM Package"></a>
+  <a href="https://github.com/rizvee/multimodel-dev-os/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/multimodel-dev-os.svg?color=green&style=flat-square" alt="License"></a>
+  <a href="https://github.com/rizvee/multimodel-dev-os/releases"><img src="https://img.shields.io/github/v/release/rizvee/multimodel-dev-os?color=indigo&style=flat-square" alt="GitHub Release"></a>
+  <a href="https://github.com/rizvee/multimodel-dev-os/actions"><img src="https://img.shields.io/github/actions/workflow/status/rizvee/multimodel-dev-os/verify.yml?branch=main&style=flat-square&label=verification" alt="Build Verification"></a>
+  <a href="https://github.com/rizvee/multimodel-dev-os/blob/main/CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-emerald.svg?style=flat-square" alt="PRs Welcome"></a>
 </p>
 
 ---
