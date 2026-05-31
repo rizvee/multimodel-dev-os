@@ -13,11 +13,14 @@ hero:
       text: Get Started Quick
       link: /quickstart
     - theme: alt
-      text: View CLI Demo
-      link: /demo
+      text: View Case Studies
+      link: /case-studies/
     - theme: alt
-      text: View Template Gallery
-      link: /templates/
+      text: Cost Playbook
+      link: /cost-optimization
+    - theme: alt
+      text: 5-Day Roadmap
+      link: /5-day-roadmap
     - theme: alt
       text: View on GitHub
       link: https://github.com/rizvee/multimodel-dev-os
@@ -41,19 +44,25 @@ features:
 }
 </style>
 
-## Interactive CLI Demo
+## Cost & Context Optimization
+
+Minimize prompt overhead and API billing by mapping key context-reduction techniques to MultiModel Dev OS features:
 
 <p align="center">
-  <img src="/assets/terminal-demo.svg" alt="Terminal Demo Scaffolding" width="100%">
+  <img src="/assets/cost-optimization.svg" alt="Cost Optimization Funnel" width="100%">
 </p>
 
-## 10-Second Quickstart
+---
 
-Bootstrap your project instantly via `npx`:
+## 5-Day Adoption Roadmap
 
-```bash
-npx multimodel-dev-os@latest init
-```
+Deploying MultiModel Dev OS across your team is straightforward and tool-neutral:
+
+<p align="center">
+  <img src="/assets/ai-dev-os-roadmap.svg" alt="5-Day Adoption Roadmap" width="100%">
+</p>
+
+---
 
 ## Why MultiModel Dev OS?
 

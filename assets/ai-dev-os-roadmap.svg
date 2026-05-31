@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 250" width="100%" height="100%" style="border-radius: 12px; font-family: 'Outfit', 'Inter', -apple-system, sans-serif; box-shadow: 0 20px 50px rgba(0,0,0,0.4);">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="roadmapBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#070a13" />
+      <stop offset="100%" stop-color="#0c101b" />
+    </linearGradient>
+
+    <!-- Roadmap Accent Line -->
+    <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="50%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+  </defs>
+
+  <!-- Frame Background -->
+  <rect width="800" height="250" rx="12" fill="url(#roadmapBg)" stroke="#1e293b" stroke-width="1.5"/>
+
+  <!-- Title -->
+  <text x="400" y="45" font-size="20" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="1">5-DAY AI DEV OS ADOPTION ROADMAP</text>
+  <text x="400" y="68" font-size="13" font-weight="500" fill="#94a3b8" text-anchor="middle">Milestones to achieve structured multi-agent workflow reuse inside teams</text>
+
+  <!-- Connection Line -->
+  <line x1="80" y1="140" x2="720" y2="140" stroke="url(#lineGrad)" stroke-width="4"/>
+
+  <!-- Day 1 Node -->
+  <g transform="translate(100, 140)">
+    <circle cx="0" cy="0" r="14" fill="#6366f1" stroke="#ffffff" stroke-width="2"/>
+    <text x="0" y="30" font-size="12" font-weight="800" fill="#a5b4fc" text-anchor="middle">DAY 1</text>
+    <text x="0" y="45" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">Scaffold CLI</text>
+    <text x="0" y="58" font-size="9" fill="#94a3b8" text-anchor="middle">npx init</text>
+  </g>
+
+  <!-- Day 2 Node -->
+  <g transform="translate(250, 140)">
+    <circle cx="0" cy="0" r="14" fill="#4f46e5" stroke="#ffffff" stroke-width="2"/>
+    <text x="0" y="30" font-size="12" font-weight="800" fill="#a5b4fc" text-anchor="middle">DAY 2</text>
+    <text x="0" y="45" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">Project Memory</text>
+    <text x="0" y="58" font-size="9" fill="#94a3b8" text-anchor="middle">AGENTS.md core</text>
+  </g>
+
+  <!-- Day 3 Node -->
+  <g transform="translate(400, 140)">
+    <circle cx="0" cy="0" r="14" fill="#8b5cf6" stroke="#ffffff" stroke-width="2"/>
+    <text x="0" y="30" font-size="12" font-weight="800" fill="#d8b4fe" text-anchor="middle">DAY 3</text>
+    <text x="0" y="45" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">Skills &amp; Checks</text>
+    <text x="0" y="58" font-size="9" fill="#94a3b8" text-anchor="middle">Custom prompt packs</text>
+  </g>
+
+  <!-- Day 4 Node -->
+  <g transform="translate(550, 140)">
+    <circle cx="0" cy="0" r="14" fill="#a855f7" stroke="#ffffff" stroke-width="2"/>
+    <text x="0" y="30" font-size="12" font-weight="800" fill="#d8b4fe" text-anchor="middle">DAY 4</text>
+    <text x="0" y="45" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">Mount Adapters</text>
+    <text x="0" y="58" font-size="9" fill="#94a3b8" text-anchor="middle">Claude/Cursor sync</text>
+  </g>
+
+  <!-- Day 5 Node -->
+  <g transform="translate(700, 140)">
+    <circle cx="0" cy="0" r="14" fill="#10b981" stroke="#ffffff" stroke-width="2"/>
+    <text x="0" y="30" font-size="12" font-weight="800" fill="#34d399" text-anchor="middle">DAY 5</text>
+    <text x="0" y="45" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">Audit &amp; Verify</text>
+    <text x="0" y="58" font-size="9" fill="#94a3b8" text-anchor="middle">Linter in CI/CD</text>
+  </g>
+</svg>

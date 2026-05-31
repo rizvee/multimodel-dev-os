@@ -4,6 +4,19 @@ All notable changes to multimodel-dev-os will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.8.0] - 2026-05-31
+
+### Added
+- **Educational Case Studies:** Launched a Case Studies Gallery (`docs/case-studies/`) detailing 5 real-world scenarios (Next.js SaaS schema synchronization, WordPress themes boundaries, E-Commerce webhooks states, SEO landing Core Web Vitals targets, and Claude/Gemini hand-off session log protocols).
+- **Cost & Context Playbook:** Authored a complete playbook (`docs/cost-optimization.md`) mapping 12 industry cost-reduction strategies directly to MultiModel Dev OS features.
+- **5-Day Adoption Roadmap:** Created a step-by-step tool-neutral business playbook (`docs/5-day-roadmap.md`) to guide prompt standards implementation inside teams.
+- **Lightweight SVG Visual Charts:** Engineered `assets/cost-optimization.svg` representing token context reductions and `assets/ai-dev-os-roadmap.svg` illustrating Day 1–5 Horizontal milestones.
+
+### Changed
+- **Visual Landing Redesign:** Overhauled `README.md` and VitePress homepage (`docs/index.md`) to embed visual roadmaps and playbooks links.
+- **Improved Sharing Kit:** Updated launch metadata copy and social outlines inside `docs/launch-kit.md` focusing on context and token savings.
+- **VitePress Sidebar integration:** Integrated Case Studies, roadmaps, and playbooks in `.vitepress/config.js` config sidebar categories.
+
 ## [0.7.0] - 2026-05-31
 
 ### Added

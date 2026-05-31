@@ -33,7 +33,7 @@ npx multimodel-dev-os@latest init
 ## Before vs. After
 
 ### Before: Chaotic Prompting & Instruction Drift
-- Switching between agents (like Cursor, Claude Code, Gemini, Codex) requires maintaining duplicate instruction files (`.cursorrules`, `CLAUDE.md`, `.vscode/settings.json`, etc.).
+- Switching between agents (like Cursor, Claude Code, Gemini, Codex, Antigravity) requires maintaining duplicate instruction files (`.cursorrules`, `CLAUDE.md`, `.vscode/settings.json`, etc.).
 - Modifying guidelines in one place results in immediate **Instruction Drift**, where one agent operates on outdated conventions, causing compile crashes.
 - Duplicate instructions bloat prompts, wasting **1,500+ tokens** of model context budget on every single turn.
 
@@ -44,13 +44,42 @@ npx multimodel-dev-os@latest init
 
 ---
 
-## Sync Architecture
+## Cost & Context Optimization
 
-`multimodel-dev-os` decouples your instructions from specific IDE extensions and model APIs:
+Minimize prompt overhead and API billing by mapping key context-reduction techniques to MultiModel Dev OS features:
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/assets/architecture-preview.svg" alt="Sync Architecture" width="100%">
+  <img src="https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/assets/cost-optimization.svg" alt="Cost Optimization Funnel" width="100%">
 </p>
+
+- 🧠 **Choose Right Model:** Configured in `model-map.md`.
+- ⚡ **Caveman Mode:** Cuts rule context sizes down by **~79%**.
+- 📦 **RAG Scoping:** Modular context files in `.ai/context/` prevent token waste.
+
+For a full deep dive, see our [Cost Optimization Playbook](https://rizvee.github.io/multimodel-dev-os/cost-optimization).
+
+---
+
+## 5-Day Adoption Roadmap
+
+Deploying MultiModel Dev OS across your team is straightforward and tool-neutral:
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/assets/ai-dev-os-roadmap.svg" alt="5-Day Adoption Roadmap" width="100%">
+</p>
+
+See our step-by-step timeline: [5-Day Adoption Roadmap Playbook](https://rizvee.github.io/multimodel-dev-os/5-day-roadmap).
+
+---
+
+## Real-World Case Studies
+
+Discover how engineering teams deploy MultiModel Dev OS:
+- 📦 [Full-Stack Next.js SaaS: Database Schema Synchronization](https://rizvee.github.io/multimodel-dev-os/case-studies/nextjs-saas)
+- 🔌 [WordPress Theme Scaffolding: Folder Boundary Protections](https://rizvee.github.io/multimodel-dev-os/case-studies/wordpress-site)
+- 🛒 [E-Commerce Webhooks: State Verification Alignment](https://rizvee.github.io/multimodel-dev-os/case-studies/ecommerce-store)
+- 📈 [SEO Landing Pages: Core Web Vitals Linter Budgets](https://rizvee.github.io/multimodel-dev-os/case-studies/seo-landing-page)
+- 🚀 [Multi-Model Handoff: Sequential Session Logging](https://rizvee.github.io/multimodel-dev-os/case-studies/multimodel-handoff)
 
 ---
 
@@ -60,7 +89,6 @@ Explore our detailed manuals directly:
 - 📖 [CLI Terminal Demo Guide](https://rizvee.github.io/multimodel-dev-os/demo)
 - 💡 [Before/After Workflow Case Studies](https://rizvee.github.io/multimodel-dev-os/workflow-examples)
 - 🛡️ [Public Release & Staging Checklist](https://rizvee.github.io/multimodel-dev-os/launch-checklist)
-- 📦 [Standard Template Gallery](https://rizvee.github.io/multimodel-dev-os/templates/)
 
 ---
 

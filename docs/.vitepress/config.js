@@ -22,6 +22,24 @@ export default {
         ]
       },
       {
+        text: 'Case Studies & Playbooks',
+        items: [
+          { text: 'Case Studies Gallery', link: '/case-studies/' },
+          { text: 'Next.js SaaS Full-Stack', link: '/case-studies/nextjs-saas' },
+          { text: 'WordPress Theme & Plugins', link: '/case-studies/wordpress-site' },
+          { text: 'E-Commerce State webhooks', link: '/case-studies/ecommerce-store' },
+          { text: 'SEO Landing Page Performance', link: '/case-studies/seo-landing-page' },
+          { text: 'Multi-Model Handoff Protocols', link: '/case-studies/multimodel-handoff' }
+        ]
+      },
+      {
+        text: 'Adoption & Optimization',
+        items: [
+          { text: 'Cost Optimization Playbook', link: '/cost-optimization' },
+          { text: '5-Day Adoption Roadmap', link: '/5-day-roadmap' }
+        ]
+      },
+      {
         text: 'Core Features',
         items: [
           { text: 'Command Line Reference', link: '/CLI' },

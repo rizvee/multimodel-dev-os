@@ -12,6 +12,7 @@ Selecting how to manage AI instructions inside a codebase significantly impacts 
 | **Structural Segregation** | Flat single-file instructions (easily cluttered) | Disorganized configs | **Concise modular directories** (Context, Skills, Prompts, Checks) |
 | **CI/CD Quality Gates** | None (no structural safety checks) | None | **Verify subcommand** (`npm run verify` protects standard formats) |
 | **Standardized Hand-offs** | Manual human explanations | Manual human explanations | **Sequential hand-off protocol** with structured session logs |
+| **Cost Playbook Alignment** | None | None | **12 Playbook mappings** (RAG scoping, batching, caching) |
 
 ---
 

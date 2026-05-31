@@ -70,3 +70,5 @@ When pair programming requires switching between terminal-based execution (**Cla
    - Next planned steps
 2. **Step 2 (Gemini Pick-Up):** When the developer launches Gemini, the system feeds the last session log. Gemini reads `session-001.md` and instantly knows exactly where Claude Code left off.
 3. **Outcome:** Zero context drop, zero redundant questions, and pristine, seamless model hand-offs!
+
+For a detailed, step-by-step walk of this protocol in action, see our [Multi-Model Handoff Case Study](/case-studies/multimodel-handoff).
