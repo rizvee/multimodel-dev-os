@@ -1,6 +1,8 @@
-# Stable Protocol Specification (v1.0.0 Freeze)
+# Stable Protocol Specification (v1.1.0 Freeze)
 
-This document formalizes the official, frozen architectural layers and design contracts for the MultiModel Dev OS protocol, guaranteeing portability and long-term stability.
+This document formalizes the official, frozen architectural layers and design contracts for the MultiModel Dev OS protocol, guaranteeing portability and long-term stability across diverse AI coding agents.
+
+> **Best for**: Third-party client integrations, tool adapter developers, and engineering teams establishing robust AI coding guidelines.
 
 ---
 
@@ -33,7 +35,7 @@ MultiModel Dev OS enforces a three-tier design to decouple core workspace contex
 ## 2. Layer 1: Root Contracts
 
 The following root files serve as the workspace single source of truth and are completely frozen:
-- **`AGENTS.md`**: Defines team structures, boundaries, and model configurations.
+- **`AGENTS.md`**: Defines team structures, boundaries, and model configurations (Codex project memory / Antigravity AI workflow).
 - **`MEMORY.md`**: Preserves key context decisions, codebase state, and repository milestones.
 - **`TASKS.md`**: Tracks current active goals and backlog.
 - **`RUNBOOK.md`**: Operational scripts and workspace verify procedures.
@@ -52,7 +54,7 @@ The following directories and files under `.ai/` are strictly locked:
 
 ## 4. Layer 3: Adapters Setup
 
-IDE adapters translate centralized rules to tool-specific paths:
+IDE adapters translate centralized rules to tool-specific paths (Cursor project rules / Claude Code project instructions):
 - **Cursor**: Linked via root `.cursorrules`
 - **Claude**: Linked via root `CLAUDE.md`
 - **Gemini**: Linked via `.gemini/settings.json`
@@ -64,3 +66,5 @@ IDE adapters translate centralized rules to tool-specific paths:
 
 - **Stable**: Root files, scaffolding directories, CLI subcommand signatures, and standard config structures.
 - **Experimental**: Custom check overrides under `.ai/checks/` and stack-specific context routing.
+
+Explore our [Upgrades & Migration Guide](/migration-guide) or [Release Quality Checklist](/v1-checklist) for staging controls.

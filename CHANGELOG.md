@@ -4,6 +4,20 @@ All notable changes to multimodel-dev-os will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.1.0] - 2026-05-31
+
+### Added
+- **Visual Branding Integration**: Copied official `favicon.png` and `logo.png` into the public docs folders and configured favicon references and display blocks.
+- **VitePress SEO Head tags**: Integrated canonical links, mobile viewport settings, theme parameters, robots tags, Open Graph properties (title, image, description, URL), and Twitter card metadata.
+- **Structured JSON-LD Schema**: Embedded standard `SoftwareApplication` structured schemas within hosted pages to support automated web indexing and search results formatting.
+- **AEO & GEO Discoverability files**: Added `docs/public/llms.txt` and `docs/public/llms-full.txt` to align AI assistant ingestion parameters, plus `robots.txt`, `sitemap.xml`, and `humans.txt` files.
+- **Visual README Overhaul**: Redesigned `README.md` to feature the official logo near the top, add npm and verification badges, and provide localized relative asset paths.
+- **Docs UX grids**: Implemented premium styled works-with panels and structured card navigation grids on the hosted homepage (`index.md`).
+
+### Changed
+- **Version Bump**: Bounded codebase release parameters to version `1.1.0`.
+- **Expanded Verification Scripts**: Added strict file-existence checks inside the verifier suite targeting the new discoverability resources and logos.
+
 ## [1.0.0] - 2026-05-31
 
 ### Added

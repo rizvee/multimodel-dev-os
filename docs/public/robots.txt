@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://rizvee.github.io/multimodel-dev-os/sitemap.xml

@@ -1,6 +1,8 @@
-# MultiModel Dev OS Protocol Specification
+# MultiModel Dev OS Protocol Specification (v1.1.0)
 
-This document defines the official, stable architectural protocol and design contracts for `multimodel-dev-os`, preparing the codebase for the v1.0.0 freeze.
+This document defines the official, stable architectural protocol and design contracts for MultiModel Dev OS, establishing portable AI project context conventions.
+
+> **Use when**: Implementing a custom CLI client, creating private adapters, or auditing Layer 1-3 protocol compliance.
 
 ---
 
@@ -27,12 +29,12 @@ The protocol is divided into three distinct decoupled layers to guarantee portab
 
 ---
 
-## 2. Stability Matrix (v1.0.0 Freeze)
+## 2. Stability Matrix (v1.1.0 Freeze)
 
 To prevent breaking changes, protocol definitions are designated as **Stable** or **Experimental**:
 
 ### A. Stable Protocol Components
-These features are fully frozen. No breaking changes or renaming will occur in v1.0:
+These features are fully frozen. No breaking changes or renaming will occur in `v1.x`:
 - **Core Workspace Contracts:** The names and root directories of `AGENTS.md`, `MEMORY.md`, `TASKS.md`, and `RUNBOOK.md` are completely frozen.
 - **Scaffolding Subfolders:** Target folders `.ai/context/`, `.ai/skills/`, and `.ai/session-logs/` are strictly required by the sync CLI.
 - **Adapters Interface:** Mappings to Cursor (`.cursorrules`), Claude (`CLAUDE.md`), VS Code (`.vscode/settings.json`), and Gemini (`GEMINI.md`) are guaranteed.
@@ -52,3 +54,5 @@ All compliant MultiModel Dev OS CLIs must strictly support the following executi
 - **`validate` Quality Gate:** Asserts that required folders and enabled adapter rules exist on disk.
 - **`doctor` Diagnostic:** Advisory audit of `.gitignore` setups and folder compatibility.
 - **`templates` Inspector:** Displays available stack configurations.
+
+Explore our [Stable Protocol Specification](/stable-protocol) or [Upgrade & Migration Guide](/migration-guide) for details.

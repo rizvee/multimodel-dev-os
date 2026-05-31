@@ -3,6 +3,40 @@ export default {
   title: 'MultiModel Dev OS',
   description: 'Portable, vendor-neutral AI Developer OS for multi-agent coding workflows.',
   ignoreDeadLinks: true,
+  head: [
+    ['link', { rel: 'icon', href: '/multimodel-dev-os/favicon.png', type: 'image/png' }],
+    ['link', { rel: 'canonical', href: 'https://rizvee.github.io/multimodel-dev-os/' }],
+    ['meta', { name: 'theme-color', content: '#6366f1' }],
+    ['meta', { name: 'robots', content: 'index, follow' }],
+    ['meta', { name: 'application-name', content: 'MultiModel Dev OS' }],
+    ['meta', { name: 'apple-mobile-web-app-title', content: 'MultiModel Dev OS' }],
+    ['meta', { property: 'og:title', content: 'MultiModel Dev OS' }],
+    ['meta', { property: 'og:description', content: 'Portable AI Dev OS for Codex, Antigravity, Cursor, Claude, Gemini, VS Code, and multimodel coding workflows.' }],
+    ['meta', { property: 'og:image', content: 'https://rizvee.github.io/multimodel-dev-os/assets/social-preview.svg' }],
+    ['meta', { property: 'og:url', content: 'https://rizvee.github.io/multimodel-dev-os/' }],
+    ['meta', { property: 'og:type', content: 'website' }],
+    ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+    ['meta', { name: 'twitter:title', content: 'MultiModel Dev OS' }],
+    ['meta', { name: 'twitter:description', content: 'Portable AI Dev OS for Codex, Antigravity, Cursor, Claude, Gemini, VS Code, and multimodel coding workflows.' }],
+    ['meta', { name: 'twitter:image', content: 'https://rizvee.github.io/multimodel-dev-os/assets/social-preview.svg' }],
+    [
+      'script',
+      { type: 'application/ld+json' },
+      JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'SoftwareApplication',
+        'name': 'MultiModel Dev OS',
+        'applicationCategory': 'DeveloperApplication',
+        'operatingSystem': 'Windows, macOS, Linux',
+        'programmingLanguage': 'JavaScript',
+        'license': 'https://opensource.org/licenses/MIT',
+        'url': 'https://github.com/rizvee/multimodel-dev-os',
+        'downloadUrl': 'https://www.npmjs.com/package/multimodel-dev-os',
+        'softwareVersion': '1.1.0',
+        'description': 'Portable, vendor-neutral AI Developer OS for multi-agent coding workflows.'
+      })
+    ]
+  ],
   themeConfig: {
     logo: '/logo.png',
     nav: [

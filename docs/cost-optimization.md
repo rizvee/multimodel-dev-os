@@ -1,6 +1,8 @@
-# LLM Cost & Context Optimization Playbook
+# LLM Cost & Context Optimization Playbook (v1.1.0)
 
-Maximizing developer velocity while minimizing LLM prompt overhead and API billing budgets is a critical priority for engineering teams. This playbook maps 12 industry cost-reduction techniques directly to native `multimodel-dev-os` features.
+Maximizing developer velocity while minimizing LLM prompt overhead and API billing budgets is a critical priority for engineering teams. This playbook maps 12 industry cost-reduction techniques directly to native MultiModel Dev OS features.
+
+> **Use when**: Optimizing API token usage, configuring Caveman Mode settings, or designing modular prompt caching strategies.
 
 ---
 
@@ -59,3 +61,5 @@ Below is how the 12 core context optimization strategies are implemented inside 
 ### 12. Embedding Hygiene
 - **The Strategy:** Ensure semantic search indexes only relevant source files instead of temporary distributions.
 - **Dev OS Implementation:** Strict routing specifications mapped inside `context-routing.md` and pre-configured `.gitignore` definitions protect search databases from index pollution.
+
+Explore our [Stable Protocol Specification](/stable-protocol) or [Upgrade & Migration Guide](/migration-guide) for details.

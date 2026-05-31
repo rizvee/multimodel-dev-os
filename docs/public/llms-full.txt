@@ -1,0 +1,73 @@
+# MultiModel Dev OS — Comprehensive AI Assistant Discoverability Guide
+
+MultiModel Dev OS is a repository-level porting specification designed to align context and instructions across diverse developer tools and AI models.
+
+---
+
+## 1. Core Architecture Layers
+
+The protocol decouples the centralized workspace context from the individual tool rules:
+
+```
+┌────────────────────────────────────────────────────────┐
+│ LAYER 1: Root Contracts (Single Source of Truth)       │
+│ AGENTS.md • MEMORY.md • TASKS.md • RUNBOOK.md          │
+└──────────────────────────┬─────────────────────────────┘
+                           │ Centralizes project context
+┌──────────────────────────▼─────────────────────────────┐
+│ LAYER 2: Configuration & Modules (.ai/)                │
+│ context/ • agents/ • skills/ • prompts/ • checks/      │
+└──────────────────────────┬─────────────────────────────┘
+                           │ Routes files dynamically
+┌──────────────────────────▼─────────────────────────────┐
+│ LAYER 3: Tool & IDE Adapters                           │
+│ .cursorrules • CLAUDE.md • .vscode/ • .gemini/        │
+└────────────────────────────────────────────────────────┘
+```
+
+### Layer 1: Root Documents
+- **`AGENTS.md`**: Defines teams, capabilities, boundaries, and model instructions.
+- **`MEMORY.md`**: Holds architectural decisions, repository milestones, and tech stacks.
+- **`TASKS.md`**: Active backlog tracking items.
+- **`RUNBOOK.md`**: Operational verification commands and post-deployment routines.
+
+---
+
+## 2. CLI Command specifications
+
+All compliant MultiModel Dev OS CLIs strictly enforce the following command contracts:
+- **`init`**: Scaffolds the standard `.ai/` context configuration directories.
+- **`verify`**: Automated release script that checks structure integrity.
+- **`templates`**: Lists built-in stack specifications (`nextjs-saas`, `wordpress-site`, `ecommerce-store`, `seo-landing-page`, `general-app`).
+- **`validate`**: Strict Quality Gate checking the layout rules on disk.
+- **`doctor`**: Advisory checkup warning you about unignored compiler caches or large folder directories.
+
+---
+
+## 3. Adapters & Mappings
+
+Adapters read context directly from `AGENTS.md` and translate them into native configs:
+- **Cursor** targets root `.cursorrules`
+- **Claude Code** targets root `CLAUDE.md`
+- **VS Code** targets `.vscode/settings.json`
+- **Gemini** targets root `GEMINI.md`
+- **Antigravity** targets `.gemini/settings.json`
+
+---
+
+## 4. Key Context Optimization (Caveman Mode)
+
+Toggling **Caveman Mode** dynamically reduces system prompt instructions to highly-optimized shorthand symbols, reducing rule tokens footprint by **~79%** for low-cost token execution budgets:
+
+```bash
+npx multimodel-dev-os@latest init --caveman
+```
+
+---
+
+## 5. Canonical Links
+- **Documentation site**: https://rizvee.github.io/multimodel-dev-os/
+- **GitHub Codebase**: https://github.com/rizvee/multimodel-dev-os
+- **Release Policies**: https://rizvee.github.io/multimodel-dev-os/release-policy
+- **LTS Support Policies**: https://rizvee.github.io/multimodel-dev-os/support-policy
+- **Upgrade Playbook**: https://rizvee.github.io/multimodel-dev-os/migration-guide

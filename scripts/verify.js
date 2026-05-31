@@ -217,6 +217,20 @@ checkFile('tests/README.md');
 checkFile('tests/fixtures/README.md');
 checkFile('tests/smoke/README.md');
 
+// --- Visual & AI Discovery Assets ---
+console.log('\nVisual & AI Discovery Assets:');
+checkFile('assets/favicon.png');
+checkFile('assets/logo.png');
+checkFile('docs/public/favicon.png');
+checkFile('docs/public/logo.png');
+checkFile('docs/public/llms.txt');
+checkFile('docs/public/llms-full.txt');
+checkFile('docs/public/robots.txt');
+checkFile('docs/public/sitemap.xml');
+checkFile('docs/public/assets/social-preview.svg');
+checkFile('docs/public/assets/terminal-demo.svg');
+checkFile('docs/public/assets/architecture-preview.svg');
+
 // --- CLI & Packaging Pre-Flight Tests ---
 console.log('\nRunning CLI & Packaging Pre-Flight Tests...');
 

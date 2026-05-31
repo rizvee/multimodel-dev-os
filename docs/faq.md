@@ -1,91 +1,67 @@
-# FAQ
+# FAQ: MultiModel Dev OS Questions & Answers
+
+Frequently asked questions regarding MultiModel Dev OS, AI coding agents compatibility, and prompt context optimization.
+
+> **Use when**: Resolving setup ambiguities, understanding comparative advantages over simple rules files, or auditing CLI validations.
+
+---
 
 ## General
 
-**What is multimodel-dev-os?**
-A set of markdown files and conventions that let multiple AI coding tools
-(Codex, Cursor, Claude, Gemini, Antigravity, VS Code) share the same
-project context. Not a runtime. Not an AI agent. Think `.editorconfig`
-but for AI tools.
+**What is MultiModel Dev OS?**
+A set of markdown templates and directory structures that allow multiple AI coding tools (Codex, Cursor, Claude Code, Gemini, Antigravity, VS Code) to share a single portable AI project context. It acts like `.editorconfig` but for AI assistants.
 
-**Is this an operating system?**
-No. "Dev OS" is a metaphor for the shared operating layer between tools.
-It's just markdown files in your repo.
+**Is this a runtime operating system?**
+No. It is a metaphorical "OS" providing standard files (`AGENTS.md`, `MEMORY.md`, `TASKS.md`, `RUNBOOK.md`) to coordinate multiple tools.
 
 **What does "multimodel" mean?**
-Multiple AI models/tools working on the same project.
-Not "multimodal" (multiple input types like text + image).
+Multiple distinct AI coding models/agents (such as Codex, Antigravity, Cursor, and Claude Code) operating sequentially on the exact same workspace branch.
+
+---
 
 ## Setup
 
 **Do I need Node.js?**
 It depends on your installation path:
-* **Yes:** If you run the primary, recommended `npx multimodel-dev-os@latest init` workflow, Node.js is required.
-* **No:** If you run the fallback automated shell installer scripts (`install.sh` or `install.ps1`), they run purely on native bash or PowerShell and download resources directly.
+* **Yes:** If you run the primary, recommended `npx multimodel-dev-os@latest init` workflow.
+* **No:** If you run the fallback bash (`install.sh`) or PowerShell (`install.ps1`) one-liners.
 
 **Why not just write a single manual AGENTS.md myself?**
-While you can write a raw markdown instruction file manually, `multimodel-dev-os` offers a standardized development environment:
-1. **Automated Bridging:** Rather than copying and pasting rules into `.cursorrules`, `CLAUDE.md`, `.vscode/settings.json`, and `.gemini/settings.json`, our adapters dynamically references your root source of truth.
-2. **Standardized Context Segregation:** Separates concerns cleanly (`MEMORY.md` for architectural context, `TASKS.md` for task state tracking, `RUNBOOK.md` for incident response, and `.ai/` for skills and prompts).
-3. **Structured Verification:** Pre-packaged CLI and verification scripts test and assert the structural completeness of your rules.
-4. **Token Savings:** Seamlessly switches into Caveman Mode to slash token footprints by **~79%** for smaller models.
+While you can write a raw markdown file, MultiModel Dev OS offers:
+1. **Automated Bridging:** Adapters dynamically map your root source to Cursor, Claude, and Gemini native rules.
+2. **Context Budgets:** Toggle **Caveman Mode** to slash prompt rules overhead by **~79%**.
+3. **Structured Verification:** Built-in CLI commands validate workspace specifications instantly.
 
-**Can I use just one AI tool?**
-Yes. Use a single adapter. The multi-agent features are optional.
-
-**Which files are required?**
-At minimum: `AGENTS.md`. Everything else is optional.
-The installer creates the full structure, but you can delete what you don't need.
+---
 
 ## Adapters
 
 **Do I copy adapter files to my project root?**
 Yes, for tools that auto-detect specific files:
-- Cursor → copy `.cursorrules` to root
-- Claude → copy `CLAUDE.md` to root
-- VS Code → copy `.vscode/` to root
+- Cursor → `.cursorrules`
+- Claude Code → `CLAUDE.md`
+- VS Code → `.vscode/settings.json`
 
-**My tool isn't listed. Can I add one?**
-Yes. See [docs/adapters.md](adapters.md) for the guide. PRs welcome.
-
-**Will adapters break if a tool changes its config format?**
-Possibly. Adapters are community-maintained. File an issue if you
-notice an adapter is outdated.
+---
 
 ## Caveman Mode
 
 **When should I use Caveman Mode?**
-When your context window is tight, your model is small, or you're
-optimizing for API cost. It cuts ~79% of tokens.
+**Best for**: Context optimization for AI coding when you are using compact context budget windows, smaller models, or want to save money on API bill parameters.
 
-**Can I mix standard and caveman files?**
-Yes. Each file is independent. You could have a standard `AGENTS.md`
-and a caveman `TASKS.md`.
-
-## Orchestrator
-
-**Does the orchestrator run agents automatically?**
-No, not in v0.1. It's a protocol spec — conventions for how agents
-should coordinate. Runtime orchestration is planned for v0.2+.
-
-**Do I need the orchestrator for single-agent workflows?**
-No. The orchestrator is only relevant when multiple agents work
-on the same codebase.
+---
 
 ## Diagnostics & Validation
 
 **What is the difference between `validate` and `doctor`?**
-* **`validate`** is strict and verifies that your workspace strictly complies with the multimodel-dev-os directory schema. It checks for the existence of core files/directories and ensures enabled adapter rule references are not broken. If any checks fail, it exits with an error status (exit code 1).
-* **`doctor`** is advisory. It inspects compatibility constraints, warning you about potential context bloat (e.g. missing `.gitignore` files or non-ignored build directories) or active rules missing matching files. It reports warnings without blocking execution.
+* **`validate`** is strict and verifies compliance with the directory schema.
+* **`doctor`** is advisory and warns you about large unignored directories or empty placeholders.
 
-**How do I view available scaffolding templates?**
-You can use `node bin/multimodel-dev-os.js templates` (or `list-templates`) to view all available tech stacks and detailed blueprints, or `show-template <name>` to inspect a specific template's specifications.
+---
 
 ## Protocol & Migration
 
 **Is the MultiModel Dev OS protocol stable?**
-Yes. As of version `v1.0.0`, the core specifications (Root Contracts Layer, `.ai/` settings configurations, and adapter file targets) are officially frozen and backward-compatible. This ensures that any codebase prepared using `v1.0.0` will operate seamlessly inside future `1.x` ecosystems.
+Yes. As of version `v1.1.0`, the core specifications are officially frozen and backward-compatible. This ensures that any codebase prepared using `v1.1.0` will operate seamlessly inside future `1.x` ecosystems.
 
-**How do I migrate my repository to v1.0.0?**
-Upgrading is straightforward. Refer to our [Upgrades & Migration Guide](migration-guide.md) to inspect directory shifts, execute strict validation checks (`npx multimodel-dev-os validate`), and audit compatibility issues.
-
+Explore our [Stable Protocol Specification](/stable-protocol) or [Upgrade & Migration Guide](/migration-guide) for details.

@@ -1,6 +1,8 @@
 # Compatibility & Customization Guide
 
-This document maps how `multimodel-dev-os` integrates across diverse IDEs and terminal utilities, detailing what parameters developers can customize without breaking the protocol.
+This document maps how MultiModel Dev OS integrates across diverse IDEs and terminal utilities, detailing what parameters developers can customize without breaking the protocol.
+
+> **Use when**: Setting up tool configurations (like Cursor project rules or Claude Code project instructions) or configuring the active adapter mappings in `.ai/config.yaml`.
 
 ---
 
@@ -37,6 +39,8 @@ To guarantee validation compliance:
 
 ---
 
-## 4. v1.0.0 Compatibility Guarantee
+## 4. v1.1.0 Compatibility Guarantee
 
-The supported tool matrix and custom specifications listed here represent the officially frozen contracts of MultiModel Dev OS `v1.0.0`. Any backward-compatible extensions introduced in subsequent `1.x` releases will build on top of these mappings without breaking current project integrations.
+The supported tool matrix and custom specifications listed here represent the officially frozen contracts of MultiModel Dev OS `v1.1.0`. Any backward-compatible extensions introduced in subsequent `1.x` releases will build on top of these mappings without breaking current project integrations.
+
+Explore our [Stable Protocol Specification](/stable-protocol) or [Upgrade & Migration Guide](/migration-guide) for details.

@@ -1,0 +1,34 @@
+# MultiModel Dev OS (v1.1.0)
+
+Portable, vendor-neutral workspace configuration standard for multi-agent AI pair-programming workflows. 
+
+## What It Does
+Provides a unified repository-level specification using root markdown files (`AGENTS.md`, `MEMORY.md`, `TASKS.md`, `RUNBOOK.md`) and bridges them dynamically to multiple developer tools, ensuring zero instruction drift and up to 79% token context savings.
+
+## Fast Setup
+```bash
+npx multimodel-dev-os@latest init
+```
+
+## Supported Tools
+- **Cursor** (`.cursorrules`)
+- **Claude Code** (`CLAUDE.md`)
+- **VS Code** (`.vscode/settings.json`)
+- **Gemini** (`GEMINI.md`)
+- **Antigravity** (`.gemini/settings.json`)
+- **Codex** (`adapters/codex/AGENTS.md`)
+
+## Core Resources
+- **Canonical Website**: https://rizvee.github.io/multimodel-dev-os/
+- **GitHub Repository**: https://github.com/rizvee/multimodel-dev-os
+- **NPM Registry Package**: https://www.npmjs.com/package/multimodel-dev-os
+- **Stable Protocol Specification**: https://rizvee.github.io/multimodel-dev-os/stable-protocol
+- **Cost/Context Optimization Playbook**: https://rizvee.github.io/multimodel-dev-os/cost-optimization
+- **5-Day Adoption Roadmap**: https://rizvee.github.io/multimodel-dev-os/5-day-roadmap
+
+## Standard Templates
+- `nextjs-saas` (App Router, Prisma ORM, Stripe)
+- `wordpress-site` (Custom Block Themes, secure PHP guidelines)
+- `ecommerce-store` (PCI checkout, Webhooks, card state)
+- `seo-landing-page` (Astro static builds, JSON-LD, optimal LCP)
+- `general-app` (Universal baseline configurations)

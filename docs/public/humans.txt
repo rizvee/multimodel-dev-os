@@ -1,0 +1,13 @@
+/* TEAM */
+Maintainer: rizvee
+GitHub: https://github.com/rizvee
+
+/* THANKS */
+Special thanks to: All Open Source contributors, AI agents, and early adoptions teams!
+
+/* SITE */
+Canonical: https://rizvee.github.io/multimodel-dev-os/
+Codebase: https://github.com/rizvee/multimodel-dev-os
+License: MIT License
+Language: JavaScript
+Framework: VitePress

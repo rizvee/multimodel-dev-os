@@ -71,6 +71,22 @@ features:
   font-size: 0.9rem;
   color: var(--vp-c-text-2);
 }
+.works-with-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+.works-with-item {
+  border: 1px solid var(--vp-c-bg-mute);
+  background-color: var(--vp-c-bg-soft);
+  border-radius: 6px;
+  padding: 1rem;
+  text-align: center;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
 </style>
 
 ## Quick Start Setup
@@ -80,6 +96,21 @@ Scaffold a tool-neutral workspace instantly:
 ```bash
 npx multimodel-dev-os@latest init
 ```
+
+---
+
+## Works With
+
+MultiModel Dev OS maps repository context directly to all major developer tools and coding agents:
+
+<div class="works-with-grid">
+  <div class="works-with-item">🤖 Codex</div>
+  <div class="works-with-item">🪐 Antigravity</div>
+  <div class="works-with-item">🎯 Cursor</div>
+  <div class="works-with-item">⚡ Claude Code</div>
+  <div class="works-with-item">🧠 Gemini</div>
+  <div class="works-with-item">💻 VS Code</div>
+</div>
 
 ---
 
@@ -108,13 +139,25 @@ npx multimodel-dev-os@latest init
   </a>
   <a href="/migration-guide" class="card-item">
     <div class="card-title">📈 Migration Playbook</div>
-    <div class="card-desc">Upgrade older workspaces to v1.0.0 standards cleanly.</div>
+    <div class="card-desc">Upgrade older workspaces to v1.1.0 standards cleanly.</div>
   </a>
   <a href="/v1-checklist" class="card-item">
     <div class="card-title">🏁 Release Checklist</div>
     <div class="card-desc">Audit repository compliance with the strict release quality gates.</div>
   </a>
+  <a href="/llms.txt" class="card-item" target="_blank">
+    <div class="card-title">🤖 AI Discovery (llms.txt)</div>
+    <div class="card-desc">A highly concise, structured overview formatted specifically for AI context ingestion.</div>
+  </a>
 </div>
+
+---
+
+## For AI Assistants and Coding Agents
+
+To support modern AI search, GEO discovery, and developer agents:
+- We provide [llms.txt](/llms.txt) and [llms-full.txt](/llms-full.txt) at the root of the hosted documentation to allow Large Language Models and AEO utilities to read full workspace specs in single, token-optimized files.
+- The officially frozen protocol guarantees that agents can read and write workspace rules without manual supervision or instruction drift.
 
 ---
 

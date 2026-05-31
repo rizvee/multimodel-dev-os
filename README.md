@@ -1,10 +1,21 @@
 # MultiModel Dev OS
 
-[![NPM Version](https://img.shields.io/npm/v/multimodel-dev-os.svg?color=blue&style=flat-square)](https://www.npmjs.com/package/multimodel-dev-os)
-[![License](https://img.shields.io/npm/l/multimodel-dev-os.svg?color=green&style=flat-square)](https://github.com/rizvee/multimodel-dev-os/blob/main/LICENSE)
-[![GitHub Release](https://img.shields.io/github/v/release/rizvee/multimodel-dev-os?color=indigo&style=flat-square)](https://github.com/rizvee/multimodel-dev-os/releases)
-[![Build Verification](https://img.shields.io/github/actions/workflow/status/rizvee/multimodel-dev-os/verify.yml?branch=main&style=flat-square&label=verification)](https://github.com/rizvee/multimodel-dev-os/actions)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-emerald.svg?style=flat-square)](https://github.com/rizvee/multimodel-dev-os/blob/main/CONTRIBUTING.md)
+<p align="center">
+  <img src="assets/logo.png" alt="MultiModel Dev OS Logo" width="160">
+</p>
+
+<p align="center">
+  <b>One portable AI Dev OS for multimodel coding workflows.</b>
+</p>
+
+<p align="center">
+  [![NPM Version](https://img.shields.io/npm/v/multimodel-dev-os.svg?color=blue&style=flat-square)](https://www.npmjs.com/package/multimodel-dev-os)
+  [![NPM Package](https://img.shields.io/badge/npm-package-cb3837.svg?style=flat-square)](https://www.npmjs.com/package/multimodel-dev-os)
+  [![License](https://img.shields.io/npm/l/multimodel-dev-os.svg?color=green&style=flat-square)](https://github.com/rizvee/multimodel-dev-os/blob/main/LICENSE)
+  [![GitHub Release](https://img.shields.io/github/v/release/rizvee/multimodel-dev-os?color=indigo&style=flat-square)](https://github.com/rizvee/multimodel-dev-os/releases)
+  [![Build Verification](https://img.shields.io/github/actions/workflow/status/rizvee/multimodel-dev-os/verify.yml?branch=main&style=flat-square&label=verification)](https://github.com/rizvee/multimodel-dev-os/actions)
+  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-emerald.svg?style=flat-square)](https://github.com/rizvee/multimodel-dev-os/blob/main/CONTRIBUTING.md)
+</p>
 
 ---
 
@@ -16,7 +27,7 @@ Initialize a unified, tool-neutral AI developer workspace instantly:
 npx multimodel-dev-os@latest init
 ```
 
-> **Give every AI coding agent the same project brain.**
+> **Give Codex, Antigravity, Cursor, Claude, Gemini, VS Code, and other AI coding agents the same project brain.**
 
 ---
 
@@ -67,12 +78,12 @@ A standard installation scaffolds a lightweight, zero-runtime-dependency workspa
 
 | Tool / Agent | Target Adapter File | Setup Instructions | Behavior Setup |
 | :--- | :--- | :--- | :--- |
+| **Codex** | `adapters/codex/AGENTS.md` | `adapters/codex/setup.md` | Automated code scaffolding |
+| **Antigravity** | `.gemini/settings.json` | `adapters/antigravity/setup.md` | Security and audit parameters |
 | **Cursor** | `.cursorrules` | `adapters/cursor/setup.md` | Inline autocomplete guidelines |
 | **Claude Code** | `CLAUDE.md` | `adapters/claude/setup.md` | Terminal build and run controls |
-| **VS Code** | `.vscode/settings.json` | `adapters/vscode/setup.md` | Editor layout and search limits |
 | **Gemini** | `GEMINI.md` | `adapters/gemini/setup.md` | Prompt system context logs |
-| **Antigravity** | `.gemini/settings.json` | `adapters/antigravity/setup.md` | Security and audit parameters |
-| **Codex** | `adapters/codex/AGENTS.md` | `adapters/codex/setup.md` | Automated code scaffolding |
+| **VS Code** | `.vscode/settings.json` | `adapters/vscode/setup.md` | Editor layout and search limits |
 
 ---
 
@@ -162,7 +173,7 @@ Discover how engineering teams deploy MultiModel Dev OS:
 
 ## Stable Protocol Specification
 
-MultiModel Dev OS version `v1.0.0` officially freezes the Layer 1, Layer 2, and Layer 3 specifications:
+MultiModel Dev OS version `v1.1.0` officially freezes the Layer 1, Layer 2, and Layer 3 specifications:
 - 🛡️ [Stable Protocol Specification](https://rizvee.github.io/multimodel-dev-os/stable-protocol)
 - 🔌 [Multi-Agent Compatibility Guides](https://rizvee.github.io/multimodel-dev-os/compatibility)
 - 📈 [Upgrade & Migration Guide](https://rizvee.github.io/multimodel-dev-os/migration-guide)
@@ -177,10 +188,13 @@ Read our [Contributing Onboarding Guidelines](CONTRIBUTING.md) to get started.
 
 ---
 
-## Docs Site
+## Docs & Staging Links
 
 Explore detailed specifications, guides, and playbooks at the official docs portal:
-👉 **[https://rizvee.github.io/multimodel-dev-os/](https://rizvee.github.io/multimodel-dev-os/)**
+👉 **[Documentation site](https://rizvee.github.io/multimodel-dev-os/)**
+👉 **[GitHub repository](https://github.com/rizvee/multimodel-dev-os)**
+👉 **[NPM registry](https://www.npmjs.com/package/multimodel-dev-os)**
+👉 **[llms.txt discoverability guide](https://rizvee.github.io/multimodel-dev-os/llms.txt)**
 
 ---
 

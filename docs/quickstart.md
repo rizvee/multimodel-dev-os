@@ -1,6 +1,8 @@
-# Quickstart
+# Quickstart Guide: AI Dev OS Deployment
 
-Get `multimodel-dev-os` integrated into your codebase in under 2 minutes.
+Get the MultiModel Dev OS integrated into your codebase in under 2 minutes to synchronize your multi-agent developer workflows.
+
+> **Use when**: Setting up a new repository or aligning multiple AI tools (like Cursor, Claude Code, Gemini, Codex, and Antigravity) to prevent instruction drift and prompt token bloat.
 
 ---
 
@@ -39,7 +41,7 @@ irm https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/inst
 
 ## Option C: Caveman Mode (Minimal Tokens)
 
-Reduce token footprint by **~79%** with our lightweight variants:
+**Best for**: Context optimization for AI coding when using tight API budgets or smaller models. Reduces rules footprint by **~79%**.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/install.sh | bash -s -- --caveman
@@ -63,13 +65,13 @@ For offline execution or customized packaging within a cloned workspace:
 
 ## After Install
 
-1. **Edit `AGENTS.md`** — fill in your project name, stack, and build commands.
+1. **Edit `AGENTS.md`** — fill in your project name, stack, and build commands (portable AI project context).
 2. **Edit `.ai/config.yaml`** — enable adapters for your tools.
-3. **Copy adapter files** to your project root:
+3. **Copy adapter files** to your project root (e.g., Cursor project rules, Claude Code project instructions):
    - Cursor: `cp adapters/cursor/.cursorrules .cursorrules`
    - Claude: `cp adapters/claude/CLAUDE.md CLAUDE.md`
    - VS Code: `cp -r adapters/vscode/.vscode/ .vscode/`
-4. **Start coding** — your AI tools will read the shared configuration instantly.
+4. **Start coding** — your AI coding agents will read the shared configuration instantly.
 
 ---
 
@@ -87,3 +89,5 @@ node bin/multimodel-dev-os.js doctor
 # Verify repository structure checks
 npm run verify
 ```
+
+Explore our canonical [Stable Protocol Specification](/stable-protocol) or [Upgrade & Migration Guide](/migration-guide) for details.
