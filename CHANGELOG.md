@@ -4,6 +4,18 @@ All notable changes to multimodel-dev-os will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.0.0] - 2026-05-31
+
+### Added
+- **v1.0.0 Stable Specifications**: Created `docs/stable-protocol.md` to freeze multi-model configurations.
+- **Policies & Final Guidelines**: Defined standard policies under `docs/release-policy.md`, `docs/support-policy.md`, and `docs/final-launch.md`.
+- **v1.0.0 Quality Checks**: Published `docs/v1-checklist.md` checklist.
+
+### Changed
+- **Version Bump**: Updated repository release package configuration to target version `1.0.0`.
+- **Verify Assertions**: Expanded verify script suite to ensure all release specifications are met dynamically.
+- **Navigation Maps**: Integrated new policy files and guides within the hosted VitePress config sidebar links.
+
 ## [0.9.0] - 2026-05-31
 
 ### Added

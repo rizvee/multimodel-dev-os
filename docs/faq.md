@@ -84,8 +84,8 @@ You can use `node bin/multimodel-dev-os.js templates` (or `list-templates`) to v
 ## Protocol & Migration
 
 **Is the MultiModel Dev OS protocol stable?**
-Yes. As of version `v0.9.0`, the core specifications (Root Contracts Layer, `.ai/` settings configurations, and adapter file targets) are officially frozen and backward-compatible. This ensures that any codebase prepared using `v0.9.0` will operate seamlessly inside future `v1.x` ecosystems.
+Yes. As of version `v1.0.0`, the core specifications (Root Contracts Layer, `.ai/` settings configurations, and adapter file targets) are officially frozen and backward-compatible. This ensures that any codebase prepared using `v1.0.0` will operate seamlessly inside future `1.x` ecosystems.
 
-**How do I migrate my repository to v1.0.0 readiness?**
+**How do I migrate my repository to v1.0.0?**
 Upgrading is straightforward. Refer to our [Upgrades & Migration Guide](migration-guide.md) to inspect directory shifts, execute strict validation checks (`npx multimodel-dev-os validate`), and audit compatibility issues.
 

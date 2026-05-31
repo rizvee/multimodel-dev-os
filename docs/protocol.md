@@ -27,7 +27,7 @@ The protocol is divided into three distinct decoupled layers to guarantee portab
 
 ---
 
-## 2. Stability Matrix (v0.9.0 Freeze)
+## 2. Stability Matrix (v1.0.0 Freeze)
 
 To prevent breaking changes, protocol definitions are designated as **Stable** or **Experimental**:
 

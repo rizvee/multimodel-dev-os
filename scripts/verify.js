@@ -199,6 +199,11 @@ checkFile('docs/compatibility.md');
 checkFile('docs/migration-guide.md');
 checkFile('docs/template-qa.md');
 checkFile('docs/v1-readiness.md');
+checkFile('docs/stable-protocol.md');
+checkFile('docs/release-policy.md');
+checkFile('docs/support-policy.md');
+checkFile('docs/final-launch.md');
+checkFile('docs/v1-checklist.md');
 
 // --- JSON Schemas ---
 console.log('\nJSON Schemas:');

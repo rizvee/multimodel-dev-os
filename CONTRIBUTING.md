@@ -1,76 +1,65 @@
-# Contributing to multimodel-dev-os
+# Contributing to MultiModel Dev OS
 
-Thank you for your interest in contributing! This project is open to everyone.
+Thank you for your interest in contributing to MultiModel Dev OS! We are committed to making this project developer-friendly, robust, and highly collaborative.
+
+---
+
+## Contributing Principles & Stable Protocol Rules
+
+MultiModel Dev OS `v1.0.0` officially freezes the Layer 1 core root contracts (`AGENTS.md`, `MEMORY.md`, `TASKS.md`, `RUNBOOK.md`) and standard scaffolding subdirectories under `.ai/`.
+
+> [!WARNING]
+> **Strict Protocol Stability**: Any changes that alter the naming of the four root contracts or break standard subdirectory structures are **prohibited** as they represent breaking changes to the core protocol specification. Please ensure all proposed changes are backward-compatible.
+
+---
 
 ## How to Contribute
 
-### Reporting Issues
+### 1. Reporting Bugs
+- Audited issues can be filed directly under [GitHub Issues](https://github.com/rizvee/multimodel-dev-os/issues).
+- Before creating a bug report, run `node bin/multimodel-dev-os.js doctor` to inspect local environments for workspace context bloats or misalignments.
+- Include OS version, active IDE adapter, and detailed steps to reproduce.
 
-- Use [GitHub Issues](https://github.com/rizvee/multimodel-dev-os/issues)
-- Include: what you expected, what happened, and steps to reproduce
-- Label issues: `bug`, `feature`, `adapter`, `docs`
+### 2. Requesting Templates
+We welcome contributions of pre-filled real-world template blueprints!
+- Template blueprints belong under `.ai/templates/` and as examples in the `examples/` directory.
+- Check template structure compliance using the templates schemas: `.ai/schema/template.schema.json`.
 
-### Submitting Changes
+### 3. Proposing Adapters
+New adapters (e.g., Windsurf, Continue, Aider) make the Dev OS ecosystem richer:
+1. Create a dedicated directory under `adapters/{tool-name}/`.
+2. Add the tool-native instruction files referencing `/AGENTS.md` and `/MEMORY.md`.
+3. Add a clear, step-by-step `setup.md` installation guide.
+4. Update the compatibility tables in the `README.md` and `docs/compatibility.md`.
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/your-feature`
-3. Make your changes
-4. Test your changes (see below)
-5. Commit with a clear message: `git commit -m "Add Windsurf adapter"`
-6. Push: `git push origin feature/your-feature`
-7. Open a Pull Request
+---
 
-### What to Contribute
+## Local Verification Testing
 
-| Area | Examples |
-|------|---------|
-| **New adapters** | Support for Windsurf, Aider, Continue, etc. |
-| **Example projects** | Pre-filled configs for React, Django, Rust, etc. |
-| **Documentation** | Tutorials, guides, translations |
-| **Templates** | New skill templates, check templates |
-| **Installer improvements** | New platform support, better error handling |
+Before submitting a Pull Request, you **must** run the local cross-platform verification suite:
 
-### Adding an Adapter
+```bash
+# Install development dependencies
+npm install
 
-See [Adapter Guide](docs/adapters.md) for the full process.
+# Run the strict release verifier suite (asserts file structures, schema mappings, and version matching)
+npm run verify
 
-Quick checklist:
-- [ ] Created `adapters/{tool-name}/` directory
-- [ ] Added tool-native instruction file referencing `/AGENTS.md`
-- [ ] Added `setup.md` with installation steps
-- [ ] Tested with the actual tool
-- [ ] Updated `README.md` supported tools table
+# Verify local VitePress docs build without warning loops
+npm run docs:build
+```
 
-## Code Style
+All Pull Requests must pass the automated GitHub Action verifications before they can be merged.
 
-- **Markdown:** Follow existing formatting patterns
-- **YAML:** 2-space indentation
-- **Shell scripts:** Use `shellcheck` for linting
-- **PowerShell:** Follow PSScriptAnalyzer rules
-
-## Commit Messages
-
-Format: `{type}: {description}`
-
-Types:
-- `feat:` New feature
-- `fix:` Bug fix
-- `docs:` Documentation
-- `adapter:` New or updated adapter
-- `chore:` Maintenance
-
-## Testing
-
-Before submitting:
-1. Verify all markdown files render correctly on GitHub
-2. Run `install.sh --dry-run` to test the installer
-3. If adding an adapter, test with the actual tool
-4. Check for broken links in documentation
+---
 
 ## Code of Conduct
 
-Be respectful. Be constructive. Be inclusive. We're all here to build useful tools.
+Please review and adhere to the guidelines set out in our [Code of Conduct](CODE_OF_CONDUCT.md) to keep this community open and inclusive.
+
+---
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contributions will be licensed under the project's MIT License.
+

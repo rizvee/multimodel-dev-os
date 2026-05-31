@@ -38,9 +38,9 @@ The `v0.8` release focused on cost/context optimizations, adding the 12 playbook
 
 ---
 
-## 3. Upgrading from v0.8 to v1.0.0 Readiness
+## 3. Upgrading from v0.9.0 to v1.0.0 Stable
 
-The `v0.9` and `v1.0.0` releases stabilize the public protocol and JSON schemas.
+The `v1.0.0` release completely freezes the public protocol and schemas.
 
 ### Upgrade Steps:
 1. **Mount JSON Schemas:** Verify that config schemas under `.ai/schema/` are linked in your local configuration files.
@@ -48,4 +48,7 @@ The `v0.9` and `v1.0.0` releases stabilize the public protocol and JSON schemas.
    ```bash
    npx multimodel-dev-os validate
    ```
-3. **Remove Legacy Verification Scripts:** Deprecate any early custom linter scripts in favor of native zero-dependency validations.
+3. **Run Diagnostics Suite:** Execute the full verification and doctor suite to ensure absolute compliance:
+   ```bash
+   npx multimodel-dev-os doctor
+   ```

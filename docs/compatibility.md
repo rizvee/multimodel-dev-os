@@ -34,3 +34,9 @@ To guarantee validation compliance:
 - **Do Not Rename Root Documents:** The core contract files (`AGENTS.md`, `MEMORY.md`, `TASKS.md`, `RUNBOOK.md`) must reside exactly at the repository root and use capital letters.
 - **Do Not Modify Schema Subfolders:** Subdirectories under `.ai/` (context, skills, prompts, checks, session-logs) must maintain lower-case names.
 - **Do Not Interfere with CLI Flags:** Compliance checks expect `init`, `validate`, and `doctor` to accept `--target` and `--adapter` variables consistently.
+
+---
+
+## 4. v1.0.0 Compatibility Guarantee
+
+The supported tool matrix and custom specifications listed here represent the officially frozen contracts of MultiModel Dev OS `v1.0.0`. Any backward-compatible extensions introduced in subsequent `1.x` releases will build on top of these mappings without breaking current project integrations.

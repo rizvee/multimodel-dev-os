@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "MultiModel Dev OS"
   text: "Standardize your AI pair-programmers"
-  tagline: "Portable, vendor-neutral workspace configurations for multi-agent coding loops."
+  tagline: "One portable AI Dev OS for Codex, Antigravity, Cursor, Claude, Gemini, VS Code, and multimodel coding workflows."
   image:
     src: /logo.png
     alt: MultiModel Dev OS Logo
@@ -13,8 +13,8 @@ hero:
       text: Get Started Quick
       link: /quickstart
     - theme: alt
-      text: Protocol Specs
-      link: /protocol
+      text: Stable Protocol Specs
+      link: /stable-protocol
     - theme: alt
       text: v1.0 Readiness
       link: /v1-readiness
@@ -42,7 +42,81 @@ features:
   --vp-home-hero-name-color: transparent;
   --vp-home-hero-name-background: linear-gradient(135deg, #6366f1 0%, #10b981 100%);
 }
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+.card-item {
+  border: 1px solid var(--vp-c-bg-mute);
+  background-color: var(--vp-c-bg-soft);
+  border-radius: 8px;
+  padding: 1.5rem;
+  transition: border-color 0.25s, transform 0.25s;
+  text-decoration: none !important;
+  color: inherit !important;
+}
+.card-item:hover {
+  border-color: var(--vp-c-brand-1);
+  transform: translateY(-4px);
+}
+.card-title {
+  font-weight: 600;
+  font-size: 1.15rem;
+  margin-bottom: 0.5rem;
+}
+.card-desc {
+  font-size: 0.9rem;
+  color: var(--vp-c-text-2);
+}
 </style>
+
+## Quick Start Setup
+
+Scaffold a tool-neutral workspace instantly:
+
+```bash
+npx multimodel-dev-os@latest init
+```
+
+---
+
+## Core Specifications & Playbooks
+
+<div class="grid-container">
+  <a href="/quickstart" class="card-item">
+    <div class="card-title">🚀 Quickstart Guide</div>
+    <div class="card-desc">Deploy adapters and root contracts in under 2 minutes.</div>
+  </a>
+  <a href="/templates/" class="card-item">
+    <div class="card-title">📦 Template Gallery</div>
+    <div class="card-desc">5 premium, production-ready stack configurations for developers.</div>
+  </a>
+  <a href="/stable-protocol" class="card-item">
+    <div class="card-title">🛡️ Stable Protocol</div>
+    <div class="card-desc">Explore the officially frozen Layer 1-3 directory and file contracts.</div>
+  </a>
+  <a href="/cost-optimization" class="card-item">
+    <div class="card-title">⚡ Cost Optimization</div>
+    <div class="card-desc">Cuts your prompting token bills by up to 79% using Caveman shortcuts.</div>
+  </a>
+  <a href="/case-studies/" class="card-item">
+    <div class="card-title">💼 Case Studies Gallery</div>
+    <div class="card-desc">5 real-world integration guides mapping SaaS schemas and sequential handoffs.</div>
+  </a>
+  <a href="/migration-guide" class="card-item">
+    <div class="card-title">📈 Migration Playbook</div>
+    <div class="card-desc">Upgrade older workspaces to v1.0.0 standards cleanly.</div>
+  </a>
+  <a href="/v1-checklist" class="card-item">
+    <div class="card-title">🏁 Release Checklist</div>
+    <div class="card-desc">Audit repository compliance with the strict release quality gates.</div>
+  </a>
+</div>
+
+---
 
 ## Cost & Context Optimization
 

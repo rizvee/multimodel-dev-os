@@ -25,6 +25,7 @@ export default {
         text: 'Protocol & QA Specifications',
         items: [
           { text: 'Protocol Specification', link: '/protocol' },
+          { text: 'Stable Protocol Specification', link: '/stable-protocol' },
           { text: 'Adapter Compatibility', link: '/compatibility' },
           { text: 'Upgrades & Migration', link: '/migration-guide' },
           { text: 'Templates QA Blueprint', link: '/template-qa' },
@@ -74,7 +75,11 @@ export default {
           { text: 'Release Playbook Template', link: '/release-template' },
           { text: 'CLI Roadmap', link: '/cli-roadmap' },
           { text: 'NPM Publishing Runbook', link: '/npm-publishing' },
-          { text: 'Pre-flight Release Testing', link: '/testing-v0.2' }
+          { text: 'Pre-flight Release Testing', link: '/testing-v0.2' },
+          { text: 'Release Policy', link: '/release-policy' },
+          { text: 'Support Policy', link: '/support-policy' },
+          { text: 'Final Launch Guidelines', link: '/final-launch' },
+          { text: 'v1.0.0 Release Checklist', link: '/v1-checklist' }
         ]
       }
     ],
