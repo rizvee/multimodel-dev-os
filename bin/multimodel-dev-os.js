@@ -1228,9 +1228,9 @@ function handleListAdapters() {
   Object.keys(adapters).forEach(name => {
     const a = adapters[name];
     console.log(`\n\x1b[32m* ${a.name || name}\x1b[0m (${name})`);
-    console.log(`  \x1b[33mConfig File:\x1b[0m ${a.config_file}`);
+    console.log(`  \x1b[33mRules File:\x1b[0m ${a.rules_file}`);
     console.log(`  \x1b[33mAdapter Type:\x1b[0m ${a.type}`);
-    console.log(`  \x1b[33mDocumentation:\x1b[0m ${a.docs}`);
+    console.log(`  \x1b[33mRule Format:\x1b[0m ${a.format}`);
   });
   console.log('\nUse \x1b[36mshow-adapter <adapter-name>\x1b[0m to view detailed adapter metadata.\n');
 }
@@ -1250,9 +1250,9 @@ function handleShowAdapter(name) {
   }
   console.log(`\n🔍 \x1b[36mAdapter: ${a.name || name}\x1b[0m`);
   console.log('==================================================');
-  console.log(`\x1b[33mConfig File:\x1b[0m ${a.config_file}`);
+  console.log(`\x1b[33mRules File:\x1b[0m ${a.rules_file}`);
   console.log(`\x1b[33mType:\x1b[0m ${a.type}`);
-  console.log(`\x1b[33mDocs Path:\x1b[0m ${a.docs}`);
+  console.log(`\x1b[33mFormat:\x1b[0m ${a.format}`);
   console.log();
 }
 
