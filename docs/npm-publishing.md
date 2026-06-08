@@ -72,3 +72,31 @@ Execute these validation actions strictly in sequence before triggering a releas
     ```bash
     npm deprecate multimodel-dev-os@0.3.0 "Critical bug found, please use v0.3.1 instead."
     ```
+
+---
+
+## 4. NPM Publishing Paused Until v2.0.0
+
+> [!IMPORTANT]
+> **NPM package publication is paused until `v2.0.0`.** No new packages will be released to the public registry under the `1.2.x` minor versions list.
+
+### Source vs. Registry Strategy
+* **GitHub main branch (Source)**: Active unreleased development branch where new Layer 1 templates, model/adapter registries, and CLI subcommand candidates reside (e.g. `v1.2.0`).
+* **npm latest (Registry)**: Remains at the last stable released version.
+* **v2.0.0 (Next Target)**: The next approved publication on npm will be `v2.0.0`, which consolidates the Template Galaxy and Model registries.
+
+### Prepublish Safety Guard
+To prevent accidental `npm publish` executions on developer environments, a local validation script has been added to package hooks. If you run `npm publish`, it is blocked by default.
+
+To bypass this check during the approved `v2.0.0` release window:
+1. Ensure the version in `package.json` starts with `2.` (e.g. `2.0.0`).
+2. Run publication with the override env variable:
+   ```powershell
+   # PowerShell
+   $env:MMDO_ALLOW_PUBLISH="true"
+   npm publish --access public
+   ```
+   ```bash
+   # Bash
+   MMDO_ALLOW_PUBLISH=true npm publish --access public
+   ```

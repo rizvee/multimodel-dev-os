@@ -4,6 +4,21 @@ All notable changes to multimodel-dev-os will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.2.0] - Unreleased (Local Source-Only Development)
+
+### Added
+- **NPM Prepublish Safety Guard**: Added `scripts/prepublish-guard.js` and `"prepublishOnly"` script hook in `package.json` to freeze package publishing until `v2.0.0`.
+- **Model Compatibility & Routing Layer**: Configured model registries under `.ai/models/` (`registry.yaml`, `providers.yaml`, `routing-presets.yaml`, `local-models.yaml`).
+- **Adapter Registry Expansion**: Added central mappings under `.ai/adapters/registry.yaml` and expanded command options.
+- **Android Expo Mobile Template**: Created a new high-fidelity mobile template under `examples/expo-react-native-android/` supporting production Android delivery and EAS Build setup.
+- **New CLI registries subcommands**: Implemented `models`, `show-model`, `providers`, `route-model`, `adapters`, `show-adapter`, `skills`, `show-skill`.
+- **Contributor Attribution**: Added credits in `CONTRIBUTORS.md` acknowledging Ssiyam0123 for mobile template inputs.
+- **Roadmap Planning**: Added `docs/v2-roadmap.md` mapping v2.0.0 stabilization goals.
+
+### Changed
+- **Release Strategy**: Paused NPM publishing. Unreleased features are source-only until `v2.0.0` packages the finalized registries.
+- **Linter Adjustments**: Updated `scripts/verify.js` to assert the presence of prepublish guard modules and roadmap pages.
+
 ## [1.1.0] - 2026-05-31
 
 ### Added

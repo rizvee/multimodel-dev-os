@@ -39,26 +39,23 @@ node bin/multimodel-dev-os.js verify
 | `validate` | Strict directory schema compliance checks | v0.5.0 | ✅ Completed |
 | `sync` | Regenerate adapter files from root AGENTS.md | v0.6.0 | 📋 Planned |
 | `add-adapter` | Add a new adapter to the project | v0.6.0 | 📋 Planned |
+| `models` | List configured model registry entries | v1.2.0 | Source Only |
+| `show-model` | Inspect settings for a model registry entry | v1.2.0 | Source Only |
+| `providers` | List configured model registry providers | v1.2.0 | Source Only |
+| `route-model`| Route a target prompt based on presets | v1.2.0 | Source Only |
+| `adapters` | List configured adapter registry entries | v1.2.0 | Source Only |
+| `show-adapter`| Inspect settings for an adapter registry entry | v1.2.0 | Source Only |
+| `skills` | List configured skill registry entries | v1.2.0 | Source Only |
+| `show-skill` | Inspect settings for a skill registry entry | v1.2.0 | Source Only |
 
-## Requirements Completed in v0.5.0
+> [!NOTE]
+> All new `v1.2.0` subcommands listed as **Source Only** are fully implemented in the source code but are unreleased on the npm package registry. To run them, execute from a clone of the GitHub repository. They will be packaged officially in the `v2.0.0` stable release.
 
-- [x] Implemented strict `validate` CLI command for structural directory validation.
-- [x] Implemented advisory `doctor` command for project compatibility warnings.
-- [x] Implemented `templates` and `show-template` commands for built-in profiles inspection.
-- [x] Upgraded all 5 built-in template profiles with practical real-world contents.
-- [x] Implemented dynamic context budgetary constraints and skills validation.
-- [x] Preserved zero-dependency pure Node CLI implementations.
+## CLI v2.0.0 Stabilization Goal
 
-## Future Releases (v0.6.0+)
+Ahead of the `v2.0.0` release, we will run a comprehensive compatibility pass:
+* **Backward Compatibility**: Ensure that all new registries configurations and subcommand syntax do not break the stable `v1.0.0` and `v1.1.0` CLI behaviors.
+* **Unified Quality Gates**: Integrate model registry and adapter configuration validation parameters directly into the standard `validate` and `doctor` command pipelines.
+* **Cross-Platform Hardening**: Audit all commands on Windows (PowerShell/CMD), macOS, and Linux bash environments before resuming npm package publishing.
 
-* **Adapter Autoregeneration (`sync`):** Parse custom override boundaries inside adapters and automatically synchronize them with updates in the root markdown source of truth.
-* **Interactive Mode:** Provide step-by-step CLI options if run without arguments.
-
-## Protocol Stabilization & v1.0.0 Freeze (v0.9.0)
-
-In version **v0.9.0**, we pivot the roadmap to focus on **stabilization and hardening** ahead of the official `v1.0.0` freeze:
-- **API Freeze:** The CLI syntax, standard command names (`init`, `verify`, `validate`, `doctor`, `templates`), and dynamic flags are frozen to ensure zero breaking changes in future minor patches.
-- **Robust JSON Schemas:** Added standard validators inside `.ai/schema/` to define config and template formats.
-- **Continuous Integration Gates:** Transitioning `validate` to serve as a strict build blocker for pulling and publishing code.
-- **Enhanced Warning Paths:** Hardened CLI error messaging when directory write conflicts occur, mapping absolute paths cleanly.
 

@@ -136,6 +136,7 @@ export default {
           { text: 'Public Launch Checklist', link: '/launch-checklist' },
           { text: 'Release Playbook Template', link: '/release-template' },
           { text: 'CLI Roadmap', link: '/cli-roadmap' },
+          { text: 'v2.0.0 Roadmap', link: '/v2-roadmap' },
           { text: 'NPM Publishing Runbook', link: '/npm-publishing' },
           { text: 'Pre-flight Release Testing', link: '/testing-v0.2' },
           { text: 'Release Policy', link: '/release-policy' },

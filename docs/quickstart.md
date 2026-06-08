@@ -6,9 +6,9 @@ Get the MultiModel Dev OS integrated into your codebase in under 2 minutes to sy
 
 ---
 
-## Option A: NPX Scaffolding (Recommended)
+## Option A: NPX Scaffolding (Stable Packages)
 
-Initialize any project immediately without local clones using our public npm registry:
+Initialize any project instantly using our public npm registry. Note that this pulls the last stable npm-published release (e.g. `v1.1.0`):
 
 ```bash
 # Standard interactive initialization in the current directory
@@ -25,7 +25,7 @@ npx multimodel-dev-os@latest init --dry-run
 
 ## Option B: Fallback One-Line Scripts
 
-If you choose to run installation scripts directly:
+If you choose to run installation scripts directly (fetches stable files):
 
 **macOS / Linux / WSL (bash):**
 ```bash
@@ -49,14 +49,15 @@ curl -fsSL https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scrip
 
 ---
 
-## Option D: Node.js Local Scaffolding CLI
+## Option D: Node.js Local Scaffolding CLI (Required for v1.2+ features)
 
-For offline execution or customized packaging within a cloned workspace:
+**Required for**: Testing unreleased features (Template Galaxy registry, model capability configuration, and new CLI commands) during the NPM publishing pause.
+
 1. Clone this repository locally:
    ```bash
    git clone https://github.com/rizvee/multimodel-dev-os.git
    ```
-2. Run the CLI directly using the absolute target path:
+2. Run the CLI directly from the cloned repository source:
    ```bash
    node bin/multimodel-dev-os.js init --target /path/to/your-project --template nextjs-saas --adapter cursor
    ```

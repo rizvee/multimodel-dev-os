@@ -1,11 +1,13 @@
-# MultiModel Dev OS (v1.2.0)
+# MultiModel Dev OS (v1.2.0 Source / v1.1.0 npm)
 
 Portable, vendor-neutral workspace configuration standard for multi-agent AI pair-programming workflows.
 
-## What It Does
-Provides a unified repository-level specification using root markdown files (`AGENTS.md`, `MEMORY.md`, `TASKS.md`, `RUNBOOK.md`) and bridges them dynamically to multiple developer tools, ensuring zero instruction drift, model registry configurability, and up to 79% token context savings.
+> [!NOTE]
+> **NPM publishing is paused until v2.0.0.**
+> * Stable npm releases are available under version `v1.1.0`.
+> * Unreleased `v1.2.0` features (Model/Adapter registries, Android templates, new subcommands) must be run locally from a cloned repository source.
 
-## Fast Setup
+## Fast Setup (Stable npm @latest)
 ```bash
 npx multimodel-dev-os@latest init
 ```

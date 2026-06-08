@@ -185,6 +185,7 @@ checkFile('scripts/install.sh');
 checkFile('scripts/install.ps1');
 checkFile('scripts/verify.sh');
 checkFile('scripts/pack-template.sh');
+checkFile('scripts/prepublish-guard.js');
 checkFile('bin/multimodel-dev-os.js');
 
 // --- GitHub Integration ---
@@ -222,6 +223,7 @@ checkFile('docs/agent-compatibility.md');
 checkFile('docs/adapter-authoring.md');
 checkFile('docs/token-optimization.md');
 checkFile('docs/mobile-android.md');
+checkFile('docs/v2-roadmap.md');
 
 // --- Model & Adapter Registries ---
 console.log('\nModel & Adapter Registries:');

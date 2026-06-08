@@ -21,13 +21,16 @@
 
 ## One portable AI Dev OS for Codex, Antigravity, Cursor, Claude, Gemini, VS Code, and multimodel coding workflows.
 
-Initialize a unified, tool-neutral AI developer workspace instantly:
+> [!IMPORTANT]
+> **NPM publishing is paused until v2.0.0.** 
+> * For the last stable npm-published version (`v1.1.0`), use: `npx multimodel-dev-os@latest init`
+> * For unreleased `v1.2.0` features (Model registry, Adapter registry, Android Expo template, new subcommands), clone the source repository and execute commands locally using `node bin/multimodel-dev-os.js`.
+
+Initialize a stable workspace instantly:
 
 ```bash
 npx multimodel-dev-os@latest init
 ```
-
-> **Give Codex, Antigravity, Cursor, Claude, Gemini, VS Code, and other AI coding agents the same project brain.**
 
 ---
 
@@ -108,31 +111,44 @@ MultiModel Dev OS is powered by a pure Node.js CLI with **zero runtime external 
   <img src="assets/terminal-demo.svg" alt="Terminal Demo Sequence" width="100%">
 </p>
 
-### 1. Scaffolding Templates
-Initialize customized stack specifications:
+### 1. Scaffolding Templates (Stable npm @latest)
+Initialize customized stack specifications for stable releases:
 - **Next.js SaaS:** `npx multimodel-dev-os@latest init --template nextjs-saas`
 - **WordPress Theme/Plugin:** `npx multimodel-dev-os@latest init --template wordpress-site`
 - **E-Commerce Store:** `npx multimodel-dev-os@latest init --template ecommerce-store`
 - **SEO Landing Page:** `npx multimodel-dev-os@latest init --template seo-landing-page`
 - **General Fallback:** `npx multimodel-dev-os@latest init --template general-app`
 
-### 2. Adapter Linking
+### 2. Adapter Linking (Stable npm @latest)
 Inject rules specifically for a developer tool:
 ```bash
 npx multimodel-dev-os@latest init --adapter cursor
 npx multimodel-dev-os@latest init --adapter claude
 ```
 
-### 3. Caveman Mode (Token Optimizer)
+### 3. Caveman Mode (Stable npm @latest)
 Cuts prompt rules overhead down by **~79%** using highly optimized short-hand declarations:
 ```bash
 npx multimodel-dev-os@latest init --caveman
 ```
 
-### 4. Quality Gates
+### 4. Registry & Model Commands (Unreleased v1.2.0 - Local Source Only)
+To run registries and the Android Expo template, clone the source and run locally:
+```bash
+# List model or adapter registries
+node bin/multimodel-dev-os.js models
+node bin/multimodel-dev-os.js adapters
+
+# Scaffold the Android Expo template
+node bin/multimodel-dev-os.js init --template expo-react-native-android
+```
+
+For more details on when these features will package stably, read the [v2.0.0 Roadmap](https://rizvee.github.io/multimodel-dev-os/v2-roadmap).
+
+### 5. Quality Gates
 Run assertions and diagnostic checkups:
-- **`validate`** (Strict schema checkup): `npx multimodel-dev-os validate`
-- **`doctor`** (Advisory compatibility warning): `npx multimodel-dev-os doctor`
+- **`validate`** (Strict schema checkup): `node bin/multimodel-dev-os.js validate`
+- **`doctor`** (Advisory compatibility warning): `node bin/multimodel-dev-os.js doctor`
 
 ---
 
@@ -171,9 +187,10 @@ Discover how engineering teams deploy MultiModel Dev OS:
 
 ---
 
-## Stable Protocol Specification
+## Stable Protocol Specification & Roadmap
 
-MultiModel Dev OS version `v1.1.0` officially freezes the Layer 1, Layer 2, and Layer 3 specifications:
+MultiModel Dev OS version `v1.1.0` officially freezes the Layer 1, Layer 2, and Layer 3 specifications. Active development on registries and template extensions (`v1.2.0`) is source-only.
+- 🗺️ [v2.0.0 Roadmap](/docs/v2-roadmap.md) (Stabilization targets & publishing runbook)
 - 🛡️ [Stable Protocol Specification](https://rizvee.github.io/multimodel-dev-os/stable-protocol)
 - 🔌 [Multi-Agent Compatibility Guides](https://rizvee.github.io/multimodel-dev-os/compatibility)
 - 📈 [Upgrade & Migration Guide](https://rizvee.github.io/multimodel-dev-os/migration-guide)
