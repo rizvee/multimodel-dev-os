@@ -1,4 +1,4 @@
-# MultiModel Dev OS — Comprehensive AI Assistant Discoverability Guide
+# MultiModel Dev OS — Comprehensive AI Assistant Discoverability Guide (v1.2.0)
 
 MultiModel Dev OS is a repository-level porting specification designed to align context and instructions across diverse developer tools and AI models.
 
@@ -12,6 +12,7 @@ The protocol decouples the centralized workspace context from the individual too
 ┌────────────────────────────────────────────────────────┐
 │ LAYER 1: Root Contracts (Single Source of Truth)       │
 │ AGENTS.md • MEMORY.md • TASKS.md • RUNBOOK.md          │
+│ (And central registries under .ai/models/ & .ai/adps/) │
 └──────────────────────────┬─────────────────────────────┘
                            │ Centralizes project context
 ┌──────────────────────────▼─────────────────────────────┐
@@ -21,7 +22,7 @@ The protocol decouples the centralized workspace context from the individual too
                            │ Routes files dynamically
 ┌──────────────────────────▼─────────────────────────────┐
 │ LAYER 3: Tool & IDE Adapters                           │
-│ .cursorrules • CLAUDE.md • .vscode/ • .gemini/        │
+│ .cursorrules • CLAUDE.md • .vscode/ • .gemini/ • etc.  │
 └────────────────────────────────────────────────────────┘
 ```
 
@@ -33,25 +34,29 @@ The protocol decouples the centralized workspace context from the individual too
 
 ---
 
-## 2. CLI Command specifications
+## 2. CLI Command Specifications
 
 All compliant MultiModel Dev OS CLIs strictly enforce the following command contracts:
-- **`init`**: Scaffolds the standard `.ai/` context configuration directories.
+- **`init`**: Scaffolds the standard `.ai/` context configuration directories. Supports `--template` and `--caveman` flags.
 - **`verify`**: Automated release script that checks structure integrity.
-- **`templates`**: Lists built-in stack specifications (`nextjs-saas`, `wordpress-site`, `ecommerce-store`, `seo-landing-page`, `general-app`).
+- **`templates`**: Lists built-in stack specifications (`nextjs-saas`, `wordpress-site`, `ecommerce-store`, `seo-landing-page`, `expo-react-native-android`, `general-app`).
 - **`validate`**: Strict Quality Gate checking the layout rules on disk.
 - **`doctor`**: Advisory checkup warning you about unignored compiler caches or large folder directories.
 
 ---
 
-## 3. Adapters & Mappings
+## 3. Registries & Mappings
 
-Adapters read context directly from `AGENTS.md` and translate them into native configs:
-- **Cursor** targets root `.cursorrules`
-- **Claude Code** targets root `CLAUDE.md`
-- **VS Code** targets `.vscode/settings.json`
-- **Gemini** targets root `GEMINI.md`
-- **Antigravity** targets `.gemini/settings.json`
+### Model Compatibility Registry
+Central registry configuration resides in `.ai/models/`:
+* `registry.yaml`: Maps model aliases to official provider IDs, context windows, and tiers.
+* `providers.yaml`: API base urls and environment variables keys.
+* `routing-presets.yaml`: Multi-model presets for task-oriented routing.
+* `local-models.yaml`: Endpoint mappings for offline model engines (Ollama, Llama.cpp).
+
+### IDE/Agent Adapters Registry
+Central adapter rules mapped under `.ai/adapters/registry.yaml`:
+* Targets files like `.cursorrules`, `CLAUDE.md`, `.vscode/settings.json`, `.clinerules`, `.aider.conf.yml`, `.windsurfrules`, `.continue/config.json`.
 
 ---
 
@@ -69,5 +74,5 @@ npx multimodel-dev-os@latest init --caveman
 - **Documentation site**: https://rizvee.github.io/multimodel-dev-os/
 - **GitHub Codebase**: https://github.com/rizvee/multimodel-dev-os
 - **Release Policies**: https://rizvee.github.io/multimodel-dev-os/release-policy
-- **LTS Support Policies**: https://rizvee.github.io/multimodel-dev-os/support-policy
 - **Upgrade Playbook**: https://rizvee.github.io/multimodel-dev-os/migration-guide
+- **Model Compatibility**: https://rizvee.github.io/multimodel-dev-os/model-compatibility

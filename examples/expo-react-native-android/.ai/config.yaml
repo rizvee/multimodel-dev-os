@@ -1,0 +1,22 @@
+# Mobile App configuration
+
+project:
+  name: "expo-react-native-android"
+  description: "Production-ready Android mobile app with Expo, React Native, and EAS builds."
+  version: "1.0.0"
+
+mode: "standard"
+
+adapters:
+  cursor: false
+  claude: false
+  gemini: false
+  vscode: false
+  antigravity: false
+
+skills:
+  directory: ".ai/skills/"
+  auto_load: true
+
+prompts:
+  directory: ".ai/prompts/"

@@ -1,0 +1,73 @@
+# MultiModel Dev OS - Model Compatibility Registry
+# Standard mappings for AI coding models, cost tiers, and capabilities
+
+models:
+  claude-sonnet-latest:
+    provider: anthropic
+    alias: claude-3-5-sonnet
+    official_id: claude-3-5-sonnet-20241022
+    context_window: 200000
+    tiers:
+      cost: high
+      speed: medium
+      reasoning: premium
+      coding: premium
+    capabilities:
+      vision: true
+      tool_use: true
+
+  gemini-flash-latest:
+    provider: google
+    alias: gemini-1.5-flash
+    official_id: gemini-1.5-flash-001
+    context_window: 1048576
+    tiers:
+      cost: low
+      speed: fast
+      reasoning: medium
+      coding: medium
+    capabilities:
+      vision: true
+      tool_use: true
+
+  gemini-pro-latest:
+    provider: google
+    alias: gemini-1.5-pro
+    official_id: gemini-1.5-pro-001
+    context_window: 2097152
+    tiers:
+      cost: medium
+      speed: medium
+      reasoning: premium
+      coding: premium
+    capabilities:
+      vision: true
+      tool_use: true
+
+  gpt-coding-latest:
+    provider: openai
+    alias: gpt-4o
+    official_id: gpt-4o-2024-05-13
+    context_window: 128000
+    tiers:
+      cost: high
+      speed: fast
+      reasoning: premium
+      coding: premium
+    capabilities:
+      vision: true
+      tool_use: true
+
+  deepseek-coder-latest:
+    provider: deepseek
+    alias: deepseek-coder
+    official_id: deepseek-coder-v2
+    context_window: 128000
+    tiers:
+      cost: low
+      speed: medium
+      reasoning: premium
+      coding: premium
+    capabilities:
+      vision: false
+      tool_use: true

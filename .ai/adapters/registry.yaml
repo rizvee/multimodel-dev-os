@@ -1,0 +1,56 @@
+# MultiModel Dev OS - Coding Agents & IDE Adapters Registry
+
+adapters:
+  cursor:
+    name: "Cursor"
+    rules_file: ".cursorrules"
+    format: "markdown"
+    type: "editor"
+
+  claude:
+    name: "Claude Code"
+    rules_file: "CLAUDE.md"
+    format: "markdown"
+    type: "terminal"
+
+  gemini:
+    name: "Gemini / Antigravity"
+    rules_file: "GEMINI.md"
+    format: "markdown"
+    type: "assistant"
+
+  vscode:
+    name: "VS Code settings"
+    rules_file: ".vscode/settings.json"
+    format: "json"
+    type: "editor"
+
+  antigravity:
+    name: "Antigravity settings"
+    rules_file: ".gemini/settings.json"
+    format: "json"
+    type: "assistant"
+
+  continue:
+    name: "Continue"
+    rules_file: ".continue/config.json"
+    format: "json"
+    type: "editor"
+
+  cline:
+    name: "Cline / Roo Code"
+    rules_file: ".clinerules"
+    format: "markdown"
+    type: "editor"
+
+  aider:
+    name: "Aider"
+    rules_file: ".aider.conf.yml"
+    format: "yaml"
+    type: "terminal"
+
+  windsurf:
+    name: "Windsurf"
+    rules_file: ".windsurfrules"
+    format: "markdown"
+    type: "editor"

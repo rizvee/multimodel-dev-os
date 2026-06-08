@@ -32,7 +32,7 @@ export default {
         'license': 'https://opensource.org/licenses/MIT',
         'url': 'https://github.com/rizvee/multimodel-dev-os',
         'downloadUrl': 'https://www.npmjs.com/package/multimodel-dev-os',
-        'softwareVersion': '1.1.0',
+        'softwareVersion': '1.2.0',
         'description': 'Portable, vendor-neutral AI Developer OS for multi-agent coding workflows.'
       })
     ]
@@ -64,6 +64,34 @@ export default {
           { text: 'Upgrades & Migration', link: '/migration-guide' },
           { text: 'Templates QA Blueprint', link: '/template-qa' },
           { text: 'v1.0.0 Readiness Checklist', link: '/v1-readiness' }
+        ]
+      },
+      {
+        text: 'Model Compatibility Layer',
+        items: [
+          { text: 'Model Capabilities Registry', link: '/model-compatibility' },
+          { text: 'Model Routing & Presets', link: '/model-routing' },
+          { text: 'Local & Offline Models', link: '/local-models' },
+          { text: 'API Provider Strategy', link: '/provider-strategy' }
+        ]
+      },
+      {
+        text: 'Agent & IDE Extensions',
+        items: [
+          { text: 'Agent Compatibility Mappings', link: '/agent-compatibility' },
+          { text: 'Custom Adapters Guide', link: '/adapter-authoring' }
+        ]
+      },
+      {
+        text: 'Mobile Integration & Delivery',
+        items: [
+          { text: 'Expo Android Delivery', link: '/mobile-android' }
+        ]
+      },
+      {
+        text: 'Token Cost Optimization',
+        items: [
+          { text: 'Token Budgets & Optimization', link: '/token-optimization' }
         ]
       },
       {

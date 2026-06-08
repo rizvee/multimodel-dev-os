@@ -1,0 +1,29 @@
+# MultiModel Dev OS - AI Providers Configuration
+
+providers:
+  anthropic:
+    name: "Anthropic"
+    api_endpoint: "https://api.anthropic.com/v1"
+    env_key: "ANTHROPIC_API_KEY"
+    default_headers:
+      "anthropic-version": "2023-06-01"
+
+  google:
+    name: "Google Gemini"
+    api_endpoint: "https://generativelanguage.googleapis.com/v1beta"
+    env_key: "GEMINI_API_KEY"
+
+  openai:
+    name: "OpenAI"
+    api_endpoint: "https://api.openai.com/v1"
+    env_key: "OPENAI_API_KEY"
+
+  deepseek:
+    name: "DeepSeek"
+    api_endpoint: "https://api.deepseek.com/v1"
+    env_key: "DEEPSEEK_API_KEY"
+
+  local:
+    name: "Local Offline Models"
+    api_endpoint: "http://localhost:11434/v1"
+    env_key: null

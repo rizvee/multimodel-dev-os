@@ -166,6 +166,15 @@ checkFile('examples/ecommerce-store/AGENTS.md');
 checkFile('examples/ecommerce-store/MEMORY.md');
 checkFile('examples/seo-landing-page/AGENTS.md');
 checkFile('examples/seo-landing-page/MEMORY.md');
+checkFile('examples/expo-react-native-android/AGENTS.md');
+checkFile('examples/expo-react-native-android/MEMORY.md');
+checkFile('examples/expo-react-native-android/app.json');
+checkFile('examples/expo-react-native-android/eas.json');
+checkFile('examples/expo-react-native-android/app.config.ts');
+checkFile('examples/expo-react-native-android/jest.config.js');
+checkFile('examples/expo-react-native-android/src/app/_layout.tsx');
+checkFile('examples/expo-react-native-android/src/lib/secure-storage.ts');
+checkFile('examples/expo-react-native-android/src/services/api-client.ts');
 checkFile('examples/general-app/AGENTS.md');
 checkFile('examples/general-app/MEMORY.md');
 
@@ -204,6 +213,23 @@ checkFile('docs/release-policy.md');
 checkFile('docs/support-policy.md');
 checkFile('docs/final-launch.md');
 checkFile('docs/v1-checklist.md');
+checkFile('docs/model-compatibility.md');
+checkFile('docs/model-routing.md');
+checkFile('docs/local-models.md');
+checkFile('docs/provider-strategy.md');
+checkFile('docs/agent-compatibility.md');
+checkFile('docs/adapter-authoring.md');
+checkFile('docs/token-optimization.md');
+checkFile('docs/mobile-android.md');
+
+// --- Model & Adapter Registries ---
+console.log('\nModel & Adapter Registries:');
+checkFile('.ai/models/registry.yaml');
+checkFile('.ai/models/providers.yaml');
+checkFile('.ai/models/routing-presets.yaml');
+checkFile('.ai/models/local-models.yaml');
+checkFile('.ai/models/README.md');
+checkFile('.ai/adapters/registry.yaml');
 
 // --- JSON Schemas ---
 console.log('\nJSON Schemas:');

@@ -1,0 +1,23 @@
+# MultiModel Dev OS - Routing Presets
+# Maps task categories to default model tiers
+
+presets:
+  planning:
+    primary: "claude-sonnet-latest"
+    fallback: "gemini-pro-latest"
+    cost_saving: "gemini-flash-latest"
+
+  scaffolding:
+    primary: "gpt-coding-latest"
+    fallback: "claude-sonnet-latest"
+    cost_saving: "deepseek-coder-latest"
+
+  coding:
+    primary: "claude-sonnet-latest"
+    fallback: "deepseek-coder-latest"
+    cost_saving: "gemini-flash-latest"
+
+  auditing:
+    primary: "gemini-pro-latest"
+    fallback: "claude-sonnet-latest"
+    cost_saving: "gemini-flash-latest"

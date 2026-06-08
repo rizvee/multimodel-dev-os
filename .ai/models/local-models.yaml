@@ -1,0 +1,20 @@
+# MultiModel Dev OS - Local Models Configuration
+# Details offline configurations for Ollama, Llama.cpp, or vLLM
+
+local_engines:
+  ollama:
+    host: "http://localhost:11434"
+    models:
+      - alias: "local-coder-model"
+        official_id: "qwen2.5-coder:7b"
+        context_window: 32000
+      - alias: "open-weight-reasoner"
+        official_id: "deepseek-r1:8b"
+        context_window: 16000
+
+  llama_cpp:
+    host: "http://localhost:8080"
+    models:
+      - alias: "local-coder-model"
+        official_id: "custom-qwen-coder"
+        context_window: 32000
