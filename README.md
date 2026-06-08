@@ -24,7 +24,8 @@
 > [!IMPORTANT]
 > **NPM publishing is paused until v2.0.0.** 
 > * For the last stable npm-published version (`v1.1.0`), use: `npx multimodel-dev-os@latest init`
-> * For unreleased `v1.2.0` features (Model registry, Adapter registry, Android Expo template, new subcommands), clone the source repository and execute commands locally using `node bin/multimodel-dev-os.js`.
+> * For unreleased `v1.2.x` and `v1.3.x` features (registries, Android templates, new subcommands), clone the source repository and execute commands locally using `node bin/multimodel-dev-os.js`.
+> * The next stable package released to the public registry will be `v2.0.0`.
 
 Initialize a stable workspace instantly:
 
@@ -132,7 +133,7 @@ Cuts prompt rules overhead down by **~79%** using highly optimized short-hand de
 npx multimodel-dev-os@latest init --caveman
 ```
 
-### 4. Registry & Model Commands (Unreleased v1.2.0 - Local Source Only)
+### 4. Registry & Model Commands (Unreleased v1.2.x/v1.3.x - Local Source Only)
 To run registries and the Android Expo template, clone the source and run locally:
 ```bash
 # List model or adapter registries
@@ -189,7 +190,7 @@ Discover how engineering teams deploy MultiModel Dev OS:
 
 ## Stable Protocol Specification & Roadmap
 
-MultiModel Dev OS version `v1.1.0` officially freezes the Layer 1, Layer 2, and Layer 3 specifications. Active development on registries and template extensions (`v1.2.0`) is source-only.
+MultiModel Dev OS version `v1.1.0` officially freezes the Layer 1, Layer 2, and Layer 3 specifications. Active development on registries and template extensions (`v1.2.x` and `v1.3.x`) is source-only.
 - 🗺️ [v2.0.0 Roadmap](/docs/v2-roadmap.md) (Stabilization targets & publishing runbook)
 - 🛡️ [Stable Protocol Specification](https://rizvee.github.io/multimodel-dev-os/stable-protocol)
 - 🔌 [Multi-Agent Compatibility Guides](https://rizvee.github.io/multimodel-dev-os/compatibility)

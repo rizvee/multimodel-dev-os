@@ -9,7 +9,7 @@ This document outlines the development path, stabilization targets, and migratio
 The primary goal of the **v2.0.0 release** is to promote the experimental features introduced in `v1.2.0` (Template Galaxy, Model Compatibility Layer, and Android Expo template) into officially frozen, production-grade core components, and resume stable package publication to the public npm registry.
 
 > [!IMPORTANT]
-> NPM package publication is strictly **paused** during all `v1.2.x` source-only releases. The next official npm registry update will be `v2.0.0`.
+> NPM package publication is strictly **paused** during all `v1.2.x` and `v1.3.x` source-only releases. The next official npm registry update will be `v2.0.0`.
 
 ---
 

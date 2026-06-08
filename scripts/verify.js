@@ -233,6 +233,7 @@ checkFile('.ai/models/routing-presets.yaml');
 checkFile('.ai/models/local-models.yaml');
 checkFile('.ai/models/README.md');
 checkFile('.ai/adapters/registry.yaml');
+checkFile('.ai/templates/registry.yaml');
 
 // --- JSON Schemas ---
 console.log('\nJSON Schemas:');
@@ -259,6 +260,111 @@ checkFile('docs/public/sitemap.xml');
 checkFile('docs/public/assets/social-preview.svg');
 checkFile('docs/public/assets/terminal-demo.svg');
 checkFile('docs/public/assets/architecture-preview.svg');
+
+// --- YAML Parser Helper ---
+function parseYaml(content) {
+  try {
+    const root = {};
+    const stack = [{ obj: root, indent: -1, key: null, isArray: false }];
+    const lines = content.split(/\r?\n/);
+    for (let line of lines) {
+      const commentIdx = line.indexOf('#');
+      if (commentIdx !== -1) {
+        line = line.substring(0, commentIdx);
+      }
+      line = line.trimEnd();
+      if (!line.trim()) continue;
+      const indent = line.match(/^ */)[0].length;
+      let trimmed = line.trim();
+      while (stack.length > 1 && indent <= stack[stack.length - 1].indent) {
+        stack.pop();
+      }
+      const parent = stack[stack.length - 1];
+      if (trimmed.startsWith('-')) {
+        trimmed = trimmed.substring(1).trim();
+        if (!Array.isArray(parent.obj)) {
+          const grandparent = stack[stack.length - 2];
+          if (grandparent) {
+            grandparent.obj[parent.key] = [];
+            parent.obj = grandparent.obj[parent.key];
+          }
+        }
+        const colonIdx = trimmed.indexOf(':');
+        if (colonIdx === -1) {
+          parent.obj.push(trimmed);
+        } else {
+          const key = trimmed.substring(0, colonIdx).trim();
+          let val = trimmed.substring(colonIdx + 1).trim();
+          if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+            val = val.substring(1, val.length - 1);
+          }
+          if (val === 'true') val = true;
+          else if (val === 'false') val = false;
+          else if (val === 'null') val = null;
+          else if (/^\d+$/.test(val)) val = parseInt(val, 10);
+          const newObj = { [key]: val };
+          parent.obj.push(newObj);
+          stack.push({ obj: newObj, indent: indent, key: key, isArray: false });
+        }
+      } else {
+        const colonIdx = trimmed.indexOf(':');
+        if (colonIdx === -1) continue;
+        const key = trimmed.substring(0, colonIdx).trim();
+        let val = trimmed.substring(colonIdx + 1).trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.substring(1, val.length - 1);
+        }
+        if (val === 'true') val = true;
+        else if (val === 'false') val = false;
+        else if (val === 'null') val = null;
+        else if (/^\d+$/.test(val)) val = parseInt(val, 10);
+        if (val === '') {
+          parent.obj[key] = {};
+          stack.push({ obj: parent.obj[key], indent: indent, key: key, isArray: false });
+        } else {
+          parent.obj[key] = val;
+        }
+      }
+    }
+    return root;
+  } catch (e) {
+    return null;
+  }
+}
+
+function verifyRegistryParsed(relPath, requiredRootKey) {
+  const fullPath = join(projectRoot, relPath);
+  if (!existsSync(fullPath)) {
+    console.error(`  ${RED}✗${NC} ${relPath} (missing for parsing)`);
+    fail++;
+    return;
+  }
+  try {
+    const data = parseYaml(readFileSync(fullPath, 'utf8'));
+    if (!data || typeof data !== 'object') {
+      console.error(`  ${RED}✗${NC} ${relPath} (YAML parsing returned invalid object)`);
+      fail++;
+    } else if (requiredRootKey && !data[requiredRootKey]) {
+      console.error(`  ${RED}✗${NC} ${relPath} (missing root key: "${requiredRootKey}")`);
+      fail++;
+    } else {
+      console.log(`  ${GREEN}✓${NC} ${relPath} (parsed successfully, verified root key "${requiredRootKey}")`);
+      pass++;
+    }
+  } catch (e) {
+    console.error(`  ${RED}✗${NC} ${relPath} (failed parsing: ${e.message})`);
+    fail++;
+  }
+}
+
+// --- Verifying Registry Parsers and Syntax Sanity ---
+console.log('\nVerifying Registry Parsers and Syntax Sanity:');
+verifyRegistryParsed('.ai/models/registry.yaml', 'models');
+verifyRegistryParsed('.ai/models/providers.yaml', 'providers');
+verifyRegistryParsed('.ai/models/routing-presets.yaml', 'presets');
+verifyRegistryParsed('.ai/models/local-models.yaml', 'local_engines');
+verifyRegistryParsed('.ai/adapters/registry.yaml', 'adapters');
+verifyRegistryParsed('.ai/templates/registry.yaml', 'templates');
 
 // --- CLI & Packaging Pre-Flight Tests ---
 console.log('\nRunning CLI & Packaging Pre-Flight Tests...');

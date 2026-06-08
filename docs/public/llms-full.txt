@@ -1,11 +1,11 @@
-# MultiModel Dev OS — Comprehensive AI Assistant Discoverability Guide (v1.2.0 Source / v1.1.0 npm)
+# MultiModel Dev OS — Comprehensive AI Assistant Discoverability Guide (v1.3.0 Source / v1.1.0 npm)
 
 MultiModel Dev OS is a repository-level porting specification designed to align context and instructions across diverse developer tools and AI models.
 
 > [!NOTE]
 > **NPM publishing is paused until v2.0.0.**
 > * Stable npm releases are available under version `v1.1.0`.
-> * Unreleased `v1.2.0` features (Model/Adapter registries, Android templates, new subcommands) must be run locally from a cloned repository source.
+> * Unreleased `v1.2.x` and `v1.3.x` features (registries, Android templates, new subcommands) must be run locally from a cloned repository source.
 
 ---
 

@@ -54,3 +54,22 @@ To verify app compliance before distribution:
 1. **No committed secrets**: Do not write keys inside `app.config.ts` or `app.json`. Use EAS secrets vault.
 2. **Offline Handlers**: Verify layout redirects properly to connection failure views when network states drop.
 3. **Session Encryptions**: Confirm tokens are stored exclusively inside `secure-storage.ts` (`expo-secure-store`), not `AsyncStorage`.
+
+---
+
+## 5. Android & Expo Template FAQ
+
+### Q: Why does the API call fail in the Android Emulator when using localhost?
+In Android emulators, `localhost` or `127.0.0.1` refers to the emulator's loopback interface itself, not your host computer. The host computer's loopback interface is mapped to the special IP address `10.0.2.2`. The `api-client` automatically resolves this default when `APP_ENV` is set to `development`.
+
+### Q: How do I handle EAS credentials errors during eas build?
+EAS credentials errors usually occur when the `projectId` or `owner` in `app.config.ts` does not match your Expo Developer account. To resolve this:
+1. Log in to your Expo account via command line: `npx eas login`.
+2. Configure your own Expo username in `app.config.ts` under `owner`.
+3. Generate a project ID on your Expo dashboard and update the `projectId` placeholder in `app.config.ts`.
+
+### Q: How do I test the API client's retry mechanism locally?
+You can toggle offline mock responses by setting `useMockData: true` inside [api-client.ts](file:///f:/multimodel-dev-os/examples/expo-react-native-android/src/services/api-client.ts) constructor, or you can temporarily disconnect your development server to watch the console log warning attempts:
+`[ApiClient] Attempt 1 failed: fetch failed. Retrying...`
+The client will automatically retry up to 3 times before returning a `Max retries exceeded` error.
+

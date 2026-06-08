@@ -2,12 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 
+/**
+ * Root Application Layout Component
+ * Serves as the primary entry point for Expo Router.
+ * Resolves network connection states and establishes offline screen boundaries.
+ */
 export default function RootLayout() {
   const [isConnected, setIsConnected] = useState<boolean | null>(true);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Monitor connection states
+    // Monitor connection states dynamically across Android devices
     const unsubscribe = NetInfo.addEventListener(state => {
       setIsConnected(state.isConnected);
       setIsLoading(false);
@@ -24,6 +29,7 @@ export default function RootLayout() {
     );
   }
 
+  // Offline boundary gate: Render fallback UI if connection is lost
   if (!isConnected) {
     return (
       <View style={styles.center}>
@@ -33,6 +39,9 @@ export default function RootLayout() {
     );
   }
 
+  // Guidelines: For Expo Router navigation, replace the below container with:
+  //   import { Stack } from 'expo-router';
+  //   return <Stack screenOptions={{ headerShown: false }} />;
   return (
     <View style={styles.container}>
       <Text style={styles.welcomeTitle}>MultiModel Dev OS Mobile</Text>

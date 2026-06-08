@@ -37,7 +37,9 @@ function parseArgs(args) {
     agent: null,
     stack: null,
     mobile: null,
-    aiApp: null
+    aiApp: null,
+    json: false,
+    threshold: null
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -58,6 +60,10 @@ function parseArgs(args) {
       params.help = true;
     } else if (arg === '--tokens') {
       params.tokens = true;
+    } else if (arg === '--json') {
+      params.json = true;
+    } else if (arg === '--threshold') {
+      params.threshold = args[++i];
     } else if (arg === '--model-preset') {
       params.modelPreset = args[++i];
     } else if (arg === '--agent') {
@@ -78,357 +84,29 @@ function parseArgs(args) {
 const params = parseArgs(ARGS);
 const COMMAND = params.command;
 
-const TEMPLATES = {
-  // --- A. Web / Frontend ---
-  'nextjs-saas': {
-    name: 'nextjs-saas',
-    description: 'Next.js App Router starter with TypeScript, Prisma database, Tailwind CSS, and Stripe subscription setup.',
-    stack: 'Next.js 14, React 18, TypeScript, Tailwind CSS, Prisma ORM, Stripe payments',
-    skill: 'nextjs-action-build.md',
-    skillDesc: 'React Server Actions secure implementation conventions.'
-  },
-  'nextjs-dashboard': {
-    name: 'nextjs-dashboard',
-    description: 'Production-ready dashboard with chart widgets, tables, search, and dynamic routing components.',
-    stack: 'Next.js 14, Tailwind CSS, Recharts, TypeScript',
-    skill: 'dashboard-chart.md',
-    skillDesc: 'Dynamic client-side chart hydration and loading states.'
-  },
-  'nextjs-ecommerce': {
-    name: 'nextjs-ecommerce',
-    description: 'Headless storefront with local state basket management and Stripe Checkout integration.',
-    stack: 'Next.js, Tailwind, Stripe API',
-    skill: 'checkout-session.md',
-    skillDesc: 'Centralized storefront checkout redirect routines.'
-  },
-  'react-spa': {
-    name: 'react-spa',
-    description: 'Standard single-page React app bundled with Vite and React Router.',
-    stack: 'React, React Router, Vite, CSS Modules',
-    skill: 'spa-router.md',
-    skillDesc: 'Client-side fallback routing and lazy-loading components.'
-  },
-  'vite-react': {
-    name: 'vite-react',
-    description: 'Clean React + TypeScript skeleton with asset optimization scripts.',
-    stack: 'Vite, React 18, TypeScript, Tailwind CSS',
-    skill: 'vite-asset.md',
-    skillDesc: 'Dynamic asset preloading and static chunking.'
-  },
-  'astro-content-site': {
-    name: 'astro-content-site',
-    description: 'Astro content site optimized for 100/100 Lighthouse performance and Core Web Vitals.',
-    stack: 'Astro, HTML5, structured JSON-LD SEO markup',
-    skill: 'astro-seo.md',
-    skillDesc: 'Structured schema injection and responsive image generation.'
-  },
-  'vue-nuxt-app': {
-    name: 'vue-nuxt-app',
-    description: 'Nuxt.js SSR application with pinia state management.',
-    stack: 'Nuxt 3, Vue 3, Pinia, Tailwind CSS',
-    skill: 'nuxt-ssr.md',
-    skillDesc: 'Server-side state hydration and API integration.'
-  },
-  'sveltekit-app': {
-    name: 'sveltekit-app',
-    description: 'SvelteKit application skeleton with built-in routing.',
-    stack: 'SvelteKit, Svelte, Vite',
-    skill: 'svelte-routing.md',
-    skillDesc: 'Directory-based routing and load function integration.'
-  },
-
-  // --- B. Backend / API ---
-  'node-express-api': {
-    name: 'node-express-api',
-    description: 'Express.js backend with JSON Web Tokens, Joi schema validation, and SQL logger hooks.',
-    stack: 'Node.js, Express, JWT, Joi, Winston logger',
-    skill: 'express-auth.md',
-    skillDesc: 'Secure middleware filters and authorization token parsing.'
-  },
-  'nestjs-api': {
-    name: 'nestjs-api',
-    description: 'Modular NestJS backend with Swagger documentation and PostgreSQL repository.',
-    stack: 'NestJS, TypeORM, PostgreSQL, Swagger',
-    skill: 'nestjs-controller.md',
-    skillDesc: 'DTO validations and guard decorators.'
-  },
-  'fastapi-python': {
-    name: 'fastapi-python',
-    description: 'FastAPI application with Pydantic validation, SQLite hooks, and automatic OpenAPI generation.',
-    stack: 'FastAPI, Python, Pydantic, SQLAlchemy',
-    skill: 'fastapi-route.md',
-    skillDesc: 'Async route handlers and query dependency injection.'
-  },
-  'django-api': {
-    name: 'django-api',
-    description: 'Django REST Framework starter with model serializing and standard authentication.',
-    stack: 'Django, Python, DRF, SQLite',
-    skill: 'django-serialize.md',
-    skillDesc: 'Model serializer mappings and security filters.'
-  },
-  'laravel-api': {
-    name: 'laravel-api',
-    description: 'Laravel API backend with Eloquent models and Sanctum auth token management.',
-    stack: 'Laravel, PHP, Eloquent, Sanctum',
-    skill: 'laravel-route.md',
-    skillDesc: 'Controller resource routes and validation requests.'
-  },
-  'go-api': {
-    name: 'go-api',
-    description: 'Go REST API boilerplate with gorilla/mux routing and sqlx connections.',
-    stack: 'Go, Gorilla Mux, sqlx, PostgreSQL',
-    skill: 'go-handler.md',
-    skillDesc: 'JSON body decoding and DB transactions.'
-  },
-  'dotnet-api': {
-    name: 'dotnet-api',
-    description: '.NET Core Web API template with Entity Framework Core.',
-    stack: 'C#, .NET Core, Entity Framework, SQL Server',
-    skill: 'dotnet-controller.md',
-    skillDesc: 'API controller mapping and dependency injection.'
-  },
-  'java-spring-api': {
-    name: 'java-spring-api',
-    description: 'Spring Boot REST API with JPA hibernate repositories and security controls.',
-    stack: 'Java, Spring Boot, Spring Security, Hibernate',
-    skill: 'spring-repository.md',
-    skillDesc: 'JPA entity mapping and transaction boundaries.'
-  },
-
-  // --- C. Mobile ---
-  'expo-react-native-android': {
-    name: 'expo-react-native-android',
-    description: 'Production-ready Expo React Native Android application boilerplate with EAS Build, env profiles, secure store, and API clients.',
-    stack: 'Expo, React Native, TypeScript, EAS Build CLI, expo-secure-store',
-    skill: 'expo-android-build.md',
-    skillDesc: 'Expo EAS Build configurations and environment validation checklists.'
-  },
-  'expo-react-native-cross-platform': {
-    name: 'expo-react-native-cross-platform',
-    description: 'Expo starter with Android, iOS, and Web deployment configurations.',
-    stack: 'Expo, React Native, React Native Web, TypeScript',
-    skill: 'expo-platform.md',
-    skillDesc: 'Cross-platform component splitting and styles.'
-  },
-  'react-native-production-app': {
-    name: 'react-native-production-app',
-    description: 'Bare React Native workspace setup with native Android folders.',
-    stack: 'React Native CLI, TypeScript, Native Modules',
-    skill: 'rn-native.md',
-    skillDesc: 'Native module bridge configuration.'
-  },
-  'flutter-app': {
-    name: 'flutter-app',
-    description: 'Flutter project skeleton with Bloc state management.',
-    stack: 'Flutter, Dart, Bloc, Provider',
-    skill: 'flutter-bloc.md',
-    skillDesc: 'Bloc event mapping and state transitions.'
-  },
-
-  // --- D. AI / Agentic Apps ---
-  'ai-chat-app': {
-    name: 'ai-chat-app',
-    description: 'Chat interface with server-sent event (SSE) streaming capabilities.',
-    stack: 'Vite, React, EventSource API, Node.js',
-    skill: 'chat-stream.md',
-    skillDesc: 'SSE chunk decoder and chat history managers.'
-  },
-  'rag-knowledge-base': {
-    name: 'rag-knowledge-base',
-    description: 'Document ingestion pipelines, text chunking hooks, and vector DB search scripts.',
-    stack: 'Python, LlamaIndex, Qdrant, FastAPI',
-    skill: 'rag-embed.md',
-    skillDesc: 'Vector embedding generation and semantic retrieval.'
-  },
-  'ai-agent-workflow': {
-    name: 'ai-agent-workflow',
-    description: 'Multi-agent state machine orchestration layout with workflow memory.',
-    stack: 'LangGraph, Python, SQLite state saver',
-    skill: 'agent-state.md',
-    skillDesc: 'State machine node definitions and reducer logic.'
-  },
-  'mcp-server-project': {
-    name: 'mcp-server-project',
-    description: 'Model Context Protocol server template to register custom tools.',
-    stack: 'Node.js, TypeScript, MCP SDK',
-    skill: 'mcp-tool.md',
-    skillDesc: 'MCP tool schema mapping and request routing.'
-  },
-  'local-llm-app': {
-    name: 'local-llm-app',
-    description: 'Local inference app leveraging Ollama or Llama.cpp endpoints.',
-    stack: 'HTML, JS, Ollama API, Llama.cpp',
-    skill: 'local-inference.md',
-    skillDesc: 'Local fetch routing and fallback model mapping.'
-  },
-  'multimodel-router-app': {
-    name: 'multimodel-router-app',
-    description: 'Dynamic routing middleware selecting models based on cost and reasoning tiers.',
-    stack: 'Node.js, TypeScript, providers YAML registry',
-    skill: 'model-route.md',
-    skillDesc: 'Dynamic payload forwarding and token counter.'
-  },
-  'browser-agent-automation': {
-    name: 'browser-agent-automation',
-    description: 'Puppeteer and Playwright automation scripts for agent interaction testing.',
-    stack: 'Node.js, Playwright, Chromium API',
-    skill: 'browser-automation.md',
-    skillDesc: 'DOM locator verification and screen recording loops.'
-  },
-  'voice-agent-app': {
-    name: 'voice-agent-app',
-    description: 'Real-time audio streaming and speech-to-text integration widgets.',
-    stack: 'WebSocket, Web Audio API, Gemini Live API',
-    skill: 'voice-stream.md',
-    skillDesc: 'Audio PCM buffer conversion and WebSocket listeners.'
-  },
-
-  // --- E. Business / Growth ---
-  'ecommerce-store': {
-    name: 'ecommerce-store',
-    description: 'PCI-compliant headless e-commerce store with secure checkout loops, card state validations, and Stripe webhooks.',
-    stack: 'Headless Store API, cart states, secure payment webhooks, order database triggers',
-    skill: 'webhook-handler.md',
-    skillDesc: 'Stripe order checkout webhook secure listener verification rules.'
-  },
-  'wordpress-site': {
-    name: 'wordpress-site',
-    description: 'WordPress custom block theme and plugin development profile with secure PHP database query rules.',
-    stack: 'WordPress Core, PHP, Gutenberg Block APIs, theme customization hooks',
-    skill: 'plugin-boilerplate.md',
-    skillDesc: 'PHP hook registrations and sanitization gates boilerplate.'
-  },
-  'seo-landing-page': {
-    name: 'seo-landing-page',
-    description: 'Ultra-fast static landing page layout optimized for Astro, high Core Web Vitals scores, and JSON-LD schema markup.',
-    stack: 'Astro, HTML5, structured JSON-LD SEO markup, asset minification frameworks',
-    skill: 'seo-audit.md',
-    skillDesc: 'Lighthouse audits optimization guidelines and Core Web Vitals targets.'
-  },
-  'content-marketing-engine': {
-    name: 'content-marketing-engine',
-    description: 'Markdown-based blog engine optimized for search visibility.',
-    stack: 'Astro, Markdown, Tailwind CSS',
-    skill: 'blog-seo.md',
-    skillDesc: 'Sitemap dynamic compiler and canonical tag validation.'
-  },
-  'analytics-dashboard': {
-    name: 'analytics-dashboard',
-    description: 'Customer analytics tracker interface with visual charts.',
-    stack: 'React, Vite, Chart.js',
-    skill: 'chart-render.md',
-    skillDesc: 'Dynamic data mapping and tooltip events.'
-  },
-  'crm-lightweight': {
-    name: 'crm-lightweight',
-    description: 'Sales pipeline tracker interface.',
-    stack: 'Next.js, SQLite, Tailwind CSS',
-    skill: 'crm-pipeline.md',
-    skillDesc: 'Deal stage drag-and-drop state modifications.'
-  },
-  'customer-support-agent': {
-    name: 'customer-support-agent',
-    description: 'AI-driven customer support chat widget.',
-    stack: 'HTML, Vanilla JS, OpenAI Assistants API',
-    skill: 'support-widget.md',
-    skillDesc: 'Assistants thread handling and message polling.'
-  },
-
-  // --- F. DevOps / Automation ---
-  'github-actions-ci': {
-    name: 'github-actions-ci',
-    description: 'CI/CD workflows for building and testing multi-model applications.',
-    stack: 'GitHub Actions, Docker, Node.js environment',
-    skill: 'ci-workflow.md',
-    skillDesc: 'Workflow triggers and test reporting steps.'
-  },
-  'dockerized-app': {
-    name: 'dockerized-app',
-    description: 'Docker Compose setups for multi-container web apps.',
-    stack: 'Docker, Docker Compose, Nginx, PostgreSQL',
-    skill: 'docker-compose.md',
-    skillDesc: 'Environment variables injection and network bridges.'
-  },
-  'cpanel-deploy-app': {
-    name: 'cpanel-deploy-app',
-    description: 'FTP/SFTP deployment automation and server checklists.',
-    stack: 'Node.js, SFTP Client, FTP Deploy',
-    skill: 'cpanel-deploy.md',
-    skillDesc: 'Secure file transfer protocols and remote permission audits.'
-  },
-  'cloudflare-worker': {
-    name: 'cloudflare-worker',
-    description: 'Cloudflare Worker template for edge API routing.',
-    stack: 'Wrangler, Cloudflare Workers, Hono framework',
-    skill: 'worker-route.md',
-    skillDesc: 'Edge routing handlers and KV storage bindings.'
-  },
-  'vercel-app': {
-    name: 'vercel-app',
-    description: 'Serverless deployment config file with serverless functions settings.',
-    stack: 'Vercel CLI, vercel.json configuration',
-    skill: 'vercel-deploy.md',
-    skillDesc: 'Redirect mappings and custom headers.'
-  },
-  'railway-app': {
-    name: 'railway-app',
-    description: 'Railway cloud platform deployment configuration template.',
-    stack: 'Railway CLI, Railway Config',
-    skill: 'railway-deploy.md',
-    skillDesc: 'Database binding linkages and start commands.'
-  },
-  'supabase-app': {
-    name: 'supabase-app',
-    description: 'Supabase database migrations and edge functions setups.',
-    stack: 'Supabase CLI, PostgreSQL, Deno edge functions',
-    skill: 'supabase-edge.md',
-    skillDesc: 'JWT verification and edge route handlers.'
-  },
-  'firebase-app': {
-    name: 'firebase-app',
-    description: 'Firebase hosting configurations and cloud functions.',
-    stack: 'Firebase CLI, TypeScript, Cloud Functions',
-    skill: 'firebase-function.md',
-    skillDesc: 'HTTPS cloud functions triggered routes.'
-  },
-
-  // --- G. Data / Analytics ---
-  'python-data-pipeline': {
-    name: 'python-data-pipeline',
-    description: 'Pandas and Polars data ingestion and sanitization pipeline.',
-    stack: 'Python, Pandas, Polars, DuckDB',
-    skill: 'data-pipeline.md',
-    skillDesc: 'CSV parsing and database bulk copy loops.'
-  },
-  'postgres-app': {
-    name: 'postgres-app',
-    description: 'Database schema migration scripts and indexing strategies.',
-    stack: 'PostgreSQL, SQL, Knex.js migrations',
-    skill: 'db-migration.md',
-    skillDesc: 'Table definitions and composite index optimization.'
-  },
-  'vector-db-rag': {
-    name: 'vector-db-rag',
-    description: 'Vector DB schemas, collections, and custom index settings.',
-    stack: 'Pinecone, Qdrant, Milvus SDK',
-    skill: 'vector-index.md',
-    skillDesc: 'Distance metrics configuration and payload filtering.'
-  },
-  'warehouse-reporting': {
-    name: 'warehouse-reporting',
-    description: 'Data warehouse analytical queries and report compilers.',
-    stack: 'ClickHouse, SQL, Node.js charts',
-    skill: 'db-reporting.md',
-    skillDesc: 'Analytical aggregation queries and dashboard bindings.'
-  },
-  'general-app': {
-    name: 'general-app',
-    description: 'Baseline generic fallback profile for standard backend systems (Python, Go, Node, Rust) and universal git workflows.',
-    stack: 'Universal backends baseline structure, default git flow parameters',
-    skill: 'example-skill.md',
-    skillDesc: 'Generic baseline instructions and coding standards.'
+let TEMPLATES = {};
+try {
+  const templatesPath = join(sourceRoot, '.ai', 'templates', 'registry.yaml');
+  if (existsSync(templatesPath)) {
+    const templatesRegistry = parseYaml(readFileSync(templatesPath, 'utf8'));
+    TEMPLATES = templatesRegistry.templates || {};
+  } else {
+    TEMPLATES = {
+      'general-app': {
+        name: 'general-app',
+        description: 'Baseline generic fallback profile for standard backend systems.',
+        stack: 'Universal backends baseline structure',
+        skill: 'example-skill.md',
+        skillDesc: 'Generic baseline instructions and coding standards.',
+        status: 'stable',
+        maturity: 'production-ready',
+        required_files: ['AGENTS.md', 'MEMORY.md', 'TASKS.md', 'RUNBOOK.md', '.ai/config.yaml']
+      }
+    };
   }
-};
+} catch (e) {
+  TEMPLATES = {};
+}
 
 if (params.help || !COMMAND) {
   showHelp();
@@ -445,7 +123,7 @@ if (COMMAND === 'init') {
 } else if (COMMAND === 'verify') {
   handleVerify(params);
 } else if (COMMAND === 'templates' || COMMAND === 'list-templates') {
-  handleListTemplates();
+  handleListTemplates(params);
 } else if (COMMAND === 'show-template') {
   const tName = ARGS[1];
   if (!tName || tName.startsWith('-')) {
@@ -458,7 +136,7 @@ if (COMMAND === 'init') {
 } else if (COMMAND === 'validate') {
   handleValidate(params);
 } else if (COMMAND === 'models') {
-  handleListModels();
+  handleListModels(params);
 } else if (COMMAND === 'show-model') {
   const mName = ARGS[1];
   if (!mName || mName.startsWith('-')) {
@@ -476,7 +154,7 @@ if (COMMAND === 'init') {
   }
   handleRouteModel(taskName);
 } else if (COMMAND === 'adapters') {
-  handleListAdapters();
+  handleListAdapters(params);
 } else if (COMMAND === 'show-adapter') {
   const aName = ARGS[1];
   if (!aName || aName.startsWith('-')) {
@@ -525,16 +203,23 @@ function showHelp() {
   console.log('  -a, --adapter <name>    Inject specific adapter: cursor, claude, vscode, gemini, etc.');
   console.log('  --caveman               Use minimal-token templates (~79% fewer tokens)');
   console.log('  --tokens                Run a deeper token-sink size analysis during doctor checkup');
+  console.log('  --json                  Output raw JSON data for listing commands (models, adapters, templates)');
+  console.log('  --threshold <val>       Set custom size threshold for doctor tokens checks (e.g. 50KB)');
   console.log('  -d, --dry-run           Preview planned file actions without modifying the filesystem');
   console.log('  -f, --force             Overwrite existing files without prompting\n');
 }
 
-function handleListTemplates() {
+function handleListTemplates(options) {
+  if (options && options.json) {
+    console.log(JSON.stringify(TEMPLATES, null, 2));
+    return;
+  }
   console.log(`\n🧠 \x1b[36mBuilt-in Template Profiles [v${version}]\x1b[0m`);
   console.log('==================================================');
   Object.keys(TEMPLATES).forEach(key => {
     const t = TEMPLATES[key];
-    console.log(`\n\x1b[32m* ${t.name}\x1b[0m`);
+    const statusStr = t.status === 'planned' ? ' (Planned)' : t.status === 'experimental' ? ' (Experimental)' : '';
+    console.log(`\n\x1b[32m* ${t.name}${statusStr}\x1b[0m`);
     console.log(`  \x1b[33mStack:\x1b[0m ${t.stack}`);
     console.log(`  \x1b[37mDescription:\x1b[0m ${t.description}`);
   });
@@ -544,16 +229,20 @@ function handleListTemplates() {
 function handleShowTemplate(name) {
   const t = TEMPLATES[name];
   if (!t) {
-    console.error(`\n\x1b[31mError: Template '${name}' does not exist. Available: nextjs-saas, wordpress-site, ecommerce-store, seo-landing-page, general-app\x1b[0m\n`);
+    const available = Object.keys(TEMPLATES).join(', ');
+    console.error(`\n\x1b[31mError: Template '${name}' does not exist. Available: ${available}\x1b[0m\n`);
     process.exit(1);
   }
 
-  console.log(`\n🔍 \x1b[36mTemplate Profile: ${t.name}\x1b[0m`);
+  const statusStr = t.status === 'planned' ? ' (Planned)' : t.status === 'experimental' ? ' (Experimental)' : ' (Stable)';
+  console.log(`\n🔍 \x1b[36mTemplate Profile: ${t.name}${statusStr}\x1b[0m`);
   console.log('==================================================');
   console.log(`\x1b[33mStack Blueprint:\x1b[0m ${t.stack}`);
   console.log(`\x1b[33mOverview:\x1b[0m ${t.description}`);
-  console.log(`\x1b[33mHighlighted Skill:\x1b[0m .ai/skills/${t.skill}`);
-  console.log(`  └─> ${t.skillDesc}`);
+  if (t.skill) {
+    console.log(`\x1b[33mHighlighted Skill:\x1b[0m .ai/skills/${t.skill}`);
+    console.log(`  └─> ${t.skillDesc}`);
+  }
   console.log('\n\x1b[33mScaffolding Directory Layout:\x1b[0m');
   console.log('  ├── AGENTS.md                   (Stack building conventions)');
   console.log('  ├── MEMORY.md                   (Architectural constraints record)');
@@ -567,12 +256,25 @@ function handleShowTemplate(name) {
   console.log('      │   ├── model-map.md        (AI routing specifications)');
   console.log('      │   └── context-budget.md   (Token allocation guidelines)');
   console.log(`      └── skills/`);
-  console.log(`          └── ${t.skill}     (Custom template skills code boiler)`);
+  if (t.skill) {
+    console.log(`          └── ${t.skill}     (Custom template skills code boiler)`);
+  } else {
+    console.log(`          └── [custom-skill].md   (Custom template skills code boiler)`);
+  }
   console.log('\nUse \x1b[32minit --template ' + t.name + '\x1b[0m to bootstrap this profile.\n');
 }
 
 function handleInit(options) {
   console.log(`\n\x1b[34mInitializing multimodel-dev-os in: ${options.target}\x1b[0m`);
+  
+  // Check if requested template is planned
+  const tInfo = TEMPLATES[options.template];
+  if (tInfo && tInfo.status === 'planned') {
+    console.warn(`  \x1b[33m[WARNING] Template '${options.template}' is a PLANNED template in the roadmap.\x1b[0m`);
+    console.warn(`  It is not fully scaffolded yet and will fall back to bootstrapping the 'general-app' profile.\n`);
+    options.template = 'general-app';
+  }
+
   console.log(`Template profile: \x1b[32m${options.template}\x1b[0m`);
   if (options.caveman) console.log('Bone variant: \x1b[33mCaveman Mode Active\x1b[0m');
   if (options.dryRun) console.log('\x1b[36mDry Run active - no actual modifications will occur\x1b[0m');
@@ -1028,17 +730,23 @@ function handleValidate(options) {
   }
 
   // Template-specific validation
-  if (options.template === 'expo-react-native-android') {
-    const mobileFiles = [
-      'app.json',
-      'eas.json',
-      'app.config.ts',
-      'jest.config.js',
-      'src/app/_layout.tsx',
-      'src/lib/secure-storage.ts',
-      'src/services/api-client.ts'
-    ];
-    mobileFiles.forEach(f => assertPath(f, 'file'));
+  if (options.template) {
+    const tInfo = TEMPLATES[options.template];
+    if (tInfo && Array.isArray(tInfo.required_files)) {
+      console.log(`\n📋 Validating required files for template '${options.template}':`);
+      tInfo.required_files.forEach(f => assertPath(f, 'file'));
+    } else if (options.template === 'expo-react-native-android') {
+      const mobileFiles = [
+        'app.json',
+        'eas.json',
+        'app.config.ts',
+        'jest.config.js',
+        'src/app/_layout.tsx',
+        'src/lib/secure-storage.ts',
+        'src/services/api-client.ts'
+      ];
+      mobileFiles.forEach(f => assertPath(f, 'file'));
+    }
   }
 
   console.log('\n==================================================');
@@ -1053,39 +761,63 @@ function handleValidate(options) {
 
 // --- YAML Parser Helper ---
 function parseYaml(content) {
-  const root = {};
-  const stack = [{ obj: root, indent: -1, key: null, isArray: false }];
+  try {
+    const root = {};
+    const stack = [{ obj: root, indent: -1, key: null, isArray: false }];
 
-  const lines = content.split(/\r?\n/);
-  for (let line of lines) {
-    const commentIdx = line.indexOf('#');
-    if (commentIdx !== -1) {
-      line = line.substring(0, commentIdx);
-    }
-    line = line.trimEnd();
-    if (!line.trim()) continue;
-
-    const indent = line.match(/^ */)[0].length;
-    let trimmed = line.trim();
-
-    while (stack.length > 1 && indent <= stack[stack.length - 1].indent) {
-      stack.pop();
-    }
-
-    const parent = stack[stack.length - 1];
-
-    if (trimmed.startsWith('-')) {
-      trimmed = trimmed.substring(1).trim();
-      if (!Array.isArray(parent.obj[parent.key])) {
-        parent.obj[parent.key] = [];
+    const lines = content.split(/\r?\n/);
+    for (let line of lines) {
+      const commentIdx = line.indexOf('#');
+      if (commentIdx !== -1) {
+        line = line.substring(0, commentIdx);
       }
-      
-      const colonIdx = trimmed.indexOf(':');
-      if (colonIdx === -1) {
-        parent.obj[parent.key].push(trimmed);
+      line = line.trimEnd();
+      if (!line.trim()) continue;
+
+      const indent = line.match(/^ */)[0].length;
+      let trimmed = line.trim();
+
+      while (stack.length > 1 && indent <= stack[stack.length - 1].indent) {
+        stack.pop();
+      }
+
+      const parent = stack[stack.length - 1];
+
+      if (trimmed.startsWith('-')) {
+        trimmed = trimmed.substring(1).trim();
+        if (!Array.isArray(parent.obj)) {
+          const grandparent = stack[stack.length - 2];
+          if (grandparent) {
+            grandparent.obj[parent.key] = [];
+            parent.obj = grandparent.obj[parent.key];
+          }
+        }
+        
+        const colonIdx = trimmed.indexOf(':');
+        if (colonIdx === -1) {
+          parent.obj.push(trimmed);
+        } else {
+          const key = trimmed.substring(0, colonIdx).trim();
+          let val = trimmed.substring(colonIdx + 1).trim();
+          if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+            val = val.substring(1, val.length - 1);
+          }
+          if (val === 'true') val = true;
+          else if (val === 'false') val = false;
+          else if (val === 'null') val = null;
+          else if (/^\d+$/.test(val)) val = parseInt(val, 10);
+
+          const newObj = { [key]: val };
+          parent.obj.push(newObj);
+          stack.push({ obj: newObj, indent: indent, key: key, isArray: false });
+        }
       } else {
+        const colonIdx = trimmed.indexOf(':');
+        if (colonIdx === -1) continue;
+
         const key = trimmed.substring(0, colonIdx).trim();
         let val = trimmed.substring(colonIdx + 1).trim();
+
         if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
           val = val.substring(1, val.length - 1);
         }
@@ -1094,38 +826,23 @@ function parseYaml(content) {
         else if (val === 'null') val = null;
         else if (/^\d+$/.test(val)) val = parseInt(val, 10);
 
-        const newObj = { [key]: val };
-        parent.obj[parent.key].push(newObj);
-        stack.push({ obj: newObj, indent: indent, key: key, isArray: false });
-      }
-    } else {
-      const colonIdx = trimmed.indexOf(':');
-      if (colonIdx === -1) continue;
-
-      const key = trimmed.substring(0, colonIdx).trim();
-      let val = trimmed.substring(colonIdx + 1).trim();
-
-      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-        val = val.substring(1, val.length - 1);
-      }
-      if (val === 'true') val = true;
-      else if (val === 'false') val = false;
-      else if (val === 'null') val = null;
-      else if (/^\d+$/.test(val)) val = parseInt(val, 10);
-
-      if (val === '') {
-        parent.obj[key] = {};
-        stack.push({ obj: parent.obj[key], indent: indent, key: key, isArray: false });
-      } else {
-        parent.obj[key] = val;
+        if (val === '') {
+          parent.obj[key] = {};
+          stack.push({ obj: parent.obj[key], indent: indent, key: key, isArray: false });
+        } else {
+          parent.obj[key] = val;
+        }
       }
     }
+    return root;
+  } catch (e) {
+    console.warn(`\x1b[33m[WARNING] Failed to parse YAML: ${e.message}\x1b[0m`);
+    return {};
   }
-  return root;
 }
 
 // --- Command Handler Functions ---
-function handleListModels() {
+function handleListModels(options) {
   const registryPath = join(sourceRoot, '.ai', 'models', 'registry.yaml');
   if (!existsSync(registryPath)) {
     console.error('Error: Model registry not found.');
@@ -1133,6 +850,10 @@ function handleListModels() {
   }
   const registry = parseYaml(readFileSync(registryPath, 'utf8'));
   const models = registry.models || {};
+  if (options && options.json) {
+    console.log(JSON.stringify(models, null, 2));
+    return;
+  }
   console.log(`\n🤖 \x1b[36mModel Registry [v${version}]\x1b[0m`);
   console.log('==================================================');
   Object.keys(models).forEach(name => {
@@ -1215,7 +936,7 @@ function handleRouteModel(task) {
   console.log();
 }
 
-function handleListAdapters() {
+function handleListAdapters(options) {
   const adaptersPath = join(sourceRoot, '.ai', 'adapters', 'registry.yaml');
   if (!existsSync(adaptersPath)) {
     console.error('Error: Adapters registry not found.');
@@ -1223,6 +944,10 @@ function handleListAdapters() {
   }
   const reg = parseYaml(readFileSync(adaptersPath, 'utf8'));
   const adapters = reg.adapters || {};
+  if (options && options.json) {
+    console.log(JSON.stringify(adapters, null, 2));
+    return;
+  }
   console.log(`\n🔌 \x1b[36mIDE & Agent Adapters [v${version}]\x1b[0m`);
   console.log('==================================================');
   Object.keys(adapters).forEach(name => {
@@ -1284,11 +1009,22 @@ function handleShowSkill(name, options) {
   console.log();
 }
 
+function parseThresholdToBytes(val) {
+  if (!val) return 100 * 1024; // Default 100KB
+  const matches = val.match(/^(\d+)(KB|MB|B)?$/i);
+  if (!matches) return 100 * 1024;
+  const num = parseInt(matches[1], 10);
+  const unit = (matches[2] || '').toUpperCase();
+  if (unit === 'MB') return num * 1024 * 1024;
+  if (unit === 'KB') return num * 1024;
+  return num;
+}
+
 function handleDoctorTokens(options) {
   console.log(`\n🪙 \x1b[36mRunning Token Budget & Sink Audit in: ${options.target}\x1b[0m\n`);
   
   const filesFound = [];
-  const ignoredDirs = ['.git', 'node_modules', 'dist', 'build', '.next', '.expo', 'bin', 'assets', 'docs'];
+  const ignoredDirs = ['.git', 'node_modules', 'dist', 'build', '.next', '.expo', 'bin', 'assets', 'docs', 'web-build', 'out', 'coverage', '.nuxt', '.svelte-kit', 'bower_components', 'vendor'];
   
   function scan(dir) {
     if (!existsSync(dir)) return;
@@ -1320,6 +1056,9 @@ function handleDoctorTokens(options) {
   
   filesFound.sort((a, b) => b.size - a.size);
   
+  const thresholdBytes = parseThresholdToBytes(options.threshold);
+  const thresholdStr = options.threshold || '100KB';
+
   console.log('Top 10 Largest Files in Scanned Workspace:');
   filesFound.slice(0, 10).forEach(f => {
     let sizeDesc = `${f.size} bytes`;
@@ -1327,14 +1066,14 @@ function handleDoctorTokens(options) {
     else if (f.size > 1024) sizeDesc = `${(f.size / 1024).toFixed(2)} KB`;
     
     let color = '\x1b[32m';
-    if (f.size > 100 * 1024) color = '\x1b[31m';
-    else if (f.size > 30 * 1024) color = '\x1b[33m';
+    if (f.size > thresholdBytes) color = '\x1b[31m';
+    else if (f.size > thresholdBytes * 0.3) color = '\x1b[33m';
     
     console.log(`  ${color}* ${f.relPath}\x1b[0m (${sizeDesc})`);
   });
   
   console.log('\n==================================================');
   console.log(`Total Scanned Files: ${filesFound.length}`);
-  console.log('Recommendation: Exclude files in red (>100KB) from active coding prompts or add them to your adapter ignore rules.');
+  console.log(`Recommendation: Exclude files in red (>${thresholdStr}) from active coding prompts or add them to your adapter ignore rules.`);
   console.log();
 }

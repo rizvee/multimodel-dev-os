@@ -1,0 +1,522 @@
+# MultiModel Dev OS Template Registry
+# Maps built-in stack specifications, highlighted skills, categories, required files, and maturity levels.
+
+templates:
+  # --- A. Web / Frontend ---
+  nextjs-saas:
+    name: nextjs-saas
+    description: Next.js App Router starter with TypeScript, Prisma database, Tailwind CSS, and Stripe subscription setup.
+    stack: Next.js 14, React 18, TypeScript, Tailwind CSS, Prisma ORM, Stripe payments
+    skill: nextjs-action-build.md
+    skillDesc: React Server Actions secure implementation conventions.
+    category: Web
+    status: stable
+    maturity: production-ready
+    required_files:
+      - AGENTS.md
+      - MEMORY.md
+      - TASKS.md
+      - RUNBOOK.md
+      - .ai/config.yaml
+      - .ai/context/project-brief.md
+      - .ai/context/architecture.md
+      - .ai/context/model-map.md
+      - .ai/context/context-budget.md
+      - .ai/skills/nextjs-action-build.md
+  nextjs-dashboard:
+    name: nextjs-dashboard
+    description: Production-ready dashboard with chart widgets, tables, search, and dynamic routing components.
+    stack: Next.js 14, Tailwind CSS, Recharts, TypeScript
+    skill: dashboard-chart.md
+    skillDesc: Dynamic client-side chart hydration and loading states.
+    category: Web
+    status: planned
+    maturity: concept
+  nextjs-ecommerce:
+    name: nextjs-ecommerce
+    description: Headless storefront with local state basket management and Stripe Checkout integration.
+    stack: Next.js, Tailwind, Stripe API
+    skill: checkout-session.md
+    skillDesc: Centralized storefront checkout redirect routines.
+    category: Web
+    status: planned
+    maturity: concept
+  react-spa:
+    name: react-spa
+    description: Standard single-page React app bundled with Vite and React Router.
+    stack: React, React Router, Vite, CSS Modules
+    skill: spa-router.md
+    skillDesc: Client-side fallback routing and lazy-loading components.
+    category: Web
+    status: planned
+    maturity: concept
+  vite-react:
+    name: vite-react
+    description: Clean React + TypeScript skeleton with asset optimization scripts.
+    stack: Vite, React 18, TypeScript, Tailwind CSS
+    skill: vite-asset.md
+    skillDesc: Dynamic asset preloading and static chunking.
+    category: Web
+    status: planned
+    maturity: concept
+  astro-content-site:
+    name: astro-content-site
+    description: Astro content site optimized for 100/100 Lighthouse performance and Core Web Vitals.
+    stack: Astro, HTML5, structured JSON-LD SEO markup
+    skill: astro-seo.md
+    skillDesc: Structured schema injection and responsive image generation.
+    category: Web
+    status: planned
+    maturity: concept
+  vue-nuxt-app:
+    name: vue-nuxt-app
+    description: Nuxt.js SSR application with pinia state management.
+    stack: Nuxt 3, Vue 3, Pinia, Tailwind CSS
+    skill: nuxt-ssr.md
+    skillDesc: Server-side state hydration and API integration.
+    category: Web
+    status: planned
+    maturity: concept
+  sveltekit-app:
+    name: sveltekit-app
+    description: SvelteKit application skeleton with built-in routing.
+    stack: SvelteKit, Svelte, Vite
+    skill: svelte-routing.md
+    skillDesc: Directory-based routing and load function integration.
+    category: Web
+    status: planned
+    maturity: concept
+
+  # --- B. Backend / API ---
+  node-express-api:
+    name: node-express-api
+    description: Express.js backend with JSON Web Tokens, Joi schema validation, and SQL logger hooks.
+    stack: Node.js, Express, JWT, Joi, Winston logger
+    skill: express-auth.md
+    skillDesc: Secure middleware filters and authorization token parsing.
+    category: Backend
+    status: planned
+    maturity: concept
+  nestjs-api:
+    name: nestjs-api
+    description: Modular NestJS backend with Swagger documentation and PostgreSQL repository.
+    stack: NestJS, TypeORM, PostgreSQL, Swagger
+    skill: nestjs-controller.md
+    skillDesc: DTO validations and guard decorators.
+    category: Backend
+    status: planned
+    maturity: concept
+  fastapi-python:
+    name: fastapi-python
+    description: FastAPI application with Pydantic validation, SQLite hooks, and automatic OpenAPI generation.
+    stack: FastAPI, Python, Pydantic, SQLAlchemy
+    skill: fastapi-route.md
+    skillDesc: Async route handlers and query dependency injection.
+    category: Backend
+    status: planned
+    maturity: concept
+  django-api:
+    name: django-api
+    description: Django REST Framework starter with model serializing and standard authentication.
+    stack: Django, Python, DRF, SQLite
+    skill: django-serialize.md
+    skillDesc: Model serializer mappings and security filters.
+    category: Backend
+    status: planned
+    maturity: concept
+  laravel-api:
+    name: laravel-api
+    description: Laravel API backend with Eloquent models and Sanctum auth token management.
+    stack: Laravel, PHP, Eloquent, Sanctum
+    skill: laravel-route.md
+    skillDesc: Controller resource routes and validation requests.
+    category: Backend
+    status: planned
+    maturity: concept
+  go-api:
+    name: go-api
+    description: Go REST API boilerplate with gorilla/mux routing and sqlx connections.
+    stack: Go, Gorilla Mux, sqlx, PostgreSQL
+    skill: go-handler.md
+    skillDesc: JSON body decoding and DB transactions.
+    category: Backend
+    status: planned
+    maturity: concept
+  dotnet-api:
+    name: dotnet-api
+    description: .NET Core Web API template with Entity Framework Core.
+    stack: C#, .NET Core, Entity Framework, SQL Server
+    skill: dotnet-controller.md
+    skillDesc: API controller mapping and dependency injection.
+    category: Backend
+    status: planned
+    maturity: concept
+  java-spring-api:
+    name: java-spring-api
+    description: Spring Boot REST API with JPA hibernate repositories and security controls.
+    stack: Java, Spring Boot, Spring Security, Hibernate
+    skill: spring-repository.md
+    skillDesc: JPA entity mapping and transaction boundaries.
+    category: Backend
+    status: planned
+    maturity: concept
+
+  # --- C. Mobile ---
+  expo-react-native-android:
+    name: expo-react-native-android
+    description: Production-ready Expo React Native Android application boilerplate with EAS Build, env profiles, secure store, and API clients.
+    stack: Expo, React Native, TypeScript, EAS Build CLI, expo-secure-store
+    skill: expo-android-build.md
+    skillDesc: Expo EAS Build configurations and environment validation checklists.
+    category: Mobile
+    status: stable
+    maturity: production-ready
+    required_files:
+      - AGENTS.md
+      - MEMORY.md
+      - TASKS.md
+      - RUNBOOK.md
+      - .ai/config.yaml
+      - .ai/context/project-brief.md
+      - .ai/context/architecture.md
+      - .ai/context/model-map.md
+      - .ai/context/context-budget.md
+      - .ai/skills/expo-android-build.md
+      - app.json
+      - eas.json
+      - app.config.ts
+      - jest.config.js
+      - src/app/_layout.tsx
+      - src/lib/secure-storage.ts
+      - src/services/api-client.ts
+  expo-react-native-cross-platform:
+    name: expo-react-native-cross-platform
+    description: Expo starter with Android, iOS, and Web deployment configurations.
+    stack: Expo, React Native, React Native Web, TypeScript
+    skill: expo-platform.md
+    skillDesc: Cross-platform component splitting and styles.
+    category: Mobile
+    status: planned
+    maturity: concept
+  react-native-production-app:
+    name: react-native-production-app
+    description: Bare React Native workspace setup with native Android folders.
+    stack: React Native CLI, TypeScript, Native Modules
+    skill: rn-native.md
+    skillDesc: Native module bridge configuration.
+    category: Mobile
+    status: planned
+    maturity: concept
+  flutter-app:
+    name: flutter-app
+    description: Flutter project skeleton with Bloc state management.
+    stack: Flutter, Dart, Bloc, Provider
+    skill: flutter-bloc.md
+    skillDesc: Bloc event mapping and state transitions.
+    category: Mobile
+    status: planned
+    maturity: concept
+
+  # --- D. AI / Agentic Apps ---
+  ai-chat-app:
+    name: ai-chat-app
+    description: Chat interface with server-sent event (SSE) streaming capabilities.
+    stack: Vite, React, EventSource API, Node.js
+    skill: chat-stream.md
+    skillDesc: SSE chunk decoder and chat history managers.
+    category: AI/Agentic
+    status: planned
+    maturity: concept
+  rag-knowledge-base:
+    name: rag-knowledge-base
+    description: Document ingestion pipelines, text chunking hooks, and vector DB search scripts.
+    stack: Python, LlamaIndex, Qdrant, FastAPI
+    skill: rag-embed.md
+    skillDesc: Vector embedding generation and semantic retrieval.
+    category: AI/Agentic
+    status: planned
+    maturity: concept
+  ai-agent-workflow:
+    name: ai-agent-workflow
+    description: Multi-agent state machine orchestration layout with workflow memory.
+    stack: LangGraph, Python, SQLite state saver
+    skill: agent-state.md
+    skillDesc: State machine node definitions and reducer logic.
+    category: AI/Agentic
+    status: planned
+    maturity: concept
+  mcp-server-project:
+    name: mcp-server-project
+    description: Model Context Protocol server template to register custom tools.
+    stack: Node.js, TypeScript, MCP SDK
+    skill: mcp-tool.md
+    skillDesc: MCP tool schema mapping and request routing.
+    category: AI/Agentic
+    status: planned
+    maturity: concept
+  local-llm-app:
+    name: local-llm-app
+    description: Local inference app leveraging Ollama or Llama.cpp endpoints.
+    stack: HTML, JS, Ollama API, Llama.cpp
+    skill: local-inference.md
+    skillDesc: Local fetch routing and fallback model mapping.
+    category: AI/Agentic
+    status: planned
+    maturity: concept
+  multimodel-router-app:
+    name: multimodel-router-app
+    description: Dynamic routing middleware selecting models based on cost and reasoning tiers.
+    stack: Node.js, TypeScript, providers YAML registry
+    skill: model-route.md
+    skillDesc: Dynamic payload forwarding and token counter.
+    category: AI/Agentic
+    status: planned
+    maturity: concept
+  browser-agent-automation:
+    name: browser-agent-automation
+    description: Puppeteer and Playwright automation scripts for agent interaction testing.
+    stack: Node.js, Playwright, Chromium API
+    skill: browser-automation.md
+    skillDesc: DOM locator verification and screen recording loops.
+    category: AI/Agentic
+    status: planned
+    maturity: concept
+  voice-agent-app:
+    name: voice-agent-app
+    description: Real-time audio streaming and speech-to-text integration widgets.
+    stack: WebSocket, Web Audio API, Gemini Live API
+    skill: voice-stream.md
+    skillDesc: Audio PCM buffer conversion and WebSocket listeners.
+    category: AI/Agentic
+    status: planned
+    maturity: concept
+
+  # --- E. Business / Growth ---
+  ecommerce-store:
+    name: ecommerce-store
+    description: PCI-compliant headless e-commerce store with secure checkout loops, card state validations, and Stripe webhooks.
+    stack: Headless Store API, cart states, secure payment webhooks, order database triggers
+    skill: webhook-handler.md
+    skillDesc: Stripe order checkout webhook secure listener verification rules.
+    category: Business
+    status: stable
+    maturity: production-ready
+    required_files:
+      - AGENTS.md
+      - MEMORY.md
+      - TASKS.md
+      - RUNBOOK.md
+      - .ai/config.yaml
+      - .ai/context/project-brief.md
+      - .ai/context/architecture.md
+      - .ai/context/model-map.md
+      - .ai/context/context-budget.md
+      - .ai/skills/webhook-handler.md
+  wordpress-site:
+    name: wordpress-site
+    description: WordPress custom block theme and plugin development profile with secure PHP database query rules.
+    stack: WordPress Core, PHP, Gutenberg Block APIs, theme customization hooks
+    skill: plugin-boilerplate.md
+    skillDesc: PHP hook registrations and sanitization gates boilerplate.
+    category: Business
+    status: stable
+    maturity: production-ready
+    required_files:
+      - AGENTS.md
+      - MEMORY.md
+      - TASKS.md
+      - RUNBOOK.md
+      - .ai/config.yaml
+      - .ai/context/project-brief.md
+      - .ai/context/architecture.md
+      - .ai/context/model-map.md
+      - .ai/context/context-budget.md
+      - .ai/skills/plugin-boilerplate.md
+  seo-landing-page:
+    name: seo-landing-page
+    description: Ultra-fast static landing page layout optimized for Astro, high Core Web Vitals scores, and JSON-LD schema markup.
+    stack: Astro, HTML5, structured JSON-LD SEO markup, asset minification frameworks
+    skill: seo-audit.md
+    skillDesc: Lighthouse audits optimization guidelines and Core Web Vitals targets.
+    category: Business
+    status: stable
+    maturity: production-ready
+    required_files:
+      - AGENTS.md
+      - MEMORY.md
+      - TASKS.md
+      - RUNBOOK.md
+      - .ai/config.yaml
+      - .ai/context/project-brief.md
+      - .ai/context/architecture.md
+      - .ai/context/model-map.md
+      - .ai/context/context-budget.md
+      - .ai/skills/seo-audit.md
+  content-marketing-engine:
+    name: content-marketing-engine
+    description: Markdown-based blog engine optimized for search visibility.
+    stack: Astro, Markdown, Tailwind CSS
+    skill: blog-seo.md
+    skillDesc: Sitemap dynamic compiler and canonical tag validation.
+    category: Business
+    status: planned
+    maturity: concept
+  analytics-dashboard:
+    name: analytics-dashboard
+    description: Customer analytics tracker interface with visual charts.
+    stack: React, Vite, Chart.js
+    skill: chart-render.md
+    skillDesc: Dynamic data mapping and tooltip events.
+    category: Business
+    status: planned
+    maturity: concept
+  crm-lightweight:
+    name: crm-lightweight
+    description: Sales pipeline tracker interface.
+    stack: Next.js, SQLite, Tailwind CSS
+    skill: crm-pipeline.md
+    skillDesc: Deal stage drag-and-drop state modifications.
+    category: Business
+    status: planned
+    maturity: concept
+  customer-support-agent:
+    name: customer-support-agent
+    description: AI-driven customer support chat widget.
+    stack: HTML, Vanilla JS, OpenAI Assistants API
+    skill: support-widget.md
+    skillDesc: Assistants thread handling and message polling.
+    category: Business
+    status: planned
+    maturity: concept
+
+  # --- F. DevOps / Automation ---
+  github-actions-ci:
+    name: github-actions-ci
+    description: CI/CD workflows for building and testing multi-model applications.
+    stack: GitHub Actions, Docker, Node.js environment
+    skill: ci-workflow.md
+    skillDesc: Workflow triggers and test reporting steps.
+    category: DevOps
+    status: planned
+    maturity: concept
+  dockerized-app:
+    name: dockerized-app
+    description: Docker Compose setups for multi-container web apps.
+    stack: Docker, Docker Compose, Nginx, PostgreSQL
+    skill: docker-compose.md
+    skillDesc: Environment variables injection and network bridges.
+    category: DevOps
+    status: planned
+    maturity: concept
+  cpanel-deploy-app:
+    name: cpanel-deploy-app
+    description: FTP/SFTP deployment automation and server checklists.
+    stack: Node.js, SFTP Client, FTP Deploy
+    skill: cpanel-deploy.md
+    skillDesc: Secure file transfer protocols and remote permission audits.
+    category: DevOps
+    status: planned
+    maturity: concept
+  cloudflare-worker:
+    name: cloudflare-worker
+    description: Cloudflare Worker template for edge API routing.
+    stack: Wrangler, Cloudflare Workers, Hono framework
+    skill: worker-route.md
+    skillDesc: Edge routing handlers and KV storage bindings.
+    category: DevOps
+    status: planned
+    maturity: concept
+  vercel-app:
+    name: vercel-app
+    description: Serverless deployment config file with serverless functions settings.
+    stack: Vercel CLI, vercel.json configuration
+    skill: vercel-deploy.md
+    skillDesc: Redirect mappings and custom headers.
+    category: DevOps
+    status: planned
+    maturity: concept
+  railway-app:
+    name: railway-app
+    description: Railway cloud platform deployment configuration template.
+    stack: Railway CLI, Railway Config
+    skill: railway-deploy.md
+    skillDesc: Database binding linkages and start commands.
+    category: DevOps
+    status: planned
+    maturity: concept
+  supabase-app:
+    name: supabase-app
+    description: Supabase database migrations and edge functions setups.
+    stack: Supabase CLI, PostgreSQL, Deno edge functions
+    skill: supabase-edge.md
+    skillDesc: JWT verification and edge route handlers.
+    category: DevOps
+    status: planned
+    maturity: concept
+  firebase-app:
+    name: firebase-app
+    description: Firebase hosting configurations and cloud functions.
+    stack: Firebase CLI, TypeScript, Cloud Functions
+    skill: firebase-function.md
+    skillDesc: HTTPS cloud functions triggered routes.
+    category: DevOps
+    status: planned
+    maturity: concept
+
+  # --- G. Data / Analytics ---
+  python-data-pipeline:
+    name: python-data-pipeline
+    description: Pandas and Polars data ingestion and sanitization pipeline.
+    stack: Python, Pandas, Polars, DuckDB
+    skill: data-pipeline.md
+    skillDesc: CSV parsing and database bulk copy loops.
+    category: Data
+    status: planned
+    maturity: concept
+  postgres-app:
+    name: postgres-app
+    description: Database schema migration scripts and indexing strategies.
+    stack: PostgreSQL, SQL, Knex.js migrations
+    skill: db-migration.md
+    skillDesc: Table definitions and composite index optimization.
+    category: Data
+    status: planned
+    maturity: concept
+  vector-db-rag:
+    name: vector-db-rag
+    description: Vector DB schemas, collections, and custom index settings.
+    stack: Pinecone, Qdrant, Milvus SDK
+    skill: vector-index.md
+    skillDesc: Distance metrics configuration and payload filtering.
+    category: Data
+    status: planned
+    maturity: concept
+  warehouse-reporting:
+    name: warehouse-reporting
+    description: Data warehouse analytical queries and report compilers.
+    stack: ClickHouse, SQL, Node.js charts
+    skill: db-reporting.md
+    skillDesc: Analytical aggregation queries and dashboard bindings.
+    category: Data
+    status: planned
+    maturity: concept
+  general-app:
+    name: general-app
+    description: Baseline generic fallback profile for standard backend systems (Python, Go, Node, Rust) and universal git workflows.
+    stack: Universal backends baseline structure, default git flow parameters
+    skill: example-skill.md
+    skillDesc: Generic baseline instructions and coding standards.
+    category: Data
+    status: stable
+    maturity: production-ready
+    required_files:
+      - AGENTS.md
+      - MEMORY.md
+      - TASKS.md
+      - RUNBOOK.md
+      - .ai/config.yaml
+      - .ai/context/project-brief.md
+      - .ai/context/architecture.md
+      - .ai/context/model-map.md
+      - .ai/context/context-budget.md
+      - .ai/skills/example-skill.md
