@@ -67,6 +67,7 @@ checkFile('RUNBOOK.md');
 checkFile('README.md');
 checkFile('LICENSE');
 checkFile('CONTRIBUTING.md');
+checkFile('CONTRIBUTORS.md');
 checkFile('CODE_OF_CONDUCT.md');
 checkFile('SECURITY.md');
 checkFile('CHANGELOG.md');
