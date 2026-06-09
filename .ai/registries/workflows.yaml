@@ -1,0 +1,55 @@
+# MultiModel Dev OS - Workflow Registry
+# Defines logical steps, cognitive thresholds, and checklist validation gates for coding cycles
+
+workflows:
+  feature-implementation:
+    description: "Standard workflow to design, write, and verify new codebase features."
+    steps:
+      - name: planning
+        min_capability:
+          reasoning: 0.85
+        checklist:
+          - .ai/prompts/plan-first.md
+      - name: coding
+        min_capability:
+          coding: 0.80
+        checklist:
+          - .ai/prompts/implement-safely.md
+      - name: verification
+        min_capability:
+          coding: 0.75
+        checklist:
+          - .ai/checks/pre-commit.md
+
+  bug-fixing:
+    description: "Workflow to reproduce, resolve, and run regression tests on defects."
+    steps:
+      - name: reproduction
+        min_capability:
+          reasoning: 0.80
+        checklist:
+          - .ai/skills/bug-fix.md
+      - name: resolution
+        min_capability:
+          coding: 0.80
+        checklist:
+          - .ai/prompts/implement-safely.md
+      - name: regression-testing
+        min_capability:
+          coding: 0.70
+        checklist:
+          - .ai/checks/regression-checklist.md
+
+  security-audit:
+    description: "Workflow to audit files against security guidelines and vulnerability checks."
+    steps:
+      - name: scanning
+        min_capability:
+          reasoning: 0.90
+        checklist:
+          - .ai/agents/security-auditor.md
+      - name: reporting
+        min_capability:
+          coding: 0.75
+        checklist:
+          - .ai/checks/pre-deploy.md

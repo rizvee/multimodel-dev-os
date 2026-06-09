@@ -1,0 +1,84 @@
+# MultiModel Dev OS - Tools Registry
+# Configures active interfaces, connection protocols, and files mapping for developer tools
+
+tools:
+  cursor:
+    name: "Cursor Editor"
+    interface: editor
+    protocols:
+      - custom-rules
+    registry_keys:
+      - .cursorrules
+    format: markdown
+
+  claude-code:
+    name: "Claude Code CLI"
+    interface: terminal
+    protocols:
+      - stdin-stdout
+    registry_keys:
+      - CLAUDE.md
+    format: markdown
+
+  gemini:
+    name: "Gemini / Antigravity Assistant"
+    interface: assistant
+    protocols:
+      - system-instructions
+    registry_keys:
+      - GEMINI.md
+    format: markdown
+
+  vscode:
+    name: "VS Code Editor"
+    interface: editor
+    protocols:
+      - workspaces-settings
+    registry_keys:
+      - .vscode/settings.json
+    format: json
+
+  antigravity:
+    name: "Antigravity IDE Plugin"
+    interface: assistant
+    protocols:
+      - settings-profiles
+    registry_keys:
+      - .gemini/settings.json
+    format: json
+
+  continue:
+    name: "Continue IDE Extension"
+    interface: editor
+    protocols:
+      - config-schema
+    registry_keys:
+      - .continue/config.json
+    format: json
+
+  cline:
+    name: "Cline / Roo Code Assistant"
+    interface: editor
+    protocols:
+      - workspace-rules
+    registry_keys:
+      - .clinerules
+    format: markdown
+
+  aider:
+    name: "Aider Command Line"
+    interface: terminal
+    protocols:
+      - config-yaml
+    registry_keys:
+      - .aider.conf.yml
+    format: yaml
+
+  windsurf:
+    name: "Windsurf Editor"
+    interface: editor
+    protocols:
+      - windsurf-rules
+    registry_keys:
+      - .windsurfrules
+    format: markdown

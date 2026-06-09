@@ -231,6 +231,15 @@ checkFile('docs/v2-migration.md');
 checkFile('docs/v2-release-checklist.md');
 checkFile('docs/package-safety.md');
 
+// --- v2.1.0 Intelligence Layer Documentation ---
+console.log('\nIntelligence Layer Documentation:');
+checkFile('docs/future-proof-architecture.md');
+checkFile('docs/self-improving-codebase.md');
+checkFile('docs/hash-compressed-memory.md');
+checkFile('docs/feedback-learning.md');
+checkFile('docs/capability-registry.md');
+checkFile('docs/tool-registry.md');
+
 // --- Model & Adapter Registries ---
 console.log('\nModel & Adapter Registries:');
 checkFile('.ai/models/registry.yaml');
@@ -249,6 +258,22 @@ console.log('\nJSON Schemas:');
 checkFile('.ai/schema/config.schema.json');
 checkFile('.ai/schema/template.schema.json');
 checkFile('.ai/schema/adapter.schema.json');
+
+// --- v2.1.0 Intelligence Layer (Schemas, Policies, Registries) ---
+console.log('\nIntelligence Layer Schemas:');
+checkFile('.ai/intelligence/memory.schema.json');
+checkFile('.ai/intelligence/feedback.schema.json');
+checkFile('.ai/intelligence/README.md');
+
+console.log('\nIntelligence Layer Policies:');
+checkFile('.ai/policies/self-improvement-policy.md');
+checkFile('.ai/policies/memory-policy.md');
+checkFile('.ai/policies/approval-gates.md');
+
+console.log('\nIntelligence Layer Registries:');
+checkFile('.ai/registries/capabilities.yaml');
+checkFile('.ai/registries/tools.yaml');
+checkFile('.ai/registries/workflows.yaml');
 
 // --- Test Blueprints ---
 console.log('\nTest Manuals:');
@@ -377,6 +402,9 @@ verifyRegistryParsed('.ai/models/routing-presets.yaml', 'presets');
 verifyRegistryParsed('.ai/models/local-models.yaml', 'local_engines');
 verifyRegistryParsed('.ai/adapters/registry.yaml', 'adapters');
 verifyRegistryParsed('.ai/templates/registry.yaml', 'templates');
+verifyRegistryParsed('.ai/registries/capabilities.yaml', 'capabilities');
+verifyRegistryParsed('.ai/registries/tools.yaml', 'tools');
+verifyRegistryParsed('.ai/registries/workflows.yaml', 'workflows');
 
 // --- CLI & Packaging Pre-Flight Tests ---
 console.log('\nRunning CLI & Packaging Pre-Flight Tests...');

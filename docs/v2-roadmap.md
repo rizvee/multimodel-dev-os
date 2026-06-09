@@ -93,3 +93,23 @@ The `v2.0.0` release requires:
 1. 100% pass rate on all automated linter and verifier checks.
 2. Complete documentation updates across all guides and discovery indices.
 3. Explicit maintainer sign-off on local testing of the Android Expo template.
+
+---
+
+## 6. Future Stages: v2.1.0 to v3.0.0
+
+*   **v2.1.0 — Intelligence Core & Registries Foundation**
+    *   Design and document schemas (`memory.schema.json`, `feedback.schema.json`).
+    *   Introduce `.ai/registries/` configuration databases.
+    *   Implement CLI routing helper `mmdo capability route` and `mmdo memory build/refresh`.
+*   **v2.2.0 — Feedback Loops & Tool Integrations**
+    *   Add `mmdo learn` capability to append feedback metrics.
+    *   Define `.ai/registries/tools.yaml` with MCP protocol interfaces.
+*   **v2.3.0 — Proposal Engine & Safety Controls**
+    *   Deploy proposal structures under `.ai/proposals/`.
+    *   Implement CLI pipeline `mmdo improve propose/review/apply`.
+*   **v2.4.0 — Local/Offline Operations**
+    *   Integrate local model scoring (Llama.cpp, Ollama) and offline schema checks.
+*   **v3.0.0 — Unified Autonomous Co-Pilot Ecosystem**
+    *   Full multi-agent orchestration workflows with dynamic task handoffs.
+    *   Distributed registry syncing and cryptographically signed self-improvement proposals.

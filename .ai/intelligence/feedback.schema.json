@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MultiModel Dev OS Feedback and Learnings Schema",
+  "description": "Schema for capturing developer corrections and instructions overrides to refine subsequent agent proposal generations.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema representation version (e.g. 1.0.0)."
+    },
+    "learnings": {
+      "type": "array",
+      "description": "List of compiled learning records.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique UUID or tag for the learning item."
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "context": {
+            "type": "string",
+            "description": "Topic or architectural tier (e.g. styling, db-migrations, testing)."
+          },
+          "pattern": {
+            "type": "string",
+            "description": "File path pattern or glob rules matching this learning directive."
+          },
+          "rule": {
+            "type": "string",
+            "description": "The exact instructional rule to append to the agent context."
+          },
+          "rejection_reason": {
+            "type": "string",
+            "description": "Developer comment or description of the rejected behavior."
+          }
+        },
+        "required": ["id", "timestamp", "context", "rule"]
+      }
+    }
+  },
+  "required": ["version", "learnings"]
+}

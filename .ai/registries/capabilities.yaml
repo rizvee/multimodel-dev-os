@@ -1,0 +1,73 @@
+# MultiModel Dev OS - Capabilities Registry
+# Configures cognitive vectors and performance parameters for AI models
+
+capabilities:
+  claude-sonnet-latest:
+    provider: anthropic
+    alias: claude-3-5-sonnet
+    scores:
+      coding: 0.95
+      reasoning: 0.90
+      repo-scan: 0.85
+      agentic-duration: 0.80
+      mcp-compliance: 1.0
+      local-offline: 0.0
+    cost_per_m_input: 3.00
+    cost_per_m_output: 15.00
+    latency: medium
+
+  gemini-pro-latest:
+    provider: google
+    alias: gemini-1.5-pro
+    scores:
+      coding: 0.90
+      reasoning: 0.95
+      repo-scan: 1.00
+      agentic-duration: 0.85
+      mcp-compliance: 0.90
+      local-offline: 0.0
+    cost_per_m_input: 1.25
+    cost_per_m_output: 5.00
+    latency: medium
+
+  gemini-flash-latest:
+    provider: google
+    alias: gemini-1.5-flash
+    scores:
+      coding: 0.75
+      reasoning: 0.70
+      repo-scan: 0.95
+      agentic-duration: 0.60
+      mcp-compliance: 0.80
+      local-offline: 0.0
+    cost_per_m_input: 0.075
+    cost_per_m_output: 0.30
+    latency: fast
+
+  gpt-coding-latest:
+    provider: openai
+    alias: gpt-4o
+    scores:
+      coding: 0.92
+      reasoning: 0.85
+      repo-scan: 0.70
+      agentic-duration: 0.70
+      mcp-compliance: 0.90
+      local-offline: 0.0
+    cost_per_m_input: 2.50
+    cost_per_m_output: 10.00
+    latency: fast
+
+  deepseek-coder-latest:
+    provider: deepseek
+    alias: deepseek-coder
+    scores:
+      coding: 0.94
+      reasoning: 0.88
+      repo-scan: 0.75
+      agentic-duration: 0.75
+      mcp-compliance: 0.80
+      local-offline: 0.50
+    cost_per_m_input: 0.14
+    cost_per_m_output: 0.28
+    latency: medium

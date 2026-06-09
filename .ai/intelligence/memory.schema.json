@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MultiModel Dev OS Repository Memory Schema",
+  "description": "Schema for token-efficient repository state representation, including fingerprints, dependencies, summaries, and architectural decisions.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema representation version (e.g. 1.0.0)."
+    },
+    "fingerprints": {
+      "type": "object",
+      "description": "File path content fingerprints.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "Cryptographic or content-hash fingerprint (e.g. sha256)."
+          },
+          "size": {
+            "type": "integer",
+            "description": "File size in bytes."
+          },
+          "last_modified": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO timestamp of the last modification."
+          }
+        },
+        "required": ["hash", "size", "last_modified"]
+      }
+    },
+    "summaries": {
+      "type": "object",
+      "description": "Semantic high-density summaries of directories and files.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "dependency_map": {
+      "type": "object",
+      "description": "Imports, exports, and linkage mapping among codebase elements.",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "description": "Historical log of resolved architectural refactor decisions.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "issue": {
+            "type": "string"
+          },
+          "resolution": {
+            "type": "string"
+          },
+          "context": {
+            "type": "string"
+          }
+        },
+        "required": ["date", "issue", "resolution"]
+      }
+    },
+    "risks": {
+      "type": "array",
+      "description": "Code patterns flagged as sensitive requiring higher security compliance constraints.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "file_pattern": {
+            "type": "string",
+            "description": "Glob pattern of the target files."
+          },
+          "risk_description": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["low", "medium", "high"]
+          }
+        },
+        "required": ["file_pattern", "risk_description", "severity"]
+      }
+    }
+  },
+  "required": ["version", "fingerprints", "summaries", "dependency_map", "decisions", "risks"]
+}
