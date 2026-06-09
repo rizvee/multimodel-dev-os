@@ -8,7 +8,7 @@ Get the MultiModel Dev OS integrated into your codebase in under 2 minutes to sy
 
 ## Option A: NPX Scaffolding (Stable Packages)
 
-Initialize any project instantly using our public npm registry. Note that this pulls the latest stable npm-published release (`v2.0.0`):
+Initialize any project instantly using our public npm registry. Note that this pulls the latest stable npm-published release (`v2.0.1`):
 
 ```bash
 # Standard interactive initialization in the current directory
@@ -49,18 +49,13 @@ curl -fsSL https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scrip
 
 ---
 
-## Option D: Node.js Local Scaffolding CLI (Direct Run)
+## Option D: Scaffold Target Directory (NPX Direct)
 
-If you prefer to run directly from cloned source without global installation:
+If you prefer to initialize a target project path directly:
 
-1. Clone this repository locally:
-   ```bash
-   git clone https://github.com/rizvee/multimodel-dev-os.git
-   ```
-2. Run the CLI directly from the cloned repository source:
-   ```bash
-   node bin/multimodel-dev-os.js init --target /path/to/your-project --template nextjs-saas --adapter cursor
-   ```
+```bash
+npx multimodel-dev-os@latest init --target /path/to/your-project --template nextjs-saas --adapter cursor
+```
 
 ---
 
@@ -82,13 +77,10 @@ You can run our strict validation check or advisory doctor checkup to validate s
 
 ```bash
 # Strict directory schema validation
-node bin/multimodel-dev-os.js validate
+npx multimodel-dev-os validate
 
 # Advisory doctor workspace compatibility audit
-node bin/multimodel-dev-os.js doctor
-
-# Verify repository structure checks
-npm run verify
+npx multimodel-dev-os doctor
 ```
 
 Explore our canonical [Stable Protocol Specification](/stable-protocol) or [Upgrade & Migration Guide](/migration-guide) for details.

@@ -2,7 +2,7 @@
 
 /**
  * MultiModel Dev OS - Prepublish Guard
- * Blocks accidental npm publications until v2.0.0.
+ * Blocks accidental npm publications.
  */
 
 import { readFileSync, existsSync } from 'fs';
@@ -15,8 +15,8 @@ const projectRoot = join(__dirname, '..');
 
 // 1. Check environment variable override
 if (process.env.MMDO_ALLOW_PUBLISH !== 'true') {
-  console.error('\n\x1b[31m[ABORT] NPM publishing is paused until v2.0.0.\x1b[0m');
-  console.error('To override this guard during the approved v2 release, set the environment variable:');
+  console.error('\n\x1b[31m[ABORT] Publishing requires explicit release approval. Set MMDO_ALLOW_PUBLISH=true only during an approved npm publish.\x1b[0m');
+  console.error('To override this guard during the approved release, set the environment variable:');
   console.log('  \x1b[33mMMDO_ALLOW_PUBLISH=true\x1b[0m\n');
   process.exit(1);
 }

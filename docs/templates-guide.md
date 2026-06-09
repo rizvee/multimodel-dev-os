@@ -55,13 +55,13 @@ To view and list templates directly from your shell:
 
 ```bash
 # List all templates
-node bin/multimodel-dev-os.js templates
+npx multimodel-dev-os templates
 
 # Inspect nextjs-saas layout details
-node bin/multimodel-dev-os.js show-template nextjs-saas
+npx multimodel-dev-os show-template nextjs-saas
 
 # Bootstrap target using a template
-node bin/multimodel-dev-os.js init --target ../my-new-app --template nextjs-saas
+npx multimodel-dev-os init --target ../my-new-app --template nextjs-saas
 ```
 
 ---

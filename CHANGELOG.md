@@ -4,6 +4,18 @@ All notable changes to multimodel-dev-os will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.0.1] - 2026-06-10
+
+### Added
+- **GitHub Community Files**: Added pull request template `.github/PULL_REQUEST_TEMPLATE.md`, template requests issue template `.github/ISSUE_TEMPLATE/template_request.md`, and issue configuration rules `.github/ISSUE_TEMPLATE/config.yml`.
+- **Registry Discoverability**: Added newly introduced docs pages (`model-routing.md`, `local-models.md`, `provider-strategy.md`, `agent-compatibility.md`, `adapter-authoring.md`, `template-authoring.md`, `skill-authoring.md`, `v2-migration.md`, `package-safety.md`, `registry-contribution.md`) to the hosted sitemap `docs/public/sitemap.xml`.
+
+### Changed
+- **Documentation Polish**: Cleaned up stale source-only warnings, local-only CLI instructions, and NPM pause notices across `README.md`, `docs/index.md`, `docs/quickstart.md`, `docs/templates-guide.md`, `docs/faq.md`, `docs/release-policy.md`, `docs/cli-roadmap.md`, `docs/npm-publishing.md`, and discoverability indexes (`llms.txt`, `llms-full.txt`).
+- **CLI UX Enhancements**: Refined output prompts in `bin/multimodel-dev-os.js` to log more helpful next-step copying guidelines after `init` scaffolds successfully, and made planned template fallbacks clearer.
+- **Installer Version Parity**: Bumped version pins to `2.0.1` in `scripts/install.sh` and `scripts/install.ps1`.
+- **Prepublish Safety Guard**: Polished warning message in `scripts/prepublish-guard.js` to prompt for explicit release approvals.
+
 ## [2.0.0] - 2026-06-09
 
 ### Added

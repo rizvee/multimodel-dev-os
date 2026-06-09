@@ -62,6 +62,6 @@ Yes, for tools that auto-detect specific files:
 ## Protocol & Migration
 
 **Is the MultiModel Dev OS protocol stable?**
-Yes. As of version `v1.1.0`, the core specifications are officially frozen and backward-compatible. This ensures that any codebase prepared using `v1.1.0` will operate seamlessly inside future `1.x` ecosystems.
+Yes. As of version `v1.1.0`, the core specifications are officially frozen and backward-compatible. This ensures that codebases prepared using `v1.1.0` or later operate seamlessly inside all `1.x` and `2.x` ecosystems.
 
 Explore our [Stable Protocol Specification](/stable-protocol) or [Upgrade & Migration Guide](/migration-guide) for details.

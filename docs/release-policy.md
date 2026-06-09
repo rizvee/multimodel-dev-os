@@ -34,26 +34,9 @@ No package shall be merged or released without:
 
 ---
 
-## 4. NPM Publishing Pause & Roadmap Development
+## 4. Release Channel & Staging Controls
 
-To ensure high stability and thorough testing of the Template Galaxy and Model Compatibility Layers, package publishing to the public npm registry is paused during all `v1.2.x` minor releases:
-* **GitHub Repository (Source)**: Serve as the primary, active source branch containing unreleased v1.2+ features (such as template extensions, model registries, and CLI expansions).
-* **NPM Registry (Latest)**: Remains on the last approved stable version.
-* **v2.0.0 (Next Target)**: Will serve as the next stable release published to the npm registry, packaging the hardened registries and Template Galaxy features.
-
-### Local Source & Verification Procedures
-
-Contributors and developers must verify and test unreleased `v1.2.x` features locally rather than running publication steps:
-1. **Execute commands from the source binary:**
-   ```bash
-   node bin/multimodel-dev-os.js init
-   node bin/multimodel-dev-os.js verify
-   ```
-2. **Compile and test the package bundle locally:**
-   ```bash
-   npm pack
-   ```
-   This generates a local `.tgz` archive. Install it in a target test project to run validations.
-
-Never execute `npm publish` in the main workspace unless actively packaging the approved `v2.0.0` release.
-
+MultiModel Dev OS releases new versions directly to the public NPM registry:
+*   **Stable Releases (`npx multimodel-dev-os`)**: Published to the public registry under semantic version categories (e.g. `2.0.0`, `2.0.1`).
+*   **Release Candidates**: Built and validated locally via the automated verification script (`scripts/verify.js`) before tags or packaging runs.
+*   **Staging Verification**: To test new configurations prior to publishing, package the bundle locally (`npm pack`) and run CLI checkups in clean test directories.

@@ -1,4 +1,4 @@
-# MultiModel Dev OS (v2.0.0 Stable Release)
+# MultiModel Dev OS (v2.0.1 Stable Release)
 
 Portable, vendor-neutral workspace configuration standard for multi-agent AI pair-programming workflows.
 

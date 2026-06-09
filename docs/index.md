@@ -16,8 +16,8 @@ hero:
       text: Stable Protocol Specs
       link: /stable-protocol
     - theme: alt
-      text: v1.0 Readiness
-      link: /v1-readiness
+      text: v2 Release Checklist
+      link: /v2-release-checklist
     - theme: alt
       text: View Case Studies
       link: /case-studies/
@@ -141,9 +141,9 @@ MultiModel Dev OS maps repository context directly to all major developer tools 
     <div class="card-title">📈 Migration Playbook</div>
     <div class="card-desc">Upgrade older workspaces to v1.1.0 standards cleanly.</div>
   </a>
-  <a href="/v1-checklist" class="card-item">
-    <div class="card-title">🏁 Release Checklist</div>
-    <div class="card-desc">Audit repository compliance with the strict release quality gates.</div>
+  <a href="/v2-release-checklist" class="card-item">
+    <div class="card-title">🏁 v2 Release Checklist</div>
+    <div class="card-desc">Audit repository compliance with the strict v2 release quality gates.</div>
   </a>
   <a href="/llms.txt" class="card-item" target="_blank">
     <div class="card-title">🤖 AI Discovery (llms.txt)</div>

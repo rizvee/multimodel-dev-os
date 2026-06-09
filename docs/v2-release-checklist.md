@@ -4,7 +4,7 @@ Use this checklist to verify compliance before publishing `multimodel-dev-os` to
 
 ## Pre-Flight Requirements
 
-- [x] Ensure version string in `package.json` is set to `2.0.0`.
+- [x] Ensure version string in `package.json` is set to `2.0.1`.
 - [x] Verify version strings in documentation and install scripts (`scripts/install.sh`, `scripts/install.ps1`) align with the release.
 - [x] Run full release verification:
   ```bash

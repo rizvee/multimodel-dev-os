@@ -127,23 +127,23 @@ Cuts prompt rules overhead down by **~79%** using highly optimized short-hand de
 npx multimodel-dev-os@latest init --caveman
 ```
 
-### 4. Registry & Model Commands (Unreleased v1.2.x/v1.3.x - Local Source Only)
-To run registries and the Android Expo template, clone the source and run locally:
+### 4. Registry & Model Commands (v2.0.0 Stable Release)
+Run model capabilities registries, adapter registers, and scaffold mobile templates directly:
 ```bash
 # List model or adapter registries
-node bin/multimodel-dev-os.js models
-node bin/multimodel-dev-os.js adapters
+npx multimodel-dev-os@latest models
+npx multimodel-dev-os@latest adapters
 
 # Scaffold the Android Expo template
-node bin/multimodel-dev-os.js init --template expo-react-native-android
+npx multimodel-dev-os@latest init --template expo-react-native-android
 ```
 
-For more details on when these features will package stably, read the [v2.0.0 Roadmap](https://rizvee.github.io/multimodel-dev-os/v2-roadmap).
+For more details, see the [Model Capabilities Registry Guide](https://rizvee.github.io/multimodel-dev-os/model-compatibility).
 
 ### 5. Quality Gates
 Run assertions and diagnostic checkups:
-- **`validate`** (Strict schema checkup): `node bin/multimodel-dev-os.js validate`
-- **`doctor`** (Advisory compatibility warning): `node bin/multimodel-dev-os.js doctor`
+- **`validate`** (Strict schema checkup): `npx multimodel-dev-os@latest validate`
+- **`doctor`** (Advisory compatibility warning): `npx multimodel-dev-os@latest doctor`
 
 ---
 
@@ -184,8 +184,8 @@ Discover how engineering teams deploy MultiModel Dev OS:
 
 ## Stable Protocol Specification & Roadmap
 
-MultiModel Dev OS version `v1.1.0` officially freezes the Layer 1, Layer 2, and Layer 3 specifications. Active development on registries and template extensions (`v1.2.x` and `v1.3.x`) is source-only.
-- 🗺️ [v2.0.0 Roadmap](/docs/v2-roadmap.md) (Stabilization targets & publishing runbook)
+MultiModel Dev OS v2.x packages the stable Layer 1, Layer 2, and Layer 3 specifications alongside the Model Compatibility and Template Galaxy registries.
+- 🏁 [v2 Release Checklist](/docs/v2-release-checklist.md) (Release quality checklist)
 - 🛡️ [Stable Protocol Specification](https://rizvee.github.io/multimodel-dev-os/stable-protocol)
 - 🔌 [Multi-Agent Compatibility Guides](https://rizvee.github.io/multimodel-dev-os/compatibility)
 - 📈 [Upgrade & Migration Guide](https://rizvee.github.io/multimodel-dev-os/migration-guide)

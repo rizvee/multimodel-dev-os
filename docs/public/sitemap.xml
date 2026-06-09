@@ -61,8 +61,58 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://rizvee.github.io/multimodel-dev-os/v1-checklist</loc>
+    <loc>https://rizvee.github.io/multimodel-dev-os/v2-release-checklist</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://rizvee.github.io/multimodel-dev-os/model-routing</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://rizvee.github.io/multimodel-dev-os/local-models</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://rizvee.github.io/multimodel-dev-os/provider-strategy</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://rizvee.github.io/multimodel-dev-os/agent-compatibility</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://rizvee.github.io/multimodel-dev-os/adapter-authoring</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://rizvee.github.io/multimodel-dev-os/template-authoring</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://rizvee.github.io/multimodel-dev-os/skill-authoring</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://rizvee.github.io/multimodel-dev-os/v2-migration</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://rizvee.github.io/multimodel-dev-os/package-safety</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://rizvee.github.io/multimodel-dev-os/registry-contribution</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>
 </urlset>

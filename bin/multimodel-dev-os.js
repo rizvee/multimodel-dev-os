@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const sourceRoot = resolve(__dirname, '..');
 
-let version = '2.0.0';
+let version = '2.0.1';
 try {
   const pkgData = JSON.parse(readFileSync(resolve(sourceRoot, 'package.json'), 'utf8'));
   version = pkgData.version;
@@ -316,8 +316,9 @@ function handleInit(options) {
   // Check if requested template is planned
   const tInfo = TEMPLATES[options.template];
   if (tInfo && tInfo.status === 'planned') {
-    console.warn(`  \x1b[33m[WARNING] Template '${options.template}' is a PLANNED template in the roadmap.\x1b[0m`);
-    console.warn(`  It is not fully scaffolded yet and will fall back to bootstrapping the 'general-app' profile.\n`);
+    console.warn(`  \x1b[33m[WARNING] Template '${options.template}' is planned for a future release and is not yet available.\x1b[0m`);
+    console.warn(`  To view available templates, run: \x1b[36mnpx multimodel-dev-os templates\x1b[0m`);
+    console.warn(`  Falling back to the stable \x1b[32m'general-app'\x1b[0m profile...\n`);
     options.template = 'general-app';
   }
 
@@ -331,7 +332,9 @@ function handleInit(options) {
   // Source path mapping for core files
   let templateDir = join(sourceRoot, 'examples', options.template);
   if (!existsSync(templateDir)) {
-    console.warn(`  \x1b[33m[WARNING] Template '${options.template}' not found. Falling back to 'general-app' profile.\x1b[0m`);
+    console.warn(`  \x1b[33m[WARNING] Template '${options.template}' source files could not be found.\x1b[0m`);
+    console.warn(`  To view available templates, run: \x1b[36mnpx multimodel-dev-os templates\x1b[0m`);
+    console.warn(`  Falling back to the stable \x1b[32m'general-app'\x1b[0m profile...\n`);
     templateDir = join(sourceRoot, 'examples', 'general-app');
   }
 
@@ -501,6 +504,27 @@ function handleInit(options) {
   }
 
   console.log(`\n\x1b[32m✔ Project initialized successfully! [Total Operations: ${operations.length}]\x1b[0m\n`);
+  console.log(`\x1b[36mNext Steps to Complete Integration:\x1b[0m`);
+  console.log(`  1. \x1b[1mEdit AGENTS.md\x1b[0m in your project root to document your stack context.`);
+  console.log(`  2. \x1b[1mEdit .ai/config.yaml\x1b[0m to configure active model routing presets.`);
+  if (options.adapters.length > 0) {
+    console.log(`  3. \x1b[1mActivate IDE / Agent Rules:\x1b[0m`);
+    console.log(`     Ensure adapter configuration files are copied or linked to the root of your workspace:`);
+    options.adapters.forEach(adapter => {
+      const a = ADAPTERS[adapter];
+      if (a && a.rules_file) {
+        console.log(`     - For \x1b[32m${a.name || adapter}\x1b[0m: Check the root-level \x1b[33m${a.rules_file}\x1b[0m file`);
+      }
+    });
+  } else {
+    console.log(`  3. \x1b[1mSelect IDE / Tool Adapters:\x1b[0m`);
+    console.log(`     To generate rules for Cursor, Claude Code, etc., run:`);
+    console.log(`     \x1b[36mnpx multimodel-dev-os init --adapter cursor --adapter claude\x1b[0m`);
+  }
+  console.log(`  4. \x1b[1mRun Diagnostics:\x1b[0m`);
+  console.log(`     Verify your workspace structural compliance:`);
+  console.log(`     \x1b[36mnpx multimodel-dev-os validate\x1b[0m`);
+  console.log(`     \x1b[36mnpx multimodel-dev-os doctor\x1b[0m\n`);
 }
 
 function handleVerify(options) {

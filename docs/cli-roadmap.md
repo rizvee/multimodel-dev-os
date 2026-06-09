@@ -1,6 +1,6 @@
 # CLI Roadmap
 
-> The zero-dependency CLI utility is fully integrated with `npm` and `npx` in v0.3.0!
+> The zero-dependency CLI utility is fully integrated with `npm` and `npx` in v2.0.0!
 
 ## Current CLI Usage
 
@@ -23,7 +23,7 @@ npx multimodel-dev-os@latest init --force
 npx multimodel-dev-os@latest verify
 ```
 
-Alternatively, you can run the CLI locally within a cloned workspace:
+Alternatively, you can run the CLI directly from cloned source during development:
 ```bash
 node bin/multimodel-dev-os.js init
 node bin/multimodel-dev-os.js verify
@@ -37,25 +37,17 @@ node bin/multimodel-dev-os.js verify
 | `show-template` | Inspect stack specifications of a template | v0.5.0 | ✅ Completed |
 | `doctor` | Advisory checkup of workspace compatibility | v0.5.0 | ✅ Completed |
 | `validate` | Strict directory schema compliance checks | v0.5.0 | ✅ Completed |
-| `sync` | Regenerate adapter files from root AGENTS.md | v0.6.0 | 📋 Planned |
-| `add-adapter` | Add a new adapter to the project | v0.6.0 | 📋 Planned |
-| `models` | List configured model registry entries | v1.2.0 | Source Only |
-| `show-model` | Inspect settings for a model registry entry | v1.2.0 | Source Only |
-| `providers` | List configured model registry providers | v1.2.0 | Source Only |
-| `route-model`| Route a target prompt based on presets | v1.2.0 | Source Only |
-| `adapters` | List configured adapter registry entries | v1.2.0 | Source Only |
-| `show-adapter`| Inspect settings for an adapter registry entry | v1.2.0 | Source Only |
-| `skills` | List configured skill registry entries | v1.2.0 | Source Only |
-| `show-skill` | Inspect settings for a skill registry entry | v1.2.0 | Source Only |
+| `models` | List configured model registry entries | v2.0.0 | ✅ Completed |
+| `show-model` | Inspect settings for a model registry entry | v2.0.0 | ✅ Completed |
+| `providers` | List configured model registry providers | v2.0.0 | ✅ Completed |
+| `route-model`| Route a target prompt based on presets | v2.0.0 | ✅ Completed |
+| `adapters` | List configured adapter registry entries | v2.0.0 | ✅ Completed |
+| `show-adapter`| Inspect settings for an adapter registry entry | v2.0.0 | ✅ Completed |
+| `skills` | List configured skill registry entries | v2.0.0 | ✅ Completed |
+| `show-skill` | Inspect settings for a skill registry entry | v2.0.0 | ✅ Completed |
 
-> [!NOTE]
-> All new `v1.2.0` subcommands listed as **Source Only** are fully implemented in the source code but are unreleased on the npm package registry. To run them, execute from a clone of the GitHub repository. They will be packaged officially in the `v2.0.0` stable release.
+## CLI v2.0.0 Stabilization & Beyond
 
-## CLI v2.0.0 Stabilization Goal
-
-Ahead of the `v2.0.0` release, we will run a comprehensive compatibility pass:
-* **Backward Compatibility**: Ensure that all new registries configurations and subcommand syntax do not break the stable `v1.0.0` and `v1.1.0` CLI behaviors.
-* **Unified Quality Gates**: Integrate model registry and adapter configuration validation parameters directly into the standard `validate` and `doctor` command pipelines.
-* **Cross-Platform Hardening**: Audit all commands on Windows (PowerShell/CMD), macOS, and Linux bash environments before resuming npm package publishing.
+The `v2.0.0` stabilization milestone was completed successfully, hardening registries configurations, custom skill checking tools, and token size overrides. Any future subcommands or adapter sync mechanisms will follow SemVer guidelines to ensure full backward compatibility.
 
 

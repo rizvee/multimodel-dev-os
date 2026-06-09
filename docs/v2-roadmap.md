@@ -9,7 +9,7 @@ This document outlines the development path, stabilization targets, and migratio
 The primary goal of the **v2.0.0 release** is to promote the experimental features introduced in `v1.2.0` (Template Galaxy, Model Compatibility Layer, and Android Expo template) into officially frozen, production-grade core components, and resume stable package publication to the public npm registry.
 
 > [!IMPORTANT]
-> **v2.0.0 is the active stable release.** NPM publishing is resumed, consolidating the Template Galaxy and Model registries.
+> **v2.0.1 is the active stable release.** NPM publishing is resumed, consolidating the Template Galaxy and Model registries.
 
 ---
 
