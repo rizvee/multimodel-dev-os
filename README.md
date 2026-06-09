@@ -5,12 +5,13 @@
 </p>
 
 <p align="center">
-  <b>One portable AI Dev OS for multimodel coding workflows.</b>
+  <b>The portable AI Dev OS for every model, every tool, every workflow.</b><br>
+  <sub>One workspace. Zero lock-in. Ship faster with Codex, Gemini, Claude, Cursor, Antigravity, VS Code, and more.</sub>
 </p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/multimodel-dev-os"><img src="https://img.shields.io/npm/v/multimodel-dev-os.svg?color=blue&style=flat-square" alt="NPM Version"></a>
-  <a href="https://www.npmjs.com/package/multimodel-dev-os"><img src="https://img.shields.io/badge/npm-package-cb3837.svg?style=flat-square" alt="NPM Package"></a>
+  <a href="https://www.npmjs.com/package/multimodel-dev-os"><img src="https://img.shields.io/npm/dm/multimodel-dev-os.svg?color=orange&style=flat-square" alt="NPM Downloads"></a>
   <a href="https://github.com/rizvee/multimodel-dev-os/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/multimodel-dev-os.svg?color=green&style=flat-square" alt="License"></a>
   <a href="https://github.com/rizvee/multimodel-dev-os/releases"><img src="https://img.shields.io/github/v/release/rizvee/multimodel-dev-os?color=indigo&style=flat-square" alt="GitHub Release"></a>
   <a href="https://github.com/rizvee/multimodel-dev-os/actions"><img src="https://img.shields.io/github/actions/workflow/status/rizvee/multimodel-dev-os/verify.yml?branch=main&style=flat-square&label=verification" alt="Build Verification"></a>
@@ -19,15 +20,13 @@
 
 ---
 
-## One portable AI Dev OS for Codex, Antigravity, Cursor, Claude, Gemini, VS Code, and multimodel coding workflows.
-
-Initialize a stable workspace instantly:
+## Get started in 30 seconds
 
 ```bash
 npx multimodel-dev-os@latest init
 ```
 
----
+That's it. Your workspace now has a unified AI context layer that works across **every major AI coding tool** — no config duplication, no context loss, no vendor lock-in.
 
 <p align="center">
   <img src="assets/social-preview.svg" alt="MultiModel Dev OS Banner" width="100%">
@@ -35,35 +34,37 @@ npx multimodel-dev-os@latest init
 
 ---
 
-## Why This Exists
+## The Problem
 
-AI pair programmers are lightning-fast, but switching between them introduces context fragmentation:
-1. **Context Loss:** You use **Cursor** for autocomplete, **Claude Code** for command execution, and **Gemini/Antigravity** for deep audits. Every switch forces you to rebuild context.
-2. **Instruction Drift:** Different tools look for different config files (`.cursorrules`, `CLAUDE.md`, `.vscode/settings.json`, `.gemini/settings.json`). Modifying style rules or build parameters in one place leaves the others outdated.
+AI pair programmers are powerful individually, but switching between them creates real friction:
 
-`multimodel-dev-os` solves this by establishing a single source of truth in your repository: four root contracts (`AGENTS.md`, `MEMORY.md`, `TASKS.md`, `RUNBOOK.md`) and a `.ai/` directory that bridges them to all major tools dynamically.
+| Pain Point | What Happens |
+|:---|:---|
+| **Context Fragmentation** | You use Cursor for autocomplete, Claude Code for terminal ops, Gemini for deep audits. Every switch forces a full context rebuild. |
+| **Instruction Drift** | `.cursorrules`, `CLAUDE.md`, `.vscode/settings.json`, `.gemini/settings.json` — change one, the rest go stale. |
+| **Token Waste** | Without context budgets, prompts bloat and API bills spike. |
+| **Onboarding Friction** | New team members start from scratch with every tool. |
 
----
+## The Solution
 
-## What You Get
-
-A standard installation scaffolds a lightweight, zero-runtime-dependency workspace hierarchy:
+**MultiModel Dev OS** creates a single source of truth — four root contracts and a `.ai/` directory that bridges every tool dynamically:
 
 ```
-┌────────────────────────────────────────────────────────┐
-│ LAYER 1: Root Contracts (Single Source of Truth)       │
-│ AGENTS.md • MEMORY.md • TASKS.md • RUNBOOK.md          │
-└──────────────────────────┬─────────────────────────────┘
-                           │ Centralizes project context
-┌──────────────────────────▼─────────────────────────────┐
-│ LAYER 2: Configuration & Modules (.ai/)                │
-│ context/ • agents/ • skills/ • prompts/ • checks/      │
-└──────────────────────────┬─────────────────────────────┘
-                           │ Routes files dynamically
-┌──────────────────────────▼─────────────────────────────┐
-│ LAYER 3: Tool & IDE Adapters                           │
-│ .cursorrules • CLAUDE.md • .vscode/ • .gemini/        │
-└────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  LAYER 1: Root Contracts (Single Source of Truth)           │
+│  AGENTS.md  •  MEMORY.md  •  TASKS.md  •  RUNBOOK.md      │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+┌─────────────────────────▼───────────────────────────────────┐
+│  LAYER 2: Configuration Engine (.ai/)                       │
+│  context/  agents/  skills/  prompts/  checks/  models/    │
+│  registries/  intelligence/  policies/                      │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+┌─────────────────────────▼───────────────────────────────────┐
+│  LAYER 3: Tool & IDE Adapters                               │
+│  .cursorrules  CLAUDE.md  .vscode/  .gemini/  GEMINI.md    │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 <p align="center">
@@ -72,108 +73,117 @@ A standard installation scaffolds a lightweight, zero-runtime-dependency workspa
 
 ---
 
-## Supported Tools
+## Supported Tools & Agents
 
-| Tool / Agent | Target Adapter File | Setup Instructions | Behavior Setup |
-| :--- | :--- | :--- | :--- |
-| **Codex** | `adapters/codex/AGENTS.md` | `adapters/codex/setup.md` | Automated code scaffolding |
-| **Antigravity** | `.gemini/settings.json` | `adapters/antigravity/setup.md` | Security and audit parameters |
-| **Cursor** | `.cursorrules` | `adapters/cursor/setup.md` | Inline autocomplete guidelines |
-| **Claude Code** | `CLAUDE.md` | `adapters/claude/setup.md` | Terminal build and run controls |
-| **Gemini** | `GEMINI.md` | `adapters/gemini/setup.md` | Prompt system context logs |
-| **VS Code** | `.vscode/settings.json` | `adapters/vscode/setup.md` | Editor layout and search limits |
+| Tool / Agent | Adapter File | Status |
+|:---|:---|:---|
+| **Codex** (OpenAI) | `adapters/codex/AGENTS.md` | ✅ Full support |
+| **Antigravity** (Google DeepMind) | `.gemini/settings.json` | ✅ Full support |
+| **Cursor** | `.cursorrules` | ✅ Full support |
+| **Claude Code** (Anthropic) | `CLAUDE.md` | ✅ Full support |
+| **Gemini** (Google) | `GEMINI.md` | ✅ Full support |
+| **VS Code** (Copilot) | `.vscode/settings.json` | ✅ Full support |
+| **Cline / Continue / Roo Code** | Via adapter registry | 🔌 Adapter-ready |
+| **Aider / Windsurf** | Via adapter registry | 🔌 Adapter-ready |
+| **MCP Tools** (gcloud, Chrome DevTools) | Via tool registry | 🔌 Registry-ready |
 
----
-
-## Why Not Just a Manual AGENTS.md?
-
-While you can write a raw markdown file manually, `multimodel-dev-os` offers a standardized development workflow:
-
-| Feature | Manual Rules File | MultiModel Dev OS |
-| :--- | :--- | :--- |
-| **Tool Synchronization** | Manual copy-paste across tools | Automated dynamic adapters |
-| **Context Budgets** | Bloats prompts, wasting cost | **Caveman Mode** slashes tokens by **~79%** |
-| **Standards Enforcement**| Easy to drift and corrupt | Built-in CLI `validate` and `doctor` checks |
-| **Onboarding baseline**  | Start from scratch | 5 production-ready real-world templates |
+> **Zero lock-in.** Switch tools freely — your context, rules, and memory travel with you.
 
 ---
 
-## Interactive Command Line Interface (CLI)
+## CLI Commands
 
-MultiModel Dev OS is powered by a pure Node.js CLI with **zero runtime external npm dependencies**.
+MultiModel Dev OS ships a pure Node.js CLI with **zero runtime dependencies**.
 
 <p align="center">
   <img src="assets/terminal-demo.svg" alt="Terminal Demo Sequence" width="100%">
 </p>
 
-### 1. Scaffolding Templates (Stable npm @latest)
-Initialize customized stack specifications for stable releases:
-- **Next.js SaaS:** `npx multimodel-dev-os@latest init --template nextjs-saas`
-- **WordPress Theme/Plugin:** `npx multimodel-dev-os@latest init --template wordpress-site`
-- **E-Commerce Store:** `npx multimodel-dev-os@latest init --template ecommerce-store`
-- **SEO Landing Page:** `npx multimodel-dev-os@latest init --template seo-landing-page`
-- **General Fallback:** `npx multimodel-dev-os@latest init --template general-app`
+### Initialize a Workspace
 
-### 2. Adapter Linking (Stable npm @latest)
-Inject rules specifically for a developer tool:
 ```bash
+# Default workspace
+npx multimodel-dev-os@latest init
+
+# Pick a template
+npx multimodel-dev-os@latest init --template nextjs-saas
+npx multimodel-dev-os@latest init --template wordpress-site
+npx multimodel-dev-os@latest init --template ecommerce-store
+npx multimodel-dev-os@latest init --template seo-landing-page
+npx multimodel-dev-os@latest init --template expo-react-native-android
+npx multimodel-dev-os@latest init --template general-app
+
+# Inject a specific adapter
 npx multimodel-dev-os@latest init --adapter cursor
 npx multimodel-dev-os@latest init --adapter claude
 ```
 
-### 3. Caveman Mode (Stable npm @latest)
-Cuts prompt rules overhead down by **~79%** using highly optimized short-hand declarations:
+### Explore Registries
+
+```bash
+npx multimodel-dev-os@latest templates     # List all templates
+npx multimodel-dev-os@latest models        # View model registry
+npx multimodel-dev-os@latest adapters      # View adapter registry
+npx multimodel-dev-os@latest models --json # Machine-readable output
+```
+
+### Quality Gates
+
+```bash
+npx multimodel-dev-os@latest validate      # Strict schema validation
+npx multimodel-dev-os@latest doctor        # Advisory compatibility checks
+npx multimodel-dev-os@latest verify        # Full release audit (193 assertions)
+```
+
+### Caveman Mode
+
+Cut prompt token overhead by **~79%** with compressed shorthand declarations:
+
 ```bash
 npx multimodel-dev-os@latest init --caveman
 ```
 
-### 4. Registry & Model Commands (v2.0.0 Stable Release)
-Run model capabilities registries, adapter registers, and scaffold mobile templates directly:
-```bash
-# List model or adapter registries
-npx multimodel-dev-os@latest models
-npx multimodel-dev-os@latest adapters
+---
 
-# Scaffold the Android Expo template
-npx multimodel-dev-os@latest init --template expo-react-native-android
-```
+## Why Not Just a Manual AGENTS.md?
 
-For more details, see the [Model Capabilities Registry Guide](https://rizvee.github.io/multimodel-dev-os/model-compatibility).
-
-### 5. Quality Gates
-Run assertions and diagnostic checkups:
-- **`validate`** (Strict schema checkup): `npx multimodel-dev-os@latest validate`
-- **`doctor`** (Advisory compatibility warning): `npx multimodel-dev-os@latest doctor`
+| Capability | Manual Rules File | MultiModel Dev OS |
+|:---|:---|:---|
+| **Tool Sync** | Manual copy-paste across tools | Automated dynamic adapters |
+| **Context Budgets** | Bloats prompts, wastes tokens | Caveman Mode cuts **~79%** token overhead |
+| **Standards** | Easy to drift and corrupt | CLI `validate` + `doctor` + 193-assertion `verify` |
+| **Templates** | Start from scratch | 6 production-ready real-world templates |
+| **Model Registry** | Hardcoded model names | Dynamic capability-scored registry with routing presets |
+| **Safety** | No guardrails | Prepublish guards, schema validation, hygiene checks |
 
 ---
 
 ## Cost & Context Optimization
 
-Minimize prompt overhead and API billing by mapping key context-reduction techniques to MultiModel Dev OS features:
+Minimize prompt overhead and API billing with built-in context-reduction techniques:
 
 <p align="center">
   <img src="assets/cost-optimization.svg" alt="Cost Optimization Funnel" width="100%">
 </p>
 
-For a full deep dive, see our [Cost Optimization Playbook](https://rizvee.github.io/multimodel-dev-os/cost-optimization).
+Read the full playbook: **[Cost Optimization Guide](https://rizvee.github.io/multimodel-dev-os/cost-optimization)**
 
 ---
 
 ## 5-Day Adoption Roadmap
 
-Deploying MultiModel Dev OS across your team is straightforward and tool-neutral:
+Deploy MultiModel Dev OS across your team in under a week:
 
 <p align="center">
   <img src="assets/ai-dev-os-roadmap.svg" alt="5-Day Adoption Roadmap" width="100%">
 </p>
 
-See our step-by-step timeline: [5-Day Adoption Roadmap Playbook](https://rizvee.github.io/multimodel-dev-os/5-day-roadmap).
+Step-by-step timeline: **[5-Day Adoption Playbook](https://rizvee.github.io/multimodel-dev-os/5-day-roadmap)**
 
 ---
 
 ## Real-World Case Studies
 
-Discover how engineering teams deploy MultiModel Dev OS:
 - 📦 [Full-Stack Next.js SaaS: Database Schema Synchronization](https://rizvee.github.io/multimodel-dev-os/case-studies/nextjs-saas)
 - 🔌 [WordPress Theme Scaffolding: Folder Boundary Protections](https://rizvee.github.io/multimodel-dev-os/case-studies/wordpress-site)
 - 🛒 [E-Commerce Webhooks: State Verification Alignment](https://rizvee.github.io/multimodel-dev-os/case-studies/ecommerce-store)
@@ -182,31 +192,66 @@ Discover how engineering teams deploy MultiModel Dev OS:
 
 ---
 
-## Stable Protocol Specification & Roadmap
+## Intelligence Layer (v2.1.0 — Coming Next)
 
-MultiModel Dev OS v2.x packages the stable Layer 1, Layer 2, and Layer 3 specifications alongside the Model Compatibility and Template Galaxy registries.
-- 🏁 [v2 Release Checklist](/docs/v2-release-checklist.md) (Release quality checklist)
-- 🛡️ [Stable Protocol Specification](https://rizvee.github.io/multimodel-dev-os/stable-protocol)
-- 🔌 [Multi-Agent Compatibility Guides](https://rizvee.github.io/multimodel-dev-os/compatibility)
-- 📈 [Upgrade & Migration Guide](https://rizvee.github.io/multimodel-dev-os/migration-guide)
-- 🏁 [v1.0.0 Release Quality Checklist](https://rizvee.github.io/multimodel-dev-os/v1-checklist)
+The next major milestone introduces a **future-proof intelligence layer** — registry-driven, feedback-enabled, with strict human-in-the-loop safety gates:
+
+| Component | Description |
+|:---|:---|
+| **Capability Registry** | Score models across coding, reasoning, repo-scan, agentic-duration, MCP compliance — no hardcoded names |
+| **Tool Registry** | Define IDE, terminal, and MCP tool integrations dynamically |
+| **Hash-Compressed Memory** | Token-efficient codebase fingerprints, summaries, and dependency maps |
+| **Feedback Learning** | Convert developer corrections into reusable system rules |
+| **Self-Improvement Engine** | Proposal → Review → Apply cycles with mandatory HITL approval and automatic rollback |
+
+> [!NOTE]
+> The v2.1.0 schemas, registries, and policies are already committed and verified (193/193 assertions pass). CLI implementation is the next phase.
+
+Learn more:
+- [Future-Proof Architecture](https://rizvee.github.io/multimodel-dev-os/future-proof-architecture)
+- [Hash-Compressed Memory](https://rizvee.github.io/multimodel-dev-os/hash-compressed-memory)
+- [Feedback Learning](https://rizvee.github.io/multimodel-dev-os/feedback-learning)
+- [Capability Registry Guide](https://rizvee.github.io/multimodel-dev-os/capability-registry)
+- [v2 Roadmap (v2.1 → v3.0)](https://rizvee.github.io/multimodel-dev-os/v2-roadmap)
+
+---
+
+## Roadmap
+
+| Version | Focus | Status |
+|:---|:---|:---|
+| **v2.0.0** | Template Galaxy, Model Registry, Stable Protocol | ✅ Released |
+| **v2.0.1** | Post-release polish, docs cleanup, 193 verify assertions | ✅ Released |
+| **v2.1.0** | Intelligence Core — Registries, Memory Engine, Capability Routing | 🔨 Planning complete |
+| **v2.2.0** | Feedback Loops & MCP Tool Integrations | 📋 Planned |
+| **v2.3.0** | Proposal Engine & Safety Controls | 📋 Planned |
+| **v2.4.0** | Local/Offline Model Operations | 📋 Planned |
+| **v3.0.0** | Unified Autonomous Co-Pilot Ecosystem | 🔮 Future |
+
+Full details: **[v2 Roadmap](https://rizvee.github.io/multimodel-dev-os/v2-roadmap)**
+
+---
+
+## Documentation & Resources
+
+| Resource | Link |
+|:---|:---|
+| 📖 Documentation Portal | **[rizvee.github.io/multimodel-dev-os](https://rizvee.github.io/multimodel-dev-os/)** |
+| 🐙 GitHub Repository | **[github.com/rizvee/multimodel-dev-os](https://github.com/rizvee/multimodel-dev-os)** |
+| 📦 NPM Registry | **[npmjs.com/package/multimodel-dev-os](https://www.npmjs.com/package/multimodel-dev-os)** |
+| 🤖 AI Discoverability | **[llms.txt](https://rizvee.github.io/multimodel-dev-os/llms.txt)** |
+| 🚀 Quick Start | **[Quickstart Guide](https://rizvee.github.io/multimodel-dev-os/quickstart)** |
+| 🏗️ Architecture | **[Architecture Deep Dive](https://rizvee.github.io/multimodel-dev-os/architecture)** |
+| 🔄 Migration Guide | **[Upgrade from v1.x](https://rizvee.github.io/multimodel-dev-os/migration-guide)** |
+| 🛡️ Stable Protocol | **[Protocol Specification](https://rizvee.github.io/multimodel-dev-os/stable-protocol)** |
 
 ---
 
 ## Contributing
 
-We love contributions! Propose new adapters, request built-in templates, or report issues safely.
-Read our [Contributing Onboarding Guidelines](CONTRIBUTING.md) to get started.
+We welcome contributions! Propose new adapters, request templates, improve docs, or report issues.
 
----
-
-## Docs & Staging Links
-
-Explore detailed specifications, guides, and playbooks at the official docs portal:
-👉 **[Documentation site](https://rizvee.github.io/multimodel-dev-os/)**
-👉 **[GitHub repository](https://github.com/rizvee/multimodel-dev-os)**
-👉 **[NPM registry](https://www.npmjs.com/package/multimodel-dev-os)**
-👉 **[llms.txt discoverability guide](https://rizvee.github.io/multimodel-dev-os/llms.txt)**
+Read our **[Contributing Guidelines](CONTRIBUTING.md)** to get started.
 
 ---
 
