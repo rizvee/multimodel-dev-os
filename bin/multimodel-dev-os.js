@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const sourceRoot = resolve(__dirname, '..');
 
-let version = '0.5.1';
+let version = '2.0.0';
 try {
   const pkgData = JSON.parse(readFileSync(resolve(sourceRoot, 'package.json'), 'utf8'));
   version = pkgData.version;
@@ -39,7 +39,10 @@ function parseArgs(args) {
     mobile: null,
     aiApp: null,
     json: false,
-    threshold: null
+    threshold: null,
+    registry: null,
+    allRegistries: false,
+    release: false
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -60,10 +63,16 @@ function parseArgs(args) {
       params.help = true;
     } else if (arg === '--tokens') {
       params.tokens = true;
+    } else if (arg === '--all-registries') {
+      params.allRegistries = true;
+    } else if (arg === '--release') {
+      params.release = true;
     } else if (arg === '--json') {
       params.json = true;
     } else if (arg === '--threshold') {
       params.threshold = args[++i];
+    } else if (arg === '--registry') {
+      params.registry = args[++i];
     } else if (arg === '--model-preset') {
       params.modelPreset = args[++i];
     } else if (arg === '--agent') {
@@ -84,29 +93,41 @@ function parseArgs(args) {
 const params = parseArgs(ARGS);
 const COMMAND = params.command;
 
-let TEMPLATES = {};
-try {
-  const templatesPath = join(sourceRoot, '.ai', 'templates', 'registry.yaml');
-  if (existsSync(templatesPath)) {
-    const templatesRegistry = parseYaml(readFileSync(templatesPath, 'utf8'));
-    TEMPLATES = templatesRegistry.templates || {};
-  } else {
-    TEMPLATES = {
-      'general-app': {
-        name: 'general-app',
-        description: 'Baseline generic fallback profile for standard backend systems.',
-        stack: 'Universal backends baseline structure',
-        skill: 'example-skill.md',
-        skillDesc: 'Generic baseline instructions and coding standards.',
-        status: 'stable',
-        maturity: 'production-ready',
-        required_files: ['AGENTS.md', 'MEMORY.md', 'TASKS.md', 'RUNBOOK.md', '.ai/config.yaml']
-      }
-    };
-  }
-} catch (e) {
-  TEMPLATES = {};
+function loadTemplates(customPath) {
+  let path = customPath || join(sourceRoot, '.ai', 'templates', 'registry.yaml');
+  try {
+    if (existsSync(path)) {
+      const templatesRegistry = parseYaml(readFileSync(path, 'utf8'));
+      return templatesRegistry.templates || {};
+    }
+  } catch (e) {}
+  return {
+    'general-app': {
+      name: 'general-app',
+      description: 'Baseline generic fallback profile for standard backend systems.',
+      stack: 'Universal backends baseline structure',
+      skill: 'example-skill.md',
+      skillDesc: 'Generic baseline instructions and coding standards.',
+      status: 'stable',
+      maturity: 'production-ready',
+      required_files: ['AGENTS.md', 'MEMORY.md', 'TASKS.md', 'RUNBOOK.md', '.ai/config.yaml']
+    }
+  };
 }
+
+function loadAdapters(customPath) {
+  let path = customPath || join(sourceRoot, '.ai', 'adapters', 'registry.yaml');
+  try {
+    if (existsSync(path)) {
+      const adaptersRegistry = parseYaml(readFileSync(path, 'utf8'));
+      return adaptersRegistry.adapters || {};
+    }
+  } catch (e) {}
+  return {};
+}
+
+const TEMPLATES = loadTemplates(params.registry);
+const ADAPTERS = loadAdapters(params.registry);
 
 if (params.help || !COMMAND) {
   showHelp();
@@ -135,6 +156,27 @@ if (COMMAND === 'init') {
   handleDoctor(params);
 } else if (COMMAND === 'validate') {
   handleValidate(params);
+} else if (COMMAND === 'validate-template') {
+  const tName = ARGS[1];
+  if (!tName || tName.startsWith('-')) {
+    console.error('\x1b[31mError: Please specify a template name. Example: node bin/multimodel-dev-os.js validate-template nextjs-saas\x1b[0m');
+    process.exit(1);
+  }
+  handleValidateTemplate(tName);
+} else if (COMMAND === 'validate-adapter') {
+  const aName = ARGS[1];
+  if (!aName || aName.startsWith('-')) {
+    console.error('\x1b[31mError: Please specify an adapter name. Example: node bin/multimodel-dev-os.js validate-adapter cursor\x1b[0m');
+    process.exit(1);
+  }
+  handleValidateAdapter(aName);
+} else if (COMMAND === 'validate-skill') {
+  const sName = ARGS[1];
+  if (!sName || sName.startsWith('-')) {
+    console.error('\x1b[31mError: Please specify a skill name. Example: node bin/multimodel-dev-os.js validate-skill custom-skill.example\x1b[0m');
+    process.exit(1);
+  }
+  handleValidateSkill(sName, params);
 } else if (COMMAND === 'models') {
   handleListModels(params);
 } else if (COMMAND === 'show-model') {
@@ -189,6 +231,9 @@ function showHelp() {
   console.log('  show-template <t> Inspect detailed stack specifications of template <t>');
   console.log('  doctor            Advisory checkup of project compatibility loops and ignored folders');
   console.log('  validate          Strict validation checks to verify directory schema compliance');
+  console.log('  validate-template Validate registry keys and source folder files for template');
+  console.log('  validate-adapter  Validate registry keys and source assets for IDE adapter');
+  console.log('  validate-skill    Verify custom skill conforms to core prompt structure');
   console.log('  models            List registered model aliases in the capabilities registry');
   console.log('  show-model <m>    View specifications of model <m> in registry');
   console.log('  providers         List configured AI provider API endpoints');
@@ -205,6 +250,7 @@ function showHelp() {
   console.log('  --tokens                Run a deeper token-sink size analysis during doctor checkup');
   console.log('  --json                  Output raw JSON data for listing commands (models, adapters, templates)');
   console.log('  --threshold <val>       Set custom size threshold for doctor tokens checks (e.g. 50KB)');
+  console.log('  --registry <path>       Override default registry (for templates/adapters list or check)');
   console.log('  -d, --dry-run           Preview planned file actions without modifying the filesystem');
   console.log('  -f, --force             Overwrite existing files without prompting\n');
 }
@@ -420,44 +466,15 @@ function handleInit(options) {
   // Copy root-level adapter rule files if selected
   if (!options.dryRun) {
     options.adapters.forEach(adapter => {
-      if (adapter === 'cursor') {
-        const srcFile = join(sourceRoot, 'adapters/cursor/.cursorrules');
-        const destFile = join(options.target, '.cursorrules');
-        if (existsSync(srcFile)) {
-          writeFileSync(destFile, readFileSync(srcFile));
-          console.log(`  \x1b[32mCREATE ROOT ADAPTER FILE:\x1b[0m .cursorrules`);
-        }
-      } else if (adapter === 'claude') {
-        const srcFile = join(sourceRoot, 'adapters/claude/CLAUDE.md');
-        const destFile = join(options.target, 'CLAUDE.md');
-        if (existsSync(srcFile)) {
-          writeFileSync(destFile, readFileSync(srcFile));
-          console.log(`  \x1b[32mCREATE ROOT ADAPTER FILE:\x1b[0m CLAUDE.md`);
-        }
-      } else if (adapter === 'vscode') {
-        const srcFile = join(sourceRoot, 'adapters/vscode/.vscode/settings.json');
-        const destDir = join(options.target, '.vscode');
-        const destFile = join(destDir, 'settings.json');
+      const a = ADAPTERS[adapter];
+      if (a && a.rules_file) {
+        const srcFile = join(sourceRoot, 'adapters', adapter, a.rules_file);
+        const destFile = join(options.target, a.rules_file);
+        const destDir = dirname(destFile);
         if (existsSync(srcFile)) {
           if (!existsSync(destDir)) mkdirSync(destDir, { recursive: true });
           writeFileSync(destFile, readFileSync(srcFile));
-          console.log(`  \x1b[32mCREATE ROOT ADAPTER FILE:\x1b[0m .vscode/settings.json`);
-        }
-      } else if (adapter === 'gemini') {
-        const srcFile = join(sourceRoot, 'adapters/gemini/GEMINI.md');
-        const destFile = join(options.target, 'GEMINI.md');
-        if (existsSync(srcFile)) {
-          writeFileSync(destFile, readFileSync(srcFile));
-          console.log(`  \x1b[32mCREATE ROOT ADAPTER FILE:\x1b[0m GEMINI.md`);
-        }
-      } else if (adapter === 'antigravity') {
-        const srcFile = join(sourceRoot, 'adapters/antigravity/.gemini/settings.json');
-        const destDir = join(options.target, '.gemini');
-        const destFile = join(destDir, 'settings.json');
-        if (existsSync(srcFile)) {
-          if (!existsSync(destDir)) mkdirSync(destDir, { recursive: true });
-          writeFileSync(destFile, readFileSync(srcFile));
-          console.log(`  \x1b[32mCREATE ROOT ADAPTER FILE:\x1b[0m .gemini/settings.json`);
+          console.log(`  \x1b[32mCREATE ROOT ADAPTER FILE:\x1b[0m ${a.rules_file}`);
         }
       }
     });
@@ -476,11 +493,10 @@ function handleInit(options) {
   } else {
     // Dry run notes
     options.adapters.forEach(adapter => {
-      if (adapter === 'cursor') console.log(`  \x1b[36m[DRY-RUN] WOULD CREATE ROOT ADAPTER FILE:\x1b[0m .cursorrules`);
-      else if (adapter === 'claude') console.log(`  \x1b[36m[DRY-RUN] WOULD CREATE ROOT ADAPTER FILE:\x1b[0m CLAUDE.md`);
-      else if (adapter === 'vscode') console.log(`  \x1b[36m[DRY-RUN] WOULD CREATE ROOT ADAPTER FILE:\x1b[0m .vscode/settings.json`);
-      else if (adapter === 'gemini') console.log(`  \x1b[36m[DRY-RUN] WOULD CREATE ROOT ADAPTER FILE:\x1b[0m GEMINI.md`);
-      else if (adapter === 'antigravity') console.log(`  \x1b[36m[DRY-RUN] WOULD CREATE ROOT ADAPTER FILE:\x1b[0m .gemini/settings.json`);
+      const a = ADAPTERS[adapter];
+      if (a && a.rules_file) {
+        console.log(`  \x1b[36m[DRY-RUN] WOULD CREATE ROOT ADAPTER FILE:\x1b[0m ${a.rules_file}`);
+      }
     });
   }
 
@@ -543,6 +559,10 @@ function handleVerify(options) {
 function handleDoctor(options) {
   if (options.tokens) {
     handleDoctorTokens(options);
+    return;
+  }
+  if (options.release) {
+    handleDoctorRelease(options);
     return;
   }
   console.log(`\n🩺 \x1b[36mRunning advisory doctor checkup in: ${options.target}\x1b[0m\n`);
@@ -649,6 +669,10 @@ function handleDoctor(options) {
 }
 
 function handleValidate(options) {
+  if (options && options.allRegistries) {
+    handleValidateAllRegistries();
+    return;
+  }
   console.log(`\n🛡 \x1b[34mRunning strict schema validation in: ${options.target}\x1b[0m\n`);
 
   let errors = 0;
@@ -1076,4 +1100,273 @@ function handleDoctorTokens(options) {
   console.log(`Total Scanned Files: ${filesFound.length}`);
   console.log(`Recommendation: Exclude files in red (>${thresholdStr}) from active coding prompts or add them to your adapter ignore rules.`);
   console.log();
+}
+
+function handleValidateTemplate(name) {
+  const t = TEMPLATES[name];
+  if (!t) {
+    console.error(`\x1b[31mError: Template '${name}' not found in registry.\x1b[0m`);
+    process.exit(1);
+  }
+  console.log(`\n📋 \x1b[34mValidating Template: ${name}\x1b[0m`);
+  
+  let errors = 0;
+  const reqKeys = ['name', 'description', 'stack', 'category', 'status', 'maturity', 'required_files'];
+  reqKeys.forEach(k => {
+    if (t[k] === undefined || t[k] === null) {
+      console.error(`  \x1b[31m✗ Missing registry key: ${k}\x1b[0m`);
+      errors++;
+    } else {
+      console.log(`  \x1b[32m✓\x1b[0m Registry key: ${k}`);
+    }
+  });
+
+  const templateDir = join(sourceRoot, 'examples', name);
+  if (!existsSync(templateDir)) {
+    console.error(`  \x1b[31m✗ Source folder missing: examples/${name}\x1b[0m`);
+    errors++;
+  } else {
+    console.log(`  \x1b[32m✓\x1b[0m Source folder: examples/${name}`);
+    if (Array.isArray(t.required_files)) {
+      t.required_files.forEach(f => {
+        const filePath = join(templateDir, f);
+        const globalPath = join(sourceRoot, f);
+        if (existsSync(filePath)) {
+          console.log(`  \x1b[32m✓\x1b[0m Required file (template override): ${f}`);
+        } else if (existsSync(globalPath)) {
+          console.log(`  \x1b[32m✓\x1b[0m Required file (global fallback): ${f}`);
+        } else {
+          console.error(`  \x1b[31m✗ Required file missing: ${f}\x1b[0m`);
+          errors++;
+        }
+      });
+    }
+  }
+
+  if (errors > 0) {
+    console.error(`\n\x1b[31mValidation FAILED with ${errors} errors.\x1b[0m\n`);
+    process.exit(1);
+  } else {
+    console.log(`\n\x1b[32m✔ Template '${name}' is fully valid and compliant!\x1b[0m\n`);
+    process.exit(0);
+  }
+}
+
+function handleValidateAdapter(name) {
+  const a = ADAPTERS[name];
+  if (!a) {
+    console.error(`\x1b[31mError: Adapter '${name}' not found in registry.\x1b[0m`);
+    process.exit(1);
+  }
+  console.log(`\n📋 \x1b[34mValidating Adapter: ${name}\x1b[0m`);
+  
+  let errors = 0;
+  const reqKeys = ['name', 'rules_file', 'format', 'type'];
+  reqKeys.forEach(k => {
+    if (!a[k]) {
+      console.error(`  \x1b[31m✗ Missing registry key: ${k}\x1b[0m`);
+      errors++;
+    } else {
+      console.log(`  \x1b[32m✓\x1b[0m Registry key: ${k}`);
+    }
+  });
+
+  const adapterDir = join(sourceRoot, 'adapters', name);
+  if (!existsSync(adapterDir)) {
+    console.error(`  \x1b[31m✗ Source folder missing: adapters/${name}\x1b[0m`);
+    errors++;
+  } else {
+    console.log(`  \x1b[32m✓\x1b[0m Source folder: adapters/${name}`);
+    const setupFile = join(adapterDir, 'setup.md');
+    if (existsSync(setupFile)) {
+      console.log(`  \x1b[32m✓\x1b[0m Required file: setup.md`);
+    } else {
+      console.error(`  \x1b[31m✗ Required file missing: adapters/${name}/setup.md\x1b[0m`);
+      errors++;
+    }
+
+    if (a.rules_file) {
+      const rulesFile = join(adapterDir, a.rules_file);
+      if (existsSync(rulesFile)) {
+        console.log(`  \x1b[32m✓\x1b[0m Rules file: ${a.rules_file}`);
+      } else {
+        console.error(`  \x1b[31m✗ Rules file missing: adapters/${name}/${a.rules_file}\x1b[0m`);
+        errors++;
+      }
+    }
+  }
+
+  if (errors > 0) {
+    console.error(`\n\x1b[31mValidation FAILED with ${errors} errors.\x1b[0m\n`);
+    process.exit(1);
+  } else {
+    console.log(`\n\x1b[32m✔ Adapter '${name}' is fully valid and compliant!\x1b[0m\n`);
+    process.exit(0);
+  }
+}
+
+function handleValidateSkill(name, options) {
+  const skillsDir = join(options.target, '.ai', 'skills');
+  let skillFile = join(skillsDir, name.endsWith('.md') ? name : `${name}.md`);
+  if (!existsSync(skillFile)) {
+    skillFile = join(sourceRoot, '.ai', 'skills', name.endsWith('.md') ? name : `${name}.md`);
+  }
+
+  if (!existsSync(skillFile)) {
+    console.error(`\x1b[31mError: Skill '${name}' not found.\x1b[0m`);
+    process.exit(1);
+  }
+
+  console.log(`\n📋 \x1b[34mValidating Skill: ${name}\x1b[0m`);
+  const content = readFileSync(skillFile, 'utf8');
+  let errors = 0;
+
+  const reqHeaders = [
+    { header: '# Purpose', regex: /^#\s+Purpose/mi },
+    { header: '# Activation Trigger', regex: /^#\s+Activation\s+Trigger/mi },
+    { header: '# Input Context', regex: /^#\s+Input\s+Context/mi },
+    { header: '# Output Contract', regex: /^#\s+Output\s+Contract/mi },
+    { header: '# Token Budget', regex: /^#\s+Token\s+Budget/mi }
+  ];
+
+  reqHeaders.forEach(req => {
+    if (req.regex.test(content)) {
+      console.log(`  \x1b[32m✓\x1b[0m Found required header: ${req.header}`);
+    } else {
+      console.error(`  \x1b[31m✗ Missing required header: ${req.header}\x1b[0m`);
+      errors++;
+    }
+  });
+
+  if (errors > 0) {
+    console.error(`\n\x1b[31mValidation FAILED with ${errors} errors.\x1b[0m\n`);
+    process.exit(1);
+  } else {
+    console.log(`\n\x1b[32m✔ Skill '${name}' is fully valid and compliant!\x1b[0m\n`);
+    process.exit(0);
+  }
+}
+
+function handleValidateAllRegistries() {
+  console.log(`\n🛡 \x1b[34mValidating All Registry Entries\x1b[0m\n`);
+  let errors = 0;
+
+  // Validate all templates
+  console.log('--- Templates Registry Validation ---');
+  Object.keys(TEMPLATES).forEach(name => {
+    const t = TEMPLATES[name];
+    console.log(`\nValidating Template: ${name}`);
+    const reqKeys = ['name', 'description', 'stack', 'category', 'status', 'maturity'];
+    if (t.status !== 'planned') {
+      reqKeys.push('required_files');
+    }
+    reqKeys.forEach(k => {
+      if (t[k] === undefined || t[k] === null) {
+        console.error(`  \x1b[31m✗ Missing registry key: ${k}\x1b[0m`);
+        errors++;
+      }
+    });
+
+    const templateDir = join(sourceRoot, 'examples', name);
+    if (t.status === 'stable' && !existsSync(templateDir)) {
+      console.error(`  \x1b[31m✗ Stable template source folder missing: examples/${name}\x1b[0m`);
+      errors++;
+    }
+  });
+
+  // Validate all adapters
+  console.log('\n--- Adapters Registry Validation ---');
+  Object.keys(ADAPTERS).forEach(name => {
+    const a = ADAPTERS[name];
+    console.log(`Validating Adapter: ${name}`);
+    const reqKeys = ['name', 'rules_file', 'format', 'type'];
+    reqKeys.forEach(k => {
+      if (!a[k]) {
+        console.error(`  \x1b[31m✗ Missing registry key: ${k}\x1b[0m`);
+        errors++;
+      }
+    });
+  });
+
+  console.log('\n==================================================');
+  if (errors > 0) {
+    console.error(`  \x1b[31mAll Registries validation FAILED. Found ${errors} schema errors.\x1b[0m\n`);
+    process.exit(1);
+  } else {
+    console.log('  \x1b[32m✔ All Registries validation PASSED. All templates and adapters are valid.\x1b[0m\n');
+    process.exit(0);
+  }
+}
+
+function handleDoctorRelease(options) {
+  console.log(`\n🩺 \x1b[36mRunning release audit doctor in: ${sourceRoot}\x1b[0m\n`);
+  let warnings = 0;
+
+  // 1. Version checks
+  let packageVersion = 'unknown';
+  try {
+    const pkg = JSON.parse(readFileSync(join(sourceRoot, 'package.json'), 'utf8'));
+    packageVersion = pkg.version;
+    console.log(`  \x1b[32m✓\x1b[0m package.json version: ${packageVersion}`);
+  } catch (e) {
+    console.warn('  \x1b[31m✗\x1b[0m Failed to parse package.json');
+    warnings++;
+  }
+
+  const checkInstallScript = (filename, regex) => {
+    const filePath = join(sourceRoot, filename);
+    if (existsSync(filePath)) {
+      const content = readFileSync(filePath, 'utf8');
+      const match = content.match(regex);
+      if (match && match[1] === packageVersion) {
+        console.log(`  \x1b[32m✓\x1b[0m ${filename} version aligns: ${match[1]}`);
+      } else {
+        console.warn(`  \x1b[33m[WARNING]\x1b[0m ${filename} version mismatch (found ${match ? match[1] : 'none'}, expected ${packageVersion})`);
+        warnings++;
+      }
+    }
+  };
+
+  checkInstallScript('scripts/install.sh', /VERSION="([^"]+)"/i);
+  checkInstallScript('scripts/install.ps1', /\$VERSION\s*=\s*"([^"]+)"/i);
+
+  // 2. Blacklisted files audit
+  const blacklist = ['.npmrc'];
+  blacklist.forEach(file => {
+    const fullPath = join(sourceRoot, file);
+    if (existsSync(fullPath)) {
+      console.warn(`  \x1b[33m[WARNING]\x1b[0m Blacklisted file found in release root: ${file}`);
+      warnings++;
+    } else {
+      console.log(`  \x1b[32m✓\x1b[0m No root blacklisted file: ${file}`);
+    }
+  });
+
+  // Recursively scan examples/ for .env and keystores
+  const scanSafety = (dir) => {
+    if (!existsSync(dir)) return;
+    const items = readdirSync(dir);
+    for (const item of items) {
+      const fullPath = join(dir, item);
+      try {
+        const stat = statSync(fullPath);
+        if (stat.isDirectory()) {
+          scanSafety(fullPath);
+        } else if (stat.isFile()) {
+          if (item === '.env' || item.endsWith('.keystore') || item.endsWith('.jks')) {
+            console.warn(`  \x1b[33m[WARNING]\x1b[0m Unsafe file inside templates/examples: ${fullPath.replace(sourceRoot, '')}`);
+            warnings++;
+          }
+        }
+      } catch (e) {}
+    }
+  };
+  scanSafety(join(sourceRoot, 'examples'));
+
+  console.log('\n==================================================');
+  if (warnings > 0) {
+    console.warn(`  \x1b[33mRelease doctor complete with ${warnings} warnings.\x1b[0m\n`);
+  } else {
+    console.log('  \x1b[32m✔ Release hygiene checks PASSED successfully!\x1b[0m\n');
+  }
 }

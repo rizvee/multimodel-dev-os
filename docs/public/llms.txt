@@ -1,11 +1,6 @@
-# MultiModel Dev OS (v1.3.0 Source / v1.1.0 npm)
+# MultiModel Dev OS (v2.0.0 Stable Release)
 
 Portable, vendor-neutral workspace configuration standard for multi-agent AI pair-programming workflows.
-
-> [!NOTE]
-> **NPM publishing is paused until v2.0.0.**
-> * Stable npm releases are available under version `v1.1.0`.
-> * Unreleased `v1.2.x` and `v1.3.x` features (registries, Android templates, new subcommands) must be run locally from a cloned repository source.
 
 ## Fast Setup (Stable npm @latest)
 ```bash

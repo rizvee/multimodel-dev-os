@@ -3,11 +3,7 @@
 This document details the final launch guidelines and distribution routines for the public releases of MultiModel Dev OS.
 
 > [!IMPORTANT]
-> **NPM publishing is paused until v2.0.0.** No new releases will be published under `v1.2.x` minor versions list.
-> 
-> * **GitHub Source**: Contains unreleased `v1.2+` features (Template Galaxy, model registries, Android templates).
-> * **NPM Latest**: Remains at the last stable released version.
-> * **v2.0.0**: The next approved NPM publication.
+> **v2.0.0 is the active stable release.** NPM publishing is no longer paused. All Template Galaxy and Model Compatibility features are now available on the public registry.
 
 ---
 

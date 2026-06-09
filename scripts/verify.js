@@ -6,7 +6,7 @@
  * Runs on Windows, macOS, and Linux with zero external dependencies.
  */
 
-import { existsSync, readFileSync, statSync } from 'fs';
+import { existsSync, readFileSync, statSync, readdirSync } from 'fs';
 import { join, resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
@@ -224,6 +224,12 @@ checkFile('docs/adapter-authoring.md');
 checkFile('docs/token-optimization.md');
 checkFile('docs/mobile-android.md');
 checkFile('docs/v2-roadmap.md');
+checkFile('docs/template-authoring.md');
+checkFile('docs/skill-authoring.md');
+checkFile('docs/registry-contribution.md');
+checkFile('docs/v2-migration.md');
+checkFile('docs/v2-release-checklist.md');
+checkFile('docs/package-safety.md');
 
 // --- Model & Adapter Registries ---
 console.log('\nModel & Adapter Registries:');
@@ -234,6 +240,9 @@ checkFile('.ai/models/local-models.yaml');
 checkFile('.ai/models/README.md');
 checkFile('.ai/adapters/registry.yaml');
 checkFile('.ai/templates/registry.yaml');
+checkFile('.ai/templates/custom-template.example.yaml');
+checkFile('.ai/adapters/custom-adapter.example.yaml');
+checkFile('.ai/skills/custom-skill.example.md');
 
 // --- JSON Schemas ---
 console.log('\nJSON Schemas:');
@@ -245,7 +254,10 @@ checkFile('.ai/schema/adapter.schema.json');
 console.log('\nTest Manuals:');
 checkFile('tests/README.md');
 checkFile('tests/fixtures/README.md');
+checkFile('tests/fixtures/custom-template-example/README.md');
+checkFile('tests/fixtures/registry-overrides/README.md');
 checkFile('tests/smoke/README.md');
+checkFile('tests/smoke/cli-smoke.md');
 
 // --- Visual & AI Discovery Assets ---
 console.log('\nVisual & AI Discovery Assets:');
@@ -432,6 +444,36 @@ try {
   console.error(`  ${RED}✗${NC} node bin/multimodel-dev-os.js verify failed: ${e.message}`);
   fail++;
 }
+
+// --- Package Safety & Hygiene Checks ---
+console.log('\nPackage Safety & Hygiene Checks:');
+if (existsSync(join(projectRoot, '.npmrc'))) {
+  console.error(`  ${RED}✗ .npmrc file exists in package root (security risk)${NC}`);
+  fail++;
+} else {
+  console.log(`  ${GREEN}✓${NC} No .npmrc file present in package root`);
+  pass++;
+}
+
+const checkExamplesHygiene = (dir) => {
+  if (!existsSync(dir)) return;
+  const items = readdirSync(dir);
+  for (const item of items) {
+    const fullPath = join(dir, item);
+    try {
+      const stat = statSync(fullPath);
+      if (stat.isDirectory()) {
+        checkExamplesHygiene(fullPath);
+      } else if (stat.isFile()) {
+        if (item === '.env' || item.endsWith('.keystore') || item.endsWith('.jks')) {
+          console.error(`  ${RED}✗ Unsafe file found inside examples: ${fullPath.replace(projectRoot, '')}${NC}`);
+          fail++;
+        }
+      }
+    } catch (e) {}
+  }
+};
+checkExamplesHygiene(join(projectRoot, 'examples'));
 
 console.log('\n=====================================================');
 const total = pass + fail + warn;

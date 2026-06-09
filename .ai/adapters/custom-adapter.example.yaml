@@ -1,0 +1,9 @@
+# Custom IDE Adapter Metadata Entry Example
+# Copy this block into .ai/adapters/registry.yaml
+
+adapters:
+  custom-adapter-example:
+    name: "Custom Adapter Example"
+    rules_file: ".customrules"
+    format: "markdown"
+    type: "editor"

@@ -32,7 +32,7 @@ export default {
         'license': 'https://opensource.org/licenses/MIT',
         'url': 'https://github.com/rizvee/multimodel-dev-os',
         'downloadUrl': 'https://www.npmjs.com/package/multimodel-dev-os',
-        'softwareVersion': '1.3.0',
+        'softwareVersion': '2.0.0',
         'description': 'Portable, vendor-neutral AI Developer OS for multi-agent coding workflows.'
       })
     ]
@@ -62,6 +62,9 @@ export default {
           { text: 'Stable Protocol Specification', link: '/stable-protocol' },
           { text: 'Adapter Compatibility', link: '/compatibility' },
           { text: 'Upgrades & Migration', link: '/migration-guide' },
+          { text: 'v2 Migration Guide', link: '/v2-migration' },
+          { text: 'v2 Release Checklist', link: '/v2-release-checklist' },
+          { text: 'Package Safety', link: '/package-safety' },
           { text: 'Templates QA Blueprint', link: '/template-qa' },
           { text: 'v1.0.0 Readiness Checklist', link: '/v1-readiness' }
         ]
@@ -79,7 +82,10 @@ export default {
         text: 'Agent & IDE Extensions',
         items: [
           { text: 'Agent Compatibility Mappings', link: '/agent-compatibility' },
-          { text: 'Custom Adapters Guide', link: '/adapter-authoring' }
+          { text: 'Custom Adapters Guide', link: '/adapter-authoring' },
+          { text: 'Template Authoring Guide', link: '/template-authoring' },
+          { text: 'Skill Authoring Guide', link: '/skill-authoring' },
+          { text: 'Registry Contribution Guide', link: '/registry-contribution' }
         ]
       },
       {

@@ -21,12 +21,6 @@
 
 ## One portable AI Dev OS for Codex, Antigravity, Cursor, Claude, Gemini, VS Code, and multimodel coding workflows.
 
-> [!IMPORTANT]
-> **NPM publishing is paused until v2.0.0.** 
-> * For the last stable npm-published version (`v1.1.0`), use: `npx multimodel-dev-os@latest init`
-> * For unreleased `v1.2.x` and `v1.3.x` features (registries, Android templates, new subcommands), clone the source repository and execute commands locally using `node bin/multimodel-dev-os.js`.
-> * The next stable package released to the public registry will be `v2.0.0`.
-
 Initialize a stable workspace instantly:
 
 ```bash

@@ -9,7 +9,7 @@ This document outlines the development path, stabilization targets, and migratio
 The primary goal of the **v2.0.0 release** is to promote the experimental features introduced in `v1.2.0` (Template Galaxy, Model Compatibility Layer, and Android Expo template) into officially frozen, production-grade core components, and resume stable package publication to the public npm registry.
 
 > [!IMPORTANT]
-> NPM package publication is strictly **paused** during all `v1.2.x` and `v1.3.x` source-only releases. The next official npm registry update will be `v2.0.0`.
+> **v2.0.0 is the active stable release.** NPM publishing is resumed, consolidating the Template Galaxy and Model registries.
 
 ---
 
@@ -52,24 +52,24 @@ The primary goal of the **v2.0.0 release** is to promote the experimental featur
 
 Before executing the `v2.0.0` release on the npm registry, the following steps must be completed:
 
-1. [ ] Set version to `2.0.0` in `package.json`.
-2. [ ] Ensure `scripts/prepublish-guard.js` allows the publish (since version starts with `2.`).
-3. [ ] Run all verification suites:
+1. [x] Set version to `2.0.0` in `package.json`.
+2. [x] Ensure `scripts/prepublish-guard.js` allows the publish (since version starts with `2.`).
+3. [x] Run all verification suites:
    ```bash
    npm run verify
    ```
-4. [ ] Build documentation static bundles cleanly:
+4. [x] Build documentation static bundles cleanly:
    ```bash
    npm run docs:build
    ```
-5. [ ] Perform a dry-run publish to review package hygiene:
+5. [x] Perform a dry-run publish to review package hygiene:
    ```bash
    npm publish --dry-run
    ```
-6. [ ] Set the required publication environment variable:
+6. [x] Set the required publication environment variable:
    * **PowerShell:** `$env:MMDO_ALLOW_PUBLISH="true"`
    * **Bash:** `export MMDO_ALLOW_PUBLISH=true`
-7. [ ] Publish the package to the public registry:
+7. [x] Publish the package to the public registry:
    ```bash
    npm publish --access public
    ```
@@ -79,15 +79,11 @@ Before executing the `v2.0.0` release on the npm registry, the following steps m
 ## 4. Migration Notes: npm latest to v2.0.0
 
 * **Direct Upgrades**: Projects running the last stable npm package (e.g., `1.1.0` / `1.0.0`) can migrate to `2.0.0` by executing `npx multimodel-dev-os@latest init --force` or installing the package locally.
-* **Registry Coexistence**: During the pause, users requiring the new `v1.2.x` source-only features must clone the GitHub repository and execute the commands locally using:
+* **Registry Release**: Now that v2.0.0 is released, cloning the repository is no longer required to access Layer 1 templates or model registries. Simply run:
   ```bash
-  node bin/multimodel-dev-os.js init
+  npx multimodel-dev-os@latest init
   ```
-  Or verify local packages via:
-  ```bash
-  npm pack
-  ```
-* **Configuration Upgrades**: Existing `.ai/` folders can be upgraded by copying the central registries (`.ai/models/` and `.ai/adapters/`) directly from the source templates.
+* **Configuration Upgrades**: Existing `.ai/` folders can be upgraded by running `init --force` to pull the new centralized registries (`.ai/models/` and `.ai/adapters/`) into the workspace.
 
 ---
 

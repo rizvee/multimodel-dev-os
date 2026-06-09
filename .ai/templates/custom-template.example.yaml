@@ -1,0 +1,19 @@
+# Custom Template Metadata Entry Example
+# Copy this block into .ai/templates/registry.yaml
+
+templates:
+  custom-template-example:
+    name: "custom-template-example"
+    description: "A customized stack starter setup template description."
+    stack: "Custom Framework, TypeScript, Database"
+    skill: "custom-skill-example.md"
+    skillDesc: "Framework specific secure execution rules."
+    category: "Web"
+    status: "stable"
+    maturity: "production-ready"
+    required_files:
+      - AGENTS.md
+      - MEMORY.md
+      - TASKS.md
+      - RUNBOOK.md
+      - .ai/config.yaml

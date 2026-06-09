@@ -75,15 +75,14 @@ Execute these validation actions strictly in sequence before triggering a releas
 
 ---
 
-## 4. NPM Publishing Paused Until v2.0.0
+## 4. Prepublish Safety Guard (v2.0.0 Stable)
 
 > [!IMPORTANT]
-> **NPM package publication is paused until `v2.0.0`.** No new packages will be released to the public registry under the `1.2.x` minor versions list.
+> **v2.0.0 is the active stable release.** NPM publishing is no longer paused.
 
 ### Source vs. Registry Strategy
-* **GitHub main branch (Source)**: Active unreleased development branch where new Layer 1 templates, model/adapter registries, and CLI subcommand candidates reside (e.g. `v1.2.0`).
-* **npm latest (Registry)**: Remains at the last stable released version.
-* **v2.0.0 (Next Target)**: The next approved publication on npm will be `v2.0.0`, which consolidates the Template Galaxy and Model registries.
+* **GitHub main branch (Source)**: Contains the current stable `v2.0.0` codebase.
+* **npm latest (Registry)**: Pulled and installed globally or via npx.
 
 ### Prepublish Safety Guard
 To prevent accidental `npm publish` executions on developer environments, a local validation script has been added to package hooks. If you run `npm publish`, it is blocked by default.

@@ -1,11 +1,6 @@
-# MultiModel Dev OS — Comprehensive AI Assistant Discoverability Guide (v1.3.0 Source / v1.1.0 npm)
+# MultiModel Dev OS — Comprehensive AI Assistant Discoverability Guide (v2.0.0 Stable Release)
 
 MultiModel Dev OS is a repository-level porting specification designed to align context and instructions across diverse developer tools and AI models.
-
-> [!NOTE]
-> **NPM publishing is paused until v2.0.0.**
-> * Stable npm releases are available under version `v1.1.0`.
-> * Unreleased `v1.2.x` and `v1.3.x` features (registries, Android templates, new subcommands) must be run locally from a cloned repository source.
 
 ---
 
@@ -42,11 +37,14 @@ The protocol decouples the centralized workspace context from the individual too
 ## 2. CLI Command Specifications
 
 All compliant MultiModel Dev OS CLIs strictly enforce the following command contracts:
-- **`init`**: Scaffolds the standard `.ai/` context configuration directories. Supports `--template` and `--caveman` flags.
+- **`init`**: Scaffolds the standard `.ai/` context configuration directories. Supports `--template`, `--caveman`, `--adapter`, and dynamic registries mapping.
 - **`verify`**: Automated release script that checks structure integrity.
-- **`templates`**: Lists built-in stack specifications (`nextjs-saas`, `wordpress-site`, `ecommerce-store`, `seo-landing-page`, `expo-react-native-android`, `general-app`).
-- **`validate`**: Strict Quality Gate checking the layout rules on disk.
-- **`doctor`**: Advisory checkup warning you about unignored compiler caches or large folder directories.
+- **`templates`**: Lists built-in template profiles (supports overrides via `--registry <path>`).
+- **`validate`**: Strict Quality Gate checking the layout rules on disk (supports `--all-registries`).
+- **`validate-template`**: Scans a template registry entry and source directory structure for completeness.
+- **`validate-adapter`**: Audits an adapter config file and directory setup compliance.
+- **`validate-skill`**: Checks a custom skill file against standard Markdown headers.
+- **`doctor`**: Advisory checkup auditing ignored folders and token footprint (supports `--tokens` and `--release`).
 
 ---
 

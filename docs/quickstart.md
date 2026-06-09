@@ -8,7 +8,7 @@ Get the MultiModel Dev OS integrated into your codebase in under 2 minutes to sy
 
 ## Option A: NPX Scaffolding (Stable Packages)
 
-Initialize any project instantly using our public npm registry. Note that this pulls the last stable npm-published release (e.g. `v1.1.0`):
+Initialize any project instantly using our public npm registry. Note that this pulls the latest stable npm-published release (`v2.0.0`):
 
 ```bash
 # Standard interactive initialization in the current directory
@@ -49,9 +49,9 @@ curl -fsSL https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scrip
 
 ---
 
-## Option D: Node.js Local Scaffolding CLI (Required for v1.2+ features)
+## Option D: Node.js Local Scaffolding CLI (Direct Run)
 
-**Required for**: Testing unreleased features (Template Galaxy registry, model capability configuration, and new CLI commands) during the NPM publishing pause.
+If you prefer to run directly from cloned source without global installation:
 
 1. Clone this repository locally:
    ```bash
