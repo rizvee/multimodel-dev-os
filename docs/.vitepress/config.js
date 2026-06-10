@@ -32,7 +32,7 @@ export default {
         'license': 'https://opensource.org/licenses/MIT',
         'url': 'https://github.com/rizvee/multimodel-dev-os',
         'downloadUrl': 'https://www.npmjs.com/package/multimodel-dev-os',
-        'softwareVersion': '2.2.0',
+        'softwareVersion': '2.4.0',
         'description': 'Portable, vendor-neutral AI Developer OS for multi-agent coding workflows.'
       })
     ]
@@ -134,6 +134,17 @@ export default {
           { text: 'Before/After Workflows', link: '/workflow-examples' },
           { text: 'Use Cases Guide', link: '/use-cases' },
           { text: 'Templates Architecture', link: '/templates-guide' }
+        ]
+      },
+      {
+        text: 'Self-Improvement Engine',
+        items: [
+          { text: 'Self-Improving Codebase', link: '/self-improving-codebase' },
+          { text: 'Improvement Proposals', link: '/improvement-proposals' },
+          { text: 'Feedback Learning Loop', link: '/feedback-learning' },
+          { text: 'Hash-Compressed Memory', link: '/hash-compressed-memory' },
+          { text: 'Learning Rules', link: '/learning-rules' },
+          { text: 'Approved Proposal Application', link: '/approved-proposal-apply' }
         ]
       },
       {

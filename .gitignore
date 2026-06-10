@@ -45,6 +45,7 @@ docs/.vitepress/dist/
 .ai/intelligence/feedback-log.jsonl
 .ai/intelligence/learning-rules.md
 .ai/proposals/proposal-*.md
+.ai/proposals/apply-log.jsonl
 
 # === Pack output ===
 *.tar.gz

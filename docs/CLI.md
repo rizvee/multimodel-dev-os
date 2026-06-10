@@ -78,11 +78,17 @@ Manage developer feedback loop and compile rules.
   - `--files <list>`: Comma-separated list of related files.
 
 ### 9. `improve`
-Manage codebase optimization proposals.
+Manage codebase optimization proposals and deterministic execution.
 * **Usage:** `node bin/multimodel-dev-os.js improve <subcommand> [options]`
 * **Subcommands:**
   - `propose`: Generate a codebase improvement proposal markdown file.
   - `review`: List active proposals and their statuses.
   - `status`: Show aggregate counts of proposal statuses.
+  - `validate <proposal-file>`: Validate proposal safety gates and operations block.
+  - `diff <proposal-file>`: Preview proposed changes in unified diff format without modifying files.
+  - `apply <proposal-file> --approved`: Deterministically apply approved operations to the target codebase.
+  - `log`: Display Applied Proposals Audit Log execution history.
 * **Options:**
-  - `--title <text>`: Title of the proposal.
+  - `--title <text>`: Title of the proposal (used with `propose`).
+  - `--approved`: Explicitly authorize apply command execution (required for `apply`).
+  - `-t, --target <path>`: Specifies target destination (default: current working directory).

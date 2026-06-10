@@ -235,12 +235,13 @@ checkFile('docs/package-safety.md');
 console.log('\nIntelligence Layer Documentation:');
 checkFile('docs/future-proof-architecture.md');
 checkFile('docs/self-improving-codebase.md');
-checkFile('docs/hash-compressed-memory.md');
 checkFile('docs/feedback-learning.md');
+checkFile('docs/hash-compressed-memory.md');
 checkFile('docs/capability-registry.md');
 checkFile('docs/tool-registry.md');
 checkFile('docs/improvement-proposals.md');
 checkFile('docs/learning-rules.md');
+checkFile('docs/approved-proposal-apply.md');
 
 // --- Model & Adapter Registries ---
 console.log('\nModel & Adapter Registries:');
@@ -269,7 +270,9 @@ checkFile('.ai/intelligence/README.md');
 checkFile('.ai/intelligence/feedback-log.example.jsonl');
 checkFile('.ai/intelligence/learning-rules.example.md');
 checkFile('.ai/intelligence/improvement-proposal.schema.json');
+checkFile('.ai/intelligence/apply-log.schema.json');
 checkFile('.ai/proposals/README.md');
+checkFile('.ai/proposals/apply-operation.example.json');
 
 console.log('\nIntelligence Layer Policies:');
 checkFile('.ai/policies/self-improvement-policy.md');
@@ -485,6 +488,7 @@ try {
   checkUntracked('.ai/intelligence/memory.summary.md');
   checkUntracked('.ai/intelligence/feedback-log.jsonl');
   checkUntracked('.ai/intelligence/learning-rules.md');
+  checkUntracked('.ai/proposals/apply-log.jsonl');
   
   // also check if any proposal-*.md file exists directly in projectRoot/proposals (since it shouldn't be tracked)
   const proposalsDir = join(projectRoot, '.ai', 'proposals');

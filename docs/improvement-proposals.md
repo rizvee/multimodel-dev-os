@@ -36,5 +36,29 @@ To see aggregates of proposal statuses:
 npx multimodel-dev-os improve status
 ```
 
-### Stage C: Manual Implementation
-In this version, all edits must be applied manually by the developer. Once a proposal has been resolved and verified, edit the Frontmatter to update the `approval_status` to `approved`.
+## 3. Proposal Execution
+
+Once a proposal is reviewed, you can execute it in one of two ways:
+
+### A. Automated Application (Recommended)
+Starting in v2.4.0, approved proposals with machine-applicable operation blocks can be executed automatically:
+1. Edit the frontmatter metadata block to set `approval_status` to `approved`.
+2. Validate the proposal and its safety boundaries:
+   ```bash
+   npx multimodel-dev-os improve validate .ai/proposals/proposal-xxxx.md
+   ```
+3. Preview planned changes using the dry-run diff command:
+   ```bash
+   npx multimodel-dev-os improve diff .ai/proposals/proposal-xxxx.md
+   ```
+4. Deterministically apply changes to the repository:
+   ```bash
+   npx multimodel-dev-os improve apply .ai/proposals/proposal-xxxx.md --approved
+   ```
+
+For detailed specifications on safety gates, allowed operations, and audit logs, see the [Approved Proposal Application Guide](/approved-proposal-apply).
+
+### B. Manual Implementation
+For proposals containing vague instructions or complex edits without structured operation blocks:
+1. Manually implement and verify the code edits within your workspace.
+2. Edit the frontmatter metadata block to set `approval_status` to `approved` to archive.

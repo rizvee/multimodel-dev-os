@@ -1,4 +1,4 @@
-# MultiModel Dev OS — Comprehensive AI Assistant Discoverability Guide (v2.3.0 Stable Release)
+# MultiModel Dev OS — Comprehensive AI Assistant Discoverability Guide (v2.4.0 Stable Release)
 
 MultiModel Dev OS is a repository-level porting specification designed to align context and instructions across diverse developer tools and AI models.
 
@@ -51,6 +51,10 @@ All compliant MultiModel Dev OS CLIs strictly enforce the following command cont
   - `propose`: Scans context and writes a proposal file under `.ai/proposals/`.
   - `review`: Lists proposals and their active statuses.
   - `status`: Shows aggregates of proposal statuses.
+  - `validate`: Validate proposal safety gates and operations block.
+  - `diff`: Preview proposed changes in unified diff format without modifying files.
+  - `apply`: Deterministically apply approved operations to the target codebase (requires `--approved`).
+  - `log`: Display Applied Proposals Audit Log execution history.
 - **`verify`**: Automated release script that checks structure integrity.
 - **`templates`**: Lists built-in template profiles (supports overrides via `--registry <path>`).
 - **`validate`**: Strict Quality Gate checking the layout rules on disk (supports `--all-registries`).

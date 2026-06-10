@@ -11,7 +11,7 @@ param(
   [switch]$Help
 )
 
-$Version = "2.3.0"
+$Version = "2.4.0"
 $RepoUrl = "https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main"
 
 if ($Help) {

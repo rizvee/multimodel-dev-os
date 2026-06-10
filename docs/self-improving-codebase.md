@@ -32,4 +32,6 @@ To view status:
 npx multimodel-dev-os improve status
 ```
 
-*Note: Automated applying is not supported in this version. Code modifications must be applied manually, and the proposal status set to `approved` inside Frontmatter after verification.*
+*Note: Starting in v2.4.0, automated proposal application is supported via the `improve apply` command, provided that a valid operations JSON block exists in the proposal file and the developer passes the `--approved` flag. Vague proposals or those targeting protected files/paths must still be executed manually.*
+
+For complete automated application details, please refer to the [Approved Proposal Application Guide](/approved-proposal-apply).

@@ -1,0 +1,22 @@
+{
+  "operations": [
+    {
+      "type": "create_file",
+      "path": "docs/example.md",
+      "content": "# Example\n",
+      "overwrite": true
+    },
+    {
+      "type": "append_line",
+      "path": ".gitignore",
+      "line": "node_modules/"
+    },
+    {
+      "type": "replace_text",
+      "path": "README.md",
+      "find": "old text",
+      "replace": "new text",
+      "allow_multiple": false
+    }
+  ]
+}

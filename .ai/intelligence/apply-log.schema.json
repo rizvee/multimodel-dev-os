@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Proposal Apply Log Record Schema",
+  "description": "Schema for capturing individual proposal application audit log records.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique execution run identifier (e.g. apply-YYYYMMDD-HHMMSS)."
+    },
+    "proposal_id": {
+      "type": "string",
+      "description": "The unique proposal identifier."
+    },
+    "applied_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the operations were applied."
+    },
+    "target": {
+      "type": "string",
+      "description": "Absolute or relative path to the target workspace root."
+    },
+    "operations_count": {
+      "type": "integer",
+      "description": "Total number of operations executed."
+    },
+    "files_changed": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Files modified or created during this execution."
+    },
+    "before_hashes": {
+      "type": "object",
+      "additionalProperties": { "type": ["string", "null"] },
+      "description": "SHA-256 hashes of affected files before modifications."
+    },
+    "after_hashes": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "SHA-256 hashes of affected files after modifications."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["success", "failed"],
+      "description": "Execution status of the applied proposal."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Summary notes or error details."
+    }
+  },
+  "required": [
+    "id",
+    "proposal_id",
+    "applied_at",
+    "target",
+    "operations_count",
+    "files_changed",
+    "before_hashes",
+    "after_hashes",
+    "status",
+    "notes"
+  ]
+}

@@ -6,7 +6,7 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync } from 'fs';
-import { join, dirname, resolve, relative } from 'path';
+import { join, dirname, resolve, relative, isAbsolute, basename } from 'path';
 import { fileURLToPath } from 'url';
 import { createHash } from 'crypto';
 
@@ -47,7 +47,8 @@ function parseArgs(args) {
     type: 'unknown',
     tags: '',
     files: '',
-    title: null
+    title: null,
+    approved: false
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -94,11 +95,31 @@ function parseArgs(args) {
       params.files = args[++i];
     } else if (arg === '--title') {
       params.title = args[++i];
+    } else if (arg === '--approved') {
+      params.approved = true;
     } else if (!params.command && !arg.startsWith('-')) {
       params.command = arg;
     }
   }
   return params;
+}
+
+function getPositionalArgs(args) {
+  const positionalArgs = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === '--target' || arg === '-t' || arg === '--template' || arg === '--adapter' || arg === '-a' ||
+        arg === '--threshold' || arg === '--registry' || arg === '--model-preset' || arg === '--agent' ||
+        arg === '--stack' || arg === '--mobile' || arg === '--type' || arg === '--tags' || arg === '--files' ||
+        arg === '--title') {
+      i++; // skip next arg (its value)
+    } else if (arg.startsWith('-')) {
+      // it's a flag, skip
+    } else {
+      positionalArgs.push(arg);
+    }
+  }
+  return positionalArgs;
 }
 
 const params = parseArgs(ARGS);
@@ -183,16 +204,43 @@ if (COMMAND === 'init') {
     process.exit(1);
   }
 } else if (COMMAND === 'improve') {
-  const sub = ARGS[1];
+  const positional = getPositionalArgs(ARGS);
+  const sub = positional[1];
   if (sub === 'propose') {
     handleImprovePropose(params);
   } else if (sub === 'review') {
     handleImproveReview(params);
   } else if (sub === 'status') {
     handleImproveStatus(params);
+  } else if (sub === 'validate') {
+    const proposalFile = positional[2];
+    if (!proposalFile) {
+      console.error(`\x1b[31mError: Please specify a proposal file path.\x1b[0m`);
+      console.log(`Example: node bin/multimodel-dev-os.js improve validate .ai/proposals/proposal-xxxx.md`);
+      process.exit(1);
+    }
+    handleImproveValidate(proposalFile, params);
+  } else if (sub === 'diff') {
+    const proposalFile = positional[2];
+    if (!proposalFile) {
+      console.error(`\x1b[31mError: Please specify a proposal file path.\x1b[0m`);
+      console.log(`Example: node bin/multimodel-dev-os.js improve diff .ai/proposals/proposal-xxxx.md`);
+      process.exit(1);
+    }
+    handleImproveDiff(proposalFile, params);
+  } else if (sub === 'apply') {
+    const proposalFile = positional[2];
+    if (!proposalFile) {
+      console.error(`\x1b[31mError: Please specify a proposal file path.\x1b[0m`);
+      console.log(`Example: node bin/multimodel-dev-os.js improve apply .ai/proposals/proposal-xxxx.md --approved`);
+      process.exit(1);
+    }
+    handleImproveApply(proposalFile, params);
+  } else if (sub === 'log') {
+    handleImproveLog(params);
   } else {
-    console.error(`\x1b[31mError: Please specify an improve subcommand: propose, review, or status.\x1b[0m`);
-    console.log(`Example: node bin/multimodel-dev-os.js improve propose`);
+    console.error(`\x1b[31mError: Please specify an improve subcommand: propose, review, status, validate, diff, apply, or log.\x1b[0m`);
+    console.log(`Example: node bin/multimodel-dev-os.js improve validate .ai/proposals/proposal-xxxx.md`);
     process.exit(1);
   }
 } else if (COMMAND === 'templates' || COMMAND === 'list-templates') {
@@ -280,7 +328,7 @@ function showHelp() {
   console.log('  scan              Scan project structure and framework signals');
   console.log('  memory <subcmd>   Manage hash-compressed codebase memory (subcmd: build, refresh, diff)');
   console.log('  feedback <subcmd> Manage developer feedback loops (subcmd: add, list, summarize)');
-  console.log('  improve <subcmd>  Manage codebase self-improvement proposals (subcmd: propose, review, status)');
+  console.log('  improve <subcmd>  Manage codebase self-improvement proposals (subcmd: propose, review, status, validate, diff, apply, log)');
   console.log('  verify            Validate structural integrity of an existing project');
   console.log('  templates         List all built-in template profiles with details');
   console.log('  list-templates    Alias for templates command');
@@ -304,6 +352,7 @@ function showHelp() {
   console.log('  --tags <list>           Comma-separated descriptor tags for feedback');
   console.log('  --files <list>          Comma-separated target files for feedback');
   console.log('  --title <text>          Specifies title for codebase improvement proposal');
+  console.log('  --approved              Explicitly approve and execute proposal operations');
   console.log('  --template <name>       Template profile: nextjs-saas, expo-react-native-android, etc.');
   console.log('  -a, --adapter <name>    Inject specific adapter: cursor, claude, vscode, gemini, etc.');
   console.log('  --caveman               Use minimal-token templates (~79% fewer tokens)');
@@ -1489,6 +1538,7 @@ function shouldIgnorePath(relPath) {
     normalized.endsWith('memory.summary.md') ||
     normalized.endsWith('feedback-log.jsonl') ||
     normalized.endsWith('learning-rules.md') ||
+    normalized.endsWith('apply-log.jsonl') ||
     normalized.includes('.ai/proposals/')
   ) {
     return true;
@@ -2228,6 +2278,392 @@ function handleImproveStatus(options) {
     console.log();
   } catch (e) {
     console.error(`\x1b[31mError: Failed to fetch status: ${e.message}\x1b[0m`);
+    process.exit(1);
+  }
+}
+
+function getSha256(content) {
+  return createHash('sha256').update(content, 'utf8').digest('hex');
+}
+
+function validatePath(targetRoot, relPath) {
+  const normalizedRel = relPath.replace(/\\/g, '/');
+  
+  if (normalizedRel.startsWith('/') || normalizedRel.includes('..')) {
+    return { valid: false, reason: `Path '${relPath}' contains directory traversal or is absolute.` };
+  }
+
+  const resolved = resolve(targetRoot, relPath);
+  const relativeFromRoot = relative(targetRoot, resolved);
+  
+  if (relativeFromRoot.startsWith('..') || isAbsolute(relativeFromRoot) || resolved === targetRoot) {
+    return { valid: false, reason: `Path '${relPath}' resolves outside the target root.` };
+  }
+
+  const parts = relativeFromRoot.replace(/\\/g, '/').split('/');
+  
+  const protectedFolders = [
+    '.git',
+    'node_modules',
+    'dist',
+    'build',
+    '.next',
+    'coverage'
+  ];
+  for (const part of parts) {
+    if (protectedFolders.includes(part)) {
+      return { valid: false, reason: `Path '${relPath}' attempts to access protected directory '${part}/'.` };
+    }
+  }
+
+  const cleanRelativeFromRoot = relativeFromRoot.replace(/\\/g, '/');
+  if (cleanRelativeFromRoot.startsWith('docs/.vitepress/dist') || cleanRelativeFromRoot.startsWith('docs/.vitepress/cache')) {
+    return { valid: false, reason: `Path '${relPath}' attempts to access protected vitepress path.` };
+  }
+
+  const filename = parts[parts.length - 1];
+  if (filename === '.env' || filename.startsWith('.env.') || filename === '.npmrc' || filename === 'credentials.json' || filename === 'package-lock.json') {
+    return { valid: false, reason: `Path '${relPath}' targets a protected config/secret file.` };
+  }
+  if (filename.endsWith('.pem') || filename.endsWith('.key') || filename.endsWith('.jks') || filename.endsWith('.keystore')) {
+    return { valid: false, reason: `Path '${relPath}' targets a protected key/certificate file.` };
+  }
+
+  return { valid: true, resolved };
+}
+
+function validateProposal(proposalFile, targetRoot) {
+  if (!existsSync(proposalFile)) {
+    return { valid: false, reason: `Proposal file '${proposalFile}' does not exist.` };
+  }
+
+  const content = readFileSync(proposalFile, 'utf8');
+  const fmMatch = content.match(/^---([\s\S]*?)---/);
+  if (!fmMatch) {
+    return { valid: false, reason: `Proposal file metadata frontmatter fails to parse.` };
+  }
+  const fmContent = fmMatch[1];
+  const metadata = parseYaml(fmContent);
+  if (!metadata || typeof metadata !== 'object') {
+    return { valid: false, reason: `Proposal file metadata frontmatter fails to parse.` };
+  }
+
+  if (metadata.approval_status !== 'approved') {
+    return { valid: false, reason: `Proposal approval_status is '${metadata.approval_status || 'pending'}'. It must be 'approved'.` };
+  }
+
+  const body = content.substring(fmMatch[0].length);
+  const jsonBlockRegex = /```json\s*\n([\s\S]*?)\n\s*```/;
+  const jsonMatch = body.match(jsonBlockRegex);
+  if (!jsonMatch) {
+    return { valid: false, reason: `Proposal has no machine-readable operations block. Manual implementation is required.` };
+  }
+  
+  let operationsData;
+  try {
+    operationsData = JSON.parse(jsonMatch[1]);
+  } catch (e) {
+    return { valid: false, reason: `Failed to parse operations JSON block: ${e.message}` };
+  }
+  
+  if (!operationsData || !Array.isArray(operationsData.operations)) {
+    return { valid: false, reason: `Operations block does not contain a valid 'operations' array.` };
+  }
+  
+  const operations = operationsData.operations;
+  if (operations.length === 0) {
+    return { valid: false, reason: `Operations block is empty.` };
+  }
+
+  const validatedOperations = [];
+  for (let idx = 0; idx < operations.length; idx++) {
+    const op = operations[idx];
+    if (!op || typeof op !== 'object' || !op.type) {
+      return { valid: false, reason: `Operation at index ${idx} is invalid or missing 'type'.` };
+    }
+    
+    const allowedTypes = ['create_file', 'append_line', 'replace_text'];
+    if (!allowedTypes.includes(op.type)) {
+      return { valid: false, reason: `Operation at index ${idx} has disallowed type '${op.type}'.` };
+    }
+    
+    if (typeof op.path !== 'string' || !op.path.trim()) {
+      return { valid: false, reason: `Operation at index ${idx} (${op.type}) is missing target 'path'.` };
+    }
+    
+    const pathVal = validatePath(targetRoot, op.path);
+    if (!pathVal.valid) {
+      return { valid: false, reason: `Operation at index ${idx} (${op.type}) path validation failed: ${pathVal.reason}` };
+    }
+    const resolvedPath = pathVal.resolved;
+    
+    if (op.type === 'create_file') {
+      if (typeof op.content !== 'string') {
+        return { valid: false, reason: `Operation at index ${idx} (create_file) is missing 'content' string.` };
+      }
+      if (existsSync(resolvedPath) && !op.overwrite) {
+        return { valid: false, reason: `File '${op.path}' already exists. Operation must specify 'overwrite: true' to overwrite.` };
+      }
+    } else if (op.type === 'append_line') {
+      if (typeof op.line !== 'string') {
+        return { valid: false, reason: `Operation at index ${idx} (append_line) is missing 'line' string.` };
+      }
+    } else if (op.type === 'replace_text') {
+      if (typeof op.find !== 'string') {
+        return { valid: false, reason: `Operation at index ${idx} (replace_text) is missing 'find' string.` };
+      }
+      if (typeof op.replace !== 'string') {
+        return { valid: false, reason: `Operation at index ${idx} (replace_text) is missing 'replace' string.` };
+      }
+      if (!existsSync(resolvedPath)) {
+        return { valid: false, reason: `Target file '${op.path}' for replace_text does not exist.` };
+      }
+      
+      const fileContent = readFileSync(resolvedPath, 'utf8');
+      let count = 0;
+      let pos = fileContent.indexOf(op.find);
+      while (pos !== -1) {
+        count++;
+        pos = fileContent.indexOf(op.find, pos + op.find.length);
+      }
+      
+      if (count === 0) {
+        return { valid: false, reason: `Search text 'find' in '${op.path}' was not found.` };
+      }
+      if (count > 1 && !op.allow_multiple) {
+        return { valid: false, reason: `Search text 'find' in '${op.path}' matched ${count} times. If this is intended, specify 'allow_multiple: true'.` };
+      }
+    }
+    
+    validatedOperations.push({
+      ...op,
+      resolvedPath
+    });
+  }
+  
+  return {
+    valid: true,
+    proposalId: metadata.id || basename(proposalFile, '.md'),
+    operations: validatedOperations
+  };
+}
+
+function handleImproveValidate(proposalFile, options) {
+  console.log(`🛡 \x1b[34mValidating improvement proposal: ${proposalFile}\x1b[0m`);
+  const validation = validateProposal(proposalFile, options.target);
+  if (!validation.valid) {
+    console.error(`\x1b[31mValidation FAILED: ${validation.reason}\x1b[0m`);
+    process.exit(1);
+  }
+  console.log(`\x1b[32m✔ Proposal is VALID. approval_status: approved, ${validation.operations.length} operations parsed successfully.\x1b[0m`);
+  process.exit(0);
+}
+
+function handleImproveDiff(proposalFile, options) {
+  console.log(`🔍 \x1b[36mGenerating diff for proposal: ${proposalFile}\x1b[0m\n`);
+  const validation = validateProposal(proposalFile, options.target);
+  if (!validation.valid) {
+    console.error(`\x1b[31mValidation FAILED: ${validation.reason}\x1b[0m`);
+    process.exit(1);
+  }
+  
+  const operations = validation.operations;
+  operations.forEach((op, idx) => {
+    console.log(`\x1b[33mOperation #${idx + 1}: ${op.type} -> ${op.path}\x1b[0m`);
+    if (op.type === 'create_file') {
+      const exists = existsSync(op.resolvedPath);
+      if (exists) {
+        console.log(`\x1b[31m- [Overwriting existing file]\x1b[0m`);
+      } else {
+        console.log(`\x1b[32m+ [Creating new file]\x1b[0m`);
+      }
+      const lines = op.content.split(/\r?\n/);
+      lines.forEach(line => {
+        console.log(`\x1b[32m+ ${line}\x1b[0m`);
+      });
+    } else if (op.type === 'append_line') {
+      const exists = existsSync(op.resolvedPath);
+      let content = '';
+      if (exists) {
+        content = readFileSync(op.resolvedPath, 'utf8');
+      }
+      const fileLines = content.split(/\r?\n/);
+      const lineExists = fileLines.some(l => l.trim() === op.line.trim());
+      if (lineExists) {
+        console.log(`  (Line already exists in file: idempotent check passed, no changes will be made)`);
+      } else {
+        console.log(`\x1b[32m+ ${op.line}\x1b[0m`);
+      }
+    } else if (op.type === 'replace_text') {
+      console.log(`--- a/${op.path}`);
+      console.log(`+++ b/${op.path}`);
+      const findLines = op.find.split(/\r?\n/);
+      const replaceLines = op.replace.split(/\r?\n/);
+      findLines.forEach(line => {
+        console.log(`\x1b[31m- ${line}\x1b[0m`);
+      });
+      replaceLines.forEach(line => {
+        console.log(`\x1b[32m+ ${line}\x1b[0m`);
+      });
+    }
+    console.log();
+  });
+}
+
+function handleImproveApply(proposalFile, options) {
+  if (!options.approved) {
+    console.error(`\x1b[31mError: Proposal cannot be applied without explicit user approval. Pass the --approved flag.\x1b[0m`);
+    console.error(`Example: node bin/multimodel-dev-os.js improve apply ${proposalFile} --approved`);
+    process.exit(1);
+  }
+
+  console.log(`🚀 \x1b[34mApplying proposal: ${proposalFile}\x1b[0m`);
+  const validation = validateProposal(proposalFile, options.target);
+  if (!validation.valid) {
+    console.error(`\x1b[31mValidation FAILED: ${validation.reason}\x1b[0m`);
+    process.exit(1);
+  }
+
+  const operations = validation.operations;
+  const proposalId = validation.proposalId;
+
+  const filesChanged = [];
+  const beforeHashes = {};
+  const afterHashes = {};
+  let status = 'success';
+  let notes = '';
+
+  const applyId = `apply-${new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14)}`;
+
+  try {
+    operations.forEach(op => {
+      const relPath = relative(options.target, op.resolvedPath).replace(/\\/g, '/');
+      if (!filesChanged.includes(relPath)) {
+        filesChanged.push(relPath);
+      }
+      if (existsSync(op.resolvedPath)) {
+        const fileContent = readFileSync(op.resolvedPath, 'utf8');
+        beforeHashes[relPath] = getSha256(fileContent);
+      } else {
+        beforeHashes[relPath] = null;
+      }
+    });
+
+    operations.forEach((op, idx) => {
+      const relPath = relative(options.target, op.resolvedPath).replace(/\\/g, '/');
+      console.log(`  Executing Operation #${idx + 1} (${op.type}) on '${relPath}'...`);
+
+      if (op.type === 'create_file') {
+        const dir = dirname(op.resolvedPath);
+        if (!existsSync(dir)) {
+          mkdirSync(dir, { recursive: true });
+        }
+        writeFileSync(op.resolvedPath, op.content, 'utf8');
+      } else if (op.type === 'append_line') {
+        let content = '';
+        if (existsSync(op.resolvedPath)) {
+          content = readFileSync(op.resolvedPath, 'utf8');
+        }
+        const fileLines = content.split(/\r?\n/);
+        const lineExists = fileLines.some(l => l.trim() === op.line.trim());
+        if (!lineExists) {
+          let newContent = content;
+          if (content.length > 0 && !content.endsWith('\n') && !content.endsWith('\r')) {
+            newContent += '\n';
+          }
+          newContent += op.line + '\n';
+          const dir = dirname(op.resolvedPath);
+          if (!existsSync(dir)) {
+            mkdirSync(dir, { recursive: true });
+          }
+          writeFileSync(op.resolvedPath, newContent, 'utf8');
+        }
+      } else if (op.type === 'replace_text') {
+        const fileContent = readFileSync(op.resolvedPath, 'utf8');
+        let newContent;
+        if (op.allow_multiple) {
+          newContent = fileContent.split(op.find).join(op.replace);
+        } else {
+          newContent = fileContent.replace(op.find, op.replace);
+        }
+        writeFileSync(op.resolvedPath, newContent, 'utf8');
+      }
+    });
+
+    filesChanged.forEach(relPath => {
+      const fullPath = resolve(options.target, relPath);
+      if (existsSync(fullPath)) {
+        const fileContent = readFileSync(fullPath, 'utf8');
+        afterHashes[relPath] = getSha256(fileContent);
+      } else {
+        afterHashes[relPath] = null;
+      }
+    });
+
+    notes = `Successfully applied ${operations.length} operations.`;
+    console.log(`\x1b[32m✔ Proposal applied successfully! [Total operations: ${operations.length}]\x1b[0m`);
+
+  } catch (e) {
+    status = 'failed';
+    notes = `Execution error: ${e.message}`;
+    console.error(`\x1b[31mError applying proposal: ${e.message}\x1b[0m`);
+  }
+
+  const logDir = join(options.target, '.ai', 'proposals');
+  if (!existsSync(logDir)) {
+    mkdirSync(logDir, { recursive: true });
+  }
+  const logFile = join(logDir, 'apply-log.jsonl');
+  
+  const record = {
+    id: applyId,
+    proposal_id: proposalId,
+    applied_at: new Date().toISOString(),
+    target: options.target,
+    operations_count: operations.length,
+    files_changed: filesChanged,
+    before_hashes: beforeHashes,
+    after_hashes: afterHashes,
+    status,
+    notes
+  };
+
+  try {
+    writeFileSync(logFile, JSON.stringify(record) + '\n', { flag: 'a', encoding: 'utf8' });
+  } catch (err) {
+    console.error(`\x1b[31mFailed to write to audit log: ${err.message}\x1b[0m`);
+  }
+
+  if (status === 'failed') {
+    process.exit(1);
+  }
+}
+
+function handleImproveLog(options) {
+  const logFile = join(options.target, '.ai', 'proposals', 'apply-log.jsonl');
+  if (!existsSync(logFile)) {
+    console.log('No apply log found.');
+    return;
+  }
+
+  try {
+    const lines = readFileSync(logFile, 'utf8').trim().split(/\r?\n/);
+    console.log(`\n📜 \x1b[36mApplied Proposals Audit Log\x1b[0m`);
+    console.log('==================================================');
+    lines.forEach(line => {
+      if (!line.trim()) return;
+      const record = JSON.parse(line);
+      const statusColor = record.status === 'success' ? '\x1b[32m' : '\x1b[31m';
+      console.log(`\n\x1b[34m* [${record.id}] Proposal: ${record.proposal_id}\x1b[0m`);
+      console.log(`  \x1b[37mApplied At:\x1b[0m ${record.applied_at}`);
+      console.log(`  \x1b[37mOperations:\x1b[0m ${record.operations_count}`);
+      console.log(`  \x1b[37mFiles Changed:\x1b[0m ${record.files_changed.join(', ')}`);
+      console.log(`  \x1b[37mStatus:\x1b[0m ${statusColor}${record.status}\x1b[0m`);
+      console.log(`  \x1b[37mNotes:\x1b[0m ${record.notes}`);
+    });
+    console.log();
+  } catch (e) {
+    console.error(`\x1b[31mError reading audit log: ${e.message}\x1b[0m`);
     process.exit(1);
   }
 }

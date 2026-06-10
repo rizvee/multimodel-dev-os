@@ -4,6 +4,15 @@ All notable changes to multimodel-dev-os will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.4.0] - 2026-06-11
+
+### Added
+- **Approved Proposal Application Engine**: Added `improve validate`, `improve diff`, and `improve apply` subcommands to automatically execute machine-readable deterministic operations from proposal files under strict safety gates.
+- **Applied Proposals Audit Log**: Added `improve log` command and append-only `.ai/proposals/apply-log.jsonl` audit log to track successful proposal executions, computing file SHA-256 pre-hashes and post-hashes.
+- **Deterministic Operations Format**: Support optional JSON code blocks mapping `create_file`, `append_line`, and `replace_text` operations.
+- **Strict Safety Gates**: Enforced 12 safety checks including target path boundary containment, protected path blocks (e.g. `.git/`, `.env`, `node_modules/`), idempotency, and explicit user approval flag (`--approved`).
+- **Ignore list updates**: Automatically ignore audit logs in git and scanning engines.
+
 ## [2.3.0] - 2026-06-10
 
 ### Added

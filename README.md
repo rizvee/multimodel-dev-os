@@ -154,6 +154,18 @@ npx multimodel-dev-os@latest improve review
 
 # View improvement engine status
 npx multimodel-dev-os@latest improve status
+
+# Validate proposal safety gates and operations
+npx multimodel-dev-os@latest improve validate .ai/proposals/proposal-xxxx.md
+
+# Preview proposed changes in unified diff format
+npx multimodel-dev-os@latest improve diff .ai/proposals/proposal-xxxx.md
+
+# Apply deterministic approved operations to codebase
+npx multimodel-dev-os@latest improve apply .ai/proposals/proposal-xxxx.md --approved
+
+# View applied proposals execution history audit log
+npx multimodel-dev-os@latest improve log
 ```
 
 ### Explore Registries
@@ -260,10 +272,10 @@ Learn more:
 |:---|:---|:---|
 | **v2.0.0** | Template Galaxy, Model Registry, Stable Protocol | ✅ Released |
 | **v2.0.1** | Post-release polish, docs cleanup, 193 verify assertions | ✅ Released |
-| **v2.1.0** | Intelligence Core — Registries, Memory Engine, Capability Routing | 🔨 Planning complete |
-| **v2.2.0** | Feedback Loops & MCP Tool Integrations | 📋 Planned |
-| **v2.3.0** | Proposal Engine & Safety Controls | 📋 Planned |
-| **v2.4.0** | Local/Offline Model Operations | 📋 Planned |
+| **v2.1.0** | Intelligence Core — Registries, Memory Engine, Capability Routing | ✅ Released |
+| **v2.2.0** | Feedback Loops & MCP Tool Integrations | ✅ Released |
+| **v2.3.0** | Proposal Engine & Safety Controls | ✅ Released |
+| **v2.4.0** | Approved Proposal Application Engine | ✅ Released |
 | **v3.0.0** | Unified Autonomous Co-Pilot Ecosystem | 🔮 Future |
 
 Full details: **[v2 Roadmap](https://rizvee.github.io/multimodel-dev-os/v2-roadmap)**
