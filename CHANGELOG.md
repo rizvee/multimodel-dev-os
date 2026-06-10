@@ -4,6 +4,14 @@ All notable changes to multimodel-dev-os will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.2.0] - 2026-06-10
+
+### Added
+- **Codebase Scanner**: Added new `scan` command to inspect frameworks, package managers, and AI Dev OS files.
+- **Hash-Compressed Memory Engine**: Added `memory build`, `memory refresh`, and `memory diff` commands to index repository files into `.ai/intelligence/memory.hash.json` and `.ai/intelligence/memory.summary.md`.
+- **Ignore & Secret-Safety Rules**: Mapped recursive ignore patterns (e.g. `node_modules`, `dist`, `.next`) and secret exclusions (e.g. `.env`, `.npmrc`, `.keystore`) to prevent key leakage and context bloat.
+- **Documentation & Verification**: Fully documented scanning/memory commands and added 4 new release pre-flight verification guards to `scripts/verify.js` (total 197 assertions).
+
 ## [2.0.1] - 2026-06-10
 
 ### Added

@@ -1,4 +1,4 @@
-# MultiModel Dev OS — Comprehensive AI Assistant Discoverability Guide (v2.0.1 Stable Release)
+# MultiModel Dev OS — Comprehensive AI Assistant Discoverability Guide (v2.2.0 Stable Release)
 
 MultiModel Dev OS is a repository-level porting specification designed to align context and instructions across diverse developer tools and AI models.
 
