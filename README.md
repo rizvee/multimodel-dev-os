@@ -276,6 +276,7 @@ Learn more:
 | **v2.2.0** | Feedback Loops & MCP Tool Integrations | ✅ Released |
 | **v2.3.0** | Proposal Engine & Safety Controls | ✅ Released |
 | **v2.4.0** | Approved Proposal Application Engine | ✅ Released |
+| **v2.4.1** | Proposal Apply UX + Safety Patch | ✅ Released |
 | **v3.0.0** | Unified Autonomous Co-Pilot Ecosystem | 🔮 Future |
 
 Full details: **[v2 Roadmap](https://rizvee.github.io/multimodel-dev-os/v2-roadmap)**

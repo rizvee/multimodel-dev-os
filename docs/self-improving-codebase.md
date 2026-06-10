@@ -32,6 +32,6 @@ To view status:
 npx multimodel-dev-os improve status
 ```
 
-*Note: Starting in v2.4.0, automated proposal application is supported via the `improve apply` command, provided that a valid operations JSON block exists in the proposal file and the developer passes the `--approved` flag. Vague proposals or those targeting protected files/paths must still be executed manually.*
+*Note: Starting in v2.4.1, automated proposal application is supported via the `improve apply` command, provided that a valid operations JSON block exists in the proposal file and the developer passes the `--approved` flag. Vague proposals or those targeting protected files/paths must still be executed manually.*
 
 For complete automated application details, please refer to the [Approved Proposal Application Guide](/approved-proposal-apply).

@@ -41,7 +41,7 @@ npx multimodel-dev-os improve status
 Once a proposal is reviewed, you can execute it in one of two ways:
 
 ### A. Automated Application (Recommended)
-Starting in v2.4.0, approved proposals with machine-applicable operation blocks can be executed automatically:
+Starting in v2.4.1, approved proposals with machine-applicable operation blocks can be executed automatically:
 1. Edit the frontmatter metadata block to set `approval_status` to `approved`.
 2. Validate the proposal and its safety boundaries:
    ```bash

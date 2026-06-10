@@ -1,6 +1,6 @@
 # Approved Proposal Application Engine
 
-MultiModel Dev OS v2.4.0 introduces a safe, deterministic, human-approved proposal application layer to automate the execution of approved codebase optimization proposals under strict safety constraints.
+MultiModel Dev OS v2.4.1 (Safety & UX Patch) introduces a safe, deterministic, human-approved proposal application layer to automate the execution of approved codebase optimization proposals under strict safety constraints.
 
 ---
 
@@ -95,19 +95,19 @@ The application engine validates every proposal file against a set of strict saf
 ## 4. CLI Commands
 
 ### validate
-Validates the proposal frontmatter, safety gates, and operation rules:
+Validates the proposal frontmatter, safety gates, and operation rules. Displays a color-coded Checklist showing the status of each safety gate (pass, fail, skip) and actionable fixes:
 ```bash
 npx multimodel-dev-os improve validate <proposal-file> --target <path>
 ```
 
 ### diff
-Previews the changes that will be applied, in unified-like diff format, without modifying any files:
+Previews the changes grouped by operation type (Create, Append, Replace) in a token-safe truncated format:
 ```bash
 npx multimodel-dev-os improve diff <proposal-file> --target <path>
 ```
 
 ### apply
-Deterministically executes the operations listed in the approved proposal file. Refuses to run without the `--approved` flag. Does not automatically commit.
+Deterministically executes the operations listed in the approved proposal file. Refuses to run without the `--approved` flag. Prints pre-apply summaries and detailed idempotent run indicators.
 ```bash
 npx multimodel-dev-os improve apply <proposal-file> --target <path> --approved
 ```
@@ -122,7 +122,7 @@ npx multimodel-dev-os improve log --target <path>
 
 ## 5. Audit Logging
 
-Every execution of `improve apply` writes an entry to the append-only JSON Lines audit log:
+Every execution of `improve apply` writes an entry to the append-only JSON Lines audit log. Hardened in v2.4.1, it also writes records for failed/refused attempts:
 * **Log Location**: `.ai/proposals/apply-log.jsonl`
 * **Log Exclusion**: Automatically ignored by Git via `.gitignore` and excluded from AI scanner runs.
 
@@ -135,5 +135,19 @@ Each record conforms to `.ai/intelligence/apply-log.schema.json` and contains:
 * `files_changed`: List of relative paths modified
 * `before_hashes`: SHA-256 file hashes before execution
 * `after_hashes`: SHA-256 file hashes after execution
-* `status`: `success` or `failed`
+* `status`: `success`, `failed`, or `refused`
+* `refused_reason`: Reason why validation was refused (when applicable)
 * `notes`: Additional run information or failure reasons
+
+---
+
+## 6. Recommended Workflow
+
+To ensure safety, consistency, and clarity, follow this workflow:
+
+1. **validate**: Run `npx multimodel-dev-os improve validate .ai/proposals/proposal-xxxx.md` to run safety gate audits.
+2. **diff**: Run `npx multimodel-dev-os improve diff .ai/proposals/proposal-xxxx.md` to review planned changes.
+3. **manually review**: Verify the proposal contents, target paths, and operation constraints.
+4. **apply**: Run `npx multimodel-dev-os improve apply .ai/proposals/proposal-xxxx.md --approved` to write modifications locally.
+5. **run tests**: Manually run verification tests (e.g., `npm run verify` or custom test runner).
+6. **commit**: Commit the changes manually to version control.

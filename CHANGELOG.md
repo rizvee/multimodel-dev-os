@@ -4,6 +4,16 @@ All notable changes to multimodel-dev-os will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.4.1] - 2026-06-11
+
+### Changed
+- **Validation Checklist**: Improved `improve validate` to print a structured, colored checklist for the 7 safety gates (Frontmatter, Approval Status, JSON Block, Operation Types, Boundaries, Permissions, Constraints) with short and actionable fixes on refusal.
+- **Grouped Diff Previews**: Enhanced `improve diff` to display grouped operations by type, unique affected files list, total statistics, and token-safe truncated file/replacement previews.
+- **Detailed Apply UX**: Added compact pre-execution operation summaries, explicit `[CREATED]`, `[OVERWRITTEN]`, `[APPENDED]`, and `[IDEMPOTENT] (skipped)` indicators, and reported the exact count of replacements made for `replace_text`.
+- **Refused Proposal Logging**: Hardened audit logging to record refused/failed attempts inside `.ai/proposals/apply-log.jsonl` with `status: 'refused'` (or `'failed'`) and `refused_reason`.
+- **Harden Protected Paths**: Explicitly blocked reading or modifying `apply-log.jsonl` via safety gates.
+- **Fixtures and Docs**: Added extended fixtures for validation testing and updated documentation describing the recommended verification workflow.
+
 ## [2.4.0] - 2026-06-11
 
 ### Added

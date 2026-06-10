@@ -84,10 +84,10 @@ Manage codebase optimization proposals and deterministic execution.
   - `propose`: Generate a codebase improvement proposal markdown file.
   - `review`: List active proposals and their statuses.
   - `status`: Show aggregate counts of proposal statuses.
-  - `validate <proposal-file>`: Validate proposal safety gates and operations block.
-  - `diff <proposal-file>`: Preview proposed changes in unified diff format without modifying files.
-  - `apply <proposal-file> --approved`: Deterministically apply approved operations to the target codebase.
-  - `log`: Display Applied Proposals Audit Log execution history.
+  - `validate <proposal-file>`: Validate safety gates and parse operations. Prints a structured safety checklist (Frontmatter, Approval, JSON, Types, Boundaries, Permissions, Constraints) with actionable fixes on refusal.
+  - `diff <proposal-file>`: Preview proposed changes grouped by type in a token-safe truncated diff format.
+  - `apply <proposal-file> --approved`: Apply approved operations to target, printing compact summaries, clear idempotent statuses, and writing success/refusal audit logs.
+  - `log`: Display Applied Proposals Audit Log execution history (`apply-log.jsonl`).
 * **Options:**
   - `--title <text>`: Title of the proposal (used with `propose`).
   - `--approved`: Explicitly authorize apply command execution (required for `apply`).
