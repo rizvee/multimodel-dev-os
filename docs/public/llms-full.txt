@@ -1,4 +1,4 @@
-# MultiModel Dev OS — Comprehensive AI Assistant Discoverability Guide (v2.2.0 Stable Release)
+# MultiModel Dev OS — Comprehensive AI Assistant Discoverability Guide (v2.3.0 Stable Release)
 
 MultiModel Dev OS is a repository-level porting specification designed to align context and instructions across diverse developer tools and AI models.
 
@@ -43,6 +43,14 @@ All compliant MultiModel Dev OS CLIs strictly enforce the following command cont
   - `build`: Scans target codebase and writes memory metadata to `.ai/intelligence/memory.hash.json` and `.ai/intelligence/memory.summary.md`.
   - `refresh`: Incremental update comparing changed file hashes to update the memory files.
   - `diff`: Prints added, removed, or changed files compared to `memory.hash.json` without executing writes.
+- **`feedback`**: Manage developer feedback loops. Subcommands:
+  - `add`: Logs raw developer feedback to `feedback-log.jsonl`.
+  - `list`: Lists logged feedback entries.
+  - `summarize`: Compiles feedback entries into `learning-rules.md`.
+- **`improve`**: Manage codebase self-improvement proposals. Subcommands:
+  - `propose`: Scans context and writes a proposal file under `.ai/proposals/`.
+  - `review`: Lists proposals and their active statuses.
+  - `status`: Shows aggregates of proposal statuses.
 - **`verify`**: Automated release script that checks structure integrity.
 - **`templates`**: Lists built-in template profiles (supports overrides via `--registry <path>`).
 - **`validate`**: Strict Quality Gate checking the layout rules on disk (supports `--all-registries`).

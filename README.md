@@ -134,6 +134,28 @@ npx multimodel-dev-os@latest memory refresh
 npx multimodel-dev-os@latest memory diff
 ```
 
+### Feedback Learning & Proposals
+
+```bash
+# Log developer preference or instruction feedback
+npx multimodel-dev-os@latest feedback add "Avoid Tailwind CSS" --type preference
+
+# View logged feedback entries
+npx multimodel-dev-os@latest feedback list
+
+# Compile raw feedback logs into active rules
+npx multimodel-dev-os@latest feedback summarize
+
+# Generate structured codebase improvement proposal
+npx multimodel-dev-os@latest improve propose --title "Fix config issues"
+
+# Review active proposals and statuses
+npx multimodel-dev-os@latest improve review
+
+# View improvement engine status
+npx multimodel-dev-os@latest improve status
+```
+
 ### Explore Registries
 
 ```bash
@@ -148,7 +170,7 @@ npx multimodel-dev-os@latest models --json # Machine-readable output
 ```bash
 npx multimodel-dev-os@latest validate      # Strict schema validation
 npx multimodel-dev-os@latest doctor        # Advisory compatibility checks
-npx multimodel-dev-os@latest verify        # Full release audit (193 assertions)
+npx multimodel-dev-os@latest verify        # Full release audit
 ```
 
 ### Caveman Mode

@@ -239,6 +239,8 @@ checkFile('docs/hash-compressed-memory.md');
 checkFile('docs/feedback-learning.md');
 checkFile('docs/capability-registry.md');
 checkFile('docs/tool-registry.md');
+checkFile('docs/improvement-proposals.md');
+checkFile('docs/learning-rules.md');
 
 // --- Model & Adapter Registries ---
 console.log('\nModel & Adapter Registries:');
@@ -264,6 +266,10 @@ console.log('\nIntelligence Layer Schemas:');
 checkFile('.ai/intelligence/memory.schema.json');
 checkFile('.ai/intelligence/feedback.schema.json');
 checkFile('.ai/intelligence/README.md');
+checkFile('.ai/intelligence/feedback-log.example.jsonl');
+checkFile('.ai/intelligence/learning-rules.example.md');
+checkFile('.ai/intelligence/improvement-proposal.schema.json');
+checkFile('.ai/proposals/README.md');
 
 console.log('\nIntelligence Layer Policies:');
 checkFile('.ai/policies/self-improvement-policy.md');
@@ -464,24 +470,37 @@ try {
   fail++;
 }
 
-// Verify no generated memory files are committed/tracked in git root/intelligence folder
+// Verify no generated memory or feedback logs or proposals are committed/tracked in git root/intelligence folder
 try {
-  if (existsSync(join(projectRoot, '.ai', 'intelligence', 'memory.hash.json'))) {
-    console.error(`  ${RED}✗${NC} .ai/intelligence/memory.hash.json should not be tracked/committed!`);
-    fail++;
-  } else {
-    console.log(`  ${GREEN}✓${NC} .ai/intelligence/memory.hash.json is not tracked/committed`);
-    pass++;
-  }
-  if (existsSync(join(projectRoot, '.ai', 'intelligence', 'memory.summary.md'))) {
-    console.error(`  ${RED}✗${NC} .ai/intelligence/memory.summary.md should not be tracked/committed!`);
-    fail++;
-  } else {
-    console.log(`  ${GREEN}✓${NC} .ai/intelligence/memory.summary.md is not tracked/committed`);
-    pass++;
+  const checkUntracked = (relPath) => {
+    if (existsSync(join(projectRoot, relPath))) {
+      console.error(`  ${RED}✗${NC} ${relPath} should not be tracked/committed!`);
+      fail++;
+    } else {
+      console.log(`  ${GREEN}✓${NC} ${relPath} is not tracked/committed`);
+      pass++;
+    }
+  };
+  checkUntracked('.ai/intelligence/memory.hash.json');
+  checkUntracked('.ai/intelligence/memory.summary.md');
+  checkUntracked('.ai/intelligence/feedback-log.jsonl');
+  checkUntracked('.ai/intelligence/learning-rules.md');
+  
+  // also check if any proposal-*.md file exists directly in projectRoot/proposals (since it shouldn't be tracked)
+  const proposalsDir = join(projectRoot, '.ai', 'proposals');
+  if (existsSync(proposalsDir)) {
+    const files = readdirSync(proposalsDir);
+    const hasRuntimeProposals = files.some(f => f.startsWith('proposal-') && f !== 'proposal-template.md' && f.endsWith('.md'));
+    if (hasRuntimeProposals) {
+      console.error(`  ${RED}✗${NC} Runtime proposals should not be committed/tracked!`);
+      fail++;
+    } else {
+      console.log(`  ${GREEN}✓${NC} No runtime proposals committed`);
+      pass++;
+    }
   }
 } catch (e) {
-  console.error(`  ${RED}✗${NC} Tracking verification of generated memory files failed: ${e.message}`);
+  console.error(`  ${RED}✗${NC} Tracking verification of generated files failed: ${e.message}`);
   fail++;
 }
 

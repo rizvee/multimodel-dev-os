@@ -65,3 +65,24 @@ Manage codebase hash-compressed memory index.
 * **Options:**
   - `-t, --target <path>`: Specifies target destination (default: current working directory).
 
+### 8. `feedback`
+Manage developer feedback loop and compile rules.
+* **Usage:** `node bin/multimodel-dev-os.js feedback <subcommand> [options]`
+* **Subcommands:**
+  - `add "<text>"`: Append a structured feedback object.
+  - `list`: View logged feedback entries.
+  - `summarize`: Compile raw feedback logs into `learning-rules.md`.
+* **Options:**
+  - `--type <type>`: Classification type (`correction`, `preference`, `bug`, etc.)
+  - `--tags <list>`: Comma-separated list of tags.
+  - `--files <list>`: Comma-separated list of related files.
+
+### 9. `improve`
+Manage codebase optimization proposals.
+* **Usage:** `node bin/multimodel-dev-os.js improve <subcommand> [options]`
+* **Subcommands:**
+  - `propose`: Generate a codebase improvement proposal markdown file.
+  - `review`: List active proposals and their statuses.
+  - `status`: Show aggregate counts of proposal statuses.
+* **Options:**
+  - `--title <text>`: Title of the proposal.

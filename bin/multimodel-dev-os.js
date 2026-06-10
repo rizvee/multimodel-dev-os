@@ -43,7 +43,11 @@ function parseArgs(args) {
     threshold: null,
     registry: null,
     allRegistries: false,
-    release: false
+    release: false,
+    type: 'unknown',
+    tags: '',
+    files: '',
+    title: null
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -82,8 +86,14 @@ function parseArgs(args) {
       params.stack = args[++i];
     } else if (arg === '--mobile') {
       params.mobile = args[++i];
-    } else if (arg === '--ai-app') {
-      params.aiApp = args[++i];
+    } else if (arg === '--type') {
+      params.type = args[++i];
+    } else if (arg === '--tags') {
+      params.tags = args[++i];
+    } else if (arg === '--files') {
+      params.files = args[++i];
+    } else if (arg === '--title') {
+      params.title = args[++i];
     } else if (!params.command && !arg.startsWith('-')) {
       params.command = arg;
     }
@@ -157,6 +167,32 @@ if (COMMAND === 'init') {
   } else {
     console.error(`\x1b[31mError: Please specify a memory subcommand: build, refresh, or diff.\x1b[0m`);
     console.error(`Example: node bin/multimodel-dev-os.js memory build`);
+    process.exit(1);
+  }
+} else if (COMMAND === 'feedback') {
+  const sub = ARGS[1];
+  if (sub === 'add') {
+    handleFeedbackAdd(params);
+  } else if (sub === 'list') {
+    handleFeedbackList(params);
+  } else if (sub === 'summarize') {
+    handleFeedbackSummarize(params);
+  } else {
+    console.error(`\x1b[31mError: Please specify a feedback subcommand: add, list, or summarize.\x1b[0m`);
+    console.log(`Example: node bin/multimodel-dev-os.js feedback add "Prefer CSS Modules"`);
+    process.exit(1);
+  }
+} else if (COMMAND === 'improve') {
+  const sub = ARGS[1];
+  if (sub === 'propose') {
+    handleImprovePropose(params);
+  } else if (sub === 'review') {
+    handleImproveReview(params);
+  } else if (sub === 'status') {
+    handleImproveStatus(params);
+  } else {
+    console.error(`\x1b[31mError: Please specify an improve subcommand: propose, review, or status.\x1b[0m`);
+    console.log(`Example: node bin/multimodel-dev-os.js improve propose`);
     process.exit(1);
   }
 } else if (COMMAND === 'templates' || COMMAND === 'list-templates') {
@@ -243,6 +279,8 @@ function showHelp() {
   console.log('  init              Initialize a project with configs and adapters');
   console.log('  scan              Scan project structure and framework signals');
   console.log('  memory <subcmd>   Manage hash-compressed codebase memory (subcmd: build, refresh, diff)');
+  console.log('  feedback <subcmd> Manage developer feedback loops (subcmd: add, list, summarize)');
+  console.log('  improve <subcmd>  Manage codebase self-improvement proposals (subcmd: propose, review, status)');
   console.log('  verify            Validate structural integrity of an existing project');
   console.log('  templates         List all built-in template profiles with details');
   console.log('  list-templates    Alias for templates command');
@@ -262,6 +300,10 @@ function showHelp() {
   console.log('  show-skill <s>    View prompt contents of target workspace skill <s>\n');
   console.log('Options:');
   console.log('  -t, --target <path>     Target folder destination (default: current working directory)');
+  console.log('  --type <type>           Feedback classification (correction, preference, bug, etc.)');
+  console.log('  --tags <list>           Comma-separated descriptor tags for feedback');
+  console.log('  --files <list>          Comma-separated target files for feedback');
+  console.log('  --title <text>          Specifies title for codebase improvement proposal');
   console.log('  --template <name>       Template profile: nextjs-saas, expo-react-native-android, etc.');
   console.log('  -a, --adapter <name>    Inject specific adapter: cursor, claude, vscode, gemini, etc.');
   console.log('  --caveman               Use minimal-token templates (~79% fewer tokens)');
@@ -1441,8 +1483,14 @@ function shouldIgnorePath(relPath) {
     return true;
   }
   
-  // Ignore generated memory files
-  if (normalized.endsWith('memory.hash.json') || normalized.endsWith('memory.summary.md')) {
+  // Ignore generated memory and intelligence runtime files
+  if (
+    normalized.endsWith('memory.hash.json') ||
+    normalized.endsWith('memory.summary.md') ||
+    normalized.endsWith('feedback-log.jsonl') ||
+    normalized.endsWith('learning-rules.md') ||
+    normalized.includes('.ai/proposals/')
+  ) {
     return true;
   }
   
@@ -1840,5 +1888,347 @@ function handleMemoryDiff(options) {
   }
   
   console.log();
+}
+
+function handleFeedbackAdd(options) {
+  const intelDir = join(options.target, '.ai', 'intelligence');
+  if (!options.dryRun && !existsSync(intelDir)) {
+    mkdirSync(intelDir, { recursive: true });
+  }
+
+  const addIdx = process.argv.indexOf('add');
+  const text = (addIdx !== -1 && process.argv[addIdx + 1] && !process.argv[addIdx + 1].startsWith('-')) ? process.argv[addIdx + 1] : null;
+
+  if (!text) {
+    console.error(`\x1b[31mError: Please provide feedback text.\x1b[0m`);
+    console.log(`Example: node bin/multimodel-dev-os.js feedback add "Prefer CSS modules"`);
+    process.exit(1);
+  }
+
+  const uuid = createHash('md5').update(new Date().toISOString() + Math.random().toString()).digest('hex').substring(0, 16);
+  const tagsStr = options.tags || '';
+  const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()) : [];
+  const filesStr = options.files || '';
+  const related_files = filesStr ? filesStr.split(',').map(f => f.trim()) : [];
+
+  const rawRecord = {
+    id: `fb-${uuid}`,
+    created_at: new Date().toISOString(),
+    source: 'user',
+    type: options.type || 'unknown',
+    text: text,
+    tags: tags,
+    related_files: related_files
+  };
+
+  rawRecord.hash = createHash('sha256').update(JSON.stringify(rawRecord)).digest('hex');
+
+  const recordLine = JSON.stringify(rawRecord) + '\n';
+  const feedbackLogPath = join(intelDir, 'feedback-log.jsonl');
+
+  if (options.dryRun) {
+    console.log(`\x1b[36m[DRY-RUN] WOULD APPEND TO ${feedbackLogPath}:\x1b[0m`);
+    console.log(recordLine.trim());
+  } else {
+    try {
+      let isDuplicate = false;
+      if (existsSync(feedbackLogPath)) {
+        const lines = readFileSync(feedbackLogPath, 'utf8').split('\n');
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const entry = JSON.parse(line);
+            if (entry.text === text && JSON.stringify(entry.related_files) === JSON.stringify(related_files)) {
+              isDuplicate = true;
+              break;
+            }
+          } catch (e) {}
+        }
+      }
+      if (isDuplicate) {
+        console.log(`\x1b[33mFeedback already exists. Skipping duplicate entry.\x1b[0m`);
+        return;
+      }
+
+      writeFileSync(feedbackLogPath, recordLine, { flag: 'a', encoding: 'utf8' });
+      console.log(`✔ Feedback successfully added (ID: ${rawRecord.id})`);
+    } catch (e) {
+      console.error(`\x1b[31mError: Failed to write to feedback-log.jsonl: ${e.message}\x1b[0m`);
+      process.exit(1);
+    }
+  }
+}
+
+function handleFeedbackList(options) {
+  const feedbackLogPath = join(options.target, '.ai', 'intelligence', 'feedback-log.jsonl');
+  if (!existsSync(feedbackLogPath)) {
+    console.log('No feedback logged yet.');
+    return;
+  }
+
+  try {
+    const content = readFileSync(feedbackLogPath, 'utf8');
+    const lines = content.split('\n').filter(l => l.trim() !== '');
+    if (lines.length === 0) {
+      console.log('No feedback logged yet.');
+      return;
+    }
+
+    console.log(`\n🧠 \x1b[36mLogged Feedback Entries\x1b[0m`);
+    console.log('==================================================');
+    lines.forEach(line => {
+      try {
+        const entry = JSON.parse(line);
+        console.log(`\n\x1b[32m* [${entry.type || 'unknown'}] (${entry.id})\x1b[0m`);
+        console.log(`  \x1b[37mText:\x1b[0m ${entry.text}`);
+        if (entry.tags && entry.tags.length > 0) {
+          console.log(`  \x1b[33mTags:\x1b[0m ${entry.tags.join(', ')}`);
+        }
+        if (entry.related_files && entry.related_files.length > 0) {
+          console.log(`  \x1b[33mFiles:\x1b[0m ${entry.related_files.join(', ')}`);
+        }
+        console.log(`  \x1b[33mLogged:\x1b[0m ${entry.created_at}`);
+      } catch (e) {}
+    });
+    console.log();
+  } catch (e) {
+    console.error(`\x1b[31mError: Failed to read feedback log: ${e.message}\x1b[0m`);
+    process.exit(1);
+  }
+}
+
+function handleFeedbackSummarize(options) {
+  const intelDir = join(options.target, '.ai', 'intelligence');
+  const feedbackLogPath = join(intelDir, 'feedback-log.jsonl');
+  if (!existsSync(feedbackLogPath)) {
+    console.log('No feedback logs found to compile.');
+    return;
+  }
+
+  try {
+    const content = readFileSync(feedbackLogPath, 'utf8');
+    const lines = content.split('\n').filter(l => l.trim() !== '');
+    if (lines.length === 0) {
+      console.log('No feedback logs found to compile.');
+      return;
+    }
+
+    const categories = {};
+    lines.forEach(line => {
+      try {
+        const entry = JSON.parse(line);
+        const cat = entry.type || 'general';
+        if (!categories[cat]) categories[cat] = [];
+        categories[cat].push(entry);
+      } catch (e) {}
+    });
+
+    let md = `# Compiled Learning Rules\n\n`;
+    md += `*Generated automatically by MultiModel Dev OS. Do not modify manually.*\n\n`;
+    md += `**Last compiled:** ${new Date().toISOString()}\n`;
+    md += `**Total source feedback items:** ${lines.length}\n\n`;
+    md += `## Active Instructions\n\n`;
+
+    Object.keys(categories).forEach(cat => {
+      md += `### Category: ${cat}\n`;
+      categories[cat].forEach(entry => {
+        const pattern = entry.related_files && entry.related_files.length > 0 ? entry.related_files.join(', ') : '*';
+        md += `*   **Pattern:** \`${pattern}\`\n`;
+        md += `    *   **Rule:** ${entry.text}\n`;
+        md += `    *   **Source ID:** \`${entry.id}\`\n\n`;
+      });
+    });
+
+    const targetRulesPath = join(intelDir, 'learning-rules.md');
+    if (options.dryRun) {
+      console.log(`\x1b[36m[DRY-RUN] WOULD WRITE TO ${targetRulesPath}:\x1b[0m`);
+      console.log(md);
+    } else {
+      writeFileSync(targetRulesPath, md, 'utf8');
+      console.log(`✔ Compiled ${lines.length} feedback items into learning rules in .ai/intelligence/learning-rules.md`);
+    }
+  } catch (e) {
+    console.error(`\x1b[31mError: Failed to compile learning rules: ${e.message}\x1b[0m`);
+    process.exit(1);
+  }
+}
+
+function handleImprovePropose(options) {
+  const proposalsDir = join(options.target, '.ai', 'proposals');
+  if (!options.dryRun && !existsSync(proposalsDir)) {
+    mkdirSync(proposalsDir, { recursive: true });
+  }
+
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const dateStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+  const timeStr = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  const timestamp = `${dateStr}-${timeStr}`;
+  const id = `proposal-${timestamp}`;
+
+  const title = options.title || 'Auto-detected codebase optimization';
+  let problem = 'No specific problems detected.';
+  let evidence = 'N/A';
+  let riskLevel = 'low';
+  let affectedFiles = [];
+  let suggestedChange = 'No code suggestions compiled.';
+  let verifyCommand = 'npm run verify';
+  let rollbackPlan = 'git checkout -- .';
+
+  const gitignorePath = join(options.target, '.gitignore');
+  const agentsPath = join(options.target, 'AGENTS.md');
+
+  if (!existsSync(gitignorePath)) {
+    problem = 'Missing .gitignore file in target workspace. AI agents may scan large build directories and run out of token context.';
+    evidence = `.gitignore file is not present at root directory: ${options.target}`;
+    affectedFiles = ['.gitignore'];
+    suggestedChange = 'Create a standard .gitignore file to exclude node_modules, build/ and dist/ directories.';
+    rollbackPlan = 'git clean -fd .gitignore';
+  } else if (!existsSync(agentsPath)) {
+    problem = 'Missing AGENTS.md document in target workspace. Models will lack stack-specific implementation blueprints.';
+    evidence = `AGENTS.md file is not present at root directory: ${options.target}`;
+    affectedFiles = ['AGENTS.md'];
+    suggestedChange = 'Create an AGENTS.md document specifying the codebase development guidelines and framework profiles.';
+    rollbackPlan = 'git clean -fd AGENTS.md';
+  } else {
+    problem = 'Outdated codebase memory index. Memory files need to be refreshed to sync with recent local changes.';
+    evidence = 'Current memory.hash.json represents a previous commit state.';
+    affectedFiles = ['.ai/intelligence/memory.hash.json', '.ai/intelligence/memory.summary.md'];
+    suggestedChange = 'Refresh codebase memory index using multimodel-dev-os memory refresh CLI command.';
+    riskLevel = 'low';
+    verifyCommand = 'node bin/multimodel-dev-os.js memory refresh';
+    rollbackPlan = 'git checkout -- .ai/intelligence/';
+  }
+
+  let md = `---
+id: ${id}
+created_at: ${now.toISOString()}
+title: ${title}
+problem: ${problem}
+evidence: ${evidence}
+risk_level: ${riskLevel}
+affected_files:
+`;
+  affectedFiles.forEach(f => {
+    md += `  - ${f}\n`;
+  });
+  md += `suggested_change: ${suggestedChange}
+verify_command: ${verifyCommand}
+rollback_plan: ${rollbackPlan}
+approval_status: pending
+---
+
+# Codebase Improvement Proposal: ${title}
+
+> [!WARNING]
+> Manual approval is required before implementing this proposal. Edit the frontmatter metadata block to change \`approval_status\` to \`approved\` to authorize modifications.
+
+## 1. Problem Description
+${problem}
+
+## 2. Evidence
+${evidence}
+
+## 3. Suggested Modifications
+${suggestedChange}
+
+## 4. Safety & Rollback Parameters
+*   **Risk Level**: ${riskLevel.toUpperCase()}
+*   **Verification Command**: \`${verifyCommand}\`
+*   **Rollback Command**: \`${rollbackPlan}\`
+*   **Approval Status**: PENDING (Manual approval required before implementation)
+`;
+
+  const proposalFile = join(proposalsDir, `${id}.md`);
+  if (options.dryRun) {
+    console.log(`\x1b[36m[DRY-RUN] WOULD WRITE PROPOSAL TO ${proposalFile}:\x1b[0m`);
+    console.log(md);
+  } else {
+    writeFileSync(proposalFile, md, 'utf8');
+    console.log(`✔ Created codebase improvement proposal: .ai/proposals/${id}.md`);
+  }
+}
+
+function handleImproveReview(options) {
+  const proposalsDir = join(options.target, '.ai', 'proposals');
+  if (!existsSync(proposalsDir)) {
+    console.log('No improvement proposals found.');
+    return;
+  }
+
+  try {
+    const files = readdirSync(proposalsDir).filter(f => f.startsWith('proposal-') && f.endsWith('.md'));
+    if (files.length === 0) {
+      console.log('No improvement proposals found.');
+      return;
+    }
+
+    console.log(`\n📋 \x1b[36mCodebase Improvement Proposals\x1b[0m`);
+    console.log('==================================================');
+    
+    files.forEach(file => {
+      const fullPath = join(proposalsDir, file);
+      const content = readFileSync(fullPath, 'utf8');
+      
+      const fmMatch = content.match(/^---([\s\S]*?)---/);
+      if (!fmMatch) return;
+      
+      const fmContent = fmMatch[1];
+      const metadata = parseYaml(fmContent) || {};
+      
+      const statusColor = metadata.approval_status === 'approved' ? '\x1b[32m' : metadata.approval_status === 'rejected' ? '\x1b[31m' : '\x1b[33m';
+      console.log(`\n\x1b[34m* [${metadata.id || file.replace('.md', '')}] ${metadata.title || 'Untitled'}\x1b[0m`);
+      console.log(`  \x1b[37mRisk Level:\x1b[0m ${metadata.risk_level || 'unknown'}`);
+      console.log(`  \x1b[37mStatus:\x1b[0m ${statusColor}${metadata.approval_status || 'pending'}\x1b[0m`);
+      console.log(`  \x1b[37mProblem:\x1b[0m ${metadata.problem || 'N/A'}`);
+      if (metadata.affected_files && metadata.affected_files.length > 0) {
+        console.log(`  \x1b[37mAffected Files:\x1b[0m ${metadata.affected_files.join(', ')}`);
+      }
+    });
+    console.log();
+  } catch (e) {
+    console.error(`\x1b[31mError: Failed to review proposals: ${e.message}\x1b[0m`);
+    process.exit(1);
+  }
+}
+
+function handleImproveStatus(options) {
+  const proposalsDir = join(options.target, '.ai', 'proposals');
+  if (!existsSync(proposalsDir)) {
+    console.log('Improvement Proposal Engine Status:');
+    console.log('  Total Proposals:  0');
+    console.log('  Pending Approval: 0');
+    return;
+  }
+
+  try {
+    const files = readdirSync(proposalsDir).filter(f => f.startsWith('proposal-') && f.endsWith('.md'));
+    let pending = 0;
+    let approved = 0;
+    let rejected = 0;
+
+    files.forEach(file => {
+      const content = readFileSync(join(proposalsDir, file), 'utf8');
+      const fmMatch = content.match(/^---([\s\S]*?)---/);
+      if (fmMatch) {
+        const metadata = parseYaml(fmMatch[1]) || {};
+        const status = metadata.approval_status || 'pending';
+        if (status === 'approved') approved++;
+        else if (status === 'rejected') rejected++;
+        else pending++;
+      }
+    });
+
+    console.log(`\n⚙ \x1b[36mImprovement Proposals Engine Status\x1b[0m`);
+    console.log('==================================================');
+    console.log(`  Total Proposals:  ${files.length}`);
+    console.log(`  Pending Approval: \x1b[33m${pending}\x1b[0m`);
+    console.log(`  Approved:         \x1b[32m${approved}\x1b[0m`);
+    console.log(`  Rejected:         \x1b[31m${rejected}\x1b[0m`);
+    console.log();
+  } catch (e) {
+    console.error(`\x1b[31mError: Failed to fetch status: ${e.message}\x1b[0m`);
+    process.exit(1);
+  }
 }
 

@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Improvement Proposal Schema",
+  "description": "Validation schema for YAML frontmatter inside codebase improvement proposals.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^proposal-\\d{8}-\\d{6}$",
+      "description": "Unique proposal identifier with format YYYYMMDD-HHMMSS."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the proposal was generated."
+    },
+    "title": {
+      "type": "string",
+      "description": "Short description of the proposed improvement."
+    },
+    "problem": {
+      "type": "string",
+      "description": "Detailed description of the issue or policy violation found."
+    },
+    "evidence": {
+      "type": "string",
+      "description": "Specific code lines, directory structure, or logs that prove the issue exists."
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["low", "medium", "high"],
+      "description": "Classification of proposal impact risk."
+    },
+    "affected_files": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Explicit paths of files targeted for modifications."
+    },
+    "suggested_change": {
+      "type": "string",
+      "description": "Summary or code snippet of the proposed modifications."
+    },
+    "verify_command": {
+      "type": "string",
+      "description": "Command to run to verify changes (e.g. npm run verify)."
+    },
+    "rollback_plan": {
+      "type": "string",
+      "description": "Command to run to revert changes if verification fails."
+    },
+    "approval_status": {
+      "type": "string",
+      "enum": ["pending", "approved", "rejected"],
+      "description": "Human-in-the-loop approval gate status."
+    }
+  },
+  "required": [
+    "id",
+    "created_at",
+    "title",
+    "problem",
+    "evidence",
+    "risk_level",
+    "affected_files",
+    "suggested_change",
+    "verify_command",
+    "rollback_plan",
+    "approval_status"
+  ]
+}

@@ -4,6 +4,14 @@ All notable changes to multimodel-dev-os will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.3.0] - 2026-06-10
+
+### Added
+- **Feedback Learning Loop**: Added `feedback` command with `add`, `list`, and `summarize` subcommands to capture developer corrections/overrides and compile them into local instructions (`learning-rules.md`).
+- **Codebase Improvement Proposals**: Added `improve` command with `propose`, `review`, and `status` subcommands to scan codebase state and draft structured optimization proposal markdown files under `.ai/proposals/` with Frontmatter validation.
+- **Safety Gate Controls**: Implemented read-only proposal drafting, with strict write-protection rules on core CLI/script folders and manual developer approval gates.
+- **Exclusion Filters**: Mapped feedback logs, compiled learning rules, and proposals to codebase scanner and gitignores to prevent recursive indexing or git leaks.
+
 ## [2.2.0] - 2026-06-10
 
 ### Added
