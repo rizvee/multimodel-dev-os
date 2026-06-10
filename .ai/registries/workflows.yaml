@@ -2,54 +2,216 @@
 # Defines logical steps, cognitive thresholds, and checklist validation gates for coding cycles
 
 workflows:
+  repo-health:
+    name: "Repository Health Check"
+    description: "Evaluates project hygiene, directory schema, and structural integrity."
+    risk_level: "low"
+    allowed_to_write_memory: false
+    allowed_to_modify_source: false
+    steps:
+      - name: "framework-scanning"
+        command: "scan"
+        expected_output: "Framework detection signals"
+        next_action: "doctor"
+      - name: "advisory-checkup"
+        command: "doctor"
+        expected_output: "Project compatibility alerts"
+        next_action: "verify"
+      - name: "schema-verification"
+        command: "verify"
+        expected_output: "Structural file verification"
+        next_action: "done"
+    commands:
+      - "scan"
+      - "doctor"
+      - "verify"
+    expected_outputs:
+      - "Framework detection signals"
+      - "Project compatibility alerts"
+      - "Structural file verification"
+    next_action: "Resolve warnings shown in doctor checkup"
+
+  memory-refresh:
+    name: "Memory Refresh Cycle"
+    description: "Inspects workspace changes and increments memory."
+    risk_level: "medium"
+    allowed_to_write_memory: true
+    allowed_to_modify_source: false
+    steps:
+      - name: "diff-assessment"
+        command: "memory diff"
+        expected_output: "Memory delta"
+        next_action: "memory refresh"
+      - name: "index-refresh"
+        command: "memory refresh"
+        expected_output: "Updated memory files"
+        next_action: "done"
+    commands:
+      - "memory diff"
+      - "memory refresh"
+    expected_outputs:
+      - "Memory delta"
+      - "Updated memory files"
+    next_action: "Commit updated intelligence files"
+
+  feedback-review:
+    name: "Feedback Review Loop"
+    description: "Inspects developer loop feedback and compiles learning rules."
+    risk_level: "low"
+    allowed_to_write_memory: false
+    allowed_to_modify_source: false
+    steps:
+      - name: "feedback-listing"
+        command: "feedback list"
+        expected_output: "Logged feedback items"
+        next_action: "feedback summarize"
+      - name: "rules-summarization"
+        command: "feedback summarize"
+        expected_output: "Compiled learning-rules.md"
+        next_action: "done"
+    commands:
+      - "feedback list"
+      - "feedback summarize"
+    expected_outputs:
+      - "Logged feedback items"
+      - "Compiled learning rules file"
+    next_action: "Review rules and share with the team"
+
+  proposal-review:
+    name: "Improvement Proposal Review"
+    description: "Inspects codebase optimization proposals and execution histories."
+    risk_level: "low"
+    allowed_to_write_memory: false
+    allowed_to_modify_source: false
+    steps:
+      - name: "proposals-list"
+        command: "improve review"
+        expected_output: "Proposals list"
+        next_action: "improve status"
+      - name: "proposals-status"
+        command: "improve status"
+        expected_output: "Pending, approved counts"
+        next_action: "improve log"
+      - name: "apply-history"
+        command: "improve log"
+        expected_output: "Audit apply history"
+        next_action: "done"
+    commands:
+      - "improve review"
+      - "improve status"
+      - "improve log"
+    expected_outputs:
+      - "Proposals list"
+      - "Pending, approved counts"
+      - "Audit apply history"
+    next_action: "Apply approved proposals manually"
+
+  release-check:
+    name: "Pre-Release Verification"
+    description: "Verifies package readiness and install script alignment prior to publish."
+    risk_level: "low"
+    allowed_to_write_memory: false
+    allowed_to_modify_source: false
+    steps:
+      - name: "code-hygiene"
+        command: "verify"
+        expected_output: "Release verification passed"
+        next_action: "doctor --release"
+      - name: "doctor-checks"
+        command: "doctor --release"
+        expected_output: "Release audit doctor complete"
+        next_action: "npm pack --dry-run"
+      - name: "tarball-check"
+        command: "npm pack --dry-run"
+        expected_output: "Dry-run tarball details"
+        next_action: "done"
+    commands:
+      - "verify"
+      - "doctor --release"
+      - "npm pack --dry-run"
+    expected_outputs:
+      - "Release verification passed"
+      - "Release audit doctor complete"
+      - "Dry-run tarball details"
+    next_action: "Proceed to manual package publish"
+
   feature-implementation:
+    name: "Feature Implementation"
     description: "Standard workflow to design, write, and verify new codebase features."
+    risk_level: "high"
+    allowed_to_write_memory: true
+    allowed_to_modify_source: true
     steps:
       - name: planning
-        min_capability:
-          reasoning: 0.85
-        checklist:
-          - .ai/prompts/plan-first.md
+        command: "propose"
+        expected_output: "Design plan proposal"
+        next_action: "coding"
       - name: coding
-        min_capability:
-          coding: 0.80
-        checklist:
-          - .ai/prompts/implement-safely.md
+        command: "implement"
+        expected_output: "Code modifications"
+        next_action: "verification"
       - name: verification
-        min_capability:
-          coding: 0.75
-        checklist:
-          - .ai/checks/pre-commit.md
+        command: "verify"
+        expected_output: "Checks passing"
+        next_action: "done"
+    commands:
+      - "propose"
+      - "implement"
+      - "verify"
+    expected_outputs:
+      - "Design plan proposal"
+      - "Code modifications"
+      - "Checks passing"
+    next_action: "Submit for approval"
 
   bug-fixing:
+    name: "Bug Fixing"
     description: "Workflow to reproduce, resolve, and run regression tests on defects."
+    risk_level: "medium"
+    allowed_to_write_memory: true
+    allowed_to_modify_source: true
     steps:
       - name: reproduction
-        min_capability:
-          reasoning: 0.80
-        checklist:
-          - .ai/skills/bug-fix.md
+        command: "verify"
+        expected_output: "Reproduction cases"
+        next_action: "resolution"
       - name: resolution
-        min_capability:
-          coding: 0.80
-        checklist:
-          - .ai/prompts/implement-safely.md
+        command: "implement"
+        expected_output: "Fix applied"
+        next_action: "regression-testing"
       - name: regression-testing
-        min_capability:
-          coding: 0.70
-        checklist:
-          - .ai/checks/regression-checklist.md
+        command: "verify"
+        expected_output: "Regression tests passing"
+        next_action: "done"
+    commands:
+      - "verify"
+      - "implement"
+      - "verify"
+    expected_outputs:
+      - "Reproduction cases"
+      - "Fix applied"
+      - "Regression tests passing"
+    next_action: "Verify fixed state is fully clean"
 
   security-audit:
+    name: "Security Audit"
     description: "Workflow to audit files against security guidelines and vulnerability checks."
+    risk_level: "high"
+    allowed_to_write_memory: false
+    allowed_to_modify_source: false
     steps:
       - name: scanning
-        min_capability:
-          reasoning: 0.90
-        checklist:
-          - .ai/agents/security-auditor.md
+        command: "scan"
+        expected_output: "Security scanning results"
+        next_action: "reporting"
       - name: reporting
-        min_capability:
-          coding: 0.75
-        checklist:
-          - .ai/checks/pre-deploy.md
+        command: "doctor"
+        expected_output: "Vulnerabilities summary report"
+        next_action: "done"
+    commands:
+      - "scan"
+      - "doctor"
+    expected_outputs:
+      - "Security scanning results"
+      - "Vulnerabilities summary report"
+    next_action: "Mitigate warnings reported by scanner"

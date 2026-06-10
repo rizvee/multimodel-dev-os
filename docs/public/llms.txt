@@ -1,4 +1,4 @@
-# MultiModel Dev OS (v2.4.1 Stable Release)
+# MultiModel Dev OS (v2.5.0 Stable Release)
 
 Portable, vendor-neutral workspace configuration standard for multi-agent AI pair-programming workflows.
 
@@ -7,12 +7,21 @@ Portable, vendor-neutral workspace configuration standard for multi-agent AI pai
 # Initialize workspace
 npx multimodel-dev-os@latest init
 
-# Scan codebase signals
+# Scan codebase signals & check status
 npx multimodel-dev-os@latest scan
+npx multimodel-dev-os@latest status
 
 # Build/refresh memory index
 npx multimodel-dev-os@latest memory build
 npx multimodel-dev-os@latest memory refresh
+
+# Run automated workflow cycles
+npx multimodel-dev-os@latest workflow run repo-health
+npx multimodel-dev-os@latest workflow list
+
+# Compile session handoff spec
+npx multimodel-dev-os@latest handoff build
+npx multimodel-dev-os@latest handoff show
 
 # Manage developer feedback loop
 npx multimodel-dev-os@latest feedback add "Avoid Tailwind CSS" --type preference

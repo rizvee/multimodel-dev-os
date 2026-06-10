@@ -37,9 +37,12 @@ Strict directory schema compliance gate checks.
 * **Assertions:** Checks for the presence of crucial root files and enabled adapters' rule targets. If assertions fail, exits with status 1.
 
 ### 3. `doctor`
-Advisory checkups for gitignores and large token-sinks.
+Advisory checkups for gitignores, large token-sinks, and intelligence configuration.
 * **Usage:** `node bin/multimodel-dev-os.js doctor [options]`
-* **Audits:** Missing `.env` gates in gitignores, missing build steps inside `AGENTS.md`, and large unignored directories (e.g. `node_modules`, `.next`). Reports warnings without blocking execution.
+* **Audits:** Missing `.env` gates in gitignores, missing build steps inside `AGENTS.md`, and large unignored directories.
+* **Options:**
+  - `--release`: Verifies version stability, verifies Vitepress docs build, checks dry-run pack.
+  - `--intelligence`: Runs advisory audits verifying memory index freshness, feedback log presence, learning rules compilation, proposals status, and `.gitignore` safety boundaries.
 
 ### 4. `templates` / `list-templates`
 Inspection map of all built-in stacks.
@@ -92,3 +95,24 @@ Manage codebase optimization proposals and deterministic execution.
   - `--title <text>`: Title of the proposal (used with `propose`).
   - `--approved`: Explicitly authorize apply command execution (required for `apply`).
   - `-t, --target <path>`: Specifies target destination (default: current working directory).
+
+### 10. `status`
+Display a compact project intelligence dashboard.
+* **Usage:** `node bin/multimodel-dev-os.js status [options]`
+* **Overview:** Summarizes package metadata, framework signals, memory state (`MISSING`/`STALE`/`CURRENT`), feedback counts, proposal statuses, apply log audits, and the recommended next command. Fully read-only.
+
+### 11. `workflow`
+Orchestrate read-only development workflow pipelines.
+* **Usage:** `node bin/multimodel-dev-os.js workflow <subcommand> [options]`
+* **Subcommands:**
+  - `list`: Print all registered workflows in `.ai/registries/workflows.yaml`.
+  - `show <workflow>`: Display details, risk level, memory write capability, code modification capability, and logical steps of target workflow.
+  - `plan <workflow>`: Print steps and commands of target workflow without executing them (dry-run).
+  - `run <workflow>`: Sequentially execute safe, read-only and metadata-write steps (e.g. scan, doctor, memory refresh, feedback summarize). Any step requiring source code modification will halt and output manual instructions.
+
+### 12. `handoff`
+Compile token-compressed agent session handoff context.
+* **Usage:** `node bin/multimodel-dev-os.js handoff <subcommand> [options]`
+* **Subcommands:**
+  - `build`: Scans project signals and intelligence state and generates `.ai/intelligence/handoff.md` (which is git-ignored by default).
+  - `show`: Prints handoff contents to console (building them first if not present).

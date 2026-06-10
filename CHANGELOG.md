@@ -4,6 +4,16 @@ All notable changes to multimodel-dev-os will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.5.0] - 2026-06-11
+
+### Added
+- **Repository Command Center**: Added `status` command to show a compact operational dashboard of package details, framework signals, memory freshness, feedback loop counts, proposals, and apply log audits.
+- **Workflow Orchestration Runner**: Added `workflow` command with `list`, `show`, `plan` (dry-run), and `run` subcommands to coordinate multi-agent cycles safely. Standard workflows include `repo-health`, `memory-refresh`, `feedback-review`, `proposal-review`, and `release-check`.
+- **Safe Execution Boundaries**: Strictly gated the workflow runner from applying proposals (`improve apply`) or running destructive shell/npm commands. Any steps requiring changes halt and print manual instructions.
+- **Agent Handoff Specification**: Added `handoff` command with `build` and `show` subcommands to compile token-compressed session context to `.ai/intelligence/handoff.md`.
+- **Intelligence Doctor Diagnostics**: Extended `doctor` command with `--intelligence` flag to verify memory index freshness, feedback logs, proposal files, `.gitignore` exclusions, and scan for credential leaks.
+- **Unified Command Center Guides**: Added detailed documentation manuals: `repository-command-center.md`, `workflow-orchestration.md`, and `agent-handoff.md`.
+
 ## [2.4.1] - 2026-06-11
 
 ### Changed

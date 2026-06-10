@@ -90,6 +90,9 @@ The application engine validates every proposal file against a set of strict saf
 11. **`append_line` idempotency**: Line additions will not duplicate if the exact line already exists.
 12. **Dry-run diff**: Developers can preview all changes using `improve diff` prior to execution.
 
+> [!WARNING]
+> **Workflow Isolation**: The `improve apply` command can only be executed manually by a developer. The MultiModel Dev OS [Workflow Runner](workflow-orchestration.md) runs in a strictly read-only mode and is prohibited from executing `improve apply` or modifying codebase files.
+
 ---
 
 ## 4. CLI Commands

@@ -44,6 +44,8 @@ docs/.vitepress/dist/
 # === Intelligence Runtime Files ===
 .ai/intelligence/feedback-log.jsonl
 .ai/intelligence/learning-rules.md
+.ai/intelligence/handoff.md
+.ai/intelligence/status.snapshot.json
 .ai/proposals/proposal-*.md
 .ai/proposals/apply-log.jsonl
 

@@ -124,6 +124,9 @@ npx multimodel-dev-os@latest init --adapter claude
 # Scan target repository structure and framework signals
 npx multimodel-dev-os@latest scan
 
+# Show compact repository intelligence state status
+npx multimodel-dev-os@latest status
+
 # Compile hash-compressed codebase state memory
 npx multimodel-dev-os@latest memory build
 
@@ -166,6 +169,14 @@ npx multimodel-dev-os@latest improve apply .ai/proposals/proposal-xxxx.md --appr
 
 # View applied proposals execution history audit log
 npx multimodel-dev-os@latest improve log
+
+# Orchestrate development workflow pipelines
+npx multimodel-dev-os@latest workflow run repo-health
+npx multimodel-dev-os@latest workflow list
+
+# Compile or print token-compressed agent session handoff summaries
+npx multimodel-dev-os@latest handoff build
+npx multimodel-dev-os@latest handoff show
 ```
 
 ### Explore Registries
@@ -277,6 +288,7 @@ Learn more:
 | **v2.3.0** | Proposal Engine & Safety Controls | ✅ Released |
 | **v2.4.0** | Approved Proposal Application Engine | ✅ Released |
 | **v2.4.1** | Proposal Apply UX + Safety Patch | ✅ Released |
+| **v2.5.0** | Repository Intelligence Command Center | ✅ Released |
 | **v3.0.0** | Unified Autonomous Co-Pilot Ecosystem | 🔮 Future |
 
 Full details: **[v2 Roadmap](https://rizvee.github.io/multimodel-dev-os/v2-roadmap)**

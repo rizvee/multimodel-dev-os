@@ -62,3 +62,9 @@ For detailed specifications on safety gates, allowed operations, and audit logs,
 For proposals containing vague instructions or complex edits without structured operation blocks:
 1. Manually implement and verify the code edits within your workspace.
 2. Edit the frontmatter metadata block to set `approval_status` to `approved` to archive.
+
+---
+
+## Command Center Integration
+
+The [Repository Command Center](repository-command-center.md) displays active proposal counts (pending, approved, and rejected) and provides a recommended command if pending proposals are waiting for review. You can run `mmdo status` to get a quick overview of your self-improvement status.

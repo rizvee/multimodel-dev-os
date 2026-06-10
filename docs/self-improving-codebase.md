@@ -35,3 +35,12 @@ npx multimodel-dev-os improve status
 *Note: Starting in v2.4.1, automated proposal application is supported via the `improve apply` command, provided that a valid operations JSON block exists in the proposal file and the developer passes the `--approved` flag. Vague proposals or those targeting protected files/paths must still be executed manually.*
 
 For complete automated application details, please refer to the [Approved Proposal Application Guide](/approved-proposal-apply).
+
+---
+
+## Command Center Integration
+
+The [Repository Command Center](repository-command-center.md) serves as the unified dashboard for the self-improvement loop. Running `mmdo status` displays the counts of pending/approved/rejected proposals, memory state, and feedback logs. Developers can orchestrate the review cycle safely by executing the `proposal-review` workflow:
+```bash
+npx multimodel-dev-os workflow run proposal-review
+```

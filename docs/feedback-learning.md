@@ -25,3 +25,9 @@ During subsequent task prompts:
 1.  **Pattern Matching**: The routing engine scans `learning-rules.md` for rules matching the current file targets.
 2.  **Constraint Assembly**: Matching rules are compiled and injected directly into the prompt context budget as strict formatting rules.
 3.  **Instruction Drift Prevention**: This guarantees that once a design preference is specified, developer agents immediately align to it without repeating mistakes.
+
+---
+
+## Command Center Integration
+
+The [Repository Command Center](repository-command-center.md) dashboard counts the logged feedback items and tracks whether `learning-rules.md` is present or missing. Running `mmdo status` will advise you when feedback logs exist but have not yet been summarized into active rules.

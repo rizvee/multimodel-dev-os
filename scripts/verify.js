@@ -242,6 +242,9 @@ checkFile('docs/tool-registry.md');
 checkFile('docs/improvement-proposals.md');
 checkFile('docs/learning-rules.md');
 checkFile('docs/approved-proposal-apply.md');
+checkFile('docs/repository-command-center.md');
+checkFile('docs/workflow-orchestration.md');
+checkFile('docs/agent-handoff.md');
 
 // --- Model & Adapter Registries ---
 console.log('\nModel & Adapter Registries:');
@@ -446,11 +449,11 @@ try {
     pass++;
   }
   
-  if (helpOutput.includes('scan') && helpOutput.includes('memory')) {
-    console.log(`  ${GREEN}✓${NC} CLI help includes scan and memory commands`);
+  if (helpOutput.includes('scan') && helpOutput.includes('memory') && helpOutput.includes('status') && helpOutput.includes('workflow') && helpOutput.includes('handoff')) {
+    console.log(`  ${GREEN}✓${NC} CLI help includes scan, memory, status, workflow, and handoff commands`);
     pass++;
   } else {
-    console.error(`  ${RED}✗${NC} CLI help is missing scan or memory commands`);
+    console.error(`  ${RED}✗${NC} CLI help is missing scan, memory, status, workflow, or handoff commands`);
     fail++;
   }
 } catch (e) {
@@ -488,6 +491,7 @@ try {
   checkUntracked('.ai/intelligence/memory.summary.md');
   checkUntracked('.ai/intelligence/feedback-log.jsonl');
   checkUntracked('.ai/intelligence/learning-rules.md');
+  checkUntracked('.ai/intelligence/handoff.md');
   checkUntracked('.ai/proposals/apply-log.jsonl');
   
   // also check if any proposal-*.md file exists directly in projectRoot/proposals (since it shouldn't be tracked)

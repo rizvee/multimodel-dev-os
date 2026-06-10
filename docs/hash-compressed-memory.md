@@ -61,3 +61,12 @@ Re-indexing the workspace is optimized to run incrementally:
 4.  **Ignore Bounds**: Any directory or file path matching patterns inside `.gitignore` or default excludes (like `node_modules`, `.git`, `build`, etc.) is completely excluded from the memory scanning loop.
 5.  **Secret Redaction**: Skips configuration files containing secrets, credential blocks, or keystores (e.g. `.env`, `.npmrc`, `.keystore`).
 
+---
+
+## Command Center Integration
+
+The status of the memory index is monitored in the [Repository Command Center](repository-command-center.md). Running `mmdo status` displays one of three states for your codebase memory:
+*   **`CURRENT`**: The filesystem matches the built memory index exactly.
+*   **`STALE`**: The filesystem has changed since the last build. Run `mmdo memory refresh` to update the index.
+*   **`MISSING`**: No memory index is built yet. Run `mmdo memory build` to generate it.
+

@@ -48,7 +48,8 @@ function parseArgs(args) {
     tags: '',
     files: '',
     title: null,
-    approved: false
+    approved: false,
+    intelligence: false
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -73,6 +74,8 @@ function parseArgs(args) {
       params.allRegistries = true;
     } else if (arg === '--release') {
       params.release = true;
+    } else if (arg === '--intelligence') {
+      params.intelligence = true;
     } else if (arg === '--json') {
       params.json = true;
     } else if (arg === '--threshold') {
@@ -313,6 +316,54 @@ if (COMMAND === 'init') {
     process.exit(1);
   }
   handleShowSkill(sName, params);
+} else if (COMMAND === 'status') {
+  handleStatus(params);
+} else if (COMMAND === 'workflow') {
+  const positional = getPositionalArgs(ARGS);
+  const sub = positional[1];
+  if (sub === 'list') {
+    handleWorkflowList(params);
+  } else if (sub === 'show') {
+    const wName = positional[2];
+    if (!wName) {
+      console.error('\x1b[31mError: Please specify a workflow name.\x1b[0m');
+      console.log('Example: node bin/multimodel-dev-os.js workflow show repo-health');
+      process.exit(1);
+    }
+    handleWorkflowShow(wName, params);
+  } else if (sub === 'plan') {
+    const wName = positional[2];
+    if (!wName) {
+      console.error('\x1b[31mError: Please specify a workflow name.\x1b[0m');
+      console.log('Example: node bin/multimodel-dev-os.js workflow plan repo-health');
+      process.exit(1);
+    }
+    handleWorkflowPlan(wName, params);
+  } else if (sub === 'run') {
+    const wName = positional[2];
+    if (!wName) {
+      console.error('\x1b[31mError: Please specify a workflow name.\x1b[0m');
+      console.log('Example: node bin/multimodel-dev-os.js workflow run repo-health');
+      process.exit(1);
+    }
+    handleWorkflowRun(wName, params);
+  } else {
+    console.error('\x1b[31mError: Please specify a workflow subcommand: list, show, plan, or run.\x1b[0m');
+    console.log('Example: node bin/multimodel-dev-os.js workflow list');
+    process.exit(1);
+  }
+} else if (COMMAND === 'handoff') {
+  const positional = getPositionalArgs(ARGS);
+  const sub = positional[1];
+  if (sub === 'build') {
+    handleHandoffBuild(params);
+  } else if (sub === 'show') {
+    handleHandoffShow(params);
+  } else {
+    console.error('\x1b[31mError: Please specify a handoff subcommand: build or show.\x1b[0m');
+    console.log('Example: node bin/multimodel-dev-os.js handoff build');
+    process.exit(1);
+  }
 } else {
   console.error(`\x1b[31mUnknown command: ${COMMAND}\x1b[0m`);
   showHelp();
@@ -326,9 +377,12 @@ function showHelp() {
   console.log('Commands:');
   console.log('  init              Initialize a project with configs and adapters');
   console.log('  scan              Scan project structure and framework signals');
+  console.log('  status            Show compact dashboard summarizing repository intelligence state');
   console.log('  memory <subcmd>   Manage hash-compressed codebase memory (subcmd: build, refresh, diff)');
   console.log('  feedback <subcmd> Manage developer feedback loops (subcmd: add, list, summarize)');
   console.log('  improve <subcmd>  Manage codebase self-improvement proposals (subcmd: propose, review, status, validate, diff, apply, log)');
+  console.log('  workflow <subcmd> Orchestrate read-only development workflow pipelines (subcmd: list, show, plan, run)');
+  console.log('  handoff <subcmd>  Compile or print token-compressed agent session summaries (subcmd: build, show)');
   console.log('  verify            Validate structural integrity of an existing project');
   console.log('  templates         List all built-in template profiles with details');
   console.log('  list-templates    Alias for templates command');
@@ -357,6 +411,7 @@ function showHelp() {
   console.log('  -a, --adapter <name>    Inject specific adapter: cursor, claude, vscode, gemini, etc.');
   console.log('  --caveman               Use minimal-token templates (~79% fewer tokens)');
   console.log('  --tokens                Run a deeper token-sink size analysis during doctor checkup');
+  console.log('  --intelligence          Run diagnostic checkup of repository intelligence config');
   console.log('  --json                  Output raw JSON data for listing commands (models, adapters, templates)');
   console.log('  --threshold <val>       Set custom size threshold for doctor tokens checks (e.g. 50KB)');
   console.log('  --registry <path>       Override default registry (for templates/adapters list or check)');
@@ -682,9 +737,11 @@ function handleVerify(options) {
   console.log('\n=====================================');
   if (failed > 0) {
     console.error(`  \x1b[31mVerification FAILED. [Passed: ${passed}, Failed: ${failed}]\x1b[0m\n`);
+    if (options && options.noExit) return false;
     process.exit(1);
   } else {
     console.log(`  \x1b[32mVerification PASSED. [All ${passed} files present]\x1b[0m\n`);
+    if (options && options.noExit) return true;
     process.exit(0);
   }
 }
@@ -696,6 +753,10 @@ function handleDoctor(options) {
   }
   if (options.release) {
     handleDoctorRelease(options);
+    return;
+  }
+  if (options.intelligence) {
+    handleDoctorIntelligence(options);
     return;
   }
   console.log(`\n🩺 \x1b[36mRunning advisory doctor checkup in: ${options.target}\x1b[0m\n`);
@@ -1915,6 +1976,7 @@ function handleMemoryDiff(options) {
   const diff = diffMemory(options.target);
   if (!diff) {
     console.error(`\x1b[31mError: No existing memory index found. Run 'memory build' first.\x1b[0m\n`);
+    if (options && options.noExit) return false;
     process.exit(1);
   }
   
@@ -2926,6 +2988,562 @@ function handleImproveLog(options) {
   } catch (e) {
     console.error(`\x1b[31mError reading audit log: ${e.message}\x1b[0m`);
     process.exit(1);
+  }
+}
+
+// ==================================================
+// v2.5.0 Repository Intelligence Command Center
+// ==================================================
+
+function handleStatus(options) {
+  console.log(`\n📊 \x1b[36mRepository Intelligence Status: ${options.target}\x1b[0m`);
+  console.log('==================================================');
+
+  // 1. Project Info
+  let pkgName = 'unknown';
+  let pkgVersion = 'unknown';
+  try {
+    const pkgPath = join(options.target, 'package.json');
+    if (existsSync(pkgPath)) {
+      const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+      pkgName = pkg.name || pkgName;
+      pkgVersion = pkg.version || pkgVersion;
+    }
+  } catch (e) {}
+  console.log(`  \x1b[33mProject Info:\x1b[0m`);
+  console.log(`    Package Name:    ${pkgName}`);
+  console.log(`    Package Version: ${pkgVersion}`);
+
+  // 2. Framework signals
+  const { files } = scanTarget(options.target);
+  const frameworkSignals = detectFrameworkSignals(files, options.target);
+  const dependencySignals = detectDependencySignals(files, options.target);
+  console.log(`  \x1b[33mFramework & Dependency Signals:\x1b[0m`);
+  console.log(`    Frameworks:      ${frameworkSignals.join(', ') || 'None'}`);
+  console.log(`    Dependencies:    ${dependencySignals.join(', ') || 'None'}`);
+
+  // 3. Memory status
+  const memoryHashPath = join(options.target, '.ai', 'intelligence', 'memory.hash.json');
+  let memoryStatus = '\x1b[31mMISSING\x1b[0m';
+  let lastBuildTime = 'N/A';
+  if (existsSync(memoryHashPath)) {
+    try {
+      const memObj = JSON.parse(readFileSync(memoryHashPath, 'utf8'));
+      lastBuildTime = memObj.generated_at || 'N/A';
+      const diff = diffMemory(options.target);
+      if (diff) {
+        if (diff.added.length === 0 && diff.removed.length === 0 && diff.changed.length === 0) {
+          memoryStatus = '\x1b[32mCURRENT\x1b[0m';
+        } else {
+          memoryStatus = `\x1b[33mSTALE\x1b[0m (changes: +${diff.added.length}, -${diff.removed.length}, ~${diff.changed.length})`;
+        }
+      }
+    } catch (e) {
+      memoryStatus = '\x1b[31mCORRUPT\x1b[0m';
+    }
+  }
+  console.log(`  \x1b[33mMemory State:\x1b[0m`);
+  console.log(`    Status:          ${memoryStatus}`);
+  console.log(`    Last Built:      ${lastBuildTime}`);
+
+  // 4. Feedback & Rules
+  const feedbackPath = join(options.target, '.ai', 'intelligence', 'feedback-log.jsonl');
+  let feedbackCount = 0;
+  if (existsSync(feedbackPath)) {
+    try {
+      feedbackCount = readFileSync(feedbackPath, 'utf8').trim().split(/\r?\n/).filter(l => l.trim() !== '').length;
+    } catch (e) {}
+  }
+  const rulesPath = join(options.target, '.ai', 'intelligence', 'learning-rules.md');
+  const rulesStatus = existsSync(rulesPath) ? '\x1b[32mPRESENT\x1b[0m' : '\x1b[31mMISSING\x1b[0m';
+  console.log(`  \x1b[33mFeedback Loop & Rules:\x1b[0m`);
+  console.log(`    Feedback Count:  ${feedbackCount}`);
+  console.log(`    Learning Rules:  ${rulesStatus}`);
+
+  // 5. Proposals Engine
+  const proposalsDir = join(options.target, '.ai', 'proposals');
+  let pendingCount = 0;
+  let approvedCount = 0;
+  let rejectedCount = 0;
+  let totalProposals = 0;
+  if (existsSync(proposalsDir)) {
+    try {
+      const propFiles = readdirSync(proposalsDir).filter(f => f.startsWith('proposal-') && f.endsWith('.md'));
+      totalProposals = propFiles.length;
+      propFiles.forEach(file => {
+        const content = readFileSync(join(proposalsDir, file), 'utf8');
+        const fmMatch = content.match(/^---([\s\S]*?)---/);
+        if (fmMatch) {
+          const metadata = parseYaml(fmMatch[1]) || {};
+          const status = metadata.approval_status || 'pending';
+          if (status === 'approved') approvedCount++;
+          else if (status === 'rejected') rejectedCount++;
+          else pendingCount++;
+        }
+      });
+    } catch (e) {}
+  }
+  console.log(`  \x1b[33mImprovement Proposals:\x1b[0m`);
+  console.log(`    Total proposals: ${totalProposals}`);
+  console.log(`    Pending:         \x1b[33m${pendingCount}\x1b[0m`);
+  console.log(`    Approved:        \x1b[32m${approvedCount}\x1b[0m`);
+  console.log(`    Rejected:        \x1b[31m${rejectedCount}\x1b[0m`);
+
+  // 6. Apply Log History
+  const applyLogPath = join(options.target, '.ai', 'proposals', 'apply-log.jsonl');
+  let applyLogCount = 0;
+  if (existsSync(applyLogPath)) {
+    try {
+      applyLogCount = readFileSync(applyLogPath, 'utf8').trim().split(/\r?\n/).filter(l => l.trim() !== '').length;
+    } catch (e) {}
+  }
+  console.log(`  \x1b[33mApply Audit Log:\x1b[0m`);
+  console.log(`    Apply Count:     ${applyLogCount}`);
+
+  // 7. Recommended Next Move
+  let nextMove = 'mmdo status';
+  if (!existsSync(memoryHashPath)) {
+    nextMove = '\x1b[36mnpx multimodel-dev-os memory build\x1b[0m (initialize memory index)';
+  } else {
+    const diff = diffMemory(options.target);
+    if (diff && (diff.added.length > 0 || diff.removed.length > 0 || diff.changed.length > 0)) {
+      nextMove = '\x1b[36mnpx multimodel-dev-os memory refresh\x1b[0m (update memory with changes)';
+    } else if (feedbackCount > 0 && !existsSync(rulesPath)) {
+      nextMove = '\x1b[36mnpx multimodel-dev-os feedback summarize\x1b[0m (compile feedback into learning rules)';
+    } else if (pendingCount > 0) {
+      nextMove = '\x1b[36mnpx multimodel-dev-os improve review\x1b[0m (review pending proposals)';
+    } else {
+      nextMove = '\x1b[36mnpx multimodel-dev-os workflow run repo-health\x1b[0m (run standard codebase health checks)';
+    }
+  }
+  console.log(`\n  \x1b[35mRecommended Next Command:\x1b[0m`);
+  console.log(`    ${nextMove}\n`);
+}
+
+function handleWorkflowList(options) {
+  const workflowsPath = join(options.target, '.ai', 'registries', 'workflows.yaml');
+  if (!existsSync(workflowsPath)) {
+    console.log('No workflows registry found.');
+    return;
+  }
+  try {
+    const registry = parseYaml(readFileSync(workflowsPath, 'utf8')) || {};
+    const workflows = registry.workflows || {};
+    console.log(`\n⚙ \x1b[36mRegistered Workflows\x1b[0m`);
+    console.log('==================================================');
+    Object.keys(workflows).forEach(key => {
+      const wf = workflows[key];
+      const name = wf.name || key;
+      const risk = wf.risk_level || 'unknown';
+      const riskColor = risk === 'low' ? '\x1b[32m' : risk === 'medium' ? '\x1b[33m' : '\x1b[31m';
+      console.log(`\n  \x1b[34m* ${name}\x1b[0m (\x1b[35m${key}\x1b[0m)`);
+      console.log(`    Description: ${wf.description || 'No description'}`);
+      console.log(`    Risk Level:  ${riskColor}${risk.toUpperCase()}\x1b[0m`);
+    });
+    console.log();
+  } catch (e) {
+    console.error(`\x1b[31mError loading workflows: ${e.message}\x1b[0m`);
+  }
+}
+
+function handleWorkflowShow(wName, options) {
+  const workflowsPath = join(options.target, '.ai', 'registries', 'workflows.yaml');
+  if (!existsSync(workflowsPath)) {
+    console.log('No workflows registry found.');
+    return;
+  }
+  try {
+    const registry = parseYaml(readFileSync(workflowsPath, 'utf8')) || {};
+    const workflows = registry.workflows || {};
+    const wf = workflows[wName];
+    if (!wf) {
+      console.error(`\x1b[31mError: Workflow '${wName}' not found in registry.\x1b[0m`);
+      process.exit(1);
+    }
+    const name = wf.name || wName;
+    const risk = wf.risk_level || 'unknown';
+    const riskColor = risk === 'low' ? '\x1b[32m' : risk === 'medium' ? '\x1b[33m' : '\x1b[31m';
+    console.log(`\n⚙ \x1b[36mWorkflow Spec: ${name}\x1b[0m`);
+    console.log('==================================================');
+    console.log(`  Description:             ${wf.description || 'No description'}`);
+    console.log(`  Risk Level:              ${riskColor}${risk.toUpperCase()}\x1b[0m`);
+    console.log(`  Allowed to write memory: ${wf.allowed_to_write_memory || false}`);
+    console.log(`  Allowed to modify code:  ${wf.allowed_to_modify_source || false}`);
+    console.log(`\n  \x1b[33mSteps:\x1b[0m`);
+    
+    const steps = wf.steps || [];
+    steps.forEach((step, idx) => {
+      console.log(`    ${idx + 1}. [${step.name}]`);
+      console.log(`       Command:         ${step.command}`);
+      console.log(`       Expected Output: ${step.expected_output || 'N/A'}`);
+      console.log(`       Next Action:     ${step.next_action || 'N/A'}`);
+    });
+    console.log();
+  } catch (e) {
+    console.error(`\x1b[31mError loading workflow '${wName}': ${e.message}\x1b[0m`);
+  }
+}
+
+function handleWorkflowPlan(wName, options) {
+  const workflowsPath = join(options.target, '.ai', 'registries', 'workflows.yaml');
+  if (!existsSync(workflowsPath)) {
+    console.log('No workflows registry found.');
+    return;
+  }
+  try {
+    const registry = parseYaml(readFileSync(workflowsPath, 'utf8')) || {};
+    const workflows = registry.workflows || {};
+    const wf = workflows[wName];
+    if (!wf) {
+      console.error(`\x1b[31mError: Workflow '${wName}' not found.\x1b[0m`);
+      process.exit(1);
+    }
+    const name = wf.name || wName;
+    console.log(`\n📝 \x1b[36mExecution Plan for Workflow: ${name}\x1b[0m`);
+    console.log('==================================================');
+    console.log(`\x1b[33m[DRY-RUN/PLAN ONLY] No commands will be run.\x1b[0m\n`);
+    const steps = wf.steps || [];
+    steps.forEach((step, idx) => {
+      console.log(`  Step ${idx + 1}: ${step.name}`);
+      console.log(`    Command:         ${step.command}`);
+      console.log(`    Expected Output: ${step.expected_output || 'N/A'}`);
+      console.log(`    Next Action:     ${step.next_action || 'N/A'}`);
+    });
+    console.log();
+  } catch (e) {
+    console.error(`\x1b[31mError loading workflow plan: ${e.message}\x1b[0m`);
+  }
+}
+
+function handleWorkflowRun(wName, options) {
+  const workflowsPath = join(options.target, '.ai', 'registries', 'workflows.yaml');
+  if (!existsSync(workflowsPath)) {
+    console.log('No workflows registry found.');
+    return;
+  }
+  try {
+    const registry = parseYaml(readFileSync(workflowsPath, 'utf8')) || {};
+    const workflows = registry.workflows || {};
+    const wf = workflows[wName];
+    if (!wf) {
+      console.error(`\x1b[31mError: Workflow '${wName}' not found.\x1b[0m`);
+      process.exit(1);
+    }
+
+    const name = wf.name || wName;
+    console.log(`\n🚀 \x1b[36mRunning Workflow: ${name}\x1b[0m`);
+    console.log('==================================================');
+
+    const steps = wf.steps || [];
+    const safeCommands = {
+      'scan': () => handleScan(options),
+      'doctor': () => handleDoctor(options),
+      'verify': () => handleVerify({ ...options, noExit: true }),
+      'memory diff': () => handleMemoryDiff({ ...options, noExit: true }),
+      'memory refresh': () => handleMemoryRefresh(options),
+      'memory build': () => handleMemoryBuild(options),
+      'feedback list': () => handleFeedbackList(options),
+      'feedback summarize': () => handleFeedbackSummarize(options),
+      'improve review': () => handleImproveReview(options),
+      'improve status': () => handleImproveStatus(options),
+      'improve log': () => handleImproveLog(options),
+      'doctor --release': () => handleDoctor({ ...options, release: true })
+    };
+
+    steps.forEach((step, idx) => {
+      console.log(`\n\x1b[33m[Step ${idx + 1}/${steps.length}] Running: ${step.name} (${step.command})\x1b[0m`);
+      const cmd = step.command;
+      if (safeCommands[cmd]) {
+        try {
+          safeCommands[cmd]();
+        } catch (e) {
+          console.error(`\x1b[31mError executing step ${step.name}: ${e.message}\x1b[0m`);
+        }
+      } else {
+        console.log(`  \x1b[35m[MANUAL ACTION NEEDED]\x1b[0m This step requires manual execution.`);
+        console.log(`  Please run command: \x1b[36mnpx multimodel-dev-os ${cmd}\x1b[0m`);
+        if (step.expected_output) {
+          console.log(`  Expected Output:    ${step.expected_output}`);
+        }
+      }
+    });
+    console.log(`\n✔ Workflow '${name}' complete.\n`);
+  } catch (e) {
+    console.error(`\x1b[31mError running workflow '${wName}': ${e.message}\x1b[0m`);
+  }
+}
+
+function handleHandoffBuild(options) {
+  const intelDir = join(options.target, '.ai', 'intelligence');
+  if (!existsSync(intelDir)) {
+    mkdirSync(intelDir, { recursive: true });
+  }
+  const handoffPath = join(intelDir, 'handoff.md');
+
+  // 1. Get package metadata
+  let pkgName = 'unknown';
+  let pkgVersion = 'unknown';
+  try {
+    const pkgPath = join(options.target, 'package.json');
+    if (existsSync(pkgPath)) {
+      const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+      pkgName = pkg.name || pkgName;
+      pkgVersion = pkg.version || pkgVersion;
+    }
+  } catch (e) {}
+
+  // 2. Scan targets
+  const { files } = scanTarget(options.target);
+  const frameworkSignals = detectFrameworkSignals(files, options.target);
+  const dependencySignals = detectDependencySignals(files, options.target);
+
+  // 3. Memory
+  const memoryHashPath = join(intelDir, 'memory.hash.json');
+  let memoryStatus = 'MISSING';
+  let memoryTime = 'N/A';
+  if (existsSync(memoryHashPath)) {
+    try {
+      const memObj = JSON.parse(readFileSync(memoryHashPath, 'utf8'));
+      memoryTime = memObj.generated_at || 'N/A';
+      const diff = diffMemory(options.target);
+      if (diff) {
+        memoryStatus = (diff.added.length === 0 && diff.removed.length === 0 && diff.changed.length === 0) ? 'CURRENT' : 'STALE';
+      }
+    } catch (e) {
+      memoryStatus = 'CORRUPT';
+    }
+  }
+
+  // 4. Feedback
+  const feedbackPath = join(intelDir, 'feedback-log.jsonl');
+  let feedbackCount = 0;
+  if (existsSync(feedbackPath)) {
+    try {
+      feedbackCount = readFileSync(feedbackPath, 'utf8').trim().split(/\r?\n/).filter(l => l.trim() !== '').length;
+    } catch (e) {}
+  }
+  const rulesPath = join(intelDir, 'learning-rules.md');
+  const rulesStatus = existsSync(rulesPath) ? 'PRESENT' : 'MISSING';
+
+  // 5. Proposals
+  const proposalsDir = join(options.target, '.ai', 'proposals');
+  let pendingCount = 0;
+  let approvedCount = 0;
+  let rejectedCount = 0;
+  if (existsSync(proposalsDir)) {
+    try {
+      const propFiles = readdirSync(proposalsDir).filter(f => f.startsWith('proposal-') && f.endsWith('.md'));
+      propFiles.forEach(file => {
+        const content = readFileSync(join(proposalsDir, file), 'utf8');
+        const fmMatch = content.match(/^---([\s\S]*?)---/);
+        if (fmMatch) {
+          const metadata = parseYaml(fmMatch[1]) || {};
+          const status = metadata.approval_status || 'pending';
+          if (status === 'approved') approvedCount++;
+          else if (status === 'rejected') rejectedCount++;
+          else pendingCount++;
+        }
+      });
+    } catch (e) {}
+  }
+
+  // 6. Apply logs
+  const applyLogPath = join(proposalsDir, 'apply-log.jsonl');
+  let applyLogCount = 0;
+  let lastApplyId = 'None';
+  if (existsSync(applyLogPath)) {
+    try {
+      const lines = readFileSync(applyLogPath, 'utf8').trim().split(/\r?\n/).filter(l => l.trim() !== '');
+      applyLogCount = lines.length;
+      if (applyLogCount > 0) {
+        const lastRecord = JSON.parse(lines[lines.length - 1]);
+        lastApplyId = lastRecord.id || 'unknown';
+      }
+    } catch (e) {}
+  }
+
+  // 7. Core Learning Summary
+  let rulesSummary = 'No learning rules defined yet.';
+  if (existsSync(rulesPath)) {
+    try {
+      const rulesContent = readFileSync(rulesPath, 'utf8');
+      const lines = rulesContent.split(/\r?\n/);
+      const summaryLines = [];
+      for (const line of lines) {
+        if (line.startsWith('*   **Pattern:**') || line.startsWith('    *   **Rule:**')) {
+          summaryLines.push(line);
+        }
+        if (summaryLines.length >= 10) break;
+      }
+      if (summaryLines.length > 0) {
+        rulesSummary = summaryLines.join('\n');
+      }
+    } catch (e) {}
+  }
+
+  // Next steps recommended
+  let recs = '1. Run `npx multimodel-dev-os workflow run repo-health` to check the directory hygiene.\n2. Review pending proposals if any exist.';
+  if (memoryStatus === 'MISSING') {
+    recs = '1. Run `npx multimodel-dev-os memory build` to initialize codebase index.\n2. Verify package safety boundaries.';
+  } else if (memoryStatus === 'STALE') {
+    recs = '1. Run `npx multimodel-dev-os memory refresh` to update memory files.\n2. Analyze modifications.';
+  } else if (pendingCount > 0) {
+    recs = `1. Run \`npx multimodel-dev-os improve review\` to inspect the ${pendingCount} pending proposals.\n2. Apply approved changes manually.`;
+  }
+
+  const handoffContent = `# Agent Handoff Spec - ${new Date().toISOString()}
+
+## 1. Project Context
+- **Name**: ${pkgName}
+- **Version**: ${pkgVersion}
+- **Frameworks**: ${frameworkSignals.join(', ') || 'None'}
+- **Dependencies**: ${dependencySignals.join(', ') || 'None'}
+
+## 2. Intelligence Core State
+- **Memory**: ${memoryStatus} (Last build: ${memoryTime})
+- **Feedback Loop**: ${feedbackCount} items logged. \`learning-rules.md\` is ${rulesStatus}.
+- **Proposals**: ${pendingCount} Pending, ${approvedCount} Approved, ${rejectedCount} Rejected.
+- **Applied Modifications**: ${applyLogCount} runs recorded. Last run: ${lastApplyId}.
+
+## 3. Core Learning Summaries
+\`\`\`markdown
+${rulesSummary}
+\`\`\`
+
+## 4. Safety Constraints
+- Workflow run is restricted to read-only actions.
+- Modifications must be applied explicitly via \`improve apply --approved\`.
+- No code modification permissions exist in this session context.
+
+## 5. Recommended Next Steps
+${recs}
+`;
+
+  try {
+    writeFileSync(handoffPath, handoffContent, 'utf8');
+    console.log(`\n✔ Handoff context built successfully in: .ai/intelligence/handoff.md`);
+  } catch (e) {
+    console.error(`\x1b[31mError writing handoff: ${e.message}\x1b[0m`);
+  }
+}
+
+function handleHandoffShow(options) {
+  const handoffPath = join(options.target, '.ai', 'intelligence', 'handoff.md');
+  if (!existsSync(handoffPath)) {
+    console.log('No compiled handoff file exists. Building first...');
+    handleHandoffBuild(options);
+  }
+  try {
+    const content = readFileSync(handoffPath, 'utf8');
+    console.log('\n' + content);
+  } catch (e) {
+    console.error(`\x1b[31mError reading handoff: ${e.message}\x1b[0m`);
+  }
+}
+
+function handleDoctorIntelligence(options) {
+  console.log(`\n🩺 \x1b[36mRunning advisory intelligence doctor checkup in: ${options.target}\x1b[0m\n`);
+
+  let warnings = 0;
+  const warn = (msg) => {
+    console.warn(`  \x1b[33m[WARNING]\x1b[0m ${msg}`);
+    warnings++;
+  };
+
+  // 1. Memory checks
+  const memoryHashPath = join(options.target, '.ai', 'intelligence', 'memory.hash.json');
+  if (!existsSync(memoryHashPath)) {
+    warn('Memory hash index (.ai/intelligence/memory.hash.json) is MISSING. Run `memory build` first.');
+  } else {
+    try {
+      const diff = diffMemory(options.target);
+      if (!diff) {
+        warn('Memory hash index is present but corrupt.');
+      } else if (diff.added.length > 0 || diff.removed.length > 0 || diff.changed.length > 0) {
+        warn(`Memory hash index is STALE. Delts: +${diff.added.length}, -${diff.removed.length}, ~${diff.changed.length}. Run \`memory refresh\`.`);
+      }
+    } catch (e) {
+      warn('Failed to diff memory index.');
+    }
+  }
+
+  // 2. Feedback checks
+  const feedbackPath = join(options.target, '.ai', 'intelligence', 'feedback-log.jsonl');
+  if (!existsSync(feedbackPath)) {
+    warn('Feedback log (.ai/intelligence/feedback-log.jsonl) is MISSING.');
+  }
+  const rulesPath = join(options.target, '.ai', 'intelligence', 'learning-rules.md');
+  if (!existsSync(rulesPath)) {
+    warn('Learning rules (.ai/intelligence/learning-rules.md) are MISSING. Run `feedback summarize` to compile logs.');
+  }
+
+  // 3. Proposals checks
+  const proposalsDir = join(options.target, '.ai', 'proposals');
+  if (!existsSync(proposalsDir)) {
+    warn('Proposals directory (.ai/proposals) is MISSING.');
+  } else {
+    try {
+      const files = readdirSync(proposalsDir).filter(f => f.startsWith('proposal-') && f.endsWith('.md'));
+      let pending = 0;
+      files.forEach(file => {
+        const content = readFileSync(join(proposalsDir, file), 'utf8');
+        const fmMatch = content.match(/^---([\s\S]*?)---/);
+        if (fmMatch) {
+          const metadata = parseYaml(fmMatch[1]) || {};
+          if ((metadata.approval_status || 'pending') === 'pending') {
+            pending++;
+          }
+        }
+      });
+      if (pending > 0) {
+        warn(`Found ${pending} pending improvement proposals waiting for approval.`);
+      }
+    } catch (e) {}
+  }
+
+  // 4. Apply log check
+  const applyLogPath = join(options.target, '.ai', 'proposals', 'apply-log.jsonl');
+  if (!existsSync(applyLogPath)) {
+    warn('Apply audit log (.ai/proposals/apply-log.jsonl) is MISSING.');
+  }
+
+  // 5. Gitignore ignores intelligence checks
+  const gitignorePath = join(options.target, '.gitignore');
+  if (existsSync(gitignorePath)) {
+    const gitignoreContent = readFileSync(gitignorePath, 'utf8');
+    const checkIgnore = (pattern) => {
+      if (!gitignoreContent.includes(pattern)) {
+        warn(`.gitignore is missing rules ignoring: ${pattern}`);
+      }
+    };
+    checkIgnore('.ai/intelligence/handoff.md');
+    checkIgnore('.ai/intelligence/status.snapshot.json');
+    checkIgnore('.ai/intelligence/feedback-log.jsonl');
+    checkIgnore('.ai/intelligence/learning-rules.md');
+    checkIgnore('.ai/proposals/apply-log.jsonl');
+  } else {
+    warn('.gitignore file is missing in target root.');
+  }
+
+  // 6. Danger files check inside memory index
+  if (existsSync(memoryHashPath)) {
+    try {
+      const memObj = JSON.parse(readFileSync(memoryHashPath, 'utf8'));
+      const fingerprints = memObj.file_fingerprints || {};
+      Object.keys(fingerprints).forEach(file => {
+        const name = file.toLowerCase();
+        if (name.includes('.env') || name.includes('id_rsa') || name.includes('credential') || name.endsWith('.pem') || name.endsWith('.p12') || name.endsWith('.key') || name.endsWith('.keystore') || name.endsWith('.jks')) {
+          warn(`Memory index contains potentially sensitive file: ${file}`);
+        }
+      });
+    } catch (e) {}
+  }
+
+  console.log('\n==================================================');
+  if (warnings > 0) {
+    console.log(`\x1b[33mDoctor intelligence check complete. Found ${warnings} warnings.\x1b[0m\n`);
+  } else {
+    console.log('\x1b[32m✔ Doctor intelligence check complete. Your intelligence setup is pristine!\x1b[0m\n');
   }
 }
 
