@@ -118,6 +118,22 @@ npx multimodel-dev-os@latest init --adapter cursor
 npx multimodel-dev-os@latest init --adapter claude
 ```
 
+### Codebase Scanning & Memory
+
+```bash
+# Scan target repository structure and framework signals
+npx multimodel-dev-os@latest scan
+
+# Compile hash-compressed codebase state memory
+npx multimodel-dev-os@latest memory build
+
+# Incremental update of codebase state memory
+npx multimodel-dev-os@latest memory refresh
+
+# Diff current codebase state against memory files
+npx multimodel-dev-os@latest memory diff
+```
+
 ### Explore Registries
 
 ```bash

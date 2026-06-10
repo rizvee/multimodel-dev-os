@@ -436,8 +436,52 @@ try {
     console.log(`  ${GREEN}✓${NC} CLI help displays v${expectedVersion}`);
     pass++;
   }
+  
+  if (helpOutput.includes('scan') && helpOutput.includes('memory')) {
+    console.log(`  ${GREEN}✓${NC} CLI help includes scan and memory commands`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} CLI help is missing scan or memory commands`);
+    fail++;
+  }
 } catch (e) {
   console.error(`  ${RED}✗${NC} node bin/multimodel-dev-os.js --help failed: ${e.message}`);
+  fail++;
+}
+
+// Verify docs mention memory build
+try {
+  const mdContent = readFileSync(join(projectRoot, 'docs', 'hash-compressed-memory.md'), 'utf8');
+  if (mdContent.includes('memory build')) {
+    console.log(`  ${GREEN}✓${NC} docs/hash-compressed-memory.md mentions 'memory build'`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} docs/hash-compressed-memory.md does not mention 'memory build'`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} docs check failed: ${e.message}`);
+  fail++;
+}
+
+// Verify no generated memory files are committed/tracked in git root/intelligence folder
+try {
+  if (existsSync(join(projectRoot, '.ai', 'intelligence', 'memory.hash.json'))) {
+    console.error(`  ${RED}✗${NC} .ai/intelligence/memory.hash.json should not be tracked/committed!`);
+    fail++;
+  } else {
+    console.log(`  ${GREEN}✓${NC} .ai/intelligence/memory.hash.json is not tracked/committed`);
+    pass++;
+  }
+  if (existsSync(join(projectRoot, '.ai', 'intelligence', 'memory.summary.md'))) {
+    console.error(`  ${RED}✗${NC} .ai/intelligence/memory.summary.md should not be tracked/committed!`);
+    fail++;
+  } else {
+    console.log(`  ${GREEN}✓${NC} .ai/intelligence/memory.summary.md is not tracked/committed`);
+    pass++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} Tracking verification of generated memory files failed: ${e.message}`);
   fail++;
 }
 

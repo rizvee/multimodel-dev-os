@@ -38,6 +38,11 @@ The protocol decouples the centralized workspace context from the individual too
 
 All compliant MultiModel Dev OS CLIs strictly enforce the following command contracts:
 - **`init`**: Scaffolds the standard `.ai/` context configuration directories. Supports `--template`, `--caveman`, `--adapter`, and dynamic registries mapping.
+- **`scan`**: Performs a read-only codebase scan to detect frameworks, package managers, MultiModel Dev OS configurations, and potential context-bloat or security risks.
+- **`memory`**: Compiles or reviews codebase hash-compressed memory. Subcommands:
+  - `build`: Scans target codebase and writes memory metadata to `.ai/intelligence/memory.hash.json` and `.ai/intelligence/memory.summary.md`.
+  - `refresh`: Incremental update comparing changed file hashes to update the memory files.
+  - `diff`: Prints added, removed, or changed files compared to `memory.hash.json` without executing writes.
 - **`verify`**: Automated release script that checks structure integrity.
 - **`templates`**: Lists built-in template profiles (supports overrides via `--registry <path>`).
 - **`validate`**: Strict Quality Gate checking the layout rules on disk (supports `--all-registries`).

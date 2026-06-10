@@ -73,7 +73,7 @@ npx multimodel-dev-os@latest init --target /path/to/your-project --template next
 
 ## Verify & Diagnose
 
-You can run our strict validation check or advisory doctor checkup to validate structural health:
+Validate structural health, run codebase scans, and build hash-compressed memory:
 
 ```bash
 # Strict directory schema validation
@@ -81,6 +81,12 @@ npx multimodel-dev-os validate
 
 # Advisory doctor workspace compatibility audit
 npx multimodel-dev-os doctor
+
+# Advisory codebase scanner
+npx multimodel-dev-os scan
+
+# Build codebase memory index
+npx multimodel-dev-os memory build
 ```
 
 Explore our canonical [Stable Protocol Specification](/stable-protocol) or [Upgrade & Migration Guide](/migration-guide) for details.

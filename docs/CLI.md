@@ -48,3 +48,20 @@ Inspection map of all built-in stacks.
 ### 5. `show-template <name>`
 Detailed layout specifications and skill blueprints audit.
 * **Usage:** `node bin/multimodel-dev-os.js show-template nextjs-saas`
+
+### 6. `scan`
+Scan codebase structure, frameworks, package managers, and security/exclusion risks.
+* **Usage:** `node bin/multimodel-dev-os.js scan [options]`
+* **Options:**
+  - `-t, --target <path>`: Specifies target destination (default: current working directory).
+
+### 7. `memory`
+Manage codebase hash-compressed memory index.
+* **Usage:** `node bin/multimodel-dev-os.js memory <subcommand> [options]`
+* **Subcommands:**
+  - `build`: Performs full codebase scan and writes memory files.
+  - `refresh`: Performs incremental memory updates based on file hash diffs.
+  - `diff`: Reports files modified, added, or removed compared to memory index without writing any changes.
+* **Options:**
+  - `-t, --target <path>`: Specifies target destination (default: current working directory).
+

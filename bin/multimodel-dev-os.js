@@ -6,8 +6,9 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync } from 'fs';
-import { join, dirname, resolve } from 'path';
+import { join, dirname, resolve, relative } from 'path';
 import { fileURLToPath } from 'url';
+import { createHash } from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -143,6 +144,21 @@ if (COMMAND === 'init') {
   handleInit(params);
 } else if (COMMAND === 'verify') {
   handleVerify(params);
+} else if (COMMAND === 'scan') {
+  handleScan(params);
+} else if (COMMAND === 'memory') {
+  const sub = ARGS[1];
+  if (sub === 'build') {
+    handleMemoryBuild(params);
+  } else if (sub === 'refresh') {
+    handleMemoryRefresh(params);
+  } else if (sub === 'diff') {
+    handleMemoryDiff(params);
+  } else {
+    console.error(`\x1b[31mError: Please specify a memory subcommand: build, refresh, or diff.\x1b[0m`);
+    console.error(`Example: node bin/multimodel-dev-os.js memory build`);
+    process.exit(1);
+  }
 } else if (COMMAND === 'templates' || COMMAND === 'list-templates') {
   handleListTemplates(params);
 } else if (COMMAND === 'show-template') {
@@ -225,6 +241,8 @@ function showHelp() {
   console.log('Usage: node bin/multimodel-dev-os.js <command> [options]\n');
   console.log('Commands:');
   console.log('  init              Initialize a project with configs and adapters');
+  console.log('  scan              Scan project structure and framework signals');
+  console.log('  memory <subcmd>   Manage hash-compressed codebase memory (subcmd: build, refresh, diff)');
   console.log('  verify            Validate structural integrity of an existing project');
   console.log('  templates         List all built-in template profiles with details');
   console.log('  list-templates    Alias for templates command');
@@ -1394,3 +1412,433 @@ function handleDoctorRelease(options) {
     console.log('  \x1b[32m✔ Release hygiene checks PASSED successfully!\x1b[0m\n');
   }
 }
+
+// ==========================================
+// --- v2.2.0 Intelligence Layer Helpers & Handlers ---
+// ==========================================
+
+function hashFile(filePath) {
+  try {
+    const data = readFileSync(filePath);
+    return createHash('sha256').update(data).digest('hex');
+  } catch (e) {
+    return '';
+  }
+}
+
+function shouldIgnorePath(relPath) {
+  const normalized = relPath.replace(/\\/g, '/');
+  const segments = normalized.split('/');
+  
+  // Ignored folders
+  const ignoredFolders = ['node_modules', '.git', 'dist', 'build', '.next', 'coverage'];
+  for (const seg of segments) {
+    if (ignoredFolders.includes(seg)) return true;
+  }
+  
+  // Special check for docs/.vitepress/dist and docs/.vitepress/cache
+  if (normalized.includes('docs/.vitepress/dist') || normalized.includes('docs/.vitepress/cache')) {
+    return true;
+  }
+  
+  // Ignore generated memory files
+  if (normalized.endsWith('memory.hash.json') || normalized.endsWith('memory.summary.md')) {
+    return true;
+  }
+  
+  // Skip secret-like files/patterns
+  const lower = normalized.toLowerCase();
+  const filePart = segments[segments.length - 1];
+  if (
+    lower.endsWith('.env') ||
+    lower.includes('.env.') ||
+    lower.endsWith('.npmrc') ||
+    lower.endsWith('.keystore') ||
+    lower.endsWith('.jks') ||
+    lower.endsWith('.key') ||
+    lower.endsWith('.pem') ||
+    lower.endsWith('credentials.json') ||
+    filePart === 'id_rsa' ||
+    filePart === 'id_dsa' ||
+    filePart === 'id_ecdsa' ||
+    filePart === 'id_ed25519'
+  ) {
+    return true;
+  }
+  
+  return false;
+}
+
+function scanTarget(targetDir) {
+  const files = [];
+  let ignoredCount = 0;
+  
+  function walk(dir) {
+    if (!existsSync(dir)) return;
+    const items = readdirSync(dir);
+    for (const item of items) {
+      const fullPath = join(dir, item);
+      const relPath = relative(targetDir, fullPath).replace(/\\/g, '/');
+      
+      if (shouldIgnorePath(relPath)) {
+        ignoredCount++;
+        continue;
+      }
+      
+      try {
+        const stat = statSync(fullPath);
+        if (stat.isDirectory()) {
+          walk(fullPath);
+        } else if (stat.isFile()) {
+          files.push({
+            relPath,
+            fullPath,
+            size: stat.size,
+            mtime: stat.mtime.toISOString()
+          });
+        }
+      } catch (e) {
+        // Skip inaccessible files or broken links
+      }
+    }
+  }
+  
+  walk(targetDir);
+  return { files, ignoredCount };
+}
+
+function detectFrameworkSignals(files, targetDir) {
+  const signals = [];
+  const hasFile = (name) => files.some(f => f.relPath.toLowerCase() === name.toLowerCase());
+  
+  if (hasFile('next.config.js') || hasFile('next.config.mjs')) signals.push('Next.js');
+  if (hasFile('nuxt.config.js') || hasFile('nuxt.config.ts')) signals.push('Nuxt.js');
+  if (hasFile('wp-config.php') || hasFile('index.php')) signals.push('WordPress/PHP');
+  if (hasFile('tsconfig.json')) signals.push('TypeScript');
+  if (hasFile('package.json')) {
+    signals.push('Node.js');
+    try {
+      const pkg = JSON.parse(readFileSync(join(targetDir, 'package.json'), 'utf8'));
+      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+      if (deps['react']) signals.push('React');
+      if (deps['vue']) signals.push('Vue');
+      if (deps['svelte']) signals.push('Svelte');
+      if (deps['expo']) signals.push('Expo');
+      if (deps['react-native']) signals.push('React Native');
+      if (deps['vite']) signals.push('Vite');
+      if (deps['express']) signals.push('Express');
+      if (deps['angular']) signals.push('Angular');
+    } catch (e) {}
+  }
+  if (hasFile('requirements.txt') || hasFile('pyproject.toml')) signals.push('Python');
+  if (hasFile('cargo.toml')) signals.push('Rust');
+  if (hasFile('gemfile')) signals.push('Ruby');
+  if (hasFile('go.mod')) signals.push('Go');
+  
+  if (signals.length === 0) signals.push('Generic/Unknown');
+  return [...new Set(signals)];
+}
+
+function detectDependencySignals(files, targetDir) {
+  const signals = [];
+  const hasFile = (name) => files.some(f => f.relPath.toLowerCase() === name.toLowerCase());
+  
+  if (hasFile('package-lock.json')) signals.push('npm');
+  else if (hasFile('yarn.lock')) signals.push('Yarn');
+  else if (hasFile('pnpm-lock.yaml')) signals.push('pnpm');
+  else if (hasFile('bun.lockb')) signals.push('Bun');
+  
+  if (hasFile('requirements.txt')) signals.push('pip');
+  if (hasFile('poetry.lock')) signals.push('Poetry');
+  if (hasFile('cargo.lock')) signals.push('Cargo');
+  
+  return signals;
+}
+
+function detectAiDevOsSignals(files) {
+  const signals = [];
+  const hasFile = (name) => files.some(f => f.relPath.toLowerCase() === name.toLowerCase());
+  
+  if (hasFile('agents.md')) signals.push('AGENTS.md');
+  if (hasFile('memory.md')) signals.push('MEMORY.md');
+  if (hasFile('tasks.md')) signals.push('TASKS.md');
+  if (hasFile('runbook.md')) signals.push('RUNBOOK.md');
+  if (hasFile('.ai/config.yaml')) signals.push('.ai/config.yaml');
+  
+  const hasPrefix = (prefix) => files.some(f => f.relPath.startsWith(prefix));
+  if (hasPrefix('.ai/templates/')) signals.push('Templates Registry');
+  if (hasPrefix('.ai/adapters/')) signals.push('Adapters Registry');
+  if (hasPrefix('.ai/skills/')) signals.push('Skills Registry');
+  if (hasPrefix('.ai/intelligence/')) signals.push('Intelligence Layer');
+  if (hasPrefix('.ai/policies/')) signals.push('Policy Layer');
+  if (hasPrefix('.ai/registries/')) signals.push('Registry Layer');
+  
+  return signals;
+}
+
+function detectRisks(files, targetDir) {
+  const risks = [];
+  const gitignorePath = join(targetDir, '.gitignore');
+  const gitignoreContent = existsSync(gitignorePath) ? readFileSync(gitignorePath, 'utf8') : '';
+  
+  const hasFolder = (name) => files.some(f => f.relPath.split('/')[0] === name);
+  
+  if (hasFolder('node_modules') && !gitignoreContent.includes('node_modules')) {
+    risks.push({
+      file_pattern: 'node_modules/',
+      risk_description: 'Large token-sink directory node_modules/ is present but not ignored in .gitignore.',
+      severity: 'high'
+    });
+  }
+  
+  files.forEach(f => {
+    if (f.relPath.endsWith('.json') && f.relPath.toLowerCase().includes('config') && f.size > 50000) {
+      risks.push({
+        file_pattern: f.relPath,
+        risk_description: `Large config file (${(f.size / 1024).toFixed(1)} KB) might contain sensitive parameters or inflate prompt context.`,
+        severity: 'medium'
+      });
+    }
+  });
+  
+  return risks;
+}
+
+function buildMemoryIndex(targetDir) {
+  const { files, ignoredCount } = scanTarget(targetDir);
+  const framework_signals = detectFrameworkSignals(files, targetDir);
+  const dependency_signals = detectDependencySignals(files, targetDir);
+  const ai_dev_os_signals = detectAiDevOsSignals(files);
+  const risks = detectRisks(files, targetDir);
+  
+  const file_fingerprints = {};
+  files.forEach(f => {
+    file_fingerprints[f.relPath] = {
+      hash: hashFile(f.fullPath),
+      size: f.size,
+      last_modified: f.mtime
+    };
+  });
+  
+  const recommended_next_steps = [];
+  if (ai_dev_os_signals.length === 0) {
+    recommended_next_steps.push('Run init to bootstrap MultiModel Dev OS.');
+  }
+  if (risks.some(r => r.severity === 'high')) {
+    recommended_next_steps.push('Address Gitignore configuration to exclude large directories (node_modules/ or build artifacts).');
+  }
+  recommended_next_steps.push('Use validate or doctor to check structural integrity.');
+  recommended_next_steps.push('Commit the .ai/ intelligence policies to share constraints across AI agents.');
+  
+  return {
+    generated_at: new Date().toISOString(),
+    project_root: targetDir.replace(/\\/g, '/'),
+    file_count: files.length,
+    ignored_count: ignoredCount,
+    file_fingerprints,
+    framework_signals,
+    dependency_signals,
+    ai_dev_os_signals,
+    risks,
+    recommended_next_steps
+  };
+}
+
+function writeMemoryFiles(targetDir, index) {
+  const intelDir = join(targetDir, '.ai', 'intelligence');
+  if (!existsSync(intelDir)) {
+    mkdirSync(intelDir, { recursive: true });
+  }
+  
+  const hashJsonPath = join(intelDir, 'memory.hash.json');
+  writeFileSync(hashJsonPath, JSON.stringify(index, null, 2), 'utf8');
+  
+  const summaryMdPath = join(intelDir, 'memory.summary.md');
+  
+  let md = `# MultiModel Dev OS Repository Memory Summary\n\n`;
+  md += `**Generated At:** ${index.generated_at}\n`;
+  md += `**Project Root:** ${index.project_root}\n`;
+  md += `**Total Files:** ${index.file_count} (Ignored: ${index.ignored_count})\n\n`;
+  
+  md += `## Framework & Environment Signals\n`;
+  md += `- **Frameworks/Languages:** ${index.framework_signals.join(', ') || 'None'}\n`;
+  md += `- **Package Manager/Build:** ${index.dependency_signals.join(', ') || 'None'}\n`;
+  md += `- **AI Dev OS Integration:** ${index.ai_dev_os_signals.join(', ') || 'None'}\n\n`;
+  
+  md += `## Codebase Fingerprints\n`;
+  md += `| File Path | Size (Bytes) | Hash (SHA-256) |\n`;
+  md += `|---|---|---|\n`;
+  
+  const entries = Object.entries(index.file_fingerprints);
+  entries.forEach(([filePath, fp]) => {
+    md += `| ${filePath} | ${fp.size} | \`${fp.hash.substring(0, 12)}...\` |\n`;
+  });
+  md += `\n`;
+  
+  if (index.risks.length > 0) {
+    md += `## Detected Risks\n`;
+    index.risks.forEach(r => {
+      md += `- **[${r.severity.toUpperCase()}]** \`${r.file_pattern}\`: ${r.risk_description}\n`;
+    });
+    md += `\n`;
+  }
+  
+  md += `## Recommended Next Steps\n`;
+  index.recommended_next_steps.forEach(step => {
+    md += `- ${step}\n`;
+  });
+  
+  writeFileSync(summaryMdPath, md, 'utf8');
+}
+
+function diffMemory(targetDir) {
+  const hashJsonPath = join(targetDir, '.ai', 'intelligence', 'memory.hash.json');
+  if (!existsSync(hashJsonPath)) {
+    return null;
+  }
+  
+  let existing;
+  try {
+    existing = JSON.parse(readFileSync(hashJsonPath, 'utf8'));
+  } catch (e) {
+    return null;
+  }
+  
+  const currentScan = buildMemoryIndex(targetDir);
+  
+  const added = [];
+  const removed = [];
+  const changed = [];
+  let unchangedCount = 0;
+  
+  const currentFp = currentScan.file_fingerprints;
+  const existingFp = existing.file_fingerprints || {};
+  
+  Object.keys(currentFp).forEach(file => {
+    if (!existingFp[file]) {
+      added.push(file);
+    } else if (existingFp[file].hash !== currentFp[file].hash || existingFp[file].size !== currentFp[file].size) {
+      changed.push(file);
+    } else {
+      unchangedCount++;
+    }
+  });
+  
+  Object.keys(existingFp).forEach(file => {
+    if (!currentFp[file]) {
+      removed.push(file);
+    }
+  });
+  
+  return { added, removed, changed, unchangedCount, currentScan };
+}
+
+function handleScan(options) {
+  console.log(`\n🔍 \x1b[36mCodebase Scan target: ${options.target}\x1b[0m`);
+  console.log('==================================================');
+  
+  const { files, ignoredCount } = scanTarget(options.target);
+  const frameworkSignals = detectFrameworkSignals(files, options.target);
+  const dependencySignals = detectDependencySignals(files, options.target);
+  const aiDevOsSignals = detectAiDevOsSignals(files);
+  const risks = detectRisks(files, options.target);
+  
+  console.log(`\n\x1b[33mProject Stats:\x1b[0m`);
+  console.log(`  File Count:    ${files.length}`);
+  console.log(`  Ignored Files: ${ignoredCount}`);
+  
+  console.log(`\n\x1b[33mFramework & Language Signals:\x1b[0m`);
+  frameworkSignals.forEach(sig => console.log(`  - ${sig}`));
+  
+  console.log(`\n\x1b[33mPackage Manager & Dependency Signals:\x1b[0m`);
+  dependencySignals.forEach(sig => console.log(`  - ${sig}`));
+  
+  console.log(`\n\x1b[33mMultiModel Dev OS Files:\x1b[0m`);
+  if (aiDevOsSignals.length > 0) {
+    aiDevOsSignals.forEach(sig => console.log(`  - ${sig}`));
+  } else {
+    console.log(`  No MultiModel Dev OS files detected. Run \x1b[36mmit --template general-app\x1b[0m to initialize.`);
+  }
+  
+  if (risks.length > 0) {
+    console.log(`\n\x1b[31mDetected Risks:\x1b[0m`);
+    risks.forEach(r => console.log(`  - [${r.severity.toUpperCase()}] ${r.file_pattern}: ${r.risk_description}`));
+  } else {
+    console.log(`\n\x1b[32m✔ No high/medium risks detected in repository structure.\x1b[0m`);
+  }
+  
+  console.log();
+}
+
+function handleMemoryBuild(options) {
+  console.log(`\n🧠 \x1b[36mBuilding Codebase Memory in: ${options.target}\x1b[0m`);
+  console.log('==================================================');
+  
+  const index = buildMemoryIndex(options.target);
+  writeMemoryFiles(options.target, index);
+  
+  console.log(`  \x1b[32mCREATE:\x1b[0m .ai/intelligence/memory.hash.json`);
+  console.log(`  \x1b[32mCREATE:\x1b[0m .ai/intelligence/memory.summary.md`);
+  console.log(`\n✔ Memory index built successfully! [Files indexed: ${index.file_count}]`);
+  
+  console.log(`\n\x1b[33mRecommended Next Steps:\x1b[0m`);
+  index.recommended_next_steps.forEach(step => console.log(`  - ${step}`));
+  console.log();
+}
+
+function handleMemoryRefresh(options) {
+  console.log(`\n🧠 \x1b[36mRefreshing Codebase Memory in: ${options.target}\x1b[0m`);
+  console.log('==================================================');
+  
+  const diff = diffMemory(options.target);
+  if (!diff) {
+    console.log('  No existing memory index found. Building fresh index...');
+    handleMemoryBuild(options);
+    return;
+  }
+  
+  writeMemoryFiles(options.target, diff.currentScan);
+  
+  console.log(`  \x1b[32mUPDATE:\x1b[0m .ai/intelligence/memory.hash.json`);
+  console.log(`  \x1b[32mUPDATE:\x1b[0m .ai/intelligence/memory.summary.md`);
+  
+  console.log(`\n✔ Memory index refreshed successfully!`);
+  console.log(`  Added:     ${diff.added.length}`);
+  console.log(`  Removed:   ${diff.removed.length}`);
+  console.log(`  Changed:   ${diff.changed.length}`);
+  console.log(`  Unchanged: ${diff.unchangedCount}`);
+  console.log();
+}
+
+function handleMemoryDiff(options) {
+  console.log(`\n🧠 \x1b[36mDiffing Codebase State against Memory in: ${options.target}\x1b[0m`);
+  console.log('==================================================');
+  
+  const diff = diffMemory(options.target);
+  if (!diff) {
+    console.error(`\x1b[31mError: No existing memory index found. Run 'memory build' first.\x1b[0m\n`);
+    process.exit(1);
+  }
+  
+  console.log(`\n\x1b[33mMemory Diff Summary:\x1b[0m`);
+  console.log(`  Added Files:   ${diff.added.length}`);
+  console.log(`  Removed Files: ${diff.removed.length}`);
+  console.log(`  Changed Files: ${diff.changed.length}`);
+  console.log(`  Unchanged:     ${diff.unchangedCount}`);
+  
+  if (diff.added.length > 0) {
+    console.log(`\n\x1b[32mAdded Files:\x1b[0m`);
+    diff.added.forEach(f => console.log(`  + ${f}`));
+  }
+  if (diff.removed.length > 0) {
+    console.log(`\n\x1b[31mRemoved Files:\x1b[0m`);
+    diff.removed.forEach(f => console.log(`  - ${f}`));
+  }
+  if (diff.changed.length > 0) {
+    console.log(`\n\x1b[33mChanged Files:\x1b[0m`);
+    diff.changed.forEach(f => console.log(`  M ${f}`));
+  }
+  
+  console.log();
+}
+

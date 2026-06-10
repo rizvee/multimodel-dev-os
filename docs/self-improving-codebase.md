@@ -18,7 +18,7 @@ To guarantee repository integrity and prevent unintended changes, all self-impro
 The execution path follows three stages:
 
 ### Stage A: Proposal Generation
-The agent identifies an optimization (e.g. refactoring a component, cleaning up dead code) and saves a structured document under `.ai/proposals/proposal-<id>.yaml`. The proposal specifies the rationale, affected files list, risk level, test command, and rollback steps.
+Before compiling a proposal, the agent scans the codebase using `mmdo scan` and builds the hash-compressed memory index via `mmdo memory build` to ensure the proposal is context-aware and token-efficient. The agent then identifies an optimization (e.g. refactoring a component, cleaning up dead code) and saves a structured document under `.ai/proposals/proposal-<id>.yaml`. The proposal specifies the rationale, affected files list, risk level, test command, and rollback steps.
 
 ### Stage B: Human Review
 The developer runs the review CLI command:

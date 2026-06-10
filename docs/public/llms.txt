@@ -2,9 +2,17 @@
 
 Portable, vendor-neutral workspace configuration standard for multi-agent AI pair-programming workflows.
 
-## Fast Setup (Stable npm @latest)
+## Fast Setup & Commands (Stable npm @latest)
 ```bash
+# Initialize workspace
 npx multimodel-dev-os@latest init
+
+# Scan codebase signals
+npx multimodel-dev-os@latest scan
+
+# Build/refresh memory index
+npx multimodel-dev-os@latest memory build
+npx multimodel-dev-os@latest memory refresh
 ```
 
 ## Supported Tools
