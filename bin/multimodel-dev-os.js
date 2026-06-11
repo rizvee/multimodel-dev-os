@@ -49,7 +49,8 @@ function parseArgs(args) {
     files: '',
     title: null,
     approved: false,
-    intelligence: false
+    intelligence: false,
+    onboarding: false
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -76,6 +77,8 @@ function parseArgs(args) {
       params.release = true;
     } else if (arg === '--intelligence') {
       params.intelligence = true;
+    } else if (arg === '--onboarding') {
+      params.onboarding = true;
     } else if (arg === '--json') {
       params.json = true;
     } else if (arg === '--threshold') {
@@ -364,6 +367,48 @@ if (COMMAND === 'init') {
     console.log('Example: node bin/multimodel-dev-os.js handoff build');
     process.exit(1);
   }
+} else if (COMMAND === 'onboard') {
+  const positional = getPositionalArgs(ARGS);
+  const sub = positional[1];
+  if (sub === 'analyze') {
+    handleOnboardAnalyze(params);
+  } else if (sub === 'recommend') {
+    handleOnboardRecommend(params);
+  } else if (sub === 'plan') {
+    handleOnboardPlan(params);
+  } else if (sub === 'apply') {
+    handleOnboardApply(params);
+  } else if (sub === 'status') {
+    handleOnboardStatus(params);
+  } else {
+    console.error('\x1b[31mError: Please specify an onboard subcommand: analyze, recommend, plan, apply, or status.\x1b[0m');
+    console.log('Example: node bin/multimodel-dev-os.js onboard analyze');
+    process.exit(1);
+  }
+} else if (COMMAND === 'adapter') {
+  const positional = getPositionalArgs(ARGS);
+  const sub = positional[1];
+  if (sub === 'status') {
+    handleAdapterStatus(params);
+  } else if (sub === 'diff') {
+    const aName = positional[2];
+    if (!aName) {
+      console.error('\x1b[31mError: Please specify an adapter name (e.g. cursor, claude) or "all".\x1b[0m');
+      process.exit(1);
+    }
+    handleAdapterDiff(aName, params);
+  } else if (sub === 'sync') {
+    const aName = positional[2];
+    if (!aName) {
+      console.error('\x1b[31mError: Please specify an adapter name or "all" to sync.\x1b[0m');
+      process.exit(1);
+    }
+    handleAdapterSync(aName, params);
+  } else {
+    console.error('\x1b[31mError: Please specify an adapter subcommand: status, diff, or sync.\x1b[0m');
+    console.log('Example: node bin/multimodel-dev-os.js adapter status');
+    process.exit(1);
+  }
 } else {
   console.error(`\x1b[31mUnknown command: ${COMMAND}\x1b[0m`);
   showHelp();
@@ -383,6 +428,8 @@ function showHelp() {
   console.log('  improve <subcmd>  Manage codebase self-improvement proposals (subcmd: propose, review, status, validate, diff, apply, log)');
   console.log('  workflow <subcmd> Orchestrate read-only development workflow pipelines (subcmd: list, show, plan, run)');
   console.log('  handoff <subcmd>  Compile or print token-compressed agent session summaries (subcmd: build, show)');
+  console.log('  onboard <subcmd>  Safely integrate MultiModel Dev OS into existing repo (subcmd: analyze, recommend, plan, apply, status)');
+  console.log('  adapter <subcmd>  Manage and sync rule/settings files for IDE adapters (subcmd: status, diff, sync)');
   console.log('  verify            Validate structural integrity of an existing project');
   console.log('  templates         List all built-in template profiles with details');
   console.log('  list-templates    Alias for templates command');
@@ -406,12 +453,13 @@ function showHelp() {
   console.log('  --tags <list>           Comma-separated descriptor tags for feedback');
   console.log('  --files <list>          Comma-separated target files for feedback');
   console.log('  --title <text>          Specifies title for codebase improvement proposal');
-  console.log('  --approved              Explicitly approve and execute proposal operations');
+  console.log('  --approved              Explicitly approve and execute proposal/onboarding/adapter sync writes');
   console.log('  --template <name>       Template profile: nextjs-saas, expo-react-native-android, etc.');
   console.log('  -a, --adapter <name>    Inject specific adapter: cursor, claude, vscode, gemini, etc.');
   console.log('  --caveman               Use minimal-token templates (~79% fewer tokens)');
   console.log('  --tokens                Run a deeper token-sink size analysis during doctor checkup');
   console.log('  --intelligence          Run diagnostic checkup of repository intelligence config');
+  console.log('  --onboarding            Run diagnostic checkup of repository onboarding setup');
   console.log('  --json                  Output raw JSON data for listing commands (models, adapters, templates)');
   console.log('  --threshold <val>       Set custom size threshold for doctor tokens checks (e.g. 50KB)');
   console.log('  --registry <path>       Override default registry (for templates/adapters list or check)');
@@ -757,6 +805,10 @@ function handleDoctor(options) {
   }
   if (options.intelligence) {
     handleDoctorIntelligence(options);
+    return;
+  }
+  if (options.onboarding) {
+    handleDoctorOnboarding(options);
     return;
   }
   console.log(`\n🩺 \x1b[36mRunning advisory doctor checkup in: ${options.target}\x1b[0m\n`);
@@ -3575,4 +3627,635 @@ function handleDoctorIntelligence(options) {
     console.log('\x1b[32m✔ Doctor intelligence check complete. Your intelligence setup is pristine!\x1b[0m\n');
   }
 }
+
+function getAnalysis(target) {
+  const { files, ignoredCount } = scanTarget(target);
+  const frameworks = detectFrameworkSignals(files, target);
+  const packageManagers = detectDependencySignals(files, target);
+  const aiSignals = detectAiDevOsSignals(files);
+
+  let jsCount = 0, tsCount = 0, phpCount = 0, pyCount = 0, mdCount = 0;
+  files.forEach(f => {
+    const ext = f.relPath.substring(f.relPath.lastIndexOf('.')).toLowerCase();
+    if (ext === '.js' || ext === '.mjs' || ext === '.cjs') jsCount++;
+    else if (ext === '.ts' || ext === '.tsx') tsCount++;
+    else if (ext === '.php') phpCount++;
+    else if (ext === '.py') pyCount++;
+    else if (ext === '.md') mdCount++;
+  });
+
+  let language = 'mixed';
+  if (tsCount > jsCount && tsCount > phpCount && tsCount > pyCount && tsCount > mdCount) language = 'TS';
+  else if (jsCount > tsCount && jsCount > phpCount && jsCount > pyCount && jsCount > mdCount) language = 'JS';
+  else if (phpCount > jsCount && phpCount > tsCount && phpCount > pyCount && phpCount > mdCount) language = 'PHP';
+  else if (pyCount > jsCount && pyCount > tsCount && phpCount > pyCount && phpCount > mdCount) language = 'Python';
+  else if (mdCount > jsCount && mdCount > tsCount && mdCount > phpCount && mdCount > pyCount) language = 'Markdown-heavy';
+
+  let repoType = 'app';
+  if (files.some(f => f.relPath.includes('wp-content/themes') || f.relPath.includes('wp-content/plugins'))) {
+    repoType = 'WordPress theme/plugin';
+  } else if (files.some(f => f.relPath.includes('app.json') || f.relPath.includes('eas.json'))) {
+    repoType = 'mobile app';
+  } else if (files.some(f => f.relPath.includes('lerna.json') || f.relPath.includes('pnpm-workspace.yaml'))) {
+    repoType = 'monorepo';
+  } else if (files.some(f => f.relPath.includes('docs/')) && mdCount > (files.length * 0.4)) {
+    repoType = 'docs';
+  } else if (files.some(f => f.relPath === 'package.json')) {
+    try {
+      const pkg = JSON.parse(readFileSync(join(target, 'package.json'), 'utf8'));
+      if (pkg.main && (pkg.main.includes('dist/') || pkg.main.includes('lib/'))) {
+        repoType = 'library';
+      }
+    } catch (e) {}
+  }
+
+  const existingTools = [];
+  if (files.some(f => f.relPath === '.cursorrules')) existingTools.push('Cursor');
+  if (files.some(f => f.relPath === 'CLAUDE.md')) existingTools.push('Claude');
+  if (files.some(f => f.relPath === 'GEMINI.md')) existingTools.push('Gemini');
+  if (files.some(f => f.relPath.startsWith('.vscode/'))) existingTools.push('VS Code');
+  if (files.some(f => f.relPath.startsWith('.gemini/'))) existingTools.push('Antigravity');
+
+  const packageScripts = [];
+  if (files.some(f => f.relPath === 'package.json')) {
+    try {
+      const pkg = JSON.parse(readFileSync(join(target, 'package.json'), 'utf8'));
+      if (pkg.scripts) {
+        Object.keys(pkg.scripts).forEach(k => packageScripts.push(k));
+      }
+    } catch (e) {}
+  }
+
+  const githubWorkflows = [];
+  const githubDir = join(target, '.github', 'workflows');
+  if (existsSync(githubDir)) {
+    try {
+      readdirSync(githubDir).forEach(f => {
+        if (f.endsWith('.yml') || f.endsWith('.yaml')) githubWorkflows.push(f);
+      });
+    } catch (e) {}
+  }
+
+  const envRiskMarkers = [];
+  files.forEach(f => {
+    const name = f.relPath.toLowerCase();
+    if (name.includes('.env') || name.includes('id_rsa') || name.includes('credential') || name.endsWith('.pem') || name.endsWith('.key') || name.endsWith('.keystore') || name.endsWith('.jks')) {
+      envRiskMarkers.push(f.relPath);
+    }
+  });
+
+  return {
+    packageManagers,
+    frameworks,
+    language,
+    repoType,
+    existingTools,
+    packageScripts,
+    githubWorkflows,
+    envRiskMarkers,
+    aiSignals,
+    filesCount: files.length,
+    ignoredCount
+  };
+}
+
+function getRecommendation(analysis) {
+  const scores = {
+    'nextjs-saas': 0.0,
+    'expo-react-native-android': 0.0,
+    'wordpress-site': 0.0,
+    'ecommerce-store': 0.0,
+    'seo-landing-page': 0.0,
+    'general-app': 0.1
+  };
+
+  if (analysis.frameworks.includes('Next.js')) scores['nextjs-saas'] += 0.6;
+  if (analysis.frameworks.includes('React')) scores['nextjs-saas'] += 0.2;
+  if (analysis.frameworks.includes('TypeScript')) scores['nextjs-saas'] += 0.1;
+
+  if (analysis.repoType === 'mobile app') scores['expo-react-native-android'] += 0.6;
+  if (analysis.frameworks.includes('Expo') || analysis.frameworks.includes('React Native')) scores['expo-react-native-android'] += 0.3;
+
+  if (analysis.repoType === 'WordPress theme/plugin') scores['wordpress-site'] += 0.6;
+  if (analysis.frameworks.includes('WordPress/PHP')) scores['wordpress-site'] += 0.3;
+
+  if (analysis.frameworks.includes('Vite') || analysis.frameworks.includes('React')) scores['seo-landing-page'] += 0.3;
+
+  let recommended = 'general-app';
+  let maxScore = 0.0;
+  Object.keys(scores).forEach(k => {
+    if (scores[k] > maxScore) {
+      maxScore = scores[k];
+      recommended = k;
+    }
+  });
+
+  const suggestedAdapters = ['cursor', 'claude', 'gemini', 'vscode', 'antigravity'];
+
+  return {
+    template: recommended,
+    confidence: Math.min(1.0, maxScore === 0.1 ? 0.5 : maxScore),
+    suggestedAdapters,
+    riskNotes: analysis.envRiskMarkers.length > 0 ? 'Workspace contains unignored credentials or key files. Ensure .gitignore covers them.' : 'None'
+  };
+}
+
+function handleOnboardAnalyze(options) {
+  console.log(`\n🔍 \x1b[36mAnalyzing Workspace for Onboarding: ${options.target}\x1b[0m`);
+  console.log('==================================================');
+  const analysis = getAnalysis(options.target);
+
+  console.log(`  Package Manager:       ${analysis.packageManagers.join(', ') || 'None'}`);
+  console.log(`  Detected Frameworks:   ${analysis.frameworks.join(', ') || 'None'}`);
+  console.log(`  Dominant Language:     ${analysis.language}`);
+  console.log(`  Repository Type:       ${analysis.repoType}`);
+  console.log(`  Existing AI Tools:     ${analysis.existingTools.join(', ') || 'None'}`);
+  console.log(`  GitHub Workflows:      ${analysis.githubWorkflows.join(', ') || 'None'}`);
+  console.log(`  Security Risk Markers: ${analysis.envRiskMarkers.length} files found`);
+  if (analysis.envRiskMarkers.length > 0) {
+    analysis.envRiskMarkers.forEach(m => console.log(`    └─> ${m} (potential secrets exposure risk)`));
+  }
+  console.log();
+}
+
+function handleOnboardRecommend(options) {
+  const analysis = getAnalysis(options.target);
+  const rec = getRecommendation(analysis);
+
+  console.log(`\n💡 \x1b[36mOnboarding Recommendation for: ${options.target}\x1b[0m`);
+  console.log('==================================================');
+  console.log(`  Recommended Template:  \x1b[32m${rec.template}\x1b[0m`);
+  console.log(`  Confidence Score:      ${(rec.confidence * 100).toFixed(0)}%`);
+  console.log(`  Suggested Adapters:    ${rec.suggestedAdapters.join(', ')}`);
+  console.log(`  Risk Notes:            ${rec.riskNotes}`);
+  console.log(`  Suggested Next Command:`);
+  console.log(`    npx multimodel-dev-os onboard plan --target .`);
+  console.log();
+}
+
+function handleOnboardPlan(options) {
+  console.log(`\n📋 \x1b[36mGenerating Onboarding Plan: ${options.target}\x1b[0m`);
+  console.log('==================================================');
+  const analysis = getAnalysis(options.target);
+  const rec = getRecommendation(analysis);
+
+  const planPath = join(options.target, '.ai', 'intelligence', 'onboarding.plan.json');
+  const reportPath = join(options.target, '.ai', 'intelligence', 'onboarding.report.md');
+
+  const plannedFiles = [
+    { action: 'CREATE', path: 'AGENTS.md', source_template: `examples/${rec.template}/AGENTS.md` },
+    { action: 'CREATE', path: 'MEMORY.md', source_template: `examples/${rec.template}/MEMORY.md` },
+    { action: 'CREATE', path: 'TASKS.md', source_template: `examples/${rec.template}/TASKS.md` },
+    { action: 'CREATE', path: 'RUNBOOK.md', source_template: `RUNBOOK.md` },
+    { action: 'CREATE', path: '.ai/config.yaml', source_template: `examples/${rec.template}/.ai/config.yaml` }
+  ];
+
+  const planData = {
+    generated_at: new Date().toISOString(),
+    target_path: options.target,
+    project_analysis: {
+      package_manager: analysis.packageManagers.join(', ') || 'npm',
+      framework: analysis.frameworks.join(', ') || 'Generic',
+      language: analysis.language,
+      repo_type: analysis.repoType,
+      has_existing_ai_config: analysis.aiSignals.includes('.ai/config.yaml'),
+      risk_markers: analysis.envRiskMarkers
+    },
+    recommendation: {
+      template: rec.template,
+      confidence: rec.confidence,
+      suggested_adapters: rec.suggestedAdapters,
+      reasons: [`Detected dominant language ${analysis.language}`, `Detected framework ${analysis.frameworks.join(', ')}`]
+    },
+    planned_files: plannedFiles
+  };
+
+  let reportMd = `# MultiModel Dev OS Onboarding Report\n\n`;
+  reportMd += `**Generated At:** ${planData.generated_at}\n`;
+  reportMd += `**Target Path:** ${planData.target_path}\n\n`;
+  reportMd += `## 1. Project Analysis Details\n`;
+  reportMd += `- **Package Manager:** ${planData.project_analysis.package_manager}\n`;
+  reportMd += `- **Frameworks:** ${planData.project_analysis.framework}\n`;
+  reportMd += `- **Language:** ${planData.project_analysis.language}\n`;
+  reportMd += `- **Repo Type:** ${planData.project_analysis.repo_type}\n\n`;
+
+  reportMd += `## 2. Onboarding Recommendation\n`;
+  reportMd += `- **Recommended Profile:** **${planData.recommendation.template}** (Confidence: ${(planData.recommendation.confidence * 100).toFixed(0)}%)\n`;
+  reportMd += `- **Suggested Adapters:** ${planData.recommendation.suggested_adapters.join(', ')}\n\n`;
+
+  reportMd += `## 3. Planned File Operations\n`;
+  reportMd += `| Action | Target Path | Source Template |\n`;
+  reportMd += `|---|---|---|\n`;
+  plannedFiles.forEach(f => {
+    reportMd += `| ${f.action} | ${f.path} | ${f.source_template} |\n`;
+  });
+  reportMd += `\n`;
+
+  reportMd += `## 4. Next Step\n`;
+  reportMd += `To safely apply this plan, run:\n`;
+  reportMd += `\`\`\`bash\n`;
+  reportMd += `npx multimodel-dev-os onboard apply --target . --approved\n`;
+  reportMd += `\`\`\`\n`;
+
+  try {
+    const intelDir = join(options.target, '.ai', 'intelligence');
+    if (!options.dryRun && !existsSync(intelDir)) {
+      mkdirSync(intelDir, { recursive: true });
+    }
+    if (!options.dryRun) {
+      writeFileSync(planPath, JSON.stringify(planData, null, 2), 'utf8');
+      writeFileSync(reportPath, reportMd, 'utf8');
+    }
+
+    console.log(`  [SUCCESS] Onboarding plan generated:`);
+    console.log(`    - Plan JSON:   .ai/intelligence/onboarding.plan.json`);
+    console.log(`    - Report MD:   .ai/intelligence/onboarding.report.md`);
+    console.log(`\nReview the plan and run "npx multimodel-dev-os onboard apply --target . --approved" to execute.\n`);
+  } catch (e) {
+    console.error(`\x1b[31mError writing plan: ${e.message}\x1b[0m`);
+  }
+}
+
+function handleOnboardApply(options) {
+  if (!options.approved) {
+    console.error('\x1b[31mError: Onboarding apply requires explicit approval flag: --approved\x1b[0m');
+    console.log('Example: node bin/multimodel-dev-os.js onboard apply --approved');
+    process.exit(1);
+  }
+
+  const planPath = join(options.target, '.ai', 'intelligence', 'onboarding.plan.json');
+  if (!existsSync(planPath)) {
+    console.error('\x1b[31mError: Onboarding plan not found. Run "npx multimodel-dev-os onboard plan" first.\x1b[0m');
+    process.exit(1);
+  }
+
+  let plan;
+  try {
+    plan = JSON.parse(readFileSync(planPath, 'utf8'));
+  } catch (e) {
+    console.error(`\x1b[31mError reading plan JSON: ${e.message}\x1b[0m`);
+    process.exit(1);
+  }
+
+  console.log(`\n🚀 \x1b[36mApplying Onboarding Scaffolding: ${options.target}\x1b[0m`);
+  console.log('==================================================');
+
+  const template = plan.recommendation.template;
+  options.template = template;
+
+  const operations = [];
+
+  plan.planned_files.forEach(f => {
+    let srcFile;
+    if (f.source_template === 'RUNBOOK.md') {
+      srcFile = join(sourceRoot, 'RUNBOOK.md');
+    } else {
+      srcFile = join(sourceRoot, f.source_template);
+    }
+    operations.push({ dest: f.path, src: srcFile });
+  });
+
+  const templateDir = join(sourceRoot, 'examples', template);
+  const templateAiDir = join(templateDir, '.ai');
+  if (existsSync(templateAiDir) && !options.caveman) {
+    const subdirs = ['context', 'skills'];
+    subdirs.forEach(sub => {
+      const subPath = join(templateAiDir, sub);
+      if (existsSync(subPath)) {
+        readdirSync(subPath).forEach(file => {
+          operations.push({
+            dest: join('.ai', sub, file),
+            src: join(subPath, file)
+          });
+        });
+      }
+    });
+  }
+
+  const globalAiSubdirs = ['context', 'agents', 'skills', 'prompts', 'checks', 'templates', 'session-logs', 'registries', 'proposals', 'intelligence'];
+  globalAiSubdirs.forEach(sub => {
+    const globalPath = join(sourceRoot, '.ai', sub);
+    if (existsSync(globalPath)) {
+      readdirSync(globalPath).forEach(file => {
+        const destRel = join('.ai', sub, file);
+        if (!operations.some(op => op.dest === destRel)) {
+          if (options.caveman && (sub === 'context' || sub === 'skills' || sub === 'prompts' || sub === 'checks')) {
+            return;
+          }
+          operations.push({
+            dest: destRel,
+            src: join(globalPath, file)
+          });
+        }
+      });
+    }
+  });
+
+  let createdCount = 0;
+  let skippedCount = 0;
+  let updatedCount = 0;
+
+  operations.forEach(op => {
+    const destPath = join(options.target, op.dest);
+    const destDir = dirname(destPath);
+
+    if (existsSync(destPath)) {
+      if (options.force) {
+        if (!options.dryRun) {
+          const backupPath = destPath + '.bak';
+          writeFileSync(backupPath, readFileSync(destPath));
+          if (!existsSync(destDir)) mkdirSync(destDir, { recursive: true });
+          writeFileSync(destPath, readFileSync(op.src));
+          console.log(`  \x1b[33mOVERWRITE (BACKUP CREATED):\x1b[0m ${op.dest} -> ${op.dest}.bak`);
+        } else {
+          console.log(`  \x1b[36m[DRY-RUN] WOULD OVERWRITE & BACKUP:\x1b[0m ${op.dest}`);
+        }
+        updatedCount++;
+      } else {
+        console.log(`  \x1b[37m[SKIP] Already exists:\x1b[0m ${op.dest}`);
+        skippedCount++;
+      }
+    } else {
+      if (!options.dryRun) {
+        if (!existsSync(destDir)) mkdirSync(destDir, { recursive: true });
+        writeFileSync(destPath, readFileSync(op.src));
+        console.log(`  \x1b[32mCREATE:\x1b[0m ${op.dest}`);
+      } else {
+        console.log(`  \x1b[36m[DRY-RUN] WOULD CREATE:\x1b[0m ${op.dest}`);
+      }
+      createdCount++;
+    }
+  });
+
+  console.log(`\n✔ Onboarding apply complete! Created: ${createdCount}, Skipped: ${skippedCount}, Overwritten (with backup): ${updatedCount}\n`);
+}
+
+function handleOnboardStatus(options) {
+  console.log(`\n📊 \x1b[36mOnboarding Status Dashboard: ${options.target}\x1b[0m`);
+  console.log('==================================================');
+
+  const crucialFiles = [
+    'AGENTS.md',
+    'MEMORY.md',
+    'TASKS.md',
+    'RUNBOOK.md',
+    '.ai/config.yaml'
+  ];
+
+  let presentCount = 0;
+  crucialFiles.forEach(f => {
+    const fullPath = join(options.target, f);
+    const exists = existsSync(fullPath);
+    if (exists) presentCount++;
+    console.log(`  [${exists ? '✔' : ' '}] ${f}`);
+  });
+
+  const percentage = (presentCount / crucialFiles.length) * 100;
+  console.log(`\n  Completeness Score: ${percentage.toFixed(0)}%`);
+  if (percentage === 100) {
+    console.log('  Status: \x1b[32mREADY (Onboarding complete)\x1b[0m\n');
+  } else if (percentage > 0) {
+    console.log('  Status: \x1b[33mIN_PROGRESS (Run "onboard apply --approved" to initialize remaining files)\x1b[0m\n');
+  } else {
+    console.log('  Status: \x1b[31mMISSING (Run "onboard plan" and "onboard apply" to onboard this repo)\x1b[0m\n');
+  }
+}
+
+function getEnabledAdapters(target) {
+  const configPath = join(target, '.ai', 'config.yaml');
+  if (existsSync(configPath)) {
+    try {
+      const config = parseYaml(readFileSync(configPath, 'utf8')) || {};
+      return config.adapters || {};
+    } catch (e) {}
+  }
+  return {};
+}
+
+function handleAdapterStatus(options) {
+  console.log(`\n🔌 \x1b[36mIDE & Agent Adapters Status: ${options.target}\x1b[0m`);
+  console.log('==================================================');
+
+  const enabled = getEnabledAdapters(options.target);
+
+  Object.keys(ADAPTERS).forEach(name => {
+    const a = ADAPTERS[name];
+    const isEnabled = enabled[name] || false;
+    const rulesFile = a.rules_file;
+    const exists = existsSync(join(options.target, rulesFile));
+
+    let statusStr = '\x1b[31mMISSING\x1b[0m';
+    if (exists) {
+      statusStr = '\x1b[32mINSTALLED\x1b[0m';
+    }
+
+    console.log(`\n\x1b[33m* ${a.name || name}\x1b[0m (${name})`);
+    console.log(`  Config Status: ${isEnabled ? '\x1b[32mENABLED\x1b[0m' : '\x1b[37mDISABLED\x1b[0m'}`);
+    console.log(`  File Status:   ${statusStr} (${rulesFile})`);
+  });
+  console.log();
+}
+
+function printDiff(srcContent, destContent, filename) {
+  console.log(`\nDiff for ${filename}:`);
+  console.log('--------------------------------------------------');
+  if (srcContent === destContent) {
+    console.log('  Pristine (No differences detected)');
+    return;
+  }
+  const srcLines = srcContent.split(/\r?\n/);
+  const destLines = destContent.split(/\r?\n/);
+
+  let i = 0;
+  while (i < Math.max(srcLines.length, destLines.length)) {
+    const sLine = srcLines[i];
+    const dLine = destLines[i];
+    if (sLine !== dLine) {
+      if (dLine !== undefined) console.log(`\x1b[31m- ${dLine}\x1b[0m`);
+      if (sLine !== undefined) console.log(`\x1b[32m+ ${sLine}\x1b[0m`);
+    } else {
+      if (sLine !== undefined) console.log(`  ${sLine}`);
+    }
+    i++;
+  }
+}
+
+function handleAdapterDiff(aName, options) {
+  const adaptersToDiff = [];
+  if (aName === 'all') {
+    const enabled = getEnabledAdapters(options.target);
+    Object.keys(ADAPTERS).forEach(name => {
+      if (enabled[name]) adaptersToDiff.push(name);
+    });
+  } else {
+    if (!ADAPTERS[aName]) {
+      console.error(`\x1b[31mError: Adapter '${aName}' not found in registry.\x1b[0m`);
+      process.exit(1);
+    }
+    adaptersToDiff.push(aName);
+  }
+
+  if (adaptersToDiff.length === 0) {
+    console.log('No enabled adapters found to diff.');
+    return;
+  }
+
+  adaptersToDiff.forEach(name => {
+    const a = ADAPTERS[name];
+    const srcFile = join(sourceRoot, 'adapters', name, a.rules_file);
+    const destFile = join(options.target, a.rules_file);
+
+    if (!existsSync(srcFile)) {
+      console.warn(`Warning: Source file for adapter '${name}' is missing at: ${srcFile}`);
+      return;
+    }
+
+    const srcContent = readFileSync(srcFile, 'utf8');
+    if (existsSync(destFile)) {
+      const destContent = readFileSync(destFile, 'utf8');
+      printDiff(srcContent, destContent, a.rules_file);
+    } else {
+      console.log(`\nFile: ${a.rules_file} \x1b[31m(MISSING)\x1b[0m`);
+      console.log('--------------------------------------------------');
+      srcContent.split(/\r?\n/).forEach(l => console.log(`\x1b[32m+ ${l}\x1b[0m`));
+    }
+  });
+}
+
+function handleAdapterSync(aName, options) {
+  if (!options.approved) {
+    console.error('\x1b[31mError: Adapter sync requires explicit approval flag: --approved\x1b[0m');
+    console.log('Example: node bin/multimodel-dev-os.js adapter sync cursor --approved');
+    process.exit(1);
+  }
+
+  const adaptersToSync = [];
+  if (aName === 'all') {
+    const enabled = getEnabledAdapters(options.target);
+    Object.keys(ADAPTERS).forEach(name => {
+      if (enabled[name]) adaptersToSync.push(name);
+    });
+  } else {
+    if (!ADAPTERS[aName]) {
+      console.error(`\x1b[31mError: Adapter '${aName}' not found in registry.\x1b[0m`);
+      process.exit(1);
+    }
+    adaptersToSync.push(aName);
+  }
+
+  if (adaptersToSync.length === 0) {
+    console.log('No adapters found to sync.');
+    return;
+  }
+
+  console.log(`\n🔄 \x1b[36mSynchronizing IDE Adapters in: ${options.target}\x1b[0m`);
+  console.log('==================================================');
+
+  adaptersToSync.forEach(name => {
+    const a = ADAPTERS[name];
+    const srcFile = join(sourceRoot, 'adapters', name, a.rules_file);
+    const destFile = join(options.target, a.rules_file);
+    const destDir = dirname(destFile);
+
+    if (!existsSync(srcFile)) {
+      console.warn(`Warning: Source file for adapter '${name}' is missing at: ${srcFile}`);
+      return;
+    }
+
+    if (existsSync(destFile)) {
+      if (options.force) {
+        if (!options.dryRun) {
+          const backupPath = destFile + '.bak';
+          writeFileSync(backupPath, readFileSync(destFile));
+          if (!existsSync(destDir)) mkdirSync(destDir, { recursive: true });
+          writeFileSync(destFile, readFileSync(srcFile));
+          console.log(`  \x1b[33mOVERWRITE (BACKUP CREATED):\x1b[0m ${a.rules_file} -> ${a.rules_file}.bak`);
+        } else {
+          console.log(`  \x1b[36m[DRY-RUN] WOULD OVERWRITE & BACKUP:\x1b[0m ${a.rules_file}`);
+        }
+      } else {
+        console.log(`  \x1b[37m[SKIP] Already exists:\x1b[0m ${a.rules_file}`);
+      }
+    } else {
+      if (!options.dryRun) {
+        if (!existsSync(destDir)) mkdirSync(destDir, { recursive: true });
+        writeFileSync(destFile, readFileSync(srcFile));
+        console.log(`  \x1b[32mCREATE:\x1b[0m ${a.rules_file}`);
+      } else {
+        console.log(`  \x1b[36m[DRY-RUN] WOULD CREATE:\x1b[0m ${a.rules_file}`);
+      }
+    }
+  });
+
+  console.log();
+}
+
+function handleDoctorOnboarding(options) {
+  console.log(`\n🩺 \x1b[36mRunning advisory onboarding doctor checkup in: ${options.target}\x1b[0m\n`);
+
+  let warnings = 0;
+  const warn = (msg) => {
+    console.warn(`  \x1b[33m[WARNING]\x1b[0m ${msg}`);
+    warnings++;
+  };
+
+  const crucialFiles = [
+    'AGENTS.md',
+    'MEMORY.md',
+    'TASKS.md',
+    'RUNBOOK.md'
+  ];
+
+  crucialFiles.forEach(f => {
+    if (!existsSync(join(options.target, f))) {
+      warn(`Crucial onboarding file '${f}' is missing from project root.`);
+    }
+  });
+
+  const configPath = join(options.target, '.ai', 'config.yaml');
+  if (!existsSync(configPath)) {
+    warn('MultiModel Dev OS configuration file (.ai/config.yaml) is missing.');
+  }
+
+  const registriesDir = join(options.target, '.ai', 'registries');
+  if (!existsSync(registriesDir)) {
+    warn('Registries directory (.ai/registries) is missing.');
+  }
+
+  const proposalsDir = join(options.target, '.ai', 'proposals');
+  if (!existsSync(proposalsDir)) {
+    warn('Proposals directory (.ai/proposals) is missing.');
+  }
+
+  const intelligenceDir = join(options.target, '.ai', 'intelligence');
+  if (!existsSync(intelligenceDir)) {
+    warn('Intelligence directory (.ai/intelligence) is missing.');
+  }
+
+  const gitignorePath = join(options.target, '.gitignore');
+  if (existsSync(gitignorePath)) {
+    const gitignoreContent = readFileSync(gitignorePath, 'utf8');
+    const checkIgnore = (pattern) => {
+      if (!gitignoreContent.includes(pattern)) {
+        warn(`Generated runtime file '${pattern}' is not ignored in .gitignore.`);
+      }
+    };
+    checkIgnore('onboarding.plan.json');
+    checkIgnore('onboarding.report.md');
+  }
+
+  const { files } = scanTarget(options.target);
+  const packageManagers = detectDependencySignals(files, options.target);
+  if (packageManagers.length === 0) {
+    warn('No package manager lockfile detected in project root.');
+  }
+
+  console.log('\n==================================================');
+  if (warnings > 0) {
+    console.log(`\x1b[33mDoctor onboarding check complete. Found ${warnings} warnings.\x1b[0m\n`);
+  } else {
+    console.log('\x1b[32m✔ Doctor onboarding check complete. Your workspace onboarding setup is pristine!\x1b[0m\n');
+  }
+}
+
 

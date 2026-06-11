@@ -77,3 +77,19 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md).
 3. **Include only** tool-specific overrides or behavior notes
 4. **Test with the actual tool** — don't guess at file detection behavior
 5. **Document quirks** — if a tool has unusual behavior, note it in `setup.md`
+
+## Synchronizing Adapters
+
+Use the `adapter` command to automatically synchronize native rule and settings files from the bundled adapter registry templates into your workspace root:
+
+```bash
+# Check status of installed rule files
+npx multimodel-dev-os adapter status
+
+# Preview diffs between template and local rule files
+npx multimodel-dev-os adapter diff cursor
+
+# Write rule files to target (forces backup if files exist and --force is passed)
+npx multimodel-dev-os adapter sync cursor --approved --force
+npx multimodel-dev-os adapter sync all --approved
+```

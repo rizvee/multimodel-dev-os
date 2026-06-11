@@ -53,3 +53,7 @@ The workflow engine enforces strict safety boundaries:
 *   **No File Modifications**: Allowed workflows only execute read-only checkups and incremental metadata updates (memory file compilation, feedback summaries).
 *   **No Shell Execution**: Shell command execution from `workflows.yaml` is prohibited. Steps map directly to internal Javascript CLI functions.
 *   **No Autonomy**: Any step requiring code changes (e.g. applying proposals) stops and outputs manual next-step instructions for the developer.
+
+## 4. Bundled Registry Fallback
+
+If the repository does not have a local `.ai/registries/workflows.yaml` registry file initialized yet, the workflow runner will automatically fall back to the bundled registry package templates and output a notice. This allows running read-only diagnostics prior to full project onboarding.

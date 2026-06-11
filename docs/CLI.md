@@ -116,3 +116,22 @@ Compile token-compressed agent session handoff context.
 * **Subcommands:**
   - `build`: Scans project signals and intelligence state and generates `.ai/intelligence/handoff.md` (which is git-ignored by default).
   - `show`: Prints handoff contents to console (building them first if not present).
+
+### 13. `onboard`
+Safely onboard an existing repository into MultiModel Dev OS.
+* **Usage:** `node bin/multimodel-dev-os.js onboard <subcommand> [options]`
+* **Subcommands:**
+  - `analyze`: Scans repository structure, frameworks, languages, and risk markers. Read-only.
+  - `recommend`: Runs scanner diagnostics and recommendations for templates and adapters. Read-only.
+  - `plan`: Generates onboarding plan `.ai/intelligence/onboarding.plan.json` and report `.ai/intelligence/onboarding.report.md`. Read-only.
+  - `apply --approved`: Copies configuration templates to target directory. Overwrites require `--force` and automatically generate backups.
+  - `status`: Show progress and completeness percentage dashboard.
+
+### 14. `adapter`
+Manage and synchronize rule files for IDE and assistant adapters.
+* **Usage:** `node bin/multimodel-dev-os.js adapter <subcommand> [options]`
+* **Subcommands:**
+  - `status`: Show rules files status and enable/disable states from config.
+  - `diff <adapter>`: Show rules diff between bundled template and target root file.
+  - `sync <adapter|all> --approved`: Synchronizes rule files. Overwrites require `--force` and automatically generate backups.
+

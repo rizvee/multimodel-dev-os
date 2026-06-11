@@ -177,6 +177,19 @@ npx multimodel-dev-os@latest workflow list
 # Compile or print token-compressed agent session handoff summaries
 npx multimodel-dev-os@latest handoff build
 npx multimodel-dev-os@latest handoff show
+
+# Onboard existing repositories safely
+npx multimodel-dev-os@latest onboard analyze
+npx multimodel-dev-os@latest onboard recommend
+npx multimodel-dev-os@latest onboard plan
+npx multimodel-dev-os@latest onboard apply --approved
+npx multimodel-dev-os@latest onboard status
+
+# Manage and sync IDE adapter configuration files
+npx multimodel-dev-os@latest adapter status
+npx multimodel-dev-os@latest adapter diff cursor
+npx multimodel-dev-os@latest adapter sync cursor --approved
+npx multimodel-dev-os@latest adapter sync all --approved
 ```
 
 ### Explore Registries

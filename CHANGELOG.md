@@ -2,6 +2,16 @@
 
 All notable changes to multimodel-dev-os will be documented in this file.
 
+## [2.6.0] - 2026-06-11
+
+### Added
+- **Real-Repo Onboarding**: Added `onboard` command suite (`analyze`, `recommend`, `plan`, `apply`, `status`) to safely analyze project structures and bootstrap AI Dev OS configs inside existing repositories.
+- **Onboarding Reports & Plans**: Generates structured `.ai/intelligence/onboarding.plan.json` plans and human-readable `.ai/intelligence/onboarding.report.md` files.
+- **IDE Adapter Synchronization**: Added `adapter` command suite (`status`, `diff`, `sync`) to mirror rule and configuration files (e.g. `.cursorrules`, `CLAUDE.md`, `.vscode/settings.json`) from bundled templates based on enabled status.
+- **Template Recommendation Engine Heuristics**: Matches project directory signatures to recommended profile templates with confidence scores.
+- **Safety Overwrite & Backups**: Enforces that file overwrites require `--force` and automatically generate `<filepath>.bak` backups.
+- **Doctor Onboarding Diagnostics**: Extended `doctor` command with `--onboarding` flag to verify crucial root files, configurations, and git-ignored plan files.
+
 ## [2.5.1] - 2026-06-11
 
 ### Fixed

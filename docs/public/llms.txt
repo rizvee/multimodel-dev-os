@@ -1,4 +1,4 @@
-# MultiModel Dev OS (v2.5.0 Stable Release)
+# MultiModel Dev OS (v2.6.0 Stable Release)
 
 Portable, vendor-neutral workspace configuration standard for multi-agent AI pair-programming workflows.
 
@@ -10,6 +10,18 @@ npx multimodel-dev-os@latest init
 # Scan codebase signals & check status
 npx multimodel-dev-os@latest scan
 npx multimodel-dev-os@latest status
+
+# Onboard existing repositories safely
+npx multimodel-dev-os@latest onboard analyze
+npx multimodel-dev-os@latest onboard recommend
+npx multimodel-dev-os@latest onboard plan
+npx multimodel-dev-os@latest onboard apply --approved
+npx multimodel-dev-os@latest onboard status
+
+# Manage and sync IDE adapter configuration files
+npx multimodel-dev-os@latest adapter status
+npx multimodel-dev-os@latest adapter diff cursor
+npx multimodel-dev-os@latest adapter sync cursor --approved
 
 # Build/refresh memory index
 npx multimodel-dev-os@latest memory build

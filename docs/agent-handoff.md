@@ -37,3 +37,4 @@ The compiled `.ai/intelligence/handoff.md` file contains the following key secti
 *   **No Source Dumps**: Full source code is never appended.
 *   **No Secrets**: Scans target folders and excludes sensitive files, `.env` configs, credentials, or private keys.
 *   **Excluded in VCS**: `.ai/intelligence/handoff.md` is ignored by Git, ensuring local state doesn't pollute repository history.
+*   **Onboarding Guard**: If the target repository has not been initialized with MultiModel Dev OS, the handoff builder warns the developer/agent and details the onboarding steps in the generated handoff.

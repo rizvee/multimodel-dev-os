@@ -1,4 +1,4 @@
-# MultiModel Dev OS — Comprehensive AI Assistant Discoverability Guide (v2.5.0 Stable Release)
+# MultiModel Dev OS — Comprehensive AI Assistant Discoverability Guide (v2.6.0 Stable Release)
 
 MultiModel Dev OS is a repository-level porting specification designed to align context and instructions across diverse developer tools and AI models.
 
@@ -40,6 +40,16 @@ All compliant MultiModel Dev OS CLIs strictly enforce the following command cont
 - **`init`**: Scaffolds the standard `.ai/` context configuration directories. Supports `--template`, `--caveman`, `--adapter`, and dynamic registries mapping.
 - **`status`**: Displays a compact project intelligence dashboard summarizing package details, frameworks, memory freshness, feedback logs, improvement proposals, and audit execution metrics.
 - **`scan`**: Performs a read-only codebase scan to detect frameworks, package managers, MultiModel Dev OS configurations, and potential context-bloat or security risks.
+- **`onboard`**: Safely integrates MultiModel Dev OS into existing repositories. Subcommands:
+  - `analyze`: Scans repository structure, frameworks, languages, and risk markers. Read-only.
+  - `recommend`: Runs scanner diagnostics and recommendations for templates and adapters. Read-only.
+  - `plan`: Generates onboarding plan `.ai/intelligence/onboarding.plan.json` and report `.ai/intelligence/onboarding.report.md`. Read-only.
+  - `apply`: Copies configuration templates to target directory. Overwrites require `--force` and automatically generate backups.
+  - `status`: Show progress and completeness percentage dashboard.
+- **`adapter`**: Manage and sync rule/settings files for IDE adapters. Subcommands:
+  - `status`: Show rules files status and enable/disable states from config.
+  - `diff <adapter>`: Show rules diff between bundled template and target root file.
+  - `sync <adapter|all>`: Synchronizes rule files (requires `--approved`). Overwrites require `--force` and automatically generate backups.
 - **`memory`**: Compiles or reviews codebase hash-compressed memory. Subcommands:
   - `build`: Scans target codebase and writes memory metadata to `.ai/intelligence/memory.hash.json` and `.ai/intelligence/memory.summary.md`.
   - `refresh`: Incremental update comparing changed file hashes to update the memory files.
@@ -64,7 +74,7 @@ All compliant MultiModel Dev OS CLIs strictly enforce the following command cont
 - **`validate-template`**: Scans a template registry entry and source directory structure for completeness.
 - **`validate-adapter`**: Audits an adapter config file and directory setup compliance.
 - **`validate-skill`**: Checks a custom skill file against standard Markdown headers.
-- **`doctor`**: Advisory checkup auditing ignored folders and token footprint (supports `--tokens`, `--release`, and `--intelligence`).
+- **`doctor`**: Advisory checkup auditing ignored folders and token footprint (supports `--tokens`, `--release`, `--intelligence`, and `--onboarding`).
 
 ---
 

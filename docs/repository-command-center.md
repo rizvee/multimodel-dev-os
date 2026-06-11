@@ -40,3 +40,13 @@ Running `status` prints a formatted, color-coded status summary:
 *   **Context Discovery**: Instantly summarizes active templates, environment structures, and boundaries.
 *   **Zero-Dependency Parsing**: Fast initialization checks that don't load external libraries.
 *   **Actionable Next Steps**: Guides developers and AI models to the correct command sequence, preventing execution drift.
+
+## 3. Onboarding Status
+
+For uninitialized repositories, you can inspect the onboarding status directly:
+
+```bash
+npx multimodel-dev-os onboard status
+```
+
+This prints a checklist of crucial MultiModel Dev OS files and an overall completeness percentage score.

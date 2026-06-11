@@ -69,3 +69,14 @@ npx multimodel-dev-os init --target ../my-new-app --template nextjs-saas
 ## Template Quality Assurance
 
 To ensure all contributed templates meet our rigorous quality standards before packaging, refer to our [Template Quality Assurance Blueprint](/template-qa).
+
+## Template Recommendations for Existing Repos
+
+If you are onboarding an existing repository and unsure which template profile to use, the recommendation engine can automatically analyze your project files:
+
+```bash
+# Analyze framework and package signals, then output recommendation
+npx multimodel-dev-os onboard recommend --target .
+```
+
+For detailed heuristics and confidence weights, refer to the [Template Recommendation Engine docs](/template-recommendation).
