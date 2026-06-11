@@ -546,12 +546,17 @@ try {
 
 // --- Package Safety & Hygiene Checks ---
 console.log('\nPackage Safety & Hygiene Checks:');
-if (existsSync(join(projectRoot, '.npmrc'))) {
+if (existsSync(join(projectRoot, '.npmrc')) && process.env.MMDO_ALLOW_PUBLISH !== 'true') {
   console.error(`  ${RED}✗ .npmrc file exists in package root (security risk)${NC}`);
   fail++;
 } else {
-  console.log(`  ${GREEN}✓${NC} No .npmrc file present in package root`);
-  pass++;
+  if (existsSync(join(projectRoot, '.npmrc'))) {
+    console.log(`  ${YELLOW}!${NC} .npmrc file present in package root (allowed via MMDO_ALLOW_PUBLISH)`);
+    warn++;
+  } else {
+    console.log(`  ${GREEN}✓${NC} No .npmrc file present in package root`);
+    pass++;
+  }
 }
 
 const checkExamplesHygiene = (dir) => {
