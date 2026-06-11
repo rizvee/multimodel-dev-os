@@ -7,7 +7,7 @@ set -euo pipefail
 #        --all      (install all adapters)
 #        --dry-run  (show what would be created without creating)
 
-VERSION="2.5.0"
+VERSION="2.5.1"
 REPO_URL="https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main"
 CAVEMAN=false
 DRY_RUN=false

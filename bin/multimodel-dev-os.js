@@ -540,7 +540,7 @@ function handleInit(options) {
   }
 
   // Fallback to copy default global folders if files aren't already included by template
-  const globalAiSubdirs = ['context', 'agents', 'skills', 'prompts', 'checks', 'templates', 'session-logs'];
+  const globalAiSubdirs = ['context', 'agents', 'skills', 'prompts', 'checks', 'templates', 'session-logs', 'registries', 'proposals', 'intelligence'];
   globalAiSubdirs.forEach(sub => {
     const globalPath = join(sourceRoot, '.ai', sub);
     if (existsSync(globalPath)) {
@@ -839,7 +839,7 @@ function handleDoctor(options) {
     checkAdapter('vscode', '.vscode/settings.json');
     checkAdapter('antigravity', '.gemini/settings.json');
   } else {
-    warn('.ai/config.yaml is missing from project. Active adapters could not be audited.');
+    warn('MultiModel Dev OS is not initialized (.ai/config.yaml is missing). Run "npx multimodel-dev-os init" to bootstrap configuration.');
   }
 
   // 6. Token sinks audit
@@ -3102,7 +3102,9 @@ function handleStatus(options) {
 
   // 7. Recommended Next Move
   let nextMove = 'mmdo status';
-  if (!existsSync(memoryHashPath)) {
+  if (!existsSync(join(options.target, '.ai', 'config.yaml'))) {
+    nextMove = '\x1b[36mnpx multimodel-dev-os init\x1b[0m (initialize MultiModel Dev OS first)';
+  } else if (!existsSync(memoryHashPath)) {
     nextMove = '\x1b[36mnpx multimodel-dev-os memory build\x1b[0m (initialize memory index)';
   } else {
     const diff = diffMemory(options.target);
@@ -3120,11 +3122,27 @@ function handleStatus(options) {
   console.log(`    ${nextMove}\n`);
 }
 
+function getWorkflowsPath(target) {
+  let workflowsPath = join(target, '.ai', 'registries', 'workflows.yaml');
+  let usingFallback = false;
+  if (!existsSync(workflowsPath)) {
+    const fallbackPath = join(sourceRoot, '.ai', 'registries', 'workflows.yaml');
+    if (existsSync(fallbackPath)) {
+      workflowsPath = fallbackPath;
+      usingFallback = true;
+    }
+  }
+  return { workflowsPath, usingFallback };
+}
+
 function handleWorkflowList(options) {
-  const workflowsPath = join(options.target, '.ai', 'registries', 'workflows.yaml');
+  const { workflowsPath, usingFallback } = getWorkflowsPath(options.target);
   if (!existsSync(workflowsPath)) {
     console.log('No workflows registry found.');
     return;
+  }
+  if (usingFallback) {
+    console.log('\x1b[33mNotice: Local workflows registry not found. Using bundled workflows registry fallback.\x1b[0m');
   }
   try {
     const registry = parseYaml(readFileSync(workflowsPath, 'utf8')) || {};
@@ -3147,10 +3165,13 @@ function handleWorkflowList(options) {
 }
 
 function handleWorkflowShow(wName, options) {
-  const workflowsPath = join(options.target, '.ai', 'registries', 'workflows.yaml');
+  const { workflowsPath, usingFallback } = getWorkflowsPath(options.target);
   if (!existsSync(workflowsPath)) {
     console.log('No workflows registry found.');
     return;
+  }
+  if (usingFallback) {
+    console.log('\x1b[33mNotice: Local workflows registry not found. Using bundled workflows registry fallback.\x1b[0m');
   }
   try {
     const registry = parseYaml(readFileSync(workflowsPath, 'utf8')) || {};
@@ -3185,10 +3206,13 @@ function handleWorkflowShow(wName, options) {
 }
 
 function handleWorkflowPlan(wName, options) {
-  const workflowsPath = join(options.target, '.ai', 'registries', 'workflows.yaml');
+  const { workflowsPath, usingFallback } = getWorkflowsPath(options.target);
   if (!existsSync(workflowsPath)) {
     console.log('No workflows registry found.');
     return;
+  }
+  if (usingFallback) {
+    console.log('\x1b[33mNotice: Local workflows registry not found. Using bundled workflows registry fallback.\x1b[0m');
   }
   try {
     const registry = parseYaml(readFileSync(workflowsPath, 'utf8')) || {};
@@ -3216,10 +3240,13 @@ function handleWorkflowPlan(wName, options) {
 }
 
 function handleWorkflowRun(wName, options) {
-  const workflowsPath = join(options.target, '.ai', 'registries', 'workflows.yaml');
+  const { workflowsPath, usingFallback } = getWorkflowsPath(options.target);
   if (!existsSync(workflowsPath)) {
     console.log('No workflows registry found.');
     return;
+  }
+  if (usingFallback) {
+    console.log('\x1b[33mNotice: Local workflows registry not found. Using bundled workflows registry fallback.\x1b[0m');
   }
   try {
     const registry = parseYaml(readFileSync(workflowsPath, 'utf8')) || {};
@@ -3383,7 +3410,9 @@ function handleHandoffBuild(options) {
 
   // Next steps recommended
   let recs = '1. Run `npx multimodel-dev-os workflow run repo-health` to check the directory hygiene.\n2. Review pending proposals if any exist.';
-  if (memoryStatus === 'MISSING') {
+  if (!existsSync(join(options.target, '.ai', 'config.yaml'))) {
+    recs = '1. Run `npx multimodel-dev-os init` to bootstrap MultiModel Dev OS.\n2. Run `npx multimodel-dev-os memory build` to initialize codebase memory.';
+  } else if (memoryStatus === 'MISSING') {
     recs = '1. Run `npx multimodel-dev-os memory build` to initialize codebase index.\n2. Verify package safety boundaries.';
   } else if (memoryStatus === 'STALE') {
     recs = '1. Run `npx multimodel-dev-os memory refresh` to update memory files.\n2. Analyze modifications.';

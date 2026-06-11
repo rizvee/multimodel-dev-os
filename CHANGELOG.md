@@ -2,7 +2,12 @@
 
 All notable changes to multimodel-dev-os will be documented in this file.
 
-Format based on [Keep a Changelog](https://keepachangelog.com/).
+## [2.5.1] - 2026-06-11
+
+### Fixed
+- **Command Center Initialization**: Bootstraps command-center registry assets (`.ai/registries/workflows.yaml`, `capabilities.yaml`, `tools.yaml`, `.ai/proposals/README.md`, `.ai/intelligence/README.md`) on `init`.
+- **Bundled Workflow Fallback**: Enabled workflow commands to fall back to the bundled workflow registry in the package when local registry is missing.
+- **Fresh Repository UX**: Improved status, doctor, and handoff commands output and recommendations for fresh repositories.
 
 ## [2.5.0] - 2026-06-11
 
