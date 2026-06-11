@@ -3,38 +3,44 @@ layout: home
 
 hero:
   name: "MultiModel Dev OS"
-  text: "Standardize your AI pair-programmers"
-  tagline: "One portable AI Dev OS for Codex, Antigravity, Cursor, Claude, Gemini, VS Code, and multimodel coding workflows."
+  text: "One config. Every AI tool. Zero lock-in."
+  tagline: "Stop copy-pasting rules between Cursor, Claude, Gemini, Codex, and VS Code. Standardize your AI pair-programmers with a single portable workspace."
   image:
     src: /logo.png
     alt: MultiModel Dev OS Logo
   actions:
     - theme: brand
-      text: Get Started Quick
+      text: Get Started in 30 Seconds
       link: /quickstart
     - theme: alt
-      text: Stable Protocol Specs
-      link: /stable-protocol
+      text: CLI Reference
+      link: /CLI
     - theme: alt
-      text: v2 Release Checklist
-      link: /v2-release-checklist
-    - theme: alt
-      text: View Case Studies
-      link: /case-studies/
+      text: vs Alternatives
+      link: /comparison
     - theme: alt
       text: View on GitHub
       link: https://github.com/rizvee/multimodel-dev-os
 
 features:
-  - icon: 🧠
-    title: Universal Portability
-    details: Supports Codex, Antigravity, Cursor, Claude Code, Gemini, and VS Code with dynamic adapters sync.
+  - icon: 🔄
+    title: Universal Adapter Sync
+    details: Write rules once in AGENTS.md — auto-syncs to .cursorrules, CLAUDE.md, .vscode/, .gemini/, and 10+ more tools.
   - icon: ⚡
-    title: Ultra-Low Token Footprint
-    details: Includes Caveman Mode to slash model context footprint by ~79%, saving massive API bill budgets.
+    title: Caveman Mode (−79% Tokens)
+    details: Slash model context footprint by ~79% with compressed shorthand declarations. Save massively on API bills.
+  - icon: 🧠
+    title: Self-Improving Intelligence
+    details: Hash-compressed memory, developer feedback loops, and structured improvement proposals with human-in-the-loop safety gates.
+  - icon: 📁
+    title: Instant Repo Onboarding
+    details: Analyze existing projects, get template recommendations, and bootstrap AI Dev OS configs without breaking anything.
   - icon: 🛡️
-    title: Local Quality Gates
-    details: Built-in zero-dependency validate and doctor checkups ensure pristine workspace rules layout.
+    title: 214+ Quality Gates
+    details: Built-in validate, doctor, and verify commands enforce workspace health with strict structural assertions.
+  - icon: 🔧
+    title: Zero Dependencies
+    details: Pure Node.js CLI — no runtime, no build step, no package manager lock-in. Works on Windows, macOS, and Linux.
 ---
 
 <style>
@@ -87,21 +93,33 @@ features:
   font-weight: 500;
   font-size: 0.95rem;
 }
+.whats-new {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(16, 185, 129, 0.08));
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  margin: 2rem 0;
+}
+.whats-new h3 {
+  margin-top: 0;
+}
 </style>
 
-## Quick Start Setup
-
-Scaffold a tool-neutral workspace instantly:
+## Quick Start
 
 ```bash
 npx multimodel-dev-os@latest init
 ```
 
+Already have a project? Onboard it safely:
+
+```bash
+npx multimodel-dev-os@latest onboard analyze
+```
+
 ---
 
 ## Works With
-
-MultiModel Dev OS maps repository context directly to all major developer tools and coding agents:
 
 <div class="works-with-grid">
   <div class="works-with-item">🤖 Codex</div>
@@ -114,40 +132,53 @@ MultiModel Dev OS maps repository context directly to all major developer tools 
 
 ---
 
-## Core Specifications & Playbooks
+<div class="whats-new">
+
+### 🆕 What's New in v2.6
+
+- 📁 **Real-Repo Onboarding** — Analyze existing projects and bootstrap configs safely
+- 🔄 **IDE Adapter Sync** — Mirror rule files across all your tools automatically
+- 🩺 **Onboarding Diagnostics** — Extended `doctor --onboarding` for integration readiness
+- 🧠 **Template Recommendations** — Heuristic engine matches projects to optimal templates
+
+</div>
+
+---
+
+## Explore
 
 <div class="grid-container">
   <a href="/quickstart" class="card-item">
     <div class="card-title">🚀 Quickstart Guide</div>
-    <div class="card-desc">Deploy adapters and root contracts in under 2 minutes.</div>
+    <div class="card-desc">Deploy adapters and root contracts in under 30 seconds.</div>
+  </a>
+  <a href="/CLI" class="card-item">
+    <div class="card-title">⌨️ CLI Reference</div>
+    <div class="card-desc">Full command reference for init, scan, status, memory, workflow, and more.</div>
   </a>
   <a href="/templates/" class="card-item">
     <div class="card-title">📦 Template Gallery</div>
-    <div class="card-desc">5 premium, production-ready stack configurations for developers.</div>
+    <div class="card-desc">6 production-ready stack configurations for Next.js, WordPress, e-commerce, and more.</div>
+  </a>
+  <a href="/comparison" class="card-item">
+    <div class="card-title">⚔️ vs Alternatives</div>
+    <div class="card-desc">See how MultiModel Dev OS compares to manual rules, prompt packs, and tool-specific configs.</div>
+  </a>
+  <a href="/real-repo-onboarding" class="card-item">
+    <div class="card-title">📁 Repo Onboarding</div>
+    <div class="card-desc">Bring existing projects into the ecosystem without breaking anything.</div>
   </a>
   <a href="/stable-protocol" class="card-item">
     <div class="card-title">🛡️ Stable Protocol</div>
-    <div class="card-desc">Explore the officially frozen Layer 1-3 directory and file contracts.</div>
+    <div class="card-desc">Explore the officially frozen Layer 1-4 directory and file contracts.</div>
   </a>
   <a href="/cost-optimization" class="card-item">
     <div class="card-title">⚡ Cost Optimization</div>
-    <div class="card-desc">Cuts your prompting token bills by up to 79% using Caveman shortcuts.</div>
+    <div class="card-desc">Cut your prompting token bills by up to 79% using Caveman shortcuts.</div>
   </a>
   <a href="/case-studies/" class="card-item">
-    <div class="card-title">💼 Case Studies Gallery</div>
-    <div class="card-desc">5 real-world integration guides mapping SaaS schemas and sequential handoffs.</div>
-  </a>
-  <a href="/migration-guide" class="card-item">
-    <div class="card-title">📈 Migration Playbook</div>
-    <div class="card-desc">Upgrade older workspaces to v1.1.0 standards cleanly.</div>
-  </a>
-  <a href="/v2-release-checklist" class="card-item">
-    <div class="card-title">🏁 v2 Release Checklist</div>
-    <div class="card-desc">Audit repository compliance with the strict v2 release quality gates.</div>
-  </a>
-  <a href="/llms.txt" class="card-item" target="_blank">
-    <div class="card-title">🤖 AI Discovery (llms.txt)</div>
-    <div class="card-desc">A highly concise, structured overview formatted specifically for AI context ingestion.</div>
+    <div class="card-title">💼 Case Studies</div>
+    <div class="card-desc">5 real-world integration guides for SaaS, WordPress, e-commerce, and more.</div>
   </a>
 </div>
 
@@ -161,30 +192,11 @@ To support modern AI search, GEO discovery, and developer agents:
 
 ---
 
-## Cost & Context Optimization
-
-Minimize prompt overhead and API billing by mapping key context-reduction techniques to MultiModel Dev OS features:
-
-<p align="center">
-  <img src="/assets/cost-optimization.svg" alt="Cost Optimization Funnel" width="100%">
-</p>
-
----
-
-## 5-Day Adoption Roadmap
-
-Deploying MultiModel Dev OS across your team is straightforward and tool-neutral:
-
-<p align="center">
-  <img src="/assets/ai-dev-os-roadmap.svg" alt="5-Day Adoption Roadmap" width="100%">
-</p>
-
----
-
 ## Why MultiModel Dev OS?
 
-AI coding tools are incredibly fast, but switching between them introduces context fragmentation:
-1. **Context Loss:** You use **Cursor** for quick code completions, **Claude Code** for command-line implementations, and **Gemini/Antigravity** for auditing large code volumes. Every context switch drops your operational parameters.
-2. **Instruction Drift:** Different tools look for different files (`.cursorrules`, `CLAUDE.md`, `.vscode/settings.json`, `.gemini/settings.json`). If you modify build scripts or styling rules in one place, they quickly drift across others, causing confusing compile failures.
+AI coding tools are powerful individually, but switching between them creates real friction:
+1. **Context Loss:** You use **Cursor** for code completions, **Claude Code** for implementations, and **Gemini** for auditing. Every switch drops your operational context.
+2. **Instruction Drift:** `.cursorrules`, `CLAUDE.md`, `.vscode/settings.json`, `.gemini/settings.json` — change one, the rest go stale, causing confusing failures.
+3. **Token Waste:** Without context budgets, every prompt resends your full ruleset, and API bills spike.
 
-`multimodel-dev-os` establishes a single source of truth inside your repository using a standardized root structure (`AGENTS.md`, `MEMORY.md`, `TASKS.md`, `RUNBOOK.md`) and a `.ai/` context configuration directory.
+`multimodel-dev-os` establishes a single source of truth using a standardized root structure (`AGENTS.md`, `MEMORY.md`, `TASKS.md`, `RUNBOOK.md`) and a `.ai/` configuration directory that bridges every tool automatically.

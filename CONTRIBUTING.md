@@ -1,65 +1,99 @@
 # Contributing to MultiModel Dev OS
 
-Thank you for your interest in contributing to MultiModel Dev OS! We are committed to making this project developer-friendly, robust, and highly collaborative.
+Thank you for your interest in contributing! We welcome contributions of all kinds — from bug reports and documentation fixes to new adapters and feature proposals.
 
 ---
 
-## Contributing Principles & Stable Protocol Rules
+## Quick Start for Contributors
 
-MultiModel Dev OS `v1.0.0` officially freezes the Layer 1 core root contracts (`AGENTS.md`, `MEMORY.md`, `TASKS.md`, `RUNBOOK.md`) and standard scaffolding subdirectories under `.ai/`.
+1. **Fork** the repository and clone your fork
+2. Run `npm install` to install dev dependencies
+3. Make your changes
+4. Run `npm run verify` to ensure all 214+ assertions pass
+5. Submit a Pull Request
+
+---
+
+## Ways to Contribute
+
+### 🐛 Reporting Bugs
+
+- File issues on [GitHub Issues](https://github.com/rizvee/multimodel-dev-os/issues)
+- Before reporting, run `npx multimodel-dev-os doctor` to check for local workspace issues
+- Include: OS version, active IDE adapter, Node.js version, and steps to reproduce
+
+### 📝 Improving Documentation
+
+Documentation improvements are highly valued! Look for:
+- Typos, unclear explanations, or outdated information
+- Missing examples or use cases
+- Translation opportunities
+
+### 🔌 Proposing New Adapters
+
+New adapters (e.g., Windsurf, Continue, Aider, Roo Code) expand the ecosystem:
+
+1. Create a directory under `adapters/{tool-name}/`
+2. Add the tool-native instruction files referencing `AGENTS.md` and `MEMORY.md`
+3. Add a clear `setup.md` installation guide
+4. Update `.ai/adapters/registry.yaml` with the new adapter entry
+5. Update the supported tools table in `README.md`
+
+### 📦 Creating Templates
+
+Template contributions bring real-world stack configurations to more developers:
+
+1. Create a directory under `examples/{template-name}/`
+2. Follow the structure in existing templates (`AGENTS.md`, `MEMORY.md`, `TASKS.md`, `.ai/config.yaml`, `.ai/context/`, `.ai/skills/`)
+3. Validate against `.ai/schema/template.schema.json`
+4. Add a test assertion in `scripts/verify.js`
+
+### 💡 Good First Issues
+
+New to the project? Look for issues labeled:
+- **`good first issue`** — small, well-scoped tasks perfect for first-time contributors
+- **`documentation`** — doc improvements that don't require deep codebase knowledge
+- **`adapter-request`** — community-requested adapter integrations
+
+Browse open issues: **[github.com/rizvee/multimodel-dev-os/issues](https://github.com/rizvee/multimodel-dev-os/issues)**
+
+---
+
+## Protocol Stability Rules
 
 > [!WARNING]
-> **Strict Protocol Stability**: Any changes that alter the naming of the four root contracts or break standard subdirectory structures are **prohibited** as they represent breaking changes to the core protocol specification. Please ensure all proposed changes are backward-compatible.
+> **Strict Protocol Stability**: The four root contracts (`AGENTS.md`, `MEMORY.md`, `TASKS.md`, `RUNBOOK.md`) and the `.ai/` directory structure are officially frozen. Any changes that alter these naming conventions or break standard subdirectory structures are **prohibited** as breaking changes. All contributions must be backward-compatible.
 
 ---
 
-## How to Contribute
+## Local Verification
 
-### 1. Reporting Bugs
-- Audited issues can be filed directly under [GitHub Issues](https://github.com/rizvee/multimodel-dev-os/issues).
-- Before creating a bug report, run `node bin/multimodel-dev-os.js doctor` to inspect local environments for workspace context bloats or misalignments.
-- Include OS version, active IDE adapter, and detailed steps to reproduce.
-
-### 2. Requesting Templates
-We welcome contributions of pre-filled real-world template blueprints!
-- Template blueprints belong under `.ai/templates/` and as examples in the `examples/` directory.
-- Check template structure compliance using the templates schemas: `.ai/schema/template.schema.json`.
-
-### 3. Proposing Adapters
-New adapters (e.g., Windsurf, Continue, Aider) make the Dev OS ecosystem richer:
-1. Create a dedicated directory under `adapters/{tool-name}/`.
-2. Add the tool-native instruction files referencing `/AGENTS.md` and `/MEMORY.md`.
-3. Add a clear, step-by-step `setup.md` installation guide.
-4. Update the compatibility tables in the `README.md` and `docs/compatibility.md`.
-
----
-
-## Local Verification Testing
-
-Before submitting a Pull Request, you **must** run the local cross-platform verification suite:
+Before submitting a Pull Request, you **must** pass the verification suite:
 
 ```bash
-# Install development dependencies
+# Install dev dependencies
 npm install
 
-# Run the strict release verifier suite (asserts file structures, schema mappings, and version matching)
+# Run the strict release verifier (214+ file assertions, YAML parsing, CLI checks)
 npm run verify
 
-# Verify local VitePress docs build without warning loops
+# Verify VitePress docs build cleanly
 npm run docs:build
+
+# Test CLI commands
+npm run test:cli
 ```
 
-All Pull Requests must pass the automated GitHub Action verifications before they can be merged.
+All Pull Requests must pass the automated GitHub Action verifications before merge.
 
 ---
 
 ## Code of Conduct
 
-Please review and adhere to the guidelines set out in our [Code of Conduct](CODE_OF_CONDUCT.md) to keep this community open and inclusive.
+Please review and follow our [Code of Conduct](CODE_OF_CONDUCT.md) to keep this community welcoming and inclusive.
 
 ---
 
 ## License
 
 By contributing, you agree that your contributions will be licensed under the project's MIT License.
-

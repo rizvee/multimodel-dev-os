@@ -1,18 +1,14 @@
 # CLI Command Reference
 
-`multimodel-dev-os` features a lightweight, dependency-free local CLI utility. It allows standard bootstraps, structural integrity checks, and rule validations natively.
+`multimodel-dev-os` features a lightweight, dependency-free CLI utility with **zero third-party runtime dependencies**. All commands work on Windows, macOS, and Linux.
 
 ## Execution
 
-Execute the CLI globally or inside target folder contexts using `npx`:
-
 ```bash
+# Via npx (recommended — no install needed)
 npx multimodel-dev-os@latest <command> [options]
-```
 
-Or execute locally within a cloned workspace:
-
-```bash
+# Via local clone
 node bin/multimodel-dev-os.js <command> [options]
 ```
 
@@ -20,118 +16,227 @@ node bin/multimodel-dev-os.js <command> [options]
 
 ## Commands
 
-### 1. `init`
-Scaffold `multimodel-dev-os` files and adapters cleanly.
-* **Usage:** `node bin/multimodel-dev-os.js init [options]`
-* **Options:**
-  - `-t, --target <path>`: Specifies target destination (default: current working directory).
-  - `--template <name>`: Stack blueprint: `nextjs-saas`, `wordpress-site`, `ecommerce-store`, `seo-landing-page`, `general-app`.
-  - `-a, --adapter <name>`: Inject rules file directly (`cursor`, `claude`, `vscode`, `gemini`, `antigravity`, `codex`).
-  - `--caveman`: Installs ultra-lightweight variant profiles.
-  - `-d, --dry-run`: Previews actions without mutated files.
-  - `-f, --force`: Overwrites conflicts.
+### 1. `init` — Scaffold Workspace
 
-### 2. `validate`
-Strict directory schema compliance gate checks.
-* **Usage:** `node bin/multimodel-dev-os.js validate [options]`
-* **Assertions:** Checks for the presence of crucial root files and enabled adapters' rule targets. If assertions fail, exits with status 1.
+Scaffold MultiModel Dev OS files and adapters cleanly.
 
-### 3. `doctor`
-Advisory checkups for gitignores, large token-sinks, and intelligence configuration.
-* **Usage:** `node bin/multimodel-dev-os.js doctor [options]`
-* **Audits:** Missing `.env` gates in gitignores, missing build steps inside `AGENTS.md`, and large unignored directories.
-* **Options:**
-  - `--release`: Verifies version stability, verifies Vitepress docs build, checks dry-run pack.
-  - `--intelligence`: Runs advisory audits verifying memory index freshness, feedback log presence, learning rules compilation, proposals status, and `.gitignore` safety boundaries.
+```bash
+npx multimodel-dev-os@latest init [options]
+```
 
-### 4. `templates` / `list-templates`
-Inspection map of all built-in stacks.
-* **Usage:** `node bin/multimodel-dev-os.js templates`
+| Option | Description |
+|:---|:---|
+| `-t, --target <path>` | Target destination (default: current directory) |
+| `--template <name>` | Stack blueprint: `nextjs-saas`, `wordpress-site`, `ecommerce-store`, `seo-landing-page`, `expo-react-native-android`, `general-app` |
+| `-a, --adapter <name>` | Inject adapter rules: `cursor`, `claude`, `vscode`, `gemini`, `antigravity`, `codex` |
+| `--caveman` | Install ultra-lightweight token-optimized variant |
+| `-d, --dry-run` | Preview actions without writing files |
+| `-f, --force` | Overwrite existing files (creates `.bak` backups) |
 
-### 5. `show-template <name>`
-Detailed layout specifications and skill blueprints audit.
-* **Usage:** `node bin/multimodel-dev-os.js show-template nextjs-saas`
+---
 
-### 6. `scan`
+### 2. `scan` — Codebase Scanner
+
 Scan codebase structure, frameworks, package managers, and security/exclusion risks.
-* **Usage:** `node bin/multimodel-dev-os.js scan [options]`
-* **Options:**
-  - `-t, --target <path>`: Specifies target destination (default: current working directory).
 
-### 7. `memory`
+```bash
+npx multimodel-dev-os@latest scan [--target <path>]
+```
+
+---
+
+### 3. `status` — Intelligence Dashboard
+
+Display a compact project intelligence dashboard summarizing package metadata, framework signals, memory state, feedback counts, proposals, and recommended next steps. Fully read-only.
+
+```bash
+npx multimodel-dev-os@latest status [--target <path>]
+```
+
+---
+
+### 4. `memory` — Hash-Compressed Memory
+
 Manage codebase hash-compressed memory index.
-* **Usage:** `node bin/multimodel-dev-os.js memory <subcommand> [options]`
-* **Subcommands:**
-  - `build`: Performs full codebase scan and writes memory files.
-  - `refresh`: Performs incremental memory updates based on file hash diffs.
-  - `diff`: Reports files modified, added, or removed compared to memory index without writing any changes.
-* **Options:**
-  - `-t, --target <path>`: Specifies target destination (default: current working directory).
 
-### 8. `feedback`
-Manage developer feedback loop and compile rules.
-* **Usage:** `node bin/multimodel-dev-os.js feedback <subcommand> [options]`
-* **Subcommands:**
-  - `add "<text>"`: Append a structured feedback object.
-  - `list`: View logged feedback entries.
-  - `summarize`: Compile raw feedback logs into `learning-rules.md`.
-* **Options:**
-  - `--type <type>`: Classification type (`correction`, `preference`, `bug`, etc.)
-  - `--tags <list>`: Comma-separated list of tags.
-  - `--files <list>`: Comma-separated list of related files.
+```bash
+npx multimodel-dev-os@latest memory <subcommand> [--target <path>]
+```
 
-### 9. `improve`
+| Subcommand | Description |
+|:---|:---|
+| `build` | Full codebase scan → writes memory files |
+| `refresh` | Incremental memory update based on file hash diffs |
+| `diff` | Reports modified/added/removed files vs memory index (read-only) |
+
+---
+
+### 5. `feedback` — Developer Feedback Loop
+
+Capture developer corrections and compile them into reusable learning rules.
+
+```bash
+npx multimodel-dev-os@latest feedback <subcommand> [options]
+```
+
+| Subcommand | Description |
+|:---|:---|
+| `add "<text>"` | Append a structured feedback entry |
+| `list` | View all logged feedback entries |
+| `summarize` | Compile feedback logs into `learning-rules.md` |
+
+**Options:** `--type <type>` (correction, preference, bug) · `--tags <list>` · `--files <list>`
+
+---
+
+### 6. `improve` — Proposal Engine
+
 Manage codebase optimization proposals and deterministic execution.
-* **Usage:** `node bin/multimodel-dev-os.js improve <subcommand> [options]`
-* **Subcommands:**
-  - `propose`: Generate a codebase improvement proposal markdown file.
-  - `review`: List active proposals and their statuses.
-  - `status`: Show aggregate counts of proposal statuses.
-  - `validate <proposal-file>`: Validate safety gates and parse operations. Prints a structured safety checklist (Frontmatter, Approval, JSON, Types, Boundaries, Permissions, Constraints) with actionable fixes on refusal.
-  - `diff <proposal-file>`: Preview proposed changes grouped by type in a token-safe truncated diff format.
-  - `apply <proposal-file> --approved`: Apply approved operations to target, printing compact summaries, clear idempotent statuses, and writing success/refusal audit logs.
-  - `log`: Display Applied Proposals Audit Log execution history (`apply-log.jsonl`).
-* **Options:**
-  - `--title <text>`: Title of the proposal (used with `propose`).
-  - `--approved`: Explicitly authorize apply command execution (required for `apply`).
-  - `-t, --target <path>`: Specifies target destination (default: current working directory).
 
-### 10. `status`
-Display a compact project intelligence dashboard.
-* **Usage:** `node bin/multimodel-dev-os.js status [options]`
-* **Overview:** Summarizes package metadata, framework signals, memory state (`MISSING`/`STALE`/`CURRENT`), feedback counts, proposal statuses, apply log audits, and the recommended next command. Fully read-only.
+```bash
+npx multimodel-dev-os@latest improve <subcommand> [options]
+```
 
-### 11. `workflow`
+| Subcommand | Description |
+|:---|:---|
+| `propose` | Generate a codebase improvement proposal |
+| `review` | List active proposals and their statuses |
+| `status` | Show aggregate proposal status counts |
+| `validate <file>` | Validate safety gates and parse operations |
+| `diff <file>` | Preview changes in grouped diff format |
+| `apply <file> --approved` | Apply approved operations to target codebase |
+| `log` | Display Applied Proposals Audit Log history |
+
+**Options:** `--title <text>` (with `propose`) · `--approved` (required for `apply`) · `--target <path>`
+
+---
+
+### 7. `workflow` — Workflow Orchestration
+
 Orchestrate read-only development workflow pipelines.
-* **Usage:** `node bin/multimodel-dev-os.js workflow <subcommand> [options]`
-* **Subcommands:**
-  - `list`: Print all registered workflows in `.ai/registries/workflows.yaml`.
-  - `show <workflow>`: Display details, risk level, memory write capability, code modification capability, and logical steps of target workflow.
-  - `plan <workflow>`: Print steps and commands of target workflow without executing them (dry-run).
-  - `run <workflow>`: Sequentially execute safe, read-only and metadata-write steps (e.g. scan, doctor, memory refresh, feedback summarize). Any step requiring source code modification will halt and output manual instructions.
 
-### 12. `handoff`
+```bash
+npx multimodel-dev-os@latest workflow <subcommand> [options]
+```
+
+| Subcommand | Description |
+|:---|:---|
+| `list` | Print all registered workflows |
+| `show <name>` | Display workflow details, risk level, and steps |
+| `plan <name>` | Dry-run preview of workflow steps |
+| `run <name>` | Execute safe, read-only workflow steps |
+
+**Built-in workflows:** `repo-health` · `memory-refresh` · `feedback-review` · `proposal-review` · `release-check`
+
+---
+
+### 8. `handoff` — Agent Session Handoff
+
 Compile token-compressed agent session handoff context.
-* **Usage:** `node bin/multimodel-dev-os.js handoff <subcommand> [options]`
-* **Subcommands:**
-  - `build`: Scans project signals and intelligence state and generates `.ai/intelligence/handoff.md` (which is git-ignored by default).
-  - `show`: Prints handoff contents to console (building them first if not present).
 
-### 13. `onboard`
+```bash
+npx multimodel-dev-os@latest handoff <subcommand>
+```
+
+| Subcommand | Description |
+|:---|:---|
+| `build` | Generate `.ai/intelligence/handoff.md` (gitignored) |
+| `show` | Print handoff contents to console |
+
+---
+
+### 9. `onboard` — Existing Repo Onboarding
+
 Safely onboard an existing repository into MultiModel Dev OS.
-* **Usage:** `node bin/multimodel-dev-os.js onboard <subcommand> [options]`
-* **Subcommands:**
-  - `analyze`: Scans repository structure, frameworks, languages, and risk markers. Read-only.
-  - `recommend`: Runs scanner diagnostics and recommendations for templates and adapters. Read-only.
-  - `plan`: Generates onboarding plan `.ai/intelligence/onboarding.plan.json` and report `.ai/intelligence/onboarding.report.md`. Read-only.
-  - `apply --approved`: Copies configuration templates to target directory. Overwrites require `--force` and automatically generate backups.
-  - `status`: Show progress and completeness percentage dashboard.
 
-### 14. `adapter`
+```bash
+npx multimodel-dev-os@latest onboard <subcommand> [options]
+```
+
+| Subcommand | Description |
+|:---|:---|
+| `analyze` | Scan project structure, frameworks, and risk markers (read-only) |
+| `recommend` | Run diagnostics and recommend templates/adapters (read-only) |
+| `plan` | Generate onboarding plan and report (read-only) |
+| `apply --approved` | Copy configuration templates (creates backups, requires `--force` for overwrites) |
+| `status` | Show onboarding progress and completeness dashboard |
+
+---
+
+### 10. `adapter` — IDE Adapter Sync
+
 Manage and synchronize rule files for IDE and assistant adapters.
-* **Usage:** `node bin/multimodel-dev-os.js adapter <subcommand> [options]`
-* **Subcommands:**
-  - `status`: Show rules files status and enable/disable states from config.
-  - `diff <adapter>`: Show rules diff between bundled template and target root file.
-  - `sync <adapter|all> --approved`: Synchronizes rule files. Overwrites require `--force` and automatically generate backups.
 
+```bash
+npx multimodel-dev-os@latest adapter <subcommand> [options]
+```
+
+| Subcommand | Description |
+|:---|:---|
+| `status` | Show rules files status and enable/disable states |
+| `diff <adapter>` | Show diff between bundled template and target root file |
+| `sync <adapter\|all> --approved` | Synchronize rule files (creates backups, requires `--force` for overwrites) |
+
+---
+
+### 11. `validate` — Strict Validation
+
+Strict directory schema compliance gate. Exits with code 1 on failures — safe for CI/CD.
+
+```bash
+npx multimodel-dev-os@latest validate [--target <path>]
+```
+
+---
+
+### 12. `doctor` — Advisory Diagnostics
+
+Advisory checkups for workspace health, gitignores, token-sinks, and intelligence configuration.
+
+```bash
+npx multimodel-dev-os@latest doctor [options]
+```
+
+| Flag | Description |
+|:---|:---|
+| `--release` | Verify version stability, docs build, and dry-run pack |
+| `--intelligence` | Audit memory freshness, feedback logs, proposals, and `.gitignore` safety |
+| `--onboarding` | Verify crucial root files, configs, and git-ignored plan files for onboarding readiness |
+
+---
+
+### 13. `verify` — Release Audit
+
+Full release verification suite with **214+ structural assertions**. Checks all files, registries, YAML syntax, CLI version matching, npm pack hygiene, and security boundaries.
+
+```bash
+npx multimodel-dev-os@latest verify
+# or
+npm run verify
+```
+
+---
+
+### 14. `templates` — Template Gallery
+
+List and inspect all built-in stack templates.
+
+```bash
+npx multimodel-dev-os@latest templates          # List all templates
+npx multimodel-dev-os@latest show-template <name>  # Detailed template inspection
+```
+
+---
+
+### 15. Registry Commands
+
+Explore model, adapter, and skill registries.
+
+```bash
+npx multimodel-dev-os@latest models         # View model registry
+npx multimodel-dev-os@latest models --json   # Machine-readable output
+npx multimodel-dev-os@latest show-model <id> # Detailed model info
+npx multimodel-dev-os@latest providers       # View API providers
+npx multimodel-dev-os@latest adapters        # View adapter registry
+npx multimodel-dev-os@latest skills          # View skill registry
+```

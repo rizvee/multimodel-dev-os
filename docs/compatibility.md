@@ -39,8 +39,8 @@ To guarantee validation compliance:
 
 ---
 
-## 4. v1.1.0 Compatibility Guarantee
+## 4. Compatibility Guarantee
 
-The supported tool matrix and custom specifications listed here represent the officially frozen contracts of MultiModel Dev OS `v1.1.0`. Any backward-compatible extensions introduced in subsequent `1.x` releases will build on top of these mappings without breaking current project integrations.
+The supported tool matrix and custom specifications listed here represent the officially frozen contracts of MultiModel Dev OS. The core Layer 1 protocol has been stable since `v1.0.0` and all subsequent `v1.x` and `v2.x` releases maintain full backward compatibility.
 
 Explore our [Stable Protocol Specification](/stable-protocol) or [Upgrade & Migration Guide](/migration-guide) for details.

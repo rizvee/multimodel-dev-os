@@ -1,115 +1,94 @@
-# MultiModel Dev OS — v2.0.0 Roadmap
+# MultiModel Dev OS — Roadmap: v2.x → v3.0
 
-This document outlines the development path, stabilization targets, and migration roadmap leading to the `v2.0.0` stable release of MultiModel Dev OS.
+This document outlines the development path, completed milestones, and future plans for MultiModel Dev OS.
 
 ---
 
-## 1. Release Objective
-
-The primary goal of the **v2.0.0 release** is to promote the experimental features introduced in `v1.2.0` (Template Galaxy, Model Compatibility Layer, and Android Expo template) into officially frozen, production-grade core components, and resume stable package publication to the public npm registry.
+## 1. Current Status
 
 > [!IMPORTANT]
-> **v2.0.1 is the active stable release.** NPM publishing is resumed, consolidating the Template Galaxy and Model registries.
+> **v2.6.0 is the active stable release** on the public npm registry. All features below marked ✅ are shipped and production-ready.
 
 ---
 
-## 2. Key Stabilization Targets
+## 2. Completed Milestones
 
-### A. Template Galaxy Stabilization
-* Standardize the schema for template configurations under `.ai/schema/template.schema.json`.
-* Harden the built-in templates (`nextjs-saas`, `wordpress-site`, `ecommerce-store`, `seo-landing-page`, `expo-react-native-android`, `general-app`) to ensure they pass validation checks across diverse OS environments.
+### v2.0.0 — Template Galaxy & Model Registry ✅
+- Standardized model registries under `.ai/models/` (registry, providers, routing presets, local models)
+- Adapter registry expansion under `.ai/adapters/registry.yaml`
+- Android Expo mobile template (`examples/expo-react-native-android/`)
+- CLI registry subcommands: `models`, `show-model`, `providers`, `route-model`, `adapters`, `show-adapter`, `skills`, `show-skill`
+- Stable npm publication resumed
 
-### B. Model Registry Stabilization
-* Freeze the `.ai/models/` structure:
-  * `registry.yaml` — Core provider mappings and model metadata.
-  * `providers.yaml` — API endpoint declarations.
-  * `routing-presets.yaml` — Optimized task routing configurations.
-  * `local-models.yaml` — Offline execution definitions.
-* Standardize validation rules inside `validate` and `doctor` commands to verify YAML configuration syntax and compatibility.
+### v2.2.0 — Codebase Scanner & Memory Engine ✅
+- `scan` command to inspect frameworks, package managers, and AI Dev OS files
+- `memory build`, `memory refresh`, and `memory diff` commands
+- Hash-compressed memory indexing to `.ai/intelligence/memory.hash.json`
+- Secret-safety exclusions for `.env`, `.npmrc`, `.keystore` files
 
-### C. Adapter Registry Stabilization
-* Freeze `.ai/adapters/registry.yaml`.
-* Extend support mapping for emerging developer tools (e.g. Continue, Cline, Roo Code, Aider, Windsurf).
-* Ensure cross-linking logic maintains strict custom boundaries so that updates in `AGENTS.md` synchronize with adapter targets without wiping user overrides.
+### v2.3.0 — Feedback Learning & Proposal Engine ✅
+- `feedback add`, `feedback list`, `feedback summarize` commands
+- `improve propose`, `improve review`, `improve status` commands
+- Read-only proposal drafting with safety gates
+- Feedback logs and learning rules compilation
 
-### D. Android Expo Template Stabilization
-* Hardening the `examples/expo-react-native-android/` foundation.
-* Verify clean execution of EAS Build and environment configurations on local developer machines and CI runner platforms.
+### v2.4.0 — Approved Proposal Application Engine ✅
+- `improve validate`, `improve diff`, `improve apply` subcommands
+- 12 strict safety gates including path boundary, protected paths, idempotency
+- Applied Proposals Audit Log (`apply-log.jsonl`) with SHA-256 hashing
+- Deterministic operations: `create_file`, `append_line`, `replace_text`
 
-### E. CLI Compatibility Pass
-* Ensure the new subcommands introduced in `v1.2.0` are fully backward-compatible with `v1.0.0` and `v1.1.0` CLI patterns:
-  * `models` / `show-model`
-  * `providers`
-  * `route-model`
-  * `adapters` / `show-adapter`
-  * `skills` / `show-skill`
-  * `doctor --tokens`
-  * `validate --template`
+### v2.5.0 — Repository Intelligence Command Center ✅
+- `status` command — compact operational dashboard
+- `workflow list`, `show`, `plan`, `run` — multi-agent workflow orchestration
+- `handoff build`, `handoff show` — token-compressed session context
+- Safe execution boundaries — no destructive operations from workflows
+
+### v2.6.0 — Real-Repo Onboarding & Adapter Sync ✅
+- `onboard analyze`, `recommend`, `plan`, `apply`, `status` — existing repo onboarding
+- `adapter status`, `diff`, `sync` — IDE adapter rule file synchronization
+- Template recommendation heuristics with confidence scores
+- Safety overwrites with automatic `.bak` backups
+- `doctor --onboarding` diagnostics
 
 ---
 
-## 3. Package Publishing Checklist
+## 3. Publishing Workflow
 
-Before executing the `v2.0.0` release on the npm registry, the following steps must be completed:
+All releases follow this strict publishing checklist:
 
-1. [x] Set version to `2.0.0` in `package.json`.
-2. [x] Ensure `scripts/prepublish-guard.js` allows the publish (since version starts with `2.`).
-3. [x] Run all verification suites:
+1. Bump version in `package.json`
+2. Run `npm run verify` (214+ assertions must pass)
+3. Run `npm run docs:build` to verify documentation
+4. Run `npm publish --dry-run` to review package hygiene
+5. Set `MMDO_ALLOW_PUBLISH=true` and publish:
    ```bash
-   npm run verify
-   ```
-4. [x] Build documentation static bundles cleanly:
-   ```bash
-   npm run docs:build
-   ```
-5. [x] Perform a dry-run publish to review package hygiene:
-   ```bash
-   npm publish --dry-run
-   ```
-6. [x] Set the required publication environment variable:
-   * **PowerShell:** `$env:MMDO_ALLOW_PUBLISH="true"`
-   * **Bash:** `export MMDO_ALLOW_PUBLISH=true`
-7. [x] Publish the package to the public registry:
-   ```bash
-   npm publish --access public
+   MMDO_ALLOW_PUBLISH=true npm publish --access public
    ```
 
 ---
 
-## 4. Migration Notes: npm latest to v2.0.0
+## 4. Upcoming: v2.7.0 — Interactive Dashboard & Plugin Hooks
 
-* **Direct Upgrades**: Projects running the last stable npm package (e.g., `1.1.0` / `1.0.0`) can migrate to `2.0.0` by executing `npx multimodel-dev-os@latest init --force` or installing the package locally.
-* **Registry Release**: Now that v2.0.0 is released, cloning the repository is no longer required to access Layer 1 templates or model registries. Simply run:
-  ```bash
-  npx multimodel-dev-os@latest init
-  ```
-* **Configuration Upgrades**: Existing `.ai/` folders can be upgraded by running `init --force` to pull the new centralized registries (`.ai/models/` and `.ai/adapters/`) into the workspace.
+*   **Interactive TUI Status Dashboard**: Rich terminal UI for `status` and `workflow` commands
+*   **Plugin Hook System**: Pre/post hooks for `init`, `scan`, `memory`, and `workflow` commands
+*   **Custom Workflow Authoring**: User-defined workflow definitions beyond bundled registries
+*   **Adapter Auto-Detection**: Detect installed tools and automatically recommend adapter setup
 
 ---
 
-## 5. Final Release Gate
+## 5. Future: v3.0.0 — Unified Autonomous Co-Pilot Ecosystem
 
-The `v2.0.0` release requires:
-1. 100% pass rate on all automated linter and verifier checks.
-2. Complete documentation updates across all guides and discovery indices.
-3. Explicit maintainer sign-off on local testing of the Android Expo template.
+*   **Full Multi-Agent Orchestration**: Dynamic task handoffs between specialized agents
+*   **Distributed Registry Syncing**: Team-wide configuration synchronization
+*   **Cryptographic Proposal Signing**: Tamper-proof improvement proposals
+*   **Real-Time Collaboration**: Live workspace state sharing between agents and developers
+*   **Cloud-Native Intelligence**: Optional cloud-backed memory and feedback aggregation
 
 ---
 
-## 6. Future Stages: v2.1.0 to v3.0.0
+## 6. Migration Notes
 
-*   **v2.1.0 — Intelligence Core & Registries Foundation**
-    *   Design and document schemas (`memory.schema.json`, `feedback.schema.json`).
-    *   Introduce `.ai/registries/` configuration databases.
-    *   Implement CLI routing helper `mmdo capability route` and `mmdo memory build/refresh`.
-*   **v2.2.0 — Feedback Loops & Tool Integrations**
-    *   Add `mmdo learn` capability to append feedback metrics.
-    *   Define `.ai/registries/tools.yaml` with MCP protocol interfaces.
-*   **v2.3.0 — Proposal Engine & Safety Controls**
-    *   Deploy proposal structures under `.ai/proposals/`.
-    *   Implement CLI pipeline `mmdo improve propose/review/apply`.
-*   **v2.4.0 — Local/Offline Operations**
-    *   Integrate local model scoring (Llama.cpp, Ollama) and offline schema checks.
-*   **v3.0.0 — Unified Autonomous Co-Pilot Ecosystem**
-    *   Full multi-agent orchestration workflows with dynamic task handoffs.
-    *   Distributed registry syncing and cryptographically signed self-improvement proposals.
+* **From any v2.x**: Run `npx multimodel-dev-os@latest init --force` to pull latest configuration files. Existing files are backed up automatically.
+* **From v1.x**: See the [Migration Guide](/migration-guide) for the upgrade path.
+* **Fresh install**: Simply run `npx multimodel-dev-os@latest init` — no prior setup required.

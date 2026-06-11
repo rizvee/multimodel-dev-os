@@ -7,6 +7,7 @@
 3. **Zero dependencies** — no runtime, no package manager, no build step
 4. **Non-destructive** — installers never overwrite, adapters never conflict
 5. **Progressive complexity** — start with `AGENTS.md`, add orchestrator later
+6. **Safety-first** — all write operations require explicit developer approval
 
 ## Layer Architecture
 
@@ -15,24 +16,35 @@
 │          Human Layer                 │
 │   README.md  CONTRIBUTING.md  docs/  │
 ├──────────────────────────────────────┤
-│        Source of Truth Layer         │
+│    Layer 1: Source of Truth          │
 │  AGENTS.md  MEMORY.md  TASKS.md     │
 │  RUNBOOK.md                         │
 ├──────────────────────────────────────┤
-│        AI Operating Layer            │
+│    Layer 2: AI Operating Layer       │
 │  .ai/config.yaml                    │
-│  .ai/agents/multimodel-orchestrator.md│
-│  .ai/context/  .ai/prompts/          │
-│  .ai/skills/  .ai/checks/           │
-│  .ai/session-logs/  .ai/templates/  │
+│  .ai/agents/  .ai/context/          │
+│  .ai/prompts/ .ai/skills/           │
+│  .ai/checks/  .ai/templates/        │
+│  .ai/models/  .ai/schema/           │
 ├──────────────────────────────────────┤
-│         Adapter Layer                │
+│    Layer 3: Adapter Layer            │
 │  adapters/codex/                    │
 │  adapters/antigravity/              │
 │  adapters/cursor/                   │
 │  adapters/claude/                   │
 │  adapters/gemini/                   │
 │  adapters/vscode/                   │
+├──────────────────────────────────────┤
+│    Layer 4: Intelligence Layer       │
+│  .ai/intelligence/  (memory, handoff)│
+│  .ai/registries/    (workflows,     │
+│    capabilities, tools)              │
+│  .ai/proposals/     (improvements)  │
+│  .ai/policies/      (safety gates)  │
+├──────────────────────────────────────┤
+│    Layer 5: Onboarding & Sync       │
+│  onboard analyze/recommend/plan     │
+│  adapter status/diff/sync           │
 └──────────────────────────────────────┘
 ```
 
@@ -43,6 +55,10 @@
 3. **AI agents** read their adapter file + root files
 4. **Agents write** results back to `TASKS.md`, `MEMORY.md`, and session logs
 5. **Orchestrator** coordinates multi-agent workflows via session logs
+6. **Memory engine** indexes codebase state into hash-compressed summaries
+7. **Feedback loop** captures developer corrections and compiles learning rules
+8. **Proposal engine** drafts improvements, validates safety gates, and applies approved changes
+9. **Handoff compiler** generates token-compressed session context for agent transfers
 
 ## File Ownership
 
@@ -54,6 +70,11 @@
 | `RUNBOOK.md` | Human | All agents | Human |
 | `.ai/config.yaml` | Human | System | Human |
 | `.ai/session-logs/*.md` | Agents | Next agent | Current agent |
+| `.ai/intelligence/memory.*` | System | All agents | CLI (`memory build`) |
+| `.ai/intelligence/handoff.md` | System | Next agent | CLI (`handoff build`) |
+| `.ai/intelligence/feedback-log.jsonl` | System | CLI | CLI (`feedback add`) |
+| `.ai/proposals/*.md` | System | Human + CLI | CLI (`improve propose`) |
+| `.ai/registries/*.yaml` | System | CLI | CLI (`init`) |
 | `adapters/*/` | Community | Specific tool | Maintainers |
 
 ## Security Considerations
@@ -62,3 +83,5 @@
 - Handoff logs may contain sensitive context — gitignored by default
 - Adapter config files should not contain API keys or tokens
 - Use `.env` files (gitignored) for secrets, referenced in `RUNBOOK.md`
+- Memory indexes, feedback logs, and proposals are gitignored by default
+- The proposal `apply` command enforces 12 safety gates including path boundary checks

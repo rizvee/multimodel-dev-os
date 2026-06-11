@@ -1,31 +1,33 @@
-# Quickstart Guide: AI Dev OS Deployment
+# Quickstart Guide
 
-Get the MultiModel Dev OS integrated into your codebase in under 2 minutes to synchronize your multi-agent developer workflows.
+Get MultiModel Dev OS integrated into your codebase in **under 30 seconds** to synchronize your multi-agent developer workflows.
 
-> **Use when**: Setting up a new repository or aligning multiple AI tools (like Cursor, Claude Code, Gemini, Codex, and Antigravity) to prevent instruction drift and prompt token bloat.
+> **Use when**: Setting up a new repository or aligning multiple AI tools (Cursor, Claude Code, Gemini, Codex, Antigravity, VS Code) to prevent instruction drift and prompt token bloat.
 
 ---
 
-## Option A: NPX Scaffolding (Stable Packages)
+## Option A: NPX Scaffolding (Recommended)
 
-Initialize any project instantly using our public npm registry. Note that this pulls the latest stable npm-published release (`v2.0.1`):
+Initialize any project instantly using the public npm registry:
 
 ```bash
-# Standard interactive initialization in the current directory
+# Standard initialization in the current directory
 npx multimodel-dev-os@latest init
 
-# Target specific stack templates and specific tool adapters
+# Pick a stack template and inject specific adapters
 npx multimodel-dev-os@latest init --template nextjs-saas --adapter cursor --adapter claude
 
-# Run a dry-run preview before executing file writes
+# Run a dry-run preview before writing any files
 npx multimodel-dev-os@latest init --dry-run
 ```
+
+**Available templates:** `nextjs-saas` · `wordpress-site` · `ecommerce-store` · `seo-landing-page` · `expo-react-native-android` · `general-app`
 
 ---
 
 ## Option B: Fallback One-Line Scripts
 
-If you choose to run installation scripts directly (fetches stable files):
+If you prefer installation scripts:
 
 **macOS / Linux / WSL (bash):**
 ```bash
@@ -41,17 +43,17 @@ irm https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/inst
 
 ## Option C: Caveman Mode (Minimal Tokens)
 
-**Best for**: Context optimization for AI coding when using tight API budgets or smaller models. Reduces rules footprint by **~79%**.
+Cut prompt token overhead by **~79%** with compressed shorthand declarations. Best for tight API budgets or smaller models:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/scripts/install.sh | bash -s -- --caveman
+npx multimodel-dev-os@latest init --caveman
 ```
 
 ---
 
-## Option D: Scaffold Target Directory (NPX Direct)
+## Option D: Target a Specific Directory
 
-If you prefer to initialize a target project path directly:
+Initialize a target project path directly:
 
 ```bash
 npx multimodel-dev-os@latest init --target /path/to/your-project --template nextjs-saas --adapter cursor
@@ -59,34 +61,63 @@ npx multimodel-dev-os@latest init --target /path/to/your-project --template next
 
 ---
 
+## Option E: Onboard an Existing Repository
+
+Already have a project with code in it? Use the onboarding system to safely analyze your repo and bootstrap configs without breaking anything:
+
+```bash
+# Step 1: Analyze your project structure
+npx multimodel-dev-os@latest onboard analyze
+
+# Step 2: Get template and adapter recommendations
+npx multimodel-dev-os@latest onboard recommend
+
+# Step 3: Generate an onboarding plan
+npx multimodel-dev-os@latest onboard plan
+
+# Step 4: Apply the plan (creates backups automatically)
+npx multimodel-dev-os@latest onboard apply --approved
+
+# Step 5: Check onboarding status
+npx multimodel-dev-os@latest onboard status
+```
+
+---
+
 ## After Install
 
-1. **Edit `AGENTS.md`** — fill in your project name, stack, and build commands (portable AI project context).
+1. **Edit `AGENTS.md`** — fill in your project name, stack, and build commands.
 2. **Edit `.ai/config.yaml`** — enable adapters for your tools.
-3. **Copy adapter files** to your project root (e.g., Cursor project rules, Claude Code project instructions):
+3. **Sync adapter rule files** to your project root automatically:
+   ```bash
+   npx multimodel-dev-os@latest adapter sync all --approved
+   ```
+   Or copy manually if you prefer:
    - Cursor: `cp adapters/cursor/.cursorrules .cursorrules`
    - Claude: `cp adapters/claude/CLAUDE.md CLAUDE.md`
    - VS Code: `cp -r adapters/vscode/.vscode/ .vscode/`
-4. **Start coding** — your AI coding agents will read the shared configuration instantly.
+4. **Build your codebase memory index:**
+   ```bash
+   npx multimodel-dev-os@latest memory build
+   ```
+5. **Start coding** — your AI coding agents will read the shared configuration instantly.
 
 ---
 
 ## Verify & Diagnose
 
-Validate structural health, run codebase scans, and build hash-compressed memory:
-
 ```bash
 # Strict directory schema validation
-npx multimodel-dev-os validate
+npx multimodel-dev-os@latest validate
 
-# Advisory doctor workspace compatibility audit
-npx multimodel-dev-os doctor
+# Advisory workspace compatibility audit
+npx multimodel-dev-os@latest doctor
 
-# Advisory codebase scanner
-npx multimodel-dev-os scan
+# Codebase structure scanner
+npx multimodel-dev-os@latest scan
 
-# Build codebase memory index
-npx multimodel-dev-os memory build
+# Compact status dashboard
+npx multimodel-dev-os@latest status
 ```
 
-Explore our canonical [Stable Protocol Specification](/stable-protocol) or [Upgrade & Migration Guide](/migration-guide) for details.
+Explore the full **[CLI Command Reference](/CLI)**, **[Stable Protocol Specification](/stable-protocol)**, or **[Upgrade & Migration Guide](/migration-guide)** for details.

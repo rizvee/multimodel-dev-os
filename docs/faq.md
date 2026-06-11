@@ -1,67 +1,111 @@
-# FAQ: MultiModel Dev OS Questions & Answers
+# FAQ
 
-Frequently asked questions regarding MultiModel Dev OS, AI coding agents compatibility, and prompt context optimization.
-
-> **Use when**: Resolving setup ambiguities, understanding comparative advantages over simple rules files, or auditing CLI validations.
+Frequently asked questions about MultiModel Dev OS, AI coding agents compatibility, and prompt context optimization.
 
 ---
 
 ## General
 
 **What is MultiModel Dev OS?**
-A set of markdown templates and directory structures that allow multiple AI coding tools (Codex, Cursor, Claude Code, Gemini, Antigravity, VS Code) to share a single portable AI project context. It acts like `.editorconfig` but for AI assistants.
+A set of markdown templates and directory structures that allow multiple AI coding tools (Codex, Cursor, Claude Code, Gemini, Antigravity, VS Code) to share a single portable AI project context. Think of it as `.editorconfig` but for AI assistants.
 
 **Is this a runtime operating system?**
-No. It is a metaphorical "OS" providing standard files (`AGENTS.md`, `MEMORY.md`, `TASKS.md`, `RUNBOOK.md`) to coordinate multiple tools.
+No. It is a workspace configuration standard — standard files (`AGENTS.md`, `MEMORY.md`, `TASKS.md`, `RUNBOOK.md`) and a `.ai/` directory that coordinate multiple tools. There is no background process, no daemon, and no runtime overhead.
 
 **What does "multimodel" mean?**
-Multiple distinct AI coding models/agents (such as Codex, Antigravity, Cursor, and Claude Code) operating sequentially on the exact same workspace branch.
+Multiple distinct AI coding models/agents (like Codex, Cursor, Claude Code, and Gemini) operating on the **same workspace** without context loss or instruction drift.
+
+**How is this different from just writing my own `.cursorrules` or `CLAUDE.md`?**
+Those are tool-specific instruction files. If you use multiple tools, you end up maintaining duplicated rules that quickly drift out of sync. MultiModel Dev OS gives you a **single source of truth** (`AGENTS.md`) and automatically adapts it for each tool. You write rules once, every tool reads them.
 
 ---
 
-## Setup
+## Setup & Installation
 
 **Do I need Node.js?**
 It depends on your installation path:
-* **Yes:** If you run the primary, recommended `npx multimodel-dev-os@latest init` workflow.
+* **Yes:** If you use the primary `npx multimodel-dev-os@latest init` workflow (recommended).
 * **No:** If you run the fallback bash (`install.sh`) or PowerShell (`install.ps1`) one-liners.
 
-**Why not just write a single manual AGENTS.md myself?**
-While you can write a raw markdown file, MultiModel Dev OS offers:
-1. **Automated Bridging:** Adapters dynamically map your root source to Cursor, Claude, and Gemini native rules.
-2. **Context Budgets:** Toggle **Caveman Mode** to slash prompt rules overhead by **~79%**.
-3. **Structured Verification:** Built-in CLI commands validate workspace specifications instantly.
+**Can I use this with an existing project?**
+Yes! The `onboard` command suite is designed specifically for this. It analyzes your project structure, recommends the best template, generates a plan, and applies configs safely with automatic backups:
+```bash
+npx multimodel-dev-os@latest onboard analyze
+npx multimodel-dev-os@latest onboard apply --approved
+```
+
+**Does this overwrite my existing files?**
+Never by default. The CLI audits for conflicts before writing anything. To overwrite existing files, you must explicitly pass `--force`, and the system automatically creates `.bak` backups.
 
 ---
 
-## Adapters
+## Adapters & Tools
 
 **Do I copy adapter files to my project root?**
-Yes, for tools that auto-detect specific files:
-- Cursor → `.cursorrules`
-- Claude Code → `CLAUDE.md`
-- VS Code → `.vscode/settings.json`
+You can do it automatically with the `adapter sync` command:
+```bash
+npx multimodel-dev-os@latest adapter sync all --approved
+```
+Or manually:
+- Cursor → `cp adapters/cursor/.cursorrules .cursorrules`
+- Claude Code → `cp adapters/claude/CLAUDE.md CLAUDE.md`
+- VS Code → `cp -r adapters/vscode/.vscode/ .vscode/`
+
+**Does this work with MCP tools?**
+Yes. MultiModel Dev OS includes a `.ai/registries/tools.yaml` that defines MCP tool integrations (like gcloud, Chrome DevTools). The tool registry maps capabilities dynamically rather than hardcoding tool names.
+
+**What AI models does this support?**
+All of them. The `.ai/models/` directory contains a model registry with capability scores, routing presets, and provider configurations. It supports cloud models (GPT-4, Claude, Gemini), local models (Llama, Ollama), and everything in between. No model is hardcoded — the registry routes tasks based on capability scores.
 
 ---
 
 ## Caveman Mode
 
 **When should I use Caveman Mode?**
-**Best for**: Context optimization for AI coding when you are using compact context budget windows, smaller models, or want to save money on API bill parameters.
+Use Caveman Mode when you want to minimize prompt token overhead — ideal for tight API budgets, smaller context windows, or when you want to save money on API calls. It compresses the workspace rules by **~79%** using shorthand declarations.
+
+---
+
+## Intelligence & Safety
+
+**Is this safe? Can it modify my code?**
+MultiModel Dev OS is primarily a **read-only** workspace configuration layer. The only write operations are:
+- `init` / `onboard apply` — creates configuration files (with conflict detection)
+- `memory build` — creates memory index files under `.ai/intelligence/` (gitignored)
+- `improve apply` — applies approved proposals (requires explicit `--approved` flag and passes 12 safety gates)
+
+No command can execute arbitrary shell commands, and destructive operations always require explicit developer approval.
+
+**What are the safety gates?**
+The improvement proposal system enforces 12 strict safety checks including path boundary containment, protected path blocks (`.git/`, `.env`, `node_modules/`), idempotency verification, and mandatory human approval. Every apply action is logged in an append-only audit trail.
 
 ---
 
 ## Diagnostics & Validation
 
 **What is the difference between `validate` and `doctor`?**
-* **`validate`** is strict and verifies compliance with the directory schema.
-* **`doctor`** is advisory and warns you about large unignored directories or empty placeholders.
+* **`validate`** — Strict compliance gate. Checks if required files exist and adapter configs are structurally correct. Exits with code 1 on failures. Use in CI/CD.
+* **`doctor`** — Advisory audit. Warns about large unignored directories, missing `.gitignore` entries, stale memory indexes, and potential token waste. Non-blocking.
+
+---
+
+## Contributing
+
+**How do I contribute a new adapter?**
+1. Create a directory under `adapters/{tool-name}/`
+2. Add the tool-native instruction files referencing `/AGENTS.md` and `/MEMORY.md`
+3. Add a clear `setup.md` installation guide
+4. Update the adapter registry in `.ai/adapters/registry.yaml`
+5. Submit a PR — see our [Contributing Guidelines](/contributing)
 
 ---
 
 ## Protocol & Migration
 
 **Is the MultiModel Dev OS protocol stable?**
-Yes. As of version `v1.1.0`, the core specifications are officially frozen and backward-compatible. This ensures that codebases prepared using `v1.1.0` or later operate seamlessly inside all `1.x` and `2.x` ecosystems.
+Yes. The core Layer 1 specifications (root contracts and `.ai/` directory structure) are officially frozen and backward-compatible. Codebases prepared using any `v1.x` or `v2.x` release operate seamlessly with the latest version.
 
-Explore our [Stable Protocol Specification](/stable-protocol) or [Upgrade & Migration Guide](/migration-guide) for details.
+**How do I upgrade from an older version?**
+Run `npx multimodel-dev-os@latest init --force` to pull the latest configuration files. Existing files will be backed up automatically. See the [Migration Guide](/migration-guide) for details.
+
+Explore our [Stable Protocol Specification](/stable-protocol) or [CLI Command Reference](/CLI) for more details.
