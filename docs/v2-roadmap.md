@@ -7,7 +7,7 @@ This document outlines the development path, completed milestones, and future pl
 ## 1. Current Status
 
 > [!IMPORTANT]
-> **v2.6.0 is the active stable release** on the public npm registry. All features below marked ✅ are shipped and production-ready.
+> **v2.7.0 is the active stable release** on the public npm registry. All features below marked ✅ are shipped and production-ready.
 
 ---
 
@@ -51,6 +51,14 @@ This document outlines the development path, completed milestones, and future pl
 - Safety overwrites with automatic `.bak` backups
 - `doctor --onboarding` diagnostics
 
+### v2.7.0 — Website, Demo & Distribution System ✅
+- Restructured homepage as a product conversion funnel
+- Created 5 structured, copy-paste interactive demo workflow pages
+- Documented comprehensive distribution and release workflows
+- Added new SVG visual assets for onboarding and adapter sync flows
+- Created docs-first examples for key developer workflows
+- Updated sitemaps, model registries, and search indices
+
 ---
 
 ## 3. Publishing Workflow
@@ -68,7 +76,7 @@ All releases follow this strict publishing checklist:
 
 ---
 
-## 4. Upcoming: v2.7.0 — Interactive Dashboard & Plugin Hooks
+## 4. Upcoming: v2.8.0 — Interactive Dashboard & Plugin Hooks
 
 *   **Interactive TUI Status Dashboard**: Rich terminal UI for `status` and `workflow` commands
 *   **Plugin Hook System**: Pre/post hooks for `init`, `scan`, `memory`, and `workflow` commands

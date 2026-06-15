@@ -31,40 +31,39 @@
   
   <!-- Terminal Content Console -->
   <g font-size="13.5" fill="#e2e8f0" xml:space="preserve">
-    <!-- COMMAND 1: init -->
+    <!-- COMMAND 1: onboard analyze -->
     <text x="30" y="70" font-weight="bold">
-      <tspan fill="#38bdf8">~</tspan> <tspan fill="#f43f5e">❯</tspan> <tspan fill="#818cf8">npx</tspan> <tspan fill="#f472b6">multimodel-dev-os@latest</tspan> <tspan fill="#34d399">init</tspan> <tspan fill="#94a3b8">--template nextjs-saas --adapter codex</tspan>
+      <tspan fill="#38bdf8">~</tspan> <tspan fill="#f43f5e">❯</tspan> <tspan fill="#818cf8">npx</tspan> <tspan fill="#f472b6">multimodel-dev-os@latest</tspan> <tspan fill="#34d399">onboard analyze</tspan>
+    </text>
+    
+    <!-- Onboard Analyze Output -->
+    <text x="30" y="95" fill="#a78bfa" font-weight="600">🔍 Analyzing repository structure...</text>
+    <text x="50" y="115" fill="#34d399">✓ <tspan fill="#e2e8f0">Detected stack:</tspan> <tspan fill="#818cf8">Next.js + TypeScript</tspan></text>
+    <text x="50" y="132" fill="#34d399">✓ <tspan fill="#e2e8f0">Recommended template:</tspan> <tspan fill="#fb7185">nextjs-saas</tspan></text>
+    
+    <!-- COMMAND 2: init -->
+    <text x="30" y="175" font-weight="bold">
+      <tspan fill="#38bdf8">~</tspan> <tspan fill="#f43f5e">❯</tspan> <tspan fill="#818cf8">npx</tspan> <tspan fill="#f472b6">multimodel-dev-os@latest</tspan> <tspan fill="#34d399">init</tspan> <tspan fill="#94a3b8">--template nextjs-saas</tspan>
     </text>
     
     <!-- Scaffolding Output -->
-    <text x="30" y="95" fill="#a78bfa" font-weight="600">🧠 Scaffolding MultiModel Dev OS environment...</text>
-    <text x="50" y="115" fill="#34d399">✓ <tspan fill="#e2e8f0">Scaffolded root files</tspan> <tspan fill="#64748b">(AGENTS.md, MEMORY.md, TASKS.md, RUNBOOK.md)</tspan></text>
-    <text x="50" y="132" fill="#34d399">✓ <tspan fill="#e2e8f0">Enabled adapter</tspan> <tspan fill="#fb7185">codex</tspan> <tspan fill="#64748b">(.ai/config.yaml status = true)</tspan></text>
+    <text x="30" y="200" fill="#a78bfa" font-weight="600">🧠 Scaffolding MultiModel Dev OS environment...</text>
+    <text x="50" y="220" fill="#34d399">✓ <tspan fill="#e2e8f0">Created root contracts</tspan> <tspan fill="#64748b">(AGENTS.md, MEMORY.md, TASKS.md)</tspan></text>
+    <text x="50" y="237" fill="#34d399">✓ <tspan fill="#e2e8f0">Configured adapters</tspan> <tspan fill="#64748b">(.cursorrules, CLAUDE.md, .gemini/)</tspan></text>
     
-    <!-- COMMAND 2: validate -->
-    <text x="30" y="175" font-weight="bold">
-      <tspan fill="#38bdf8">~</tspan> <tspan fill="#f43f5e">❯</tspan> <tspan fill="#818cf8">npx</tspan> <tspan fill="#f472b6">multimodel-dev-os@latest</tspan> <tspan fill="#34d399">validate</tspan> <tspan fill="#94a3b8">--target ./my-app</tspan>
+    <!-- COMMAND 3: adapter sync -->
+    <text x="30" y="280" font-weight="bold">
+      <tspan fill="#38bdf8">~</tspan> <tspan fill="#f43f5e">❯</tspan> <tspan fill="#818cf8">npx</tspan> <tspan fill="#f472b6">multimodel-dev-os@latest</tspan> <tspan fill="#34d399">adapter sync</tspan>
     </text>
     
-    <!-- Validate Output -->
-    <text x="30" y="200" fill="#a78bfa" font-weight="600">🛡️ Validating workspace structure compliance...</text>
-    <text x="50" y="220" fill="#34d399">✓ <tspan fill="#e2e8f0">Checked primary contract documents: 4/4 exist</tspan></text>
-    <text x="50" y="237" fill="#34d399">✓ <tspan fill="#e2e8f0">Validated .ai/config.yaml adapter constraints</tspan></text>
-    <text x="50" y="254" fill="#34d399">✓ <tspan fill="#34d399">Success:</tspan> <tspan fill="#e2e8f0">Workspace structure conforms to specifications</tspan></text>
-
-    <!-- COMMAND 3: doctor -->
-    <text x="30" y="295" font-weight="bold">
-      <tspan fill="#38bdf8">~</tspan> <tspan fill="#f43f5e">❯</tspan> <tspan fill="#818cf8">npx</tspan> <tspan fill="#f472b6">multimodel-dev-os@latest</tspan> <tspan fill="#34d399">doctor</tspan> <tspan fill="#94a3b8">--target ./my-app</tspan>
-    </text>
-    
-    <!-- Doctor Output -->
-    <text x="30" y="320" fill="#a78bfa" font-weight="600">🩺 Executing advisory checkups...</text>
-    <text x="50" y="340" fill="#34d399">✓ <tspan fill="#e2e8f0">Gitignore audit: Ignored cache folders (.vitepress/dist)</tspan></text>
-    <text x="50" y="357" fill="#34d399">✓ <tspan fill="#e2e8f0">Active adapters verify: Physical rule files mapped</tspan></text>
-    <text x="50" y="374" fill="#38bdf8">ℹ <tspan fill="#e2e8f0">Advisory: 0 warnings, workspace is operating at 100% efficiency</tspan></text>
+    <!-- Adapter Sync Output -->
+    <text x="30" y="305" fill="#a78bfa" font-weight="600">🔄 Synchronizing workspace adapters...</text>
+    <text x="50" y="325" fill="#34d399">✓ <tspan fill="#e2e8f0">Synced Cursor rules</tspan> <tspan fill="#64748b">(→ .cursorrules)</tspan></text>
+    <text x="50" y="342" fill="#34d399">✓ <tspan fill="#e2e8f0">Synced Claude instructions</tspan> <tspan fill="#64748b">(→ CLAUDE.md)</tspan></text>
+    <text x="50" y="359" fill="#34d399">✓ <tspan fill="#e2e8f0">Synced Gemini configuration</tspan> <tspan fill="#64748b">(→ .gemini/settings)</tspan></text>
 
     <!-- Success banner -->
-    <text x="30" y="415" fill="#34d399" font-weight="bold">🚀 All Dev OS pipeline checkups completed successfully!</text>
+    <text x="30" y="415" fill="#34d399" font-weight="bold">🚀 Workspace synchronized and secured successfully!</text>
     
     <!-- Next Active Prompt Cursor -->
     <text x="30" y="455" fill="#f43f5e">❯ <tspan fill="#e2e8f0">█</tspan></text>

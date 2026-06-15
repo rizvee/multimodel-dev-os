@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 320" width="100%" height="100%" style="font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#070a13" />
+      <stop offset="100%" stop-color="#0d111d" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+    <linearGradient id="card" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.06" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.02" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="320" rx="16" fill="url(#bg)" />
+  <rect x="1" y="1" width="898" height="318" rx="15" fill="none" stroke="#1e293b" stroke-width="1" />
+
+  <!-- Title -->
+  <text x="450" y="38" text-anchor="middle" font-size="18" font-weight="800" fill="#e2e8f0" letter-spacing="0.5">ADAPTER SYNC FLOW</text>
+  <rect x="200" y="48" width="500" height="2" rx="1" fill="url(#accent)" opacity="0.4" />
+
+  <!-- Source: AGENTS.md -->
+  <rect x="30" y="75" width="180" height="90" rx="12" fill="url(#card)" stroke="#4f46e5" stroke-width="1.5" />
+  <text x="120" y="105" text-anchor="middle" font-size="15" font-weight="800" fill="#a78bfa">AGENTS.md</text>
+  <text x="120" y="125" text-anchor="middle" font-size="10" fill="#94a3b8">Single source of truth</text>
+  <text x="120" y="140" text-anchor="middle" font-size="10" fill="#94a3b8">for all AI coding rules</text>
+  <text x="120" y="155" text-anchor="middle" font-size="9" fill="#10b981" font-weight="600">YOUR RULES</text>
+
+  <!-- Arrow source → adapter sync -->
+  <line x1="215" y1="120" x2="275" y2="120" stroke="url(#accent)" stroke-width="2" />
+  <polygon points="275,115 285,120 275,125" fill="#10b981" />
+
+  <!-- Adapter Sync Engine -->
+  <rect x="290" y="70" width="160" height="100" rx="12" fill="url(#card)" stroke="#10b981" stroke-width="1.5" />
+  <text x="370" y="100" text-anchor="middle" font-size="28">🔄</text>
+  <text x="370" y="125" text-anchor="middle" font-size="13" font-weight="700" fill="#f8fafc">adapter sync</text>
+  <text x="370" y="143" text-anchor="middle" font-size="10" fill="#94a3b8">Diff + copy with</text>
+  <text x="370" y="156" text-anchor="middle" font-size="10" fill="#94a3b8">backup protection</text>
+
+  <!-- Arrows to targets -->
+  <line x1="455" y1="95" x2="540" y2="55" stroke="#6366f1" stroke-width="1.5" />
+  <line x1="455" y1="110" x2="540" y2="95" stroke="#6366f1" stroke-width="1.5" />
+  <line x1="455" y1="125" x2="540" y2="135" stroke="#6366f1" stroke-width="1.5" />
+  <line x1="455" y1="140" x2="540" y2="175" stroke="#6366f1" stroke-width="1.5" />
+  <line x1="455" y1="155" x2="540" y2="215" stroke="#6366f1" stroke-width="1.5" />
+  <line x1="455" y1="165" x2="540" y2="255" stroke="#6366f1" stroke-width="1.5" />
+
+  <!-- Target: Cursor -->
+  <rect x="545" y="35" width="160" height="36" rx="8" fill="url(#card)" stroke="#334155" stroke-width="1" />
+  <text x="555" y="58" font-size="14">🎯</text>
+  <text x="578" y="58" font-size="12" font-weight="600" fill="#f8fafc">.cursorrules</text>
+
+  <!-- Target: Claude -->
+  <rect x="545" y="78" width="160" height="36" rx="8" fill="url(#card)" stroke="#334155" stroke-width="1" />
+  <text x="555" y="101" font-size="14">⚡</text>
+  <text x="578" y="101" font-size="12" font-weight="600" fill="#f8fafc">CLAUDE.md</text>
+
+  <!-- Target: VS Code -->
+  <rect x="545" y="121" width="160" height="36" rx="8" fill="url(#card)" stroke="#334155" stroke-width="1" />
+  <text x="555" y="144" font-size="14">💻</text>
+  <text x="578" y="144" font-size="12" font-weight="600" fill="#f8fafc">.vscode/settings.json</text>
+
+  <!-- Target: Gemini -->
+  <rect x="545" y="164" width="160" height="36" rx="8" fill="url(#card)" stroke="#334155" stroke-width="1" />
+  <text x="555" y="187" font-size="14">🧠</text>
+  <text x="578" y="187" font-size="12" font-weight="600" fill="#f8fafc">GEMINI.md</text>
+
+  <!-- Target: Antigravity -->
+  <rect x="545" y="207" width="160" height="36" rx="8" fill="url(#card)" stroke="#334155" stroke-width="1" />
+  <text x="555" y="230" font-size="14">🪐</text>
+  <text x="578" y="230" font-size="12" font-weight="600" fill="#f8fafc">.gemini/settings.json</text>
+
+  <!-- Target: More -->
+  <rect x="545" y="250" width="160" height="36" rx="8" fill="url(#card)" stroke="#334155" stroke-width="1" />
+  <text x="555" y="273" font-size="14">🔌</text>
+  <text x="578" y="273" font-size="12" font-weight="600" fill="#94a3b8">+ Cline, Aider, ...</text>
+
+  <!-- Footer command -->
+  <rect x="30" y="280" width="500" height="30" rx="8" fill="#090d16" stroke="#1e293b" stroke-width="1" />
+  <text x="45" y="300" font-family="'Fira Code', 'JetBrains Mono', monospace" font-size="12" fill="#34d399">$ <tspan fill="#e2e8f0">npx multimodel-dev-os@latest adapter sync all --approved</tspan></text>
+</svg>

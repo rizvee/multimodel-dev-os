@@ -32,7 +32,7 @@ export default {
         'license': 'https://opensource.org/licenses/MIT',
         'url': 'https://github.com/rizvee/multimodel-dev-os',
         'downloadUrl': 'https://www.npmjs.com/package/multimodel-dev-os',
-        'softwareVersion': '2.6.1',
+        'softwareVersion': '2.7.0',
         'description': 'Portable, vendor-neutral AI Developer OS for multi-agent coding workflows.'
       })
     ]
@@ -50,9 +50,20 @@ export default {
         text: 'Getting Started',
         items: [
           { text: 'Introduction', link: '/' },
-          { text: 'Interactive CLI Demo', link: '/demo' },
           { text: 'Quickstart', link: '/quickstart' },
+          { text: 'Interactive CLI Demo', link: '/demo' },
           { text: 'FAQ', link: '/faq' }
+        ]
+      },
+      {
+        text: 'Demo Workflows',
+        items: [
+          { text: 'Demo Hub', link: '/demos/' },
+          { text: 'Existing Repo Onboarding', link: '/demos/existing-repo-onboarding' },
+          { text: 'Adapter Sync', link: '/demos/adapter-sync' },
+          { text: 'Safe Improvement Loop', link: '/demos/safe-improvement-loop' },
+          { text: 'Multi-Agent Handoff', link: '/demos/multi-agent-handoff' },
+          { text: 'Release Check', link: '/demos/release-check' }
         ]
       },
       {
@@ -159,16 +170,18 @@ export default {
         ]
       },
       {
-        text: 'Operations & Publishing',
+        text: 'Distribution & Release',
         items: [
-          { text: 'Public Launch Checklist', link: '/launch-checklist' },
-          { text: 'Release Playbook Template', link: '/release-template' },
-          { text: 'CLI Roadmap', link: '/cli-roadmap' },
-          { text: 'v2.0.0 Roadmap', link: '/v2-roadmap' },
+          { text: 'Distribution Guide', link: '/distribution' },
           { text: 'NPM Publishing Runbook', link: '/npm-publishing' },
-          { text: 'Pre-flight Release Testing', link: '/testing-v0.2' },
+          { text: 'Release Playbook Template', link: '/release-template' },
+          { text: 'Public Launch Checklist', link: '/launch-checklist' },
+          { text: 'Launch & Sharing Kit', link: '/launch-kit' },
+          { text: 'CLI Roadmap', link: '/cli-roadmap' },
+          { text: 'v2 Roadmap', link: '/v2-roadmap' },
           { text: 'Release Policy', link: '/release-policy' },
           { text: 'Support Policy', link: '/support-policy' },
+          { text: 'Pre-flight Release Testing', link: '/testing-v0.2' },
           { text: 'Final Launch Guidelines', link: '/final-launch' },
           { text: 'v1.0.0 Release Checklist', link: '/v1-checklist' }
         ]

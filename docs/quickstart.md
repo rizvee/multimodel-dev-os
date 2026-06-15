@@ -104,6 +104,19 @@ npx multimodel-dev-os@latest onboard status
 
 ---
 
+## Try the Demo Workflows
+
+To see MultiModel Dev OS in action in under 2 minutes, try one of our guided, copy-paste demo workflows:
+- 🚀 **[Safe Repo Onboarding](/demos/existing-repo-onboarding)** — Safely onboard an existing project without breaking changes.
+- 🔄 **[Universal Adapter Sync](/demos/adapter-sync)** — Write rules once in `AGENTS.md` and sync Cursor, Claude, and Gemini.
+- 🤝 **[Multi-Agent Handoff](/demos/multi-agent-handoff)** — Smoothly hand off session context between terminal and editor agents.
+- 🔁 **[Safe Improvement Loop](/demos/safe-improvement-loop)** — Capture user feedback and run safe, audited codebase upgrades.
+- 🩺 **[Release Verification](/demos/release-check)** — Run the final pre-flight checks before releasing a package.
+
+Or browse them all on the [Demos Hub](/demos/).
+
+---
+
 ## Verify & Diagnose
 
 ```bash

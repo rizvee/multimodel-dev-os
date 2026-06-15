@@ -55,6 +55,14 @@ Various community projects offer pre-built instruction sets for specific tools:
 - **Self-improving:** The feedback loop compiles developer corrections into reusable rules. The proposal engine suggests codebase improvements with strict safety gates.
 - **Instant onboarding:** The `onboard analyze` command scans existing projects and recommends the optimal template and adapter configuration.
 
+### 5. Agentic CLIs & Extensions (Aider, Roo Code, Continue, Cline)
+
+While advanced AI coding assistants like **Aider**, **Roo Code (Cline)**, and **Continue** provide powerful code generation and agentic capabilities, they serve a different layer of the stack than MultiModel Dev OS:
+
+- **Complementary, Not Competitive:** MultiModel Dev OS is not a chatbot or code generator. It is a **configuration and governance layer**. It formats and syncs workspace context so that tools like Aider, Roo Code, and Continue can read the exact same project boundaries.
+- **Rules Portability:** Roo Code or Continue read custom instructions, but they are stored in tool-specific config formats. If you switch to Aider in the CLI, you have to recreate those instructions. MultiModel Dev OS bridges this gap by auto-generating target configurations from `AGENTS.md`.
+- **Quality Gates & Backups:** MultiModel Dev OS provides built-in `validate`, `doctor`, and `onboard` commands, plus structured proposal safety gates. This prevents external agents from making unchecked, destructive changes directly to your main branch.
+
 ---
 
 ## When to Use What

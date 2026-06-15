@@ -20,6 +20,16 @@ Those are tool-specific instruction files. If you use multiple tools, you end up
 
 ---
 
+## Demo Workflows
+
+**How do I run the demo workflows?**
+Our demos are fully self-contained markdown walkthroughs. You can copy the commands directly from the demo pages, run them in your terminal, and observe the output. See the **[Demos Hub](/demos/)** for all available workflows.
+
+**Do the demos make any changes to my system?**
+The demos are designed to run in a safe, isolated, or dry-run configuration. For example, `onboard analyze` is entirely read-only, and onboarding plans and adapter syncs require developer approval before writing files. We also provide clear **Cleanup** sections on every demo page to undo any files created.
+
+---
+
 ## Setup & Installation
 
 **Do I need Node.js?**

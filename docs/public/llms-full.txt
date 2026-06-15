@@ -1,4 +1,4 @@
-# MultiModel Dev OS — Comprehensive AI Assistant Discoverability Guide (v2.6.1 Stable Release)
+# MultiModel Dev OS — Comprehensive AI Assistant Discoverability Guide (v2.7.0 Stable Release)
 
 MultiModel Dev OS is a repository-level porting specification designed to align context and instructions across diverse developer tools and AI models.
 
@@ -16,12 +16,17 @@ The protocol decouples the centralized workspace context from the individual too
 └──────────────────────────┬─────────────────────────────┘
                            │ Centralizes project context
 ┌──────────────────────────▼─────────────────────────────┐
-│ LAYER 2: Configuration & Modules (.ai/)                │
+│ LAYER 2: Configuration & Intelligence (.ai/)            │
 │ context/ • agents/ • skills/ • prompts/ • checks/      │
 └──────────────────────────┬─────────────────────────────┘
                            │ Routes files dynamically
 ┌──────────────────────────▼─────────────────────────────┐
-│ LAYER 3: Tool & IDE Adapters                           │
+│ LAYER 3: Engine Workflows & Safety Gates               │
+│ onboard • adapter sync • improve • verify doctor       │
+└──────────────────────────┬─────────────────────────────┘
+                           │ Runs compliance checkups
+┌──────────────────────────▼─────────────────────────────┐
+│ LAYER 4: Tool & IDE Adapters                           │
 │ .cursorrules • CLAUDE.md • .vscode/ • .gemini/ • etc.  │
 └────────────────────────────────────────────────────────┘
 ```
@@ -105,6 +110,7 @@ npx multimodel-dev-os@latest init --caveman
 
 ## 5. Canonical Links
 - **Documentation site**: https://rizvee.github.io/multimodel-dev-os/
+- **Guided Demo Workflows**: https://rizvee.github.io/multimodel-dev-os/demos/
 - **GitHub Codebase**: https://github.com/rizvee/multimodel-dev-os
 - **v2.0.0 Roadmap**: https://rizvee.github.io/multimodel-dev-os/v2-roadmap
 - **Release Policies**: https://rizvee.github.io/multimodel-dev-os/release-policy

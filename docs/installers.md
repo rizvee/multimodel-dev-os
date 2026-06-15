@@ -1,10 +1,24 @@
-# Installers
+# Installers & NPX Setup
 
-## Overview
+## NPX (Recommended Primary Method)
 
-While `npx multimodel-dev-os@latest init` is the primary and recommended route to bootstrap your project, we provide cross-platform automated shell script installers as robust, dependency-free fallbacks for environments without Node.js. These are located in `scripts/`.
+For environments with Node.js 18+ installed, use our zero-install scaffolding runner. This is the fastest, most reliable, and standard way to initialize and manage workspaces:
 
-## Usage
+```bash
+# Initialize a new workspace in the current directory
+npx multimodel-dev-os@latest init
+
+# Or onboard an existing repository safely
+npx multimodel-dev-os@latest onboard analyze
+```
+
+For more details, see the **[Quickstart Guide](/quickstart)**.
+
+---
+
+## Offline & Dependency-Free Installers
+
+While `npx` is the primary route, we provide cross-platform automated shell script installers as robust, dependency-free fallbacks for environments without Node.js. These are located in `scripts/`.
 
 ### macOS / Linux / WSL (`install.sh`)
 

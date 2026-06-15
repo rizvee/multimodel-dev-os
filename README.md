@@ -74,24 +74,23 @@ Your workspace now has a **single source of truth** that every AI coding tool re
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  LAYER 1: Root Contracts (Single Source of Truth)           │
+│  LAYER 1: Central Root Contracts (Single Source of Truth)   │
 │  AGENTS.md  •  MEMORY.md  •  TASKS.md  •  RUNBOOK.md      │
 └─────────────────────────┬───────────────────────────────────┘
                           │
 ┌─────────────────────────▼───────────────────────────────────┐
-│  LAYER 2: Configuration Engine (.ai/)                       │
-│  context/  agents/  skills/  prompts/  checks/  models/    │
-│  registries/  intelligence/  policies/                      │
+│  LAYER 2: Configuration & Intelligence (.ai/)                │
+│  context/  agents/  skills/  prompts/  checks/  session/    │
 └─────────────────────────┬───────────────────────────────────┘
                           │
 ┌─────────────────────────▼───────────────────────────────────┐
-│  LAYER 3: Tool & IDE Adapters                               │
-│  .cursorrules  CLAUDE.md  .vscode/  .gemini/  GEMINI.md    │
+│  LAYER 3: Engine Workflows & Safety Gates                   │
+│  onboard analyze  •  adapter sync  •  improve apply         │
 └─────────────────────────┬───────────────────────────────────┘
                           │
 ┌─────────────────────────▼───────────────────────────────────┐
-│  LAYER 4: Intelligence & Self-Improvement                   │
-│  memory/  feedback/  proposals/  workflows/  handoff/       │
+│  LAYER 4: Tool & IDE Adapters                               │
+│  .cursorrules  •  CLAUDE.md  •  .vscode/  •  .gemini/      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -135,12 +134,13 @@ npx multimodel-dev-os@latest handoff build
 
 ---
 
-## What's New in v2.6
+## What's New in v2.7
 
-- 📁 **Real-Repo Onboarding** — Analyze, recommend, plan, and apply configs to existing projects safely
-- 🔄 **IDE Adapter Sync** — Mirror rule files across Cursor, Claude, VS Code, and Gemini automatically
-- 🩺 **Onboarding Diagnostics** — Extended `doctor --onboarding` to verify integration readiness
-- 🧠 **Template Recommendations** — Heuristic engine matches project signatures to optimal templates
+- 📖 **Guided Demo Workflows** — 5 copy-paste walkthroughs covering onboarding, sync, handoffs, safety loops, and pre-release audits
+- 🚀 **Conversion Funnel Landing Page** — Redesigned VitePress homepage focusing on quick value demonstration
+- 🎨 **Visual SVG Diagrams** — SVG flow charts showing onboarding pathways and adapter mappings
+- 📁 **Docs-First Examples** — Clean example directories with quick-copy instructions
+- 📦 **Distribution Guide** — Comprehensive release workflows and package hygiene documentation
 
 **[Full Changelog →](CHANGELOG.md)**
 
@@ -156,7 +156,8 @@ npx multimodel-dev-os@latest handoff build
 | **v2.4.0** | Approved Proposal Application Engine | ✅ Released |
 | **v2.5.0** | Repository Intelligence Command Center | ✅ Released |
 | **v2.6.0** | Real-Repo Onboarding & Adapter Sync | ✅ Released |
-| **v2.7.0** | Interactive TUI Dashboard & Plugin Hooks | 🔧 Planned |
+| **v2.7.0** | Website, Demo & Distribution System | ✅ Released |
+| **v2.8.0** | Interactive TUI Dashboard & Plugin Hooks | 🔧 Planned |
 | **v3.0.0** | Unified Autonomous Co-Pilot Ecosystem | 🔮 Future |
 
 **[Full Roadmap →](https://rizvee.github.io/multimodel-dev-os/v2-roadmap)**

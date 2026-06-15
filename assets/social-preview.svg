@@ -50,7 +50,7 @@
 
   <!-- Titles -->
   <text x="260" y="205" font-size="68" font-weight="900" fill="#ffffff" letter-spacing="-1.5">MultiModel Dev OS</text>
-  <text x="260" y="252" font-size="28" font-weight="700" fill="#a78bfa" letter-spacing="-0.5">One project brain for every AI coding agent</text>
+  <text x="260" y="252" font-size="28" font-weight="700" fill="#a78bfa" letter-spacing="-0.5">One config. Every AI tool. Zero lock-in.</text>
 
   <!-- Scaffolding Highlight Commands -->
   <g transform="translate(130, 320)">

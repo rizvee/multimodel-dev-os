@@ -145,4 +145,39 @@
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
+  <url>
+    <loc>https://rizvee.github.io/multimodel-dev-os/demos/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://rizvee.github.io/multimodel-dev-os/demos/existing-repo-onboarding</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://rizvee.github.io/multimodel-dev-os/demos/multi-agent-handoff</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://rizvee.github.io/multimodel-dev-os/demos/safe-improvement-loop</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://rizvee.github.io/multimodel-dev-os/demos/adapter-sync</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://rizvee.github.io/multimodel-dev-os/demos/release-check</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://rizvee.github.io/multimodel-dev-os/distribution</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
 </urlset>

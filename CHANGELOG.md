@@ -2,6 +2,25 @@
 
 All notable changes to multimodel-dev-os will be documented in this file.
 
+## [2.7.0] - 2026-06-16
+
+### Added — Website / Demo / Distribution System
+- Added 5 copy-paste demo workflow pages: existing-repo-onboarding, multi-agent-handoff, safe-improvement-loop, adapter-sync, and release-check
+- Added demo hub page with guided navigation cards
+- Added comprehensive distribution and release documentation
+- Added new SVG visual assets for onboarding and adapter sync flows
+- Added docs-first examples for real-repo-onboarding, adapter-sync, command-center, and safe-improvement-loop workflows
+
+### Changed
+- Restructured VitePress homepage as a product conversion funnel
+- Improved README with updated roadmap, demo links, and v2.7 highlights
+- Rewrote launch kit with current v2.7.0 positioning (was stale at v0.8.0)
+- Refreshed comparison guide with Aider, Roo Code, and Continue comparisons
+- Updated FAQ with demo-specific safety and execution details
+- Updated SEO metadata, sitemap, llms.txt, and llms-full.txt for v2.7.0
+- Updated v2 roadmap: rescheduled TUI/plugin hooks to v2.8.0
+- Refreshed SVG assets with updated commands and architecture layers
+
 ## [2.6.1] - 2026-06-16
 
 ### Changed — Documentation Discovery + GitHub Star Growth Patch

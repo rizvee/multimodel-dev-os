@@ -1,81 +1,129 @@
 # Public Launch & Social Sharing Kit
 
-A curated collection of ready-to-use sharing outlines focused on LLM cost savings, multi-agent context synchronization, and configuration reuse inside development teams.
+Ready-to-use promotional copy for sharing MultiModel Dev OS on social platforms, forums, and communities.
 
 ---
 
-## 1. Product Hunt Launch (Milestone v0.8.0)
-- **Product Tagline:** Portable workspace configuration layer and playbooks to sync AI coding agents.
-- **Pitch Focus:** Slash LLM API billing and context overhead by up to **~79%** with our native Caveman Mode. Enforce strict coding styles and boundaries across Cursor, Claude, Antigravity, and VS Code automatically using a singular root contract.
+## 1. Product Hunt / Show HN Pitch
+
+**Tagline:** One workspace config for every AI coding tool — zero lock-in, zero dependencies.
+
+**Pitch:**
+> If you use 2+ AI coding tools (Cursor, Claude Code, Gemini, Codex, VS Code Copilot), you know the pain: rules drift between tools, every switch drops context, and tokens waste on duplicate instructions.
+>
+> MultiModel Dev OS solves this with a single `AGENTS.md` that auto-syncs to every tool. One command sets it up: `npx multimodel-dev-os@latest init`
+>
+> v2.7 includes guided demo workflows, safe repo onboarding for existing projects, adapter sync across 10+ tools, a self-improvement engine with 12 safety gates, and 214+ quality assertions.
+>
+> Free, MIT licensed, zero dependencies. Works on Windows, macOS, and Linux.
+>
+> 👉 https://github.com/rizvee/multimodel-dev-os
 
 ---
 
-## 2. X / Twitter Campaign (The Focus: Token Cost Savings)
+## 2. X / Twitter Campaign
 
 ```text
-AI coding is fast, but prompt token bills scale faster. 💸
+I use Cursor for autocomplete, Claude for terminal ops, and Gemini for audits.
 
-Duplicating instructions in .cursorrules, CLAUDE.md, and system prompts drains your API token budget on every message turn.
+The problem? Every tool switch drops context. Rules drift. Tokens waste.
 
-Say hello to MultiModel Dev OS v0.8.0! 🧠
+MultiModel Dev OS fixes this:
 
 npx multimodel-dev-os@latest init
 
-👉 Decoupled adapters sync Cursor, Claude, VS Code, and Gemini instantly
-👉 Slash rule overhead by up to ~79% with Caveman Mode
-👉 12 Cost Optimization plays mapped to Dev OS features
-👉 5-Day tool-neutral Adoption Roadmap for teams
+→ One config syncs to .cursorrules, CLAUDE.md, .vscode/, .gemini/
+→ Onboard existing repos safely
+→ Self-improvement engine with safety gates
+→ Slash token overhead by ~79%
 
-Stop wasting context. Sync and reuse your workspace memory! 🚀
+Free, MIT, zero dependencies.
 👉 https://github.com/rizvee/multimodel-dev-os
-#AIDev #OpenSource #SoftwareEngineering #AItools
 ```
 
 ---
 
-## 3. LinkedIn Campaign (The Focus: Enterprise Adoption)
+## 3. LinkedIn Campaign
 
 ```text
-The hidden tax of scaling AI inside development teams: Context Fragmentation. 💸
+The hidden cost of using multiple AI coding tools: Context Fragmentation.
 
-When switching between tools:
-- Claude Code scaffolds terminal builds
-- Cursor suggests local autocompletions
-- Gemini/Antigravity performs codebase audits
+When your team switches between Cursor, Claude Code, and Gemini:
+• Rules in .cursorrules go stale when you update CLAUDE.md
+• Every model switch loses your operational context
+• Token bills spike from duplicate instructions
 
-If each developer maintains distinct, custom configurations, your rules drift immediately. Models break, and you waste thousands of tokens repeating basic instructions.
+MultiModel Dev OS creates a single source of truth that auto-syncs to every tool:
 
-To solve this, we are releasing MultiModel Dev OS v0.8.0:
-1. One central brain (AGENTS.md and .ai/) routes instructions dynamically.
-2. Slashes API prompt overhead by ~79% via Caveman Mode.
-3. Maps 12 context optimization techniques ( RAG scoping, prompt caching, batching).
-4. Includes a 5-Day tool-neutral Adoption Roadmap to align your team in a business week.
+1. npx multimodel-dev-os@latest init
+2. Edit AGENTS.md with your project rules
+3. Run adapter sync to push to all your tools
 
-Fully open-source, MIT licensed, and zero-dependency.
+v2.7 includes 5 guided demo workflows, safe repo onboarding, a self-improvement engine with 12 safety gates, and 214+ quality assertions.
 
-Read the Case Studies Gallery & Playbook:
-👉 https://github.com/rizvee/multimodel-dev-os
-Let me know how your team manages prompt consistency in the comments! 👇
+Zero dependencies. MIT licensed. Works everywhere.
+
+Demo workflows: https://rizvee.github.io/multimodel-dev-os/demos/
+GitHub: https://github.com/rizvee/multimodel-dev-os
 ```
 
 ---
 
-## 4. Reddit-Style Pitch (/r/LocalLLaMA, /r/webdev)
+## 4. Reddit / Hacker News
 
-- **Title:** Show HN / Show Reddit: MultiModel Dev OS v0.8.0 — Prevent AI instruction drift and save ~79% token budget.
-- **Content:**
-  Hey everyone,
-  
-  If your team pair programs with multiple LLM agents, you know how fast rules drift. You edit a command in your terminal prompts, but Cursor's autocompletes are still reading outdated caching guidelines, causing compile crashes.
-  
-  I built **multimodel-dev-os** to solve this. It's a lightweight, zero-dependency Node.js CLI that scaffolds a single repository brain and uses automated adapters to route a single source of truth to all your tools.
-  
-  ### v0.8.0 Feature Highlights:
-  * **Cost Optimization Playbook:** Maps 12 techniques (prompt caching, RAG scoping, batching) directly to Dev OS directory modules.
-  * **Caveman Mode:** Strips out descriptions and examples to save **~79% of tokens** per prompt turn.
-  * **5-Day Adoption Timeline:** A tool-neutral business week adoption playbook.
-  * **Real-World Case Studies:** 5 generic but realistic guides covering full-stack SaaS schema synchronization, WordPress directory boundaries, and Claude/Gemini hand-off session logs.
-  
-  Open-source and MIT licensed. I'd love to hear your feedback on the layout structure!
-  
-  GitHub: https://github.com/rizvee/multimodel-dev-os
+**Title:** MultiModel Dev OS v2.7 — One config for Cursor, Claude, Gemini, Codex, and VS Code
+
+**Content:**
+```text
+Hey everyone,
+
+If you use more than one AI coding tool, you've probably hit these problems:
+- Update .cursorrules → forget to update CLAUDE.md → Claude generates wrong code
+- Switch from Claude to Gemini → lose all session context
+- Every prompt resends your full ruleset → token bills spike
+
+I built multimodel-dev-os to fix this. It's a lightweight CLI that creates a single
+AGENTS.md and auto-syncs it to every tool via adapters.
+
+v2.7 adds:
+• 5 copy-paste demo workflows (onboarding, adapter sync, improvement loops, handoffs, release checks)
+• Safe repo onboarding — analyze, recommend, plan, apply with auto-backups
+• Distribution guide with release checklists and package hygiene
+• Visual SVG flow diagrams
+
+It's zero-dependency, MIT licensed, and works on Windows/macOS/Linux.
+
+Try it: npx multimodel-dev-os@latest init
+Demos: https://rizvee.github.io/multimodel-dev-os/demos/
+GitHub: https://github.com/rizvee/multimodel-dev-os
+
+Happy to answer questions about the architecture or safety model.
+```
+
+---
+
+## 5. Key Talking Points
+
+Use these when writing about MultiModel Dev OS:
+
+| Point | Detail |
+|-------|--------|
+| **Problem** | Switching between AI coding tools causes rule drift, context loss, and token waste |
+| **Solution** | Single `AGENTS.md` → auto-syncs to `.cursorrules`, `CLAUDE.md`, `.vscode/`, `.gemini/`, and more |
+| **Onboarding** | Safely onboard existing repos: `onboard analyze → recommend → plan → apply` |
+| **Safety** | 12 proposal safety gates, `--approved` flags, auto-backups, SHA-256 audit trails |
+| **Token Savings** | Caveman Mode cuts ~79% token overhead |
+| **Quality** | 214+ verification assertions, `doctor --release` alignment checks |
+| **Trust** | Zero dependencies, MIT license, no runtime, no network calls |
+| **Tools** | Codex, Antigravity, Cursor, Claude Code, Gemini, VS Code, Cline, Aider, Windsurf |
+
+---
+
+## 6. Links
+
+- **GitHub**: https://github.com/rizvee/multimodel-dev-os
+- **NPM**: https://www.npmjs.com/package/multimodel-dev-os
+- **Docs**: https://rizvee.github.io/multimodel-dev-os/
+- **Demos**: https://rizvee.github.io/multimodel-dev-os/demos/
+- **Quickstart**: https://rizvee.github.io/multimodel-dev-os/quickstart
+- **Comparison**: https://rizvee.github.io/multimodel-dev-os/comparison

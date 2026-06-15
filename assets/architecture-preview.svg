@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 400" width="100%" height="100%" style="font-family: 'Outfit', 'Inter', -apple-system, sans-serif;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 420" width="100%" height="100%" style="font-family: 'Outfit', 'Inter', -apple-system, sans-serif;">
   <defs>
     <!-- Card Gradients -->
     <linearGradient id="rootCard" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -9,6 +9,10 @@
       <stop offset="0%" stop-color="#111827" />
       <stop offset="100%" stop-color="#1f2937" />
     </linearGradient>
+    <linearGradient id="engineCard" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#064e3b" />
+      <stop offset="100%" stop-color="#022c22" />
+    </linearGradient>
     
     <!-- Flow Connector -->
     <linearGradient id="flowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -18,75 +22,86 @@
   </defs>
 
   <!-- Canvas Container -->
-  <rect width="820" height="400" rx="12" fill="#090d16" stroke="#1e293b" stroke-width="1.5"/>
+  <rect width="820" height="420" rx="12" fill="#090d16" stroke="#1e293b" stroke-width="1.5"/>
 
-  <!-- Layer 1: Root Files Single Source of Truth -->
-  <g transform="translate(110, 25)">
-    <rect width="600" height="85" rx="12" fill="url(#rootCard)" stroke="#4f46e5" stroke-width="2"/>
-    <text x="300" y="32" font-size="14" font-weight="800" fill="#a5b4fc" text-anchor="middle" letter-spacing="1">LAYER 1: CENTRAL ROOT CONTRACTS</text>
-    <text x="300" y="62" font-size="16" font-weight="700" fill="#f8fafc" text-anchor="middle">AGENTS.md • MEMORY.md • TASKS.md • RUNBOOK.md</text>
+  <!-- Layer 1: Central Root Contracts -->
+  <g transform="translate(110, 15)">
+    <rect width="600" height="60" rx="12" fill="url(#rootCard)" stroke="#4f46e5" stroke-width="2"/>
+    <text x="300" y="24" font-size="12" font-weight="800" fill="#a5b4fc" text-anchor="middle" letter-spacing="1">LAYER 1: CENTRAL ROOT CONTRACTS (SINGLE SOURCE)</text>
+    <text x="300" y="46" font-size="14" font-weight="700" fill="#f8fafc" text-anchor="middle">AGENTS.md • MEMORY.md • TASKS.md • RUNBOOK.md</text>
   </g>
 
-  <!-- Flow Connector 1 -->
-  <path d="M 410,110 L 410,140" stroke="url(#flowGrad)" stroke-width="3" stroke-dasharray="4,4" fill="none"/>
+  <!-- Flow Connector L1 -> L2 -->
+  <path d="M 410,75 L 410,95" stroke="url(#flowGrad)" stroke-width="3" stroke-dasharray="4,4" fill="none"/>
 
-  <!-- Layer 2: The .ai/ Config Layer -->
-  <g transform="translate(110, 140)">
-    <rect width="600" height="85" rx="12" fill="url(#aiCard)" stroke="#8b5cf6" stroke-width="1.5"/>
-    <text x="300" y="30" font-size="13" font-weight="800" fill="#c084fc" text-anchor="middle" letter-spacing="1">LAYER 2: .AI/ CONFIGURATION DIRECTORY</text>
-    <text x="300" y="60" font-size="15" font-weight="700" fill="#e2e8f0" text-anchor="middle">context • agents • skills • prompts • checks • session logs</text>
+  <!-- Layer 2: Configuration & Intelligence (.ai/) -->
+  <g transform="translate(110, 95)">
+    <rect width="600" height="60" rx="12" fill="url(#aiCard)" stroke="#8b5cf6" stroke-width="1.5"/>
+    <text x="300" y="22" font-size="11" font-weight="800" fill="#c084fc" text-anchor="middle" letter-spacing="1">LAYER 2: .AI/ CONFIGURATION & INTELLIGENCE</text>
+    <text x="300" y="44" font-size="13" font-weight="700" fill="#e2e8f0" text-anchor="middle">context • agents • skills • prompts • checks • session logs</text>
   </g>
 
-  <!-- Flow Connector 2 -->
-  <path d="M 410,225 L 410,255" stroke="url(#flowGrad)" stroke-width="3" fill="none"/>
-  <polygon points="410,260 405,250 415,250" fill="#10b981"/>
+  <!-- Flow Connector L2 -> L3 -->
+  <path d="M 410,155 L 410,175" stroke="url(#flowGrad)" stroke-width="3" fill="none"/>
+  <polygon points="410,175 405,165 415,165" fill="#10b981"/>
 
-  <!-- Layer 3: Adapters Connection Tree -->
-  <path d="M 100,265 L 720,265 L 720,280" stroke="#334155" stroke-width="2" fill="none"/>
-  <path d="M 100,265 L 100,280" stroke="#334155" stroke-width="2" fill="none"/>
-  <path d="M 224,265 L 224,280" stroke="#334155" stroke-width="2" fill="none"/>
-  <path d="M 348,265 L 348,280" stroke="#334155" stroke-width="2" fill="none"/>
-  <path d="M 472,265 L 472,280" stroke="#334155" stroke-width="2" fill="none"/>
-  <path d="M 596,265 L 596,280" stroke="#334155" stroke-width="2" fill="none"/>
+  <!-- Layer 3: Dev OS Engine & Safety -->
+  <g transform="translate(110, 175)">
+    <rect width="600" height="60" rx="12" fill="url(#engineCard)" stroke="#10b981" stroke-width="1.5"/>
+    <text x="300" y="22" font-size="11" font-weight="800" fill="#34d399" text-anchor="middle" letter-spacing="1">LAYER 3: ENGINE WORKFLOWS & SAFETY GATES</text>
+    <text x="300" y="44" font-size="13" font-weight="700" fill="#e2e8f0" text-anchor="middle">onboard analyze • adapter sync • improve propose • verify doctor</text>
+  </g>
 
-  <!-- Adapter Output Nodes -->
+  <!-- Flow Connector L3 -> L4 -->
+  <path d="M 410,235 L 410,260" stroke="#334155" stroke-width="3" fill="none"/>
+  <polygon points="410,260 405,250 415,250" fill="#334155"/>
+
+  <!-- Layer 4: Target Tools Connection Tree -->
+  <path d="M 100,265 L 725,265 L 725,285" stroke="#334155" stroke-width="2" fill="none"/>
+  <path d="M 100,265 L 100,285" stroke="#334155" stroke-width="2" fill="none"/>
+  <path d="M 225,265 L 225,285" stroke="#334155" stroke-width="2" fill="none"/>
+  <path d="M 350,265 L 350,285" stroke="#334155" stroke-width="2" fill="none"/>
+  <path d="M 475,265 L 475,285" stroke="#334155" stroke-width="2" fill="none"/>
+  <path d="M 600,265 L 600,285" stroke="#334155" stroke-width="2" fill="none"/>
+
+  <!-- Universal Adapter Nodes -->
   <!-- Node 1: Codex -->
-  <g transform="translate(40, 280)">
+  <g transform="translate(40, 285)">
     <rect width="120" height="50" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
     <text x="60" y="24" font-size="12" font-weight="700" fill="#f8fafc" text-anchor="middle">Codex</text>
     <text x="60" y="40" font-size="10" fill="#94a3b8" text-anchor="middle">adapters/codex/</text>
   </g>
 
   <!-- Node 2: Antigravity -->
-  <g transform="translate(165, 280)">
+  <g transform="translate(165, 285)">
     <rect width="120" height="50" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
     <text x="60" y="24" font-size="12" font-weight="700" fill="#f8fafc" text-anchor="middle">Antigravity</text>
     <text x="60" y="40" font-size="10" fill="#94a3b8" text-anchor="middle">.gemini/settings</text>
   </g>
 
   <!-- Node 3: Cursor -->
-  <g transform="translate(290, 280)">
+  <g transform="translate(290, 285)">
     <rect width="120" height="50" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
     <text x="60" y="24" font-size="12" font-weight="700" fill="#f8fafc" text-anchor="middle">Cursor</text>
     <text x="60" y="40" font-size="10" fill="#94a3b8" text-anchor="middle">.cursorrules</text>
   </g>
 
   <!-- Node 4: Claude -->
-  <g transform="translate(415, 280)">
+  <g transform="translate(415, 285)">
     <rect width="120" height="50" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
     <text x="60" y="24" font-size="12" font-weight="700" fill="#f8fafc" text-anchor="middle">Claude</text>
     <text x="60" y="40" font-size="10" fill="#94a3b8" text-anchor="middle">CLAUDE.md</text>
   </g>
 
   <!-- Node 5: Gemini -->
-  <g transform="translate(540, 280)">
+  <g transform="translate(540, 285)">
     <rect width="120" height="50" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
     <text x="60" y="24" font-size="12" font-weight="700" fill="#f8fafc" text-anchor="middle">Gemini</text>
     <text x="60" y="40" font-size="10" fill="#94a3b8" text-anchor="middle">GEMINI.md</text>
   </g>
 
   <!-- Node 6: VS Code -->
-  <g transform="translate(665, 280)">
+  <g transform="translate(665, 285)">
     <rect width="120" height="50" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
     <text x="60" y="24" font-size="12" font-weight="700" fill="#f8fafc" text-anchor="middle">VS Code</text>
     <text x="60" y="40" font-size="10" fill="#94a3b8" text-anchor="middle">.vscode/settings</text>
