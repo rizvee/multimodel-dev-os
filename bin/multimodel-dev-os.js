@@ -9,6 +9,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSy
 import { join, dirname, resolve, relative, isAbsolute, basename } from 'path';
 import { fileURLToPath } from 'url';
 import { createHash } from 'crypto';
+import readline from 'readline';
+import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -409,6 +411,41 @@ if (COMMAND === 'init') {
     console.log('Example: node bin/multimodel-dev-os.js adapter status');
     process.exit(1);
   }
+} else if (COMMAND === 'dashboard' || COMMAND === 'ui') {
+  handleDashboard(params);
+} else if (COMMAND === 'plugin') {
+  const positional = getPositionalArgs(ARGS);
+  const sub = positional[1];
+  if (sub === 'list') {
+    handlePluginList(params);
+  } else if (sub === 'show') {
+    const pSlug = positional[2];
+    if (!pSlug) {
+      console.error('\x1b[31mError: Please specify a plugin name/slug.\x1b[0m');
+      process.exit(1);
+    }
+    handlePluginShow(pSlug, params);
+  } else if (sub === 'validate') {
+    const pPath = positional[2];
+    if (!pPath) {
+      console.error('\x1b[31mError: Please specify a plugin configuration file path.\x1b[0m');
+      process.exit(1);
+    }
+    handlePluginValidate(pPath, params);
+  } else if (sub === 'install') {
+    const pPath = positional[2];
+    if (!pPath) {
+      console.error('\x1b[31mError: Please specify a plugin configuration file path to install.\x1b[0m');
+      process.exit(1);
+    }
+    handlePluginInstall(pPath, params);
+  } else if (sub === 'status') {
+    handlePluginStatus(params);
+  } else {
+    console.error('\x1b[31mError: Please specify a plugin subcommand: list, show, validate, install, or status.\x1b[0m');
+    console.log('Example: node bin/multimodel-dev-os.js plugin list');
+    process.exit(1);
+  }
 } else {
   console.error(`\x1b[31mUnknown command: ${COMMAND}\x1b[0m`);
   showHelp();
@@ -423,6 +460,7 @@ function showHelp() {
   console.log('  init              Initialize a project with configs and adapters');
   console.log('  scan              Scan project structure and framework signals');
   console.log('  status            Show compact dashboard summarizing repository intelligence state');
+  console.log('  dashboard         Launch the interactive terminal command center (alias: ui)');
   console.log('  memory <subcmd>   Manage hash-compressed codebase memory (subcmd: build, refresh, diff)');
   console.log('  feedback <subcmd> Manage developer feedback loops (subcmd: add, list, summarize)');
   console.log('  improve <subcmd>  Manage codebase self-improvement proposals (subcmd: propose, review, status, validate, diff, apply, log)');
@@ -430,6 +468,7 @@ function showHelp() {
   console.log('  handoff <subcmd>  Compile or print token-compressed agent session summaries (subcmd: build, show)');
   console.log('  onboard <subcmd>  Safely integrate MultiModel Dev OS into existing repo (subcmd: analyze, recommend, plan, apply, status)');
   console.log('  adapter <subcmd>  Manage and sync rule/settings files for IDE adapters (subcmd: status, diff, sync)');
+  console.log('  plugin <subcmd>   Manage declarative plugins (subcmd: list, show, validate, install, status)');
   console.log('  verify            Validate structural integrity of an existing project');
   console.log('  templates         List all built-in template profiles with details');
   console.log('  list-templates    Alias for templates command');
@@ -1065,7 +1104,11 @@ function parseYaml(content) {
         
         const colonIdx = trimmed.indexOf(':');
         if (colonIdx === -1) {
-          parent.obj.push(trimmed);
+          let val = trimmed;
+          if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+            val = val.substring(1, val.length - 1);
+          }
+          parent.obj.push(val);
         } else {
           const key = trimmed.substring(0, colonIdx).trim();
           let val = trimmed.substring(colonIdx + 1).trim();
@@ -4256,6 +4299,563 @@ function handleDoctorOnboarding(options) {
   } else {
     console.log('\x1b[32m✔ Doctor onboarding check complete. Your workspace onboarding setup is pristine!\x1b[0m\n');
   }
+}
+
+// --- Phase 3 & 4 & 5 & 6: TUI Dashboard & Plugin Hooks System ---
+
+function selectMenu(title, items, callback) {
+  let cursor = 0;
+  
+  const draw = () => {
+    console.clear();
+    console.log(`\n🧠 \x1b[36m${title}\x1b[0m`);
+    console.log('==================================================');
+    items.forEach((item, index) => {
+      if (index === cursor) {
+        console.log(`  \x1b[32m❯ ${item.name}\x1b[0m`);
+      } else {
+        console.log(`    ${item.name}`);
+      }
+    });
+    console.log('\n\x1b[90m(Use Arrow keys to navigate, Enter to select, Esc/Ctrl+C to exit)\x1b[0m\n');
+  };
+
+  readline.emitKeypressEvents(process.stdin);
+  if (process.stdin.isTTY) {
+    process.stdin.setRawMode(true);
+  }
+  process.stdin.resume();
+
+  const onKeypress = (str, key) => {
+    if (!key) return;
+    if (key.name === 'up') {
+      cursor = (cursor - 1 + items.length) % items.length;
+      draw();
+    } else if (key.name === 'down') {
+      cursor = (cursor + 1) % items.length;
+      draw();
+    } else if (key.name === 'return') {
+      cleanup();
+      callback(items[cursor]);
+    } else if (key.name === 'escape' || (key.ctrl && key.name === 'c')) {
+      cleanup();
+      process.exit(0);
+    }
+  };
+
+  const cleanup = () => {
+    process.stdin.removeListener('keypress', onKeypress);
+    if (process.stdin.isTTY) {
+      process.stdin.setRawMode(false);
+    }
+    process.stdin.pause();
+  };
+
+  process.stdin.on('keypress', onKeypress);
+  draw();
+}
+
+function handleDashboard(options) {
+  const mainMenu = [
+    { name: 'Active Workspace Status', action: 'command', command: 'status' },
+    { name: 'Codebase Scan Analysis', action: 'command', command: 'scan' },
+    { name: 'Onboarding Operations...', action: 'submenu', menu: 'onboard' },
+    { name: 'Adapter Synchronization...', action: 'submenu', menu: 'adapter' },
+    { name: 'Memory & Intelligence...', action: 'submenu', menu: 'memory' },
+    { name: 'Developer Feedback Loops...', action: 'submenu', menu: 'feedback' },
+    { name: 'Quality Gates & Diagnostics...', action: 'submenu', menu: 'quality' },
+    { name: 'Plugins Status Overview', action: 'command', command: 'plugin status' },
+    { name: 'Exit Command Center', action: 'exit' }
+  ];
+
+  const submenus = {
+    onboard: [
+      { name: '← Back to Main Menu', action: 'back' },
+      { name: 'Onboard: Analyze Repository', action: 'command', command: 'onboard analyze' },
+      { name: 'Onboard: Recommendation Summary', action: 'command', command: 'onboard recommend' },
+      { name: 'Onboard: Generate Integration Plan', action: 'command', command: 'onboard plan' },
+      { name: 'Onboard: Apply Configs (Dry Run)', action: 'command', command: 'onboard apply --dry-run' },
+      { name: 'Onboard: View Status Heuristics', action: 'command', command: 'onboard status' }
+    ],
+    adapter: [
+      { name: '← Back to Main Menu', action: 'back' },
+      { name: 'Adapters: Check Sync Status', action: 'command', command: 'adapter status' },
+      { name: 'Adapters: Sync All rule files (Dry Run)', action: 'command', command: 'adapter sync all --dry-run' },
+      { name: 'Adapters: Diff Cursor rules', action: 'command', command: 'adapter diff cursor' },
+      { name: 'Adapters: Diff Claude rules', action: 'command', command: 'adapter diff claude' }
+    ],
+    memory: [
+      { name: '← Back to Main Menu', action: 'back' },
+      { name: 'Memory: Build index', action: 'command', command: 'memory build' },
+      { name: 'Memory: Refresh changes', action: 'command', command: 'memory refresh' },
+      { name: 'Memory: Diff index status', action: 'command', command: 'memory diff' },
+      { name: 'Handoff: Build session summary', action: 'command', command: 'handoff build' },
+      { name: 'Handoff: Print summary to terminal', action: 'command', command: 'handoff show' }
+    ],
+    feedback: [
+      { name: '← Back to Main Menu', action: 'back' },
+      { name: 'Feedback: List developer corrections', action: 'command', command: 'feedback list' },
+      { name: 'Feedback: Summarize to learning rules', action: 'command', command: 'feedback summarize' },
+      { name: 'Proposals: Propose improvement proposal', action: 'command', command: 'improve propose' },
+      { name: 'Proposals: Review active proposals list', action: 'command', command: 'improve review' }
+    ],
+    quality: [
+      { name: '← Back to Main Menu', action: 'back' },
+      { name: 'Doctor: Run Advisory Diagnostics', action: 'command', command: 'doctor' },
+      { name: 'Validate: Strict Schema Compliance', action: 'command', command: 'validate' },
+      { name: 'Verify: Run Release verification tests', action: 'command', command: 'verify' }
+    ]
+  };
+
+  if (!process.stdout.isTTY || !process.stdin.isTTY || options.dryRun) {
+    console.log(`\n🧠 \x1b[36mMultiModel Dev OS Command Center (Headless mode)\x1b[0m`);
+    console.log('==================================================');
+    mainMenu.forEach(item => {
+      if (item.action === 'command') {
+        console.log(`  - ${item.name}: equivalent command: "npx multimodel-dev-os ${item.command}"`);
+      } else if (item.action === 'submenu') {
+        console.log(`  - ${item.name}`);
+        submenus[item.menu].forEach(sub => {
+          if (sub.action === 'command') {
+            console.log(`    └─ ${sub.name}: equivalent command: "npx multimodel-dev-os ${sub.command}"`);
+          }
+        });
+      }
+    });
+    console.log('');
+    return;
+  }
+
+  const runCommandWrapper = (cmdStr) => {
+    console.clear();
+    console.log(`\n\x1b[36mRunning Command:\x1b[0m npx multimodel-dev-os ${cmdStr}`);
+    console.log('--------------------------------------------------\n');
+    try {
+      const cliPath = join(sourceRoot, 'bin', 'multimodel-dev-os.js');
+      execSync(`node "${cliPath}" ${cmdStr} --target "${options.target}"`, { stdio: 'inherit' });
+    } catch (e) {
+      console.error(`\n\x1b[31mCommand failed with error: ${e.message}\x1b[0m`);
+    }
+    console.log('\n--------------------------------------------------');
+    console.log('Press any key to return to menu...');
+    if (process.stdin.isTTY) {
+      process.stdin.setRawMode(true);
+    }
+    process.stdin.resume();
+    return new Promise(resolve => {
+      process.stdin.once('keypress', () => {
+        resolve();
+      });
+    });
+  };
+
+  const showMenu = (menuItems, title) => {
+    selectMenu(title, menuItems, async (selected) => {
+      if (selected.action === 'exit') {
+        process.exit(0);
+      } else if (selected.action === 'back') {
+        showMenu(mainMenu, 'MultiModel Dev OS Command Center');
+      } else if (selected.action === 'submenu') {
+        showMenu(submenus[selected.menu], selected.name);
+      } else if (selected.action === 'command') {
+        await runCommandWrapper(selected.command);
+        showMenu(menuItems, title);
+      }
+    });
+  };
+
+  showMenu(mainMenu, 'MultiModel Dev OS Command Center');
+}
+
+function getPluginsDir(targetDir) {
+  return join(targetDir, '.ai', 'plugins');
+}
+
+function handlePluginList(options) {
+  const pluginsDir = getPluginsDir(options.target);
+  if (!existsSync(pluginsDir)) {
+    if (options.json) {
+      console.log('[]');
+      return;
+    }
+    console.log(`\n🔌 \x1b[36mInstalled Plugins in: ${options.target}\x1b[0m`);
+    console.log('==================================================');
+    console.log('  No plugins installed. Try:');
+    console.log('  npx multimodel-dev-os plugin install .ai/plugins/plugin.example.yaml --approved');
+    console.log('');
+    return;
+  }
+  
+  let files = [];
+  try {
+    files = readdirSync(pluginsDir).filter(f => f.endsWith('.yaml') || f.endsWith('.yml'));
+  } catch (e) {}
+
+  const plugins = [];
+  files.forEach(f => {
+    try {
+      const p = parseYaml(readFileSync(join(pluginsDir, f), 'utf8'));
+      if (p && p.name && p.slug) {
+        plugins.push(p);
+      }
+    } catch (e) {}
+  });
+
+  if (options.json) {
+    console.log(JSON.stringify(plugins, null, 2));
+    return;
+  }
+
+  console.log(`\n🔌 \x1b[36mInstalled Plugins in: ${options.target} (${plugins.length})\x1b[0m`);
+  console.log('==================================================');
+  if (plugins.length === 0) {
+    console.log('  No plugins installed.');
+  } else {
+    plugins.forEach(p => {
+      console.log(`\n\x1b[32m* ${p.name} (v${p.version || '1.0.0'})\x1b[0m [slug: \x1b[33m${p.slug}\x1b[0m]`);
+      console.log(`  Description: ${p.description || 'No description'}`);
+      console.log(`  Author:      ${p.author || 'Unknown'}`);
+    });
+  }
+  console.log('\nUse \x1b[36mplugin show <slug>\x1b[0m to view detailed plugin capabilities.\n');
+}
+
+function handlePluginShow(slug, options) {
+  const pluginsDir = getPluginsDir(options.target);
+  let p = null;
+  if (existsSync(pluginsDir)) {
+    const files = readdirSync(pluginsDir).filter(f => f.endsWith('.yaml') || f.endsWith('.yml'));
+    for (const f of files) {
+      try {
+        const parsed = parseYaml(readFileSync(join(pluginsDir, f), 'utf8'));
+        if (parsed && parsed.slug === slug) {
+          p = parsed;
+          break;
+        }
+      } catch (e) {}
+    }
+  }
+
+  if (!p) {
+    console.error(`\x1b[31mError: Plugin with slug '${slug}' is not installed.\x1b[0m`);
+    process.exit(1);
+  }
+
+  console.log(`\n🔍 \x1b[36mPlugin Specifications: ${p.name} (v${p.version})\x1b[0m`);
+  console.log('==================================================');
+  console.log(`\x1b[33mSlug:\x1b[0m        ${p.slug}`);
+  console.log(`\x1b[33mAuthor:\x1b[0m      ${p.author}`);
+  console.log(`\x1b[33mDescription:\x1b[0m ${p.description}`);
+  if (p.safety_notes) {
+    console.log(`\x1b[33mSafety Notes:\x1b[0m ${p.safety_notes}`);
+  }
+  
+  if (p.allowed_file_patterns) {
+    console.log('\n\x1b[33mAllowed Write Subdirectories:\x1b[0m');
+    p.allowed_file_patterns.forEach(pat => console.log(`  - ${pat}`));
+  }
+  
+  if (p.templates) {
+    console.log('\n\x1b[33mCustom Templates:\x1b[0m');
+    Object.keys(p.templates).forEach(k => {
+      console.log(`  - \x1b[32m${k}\x1b[0m: ${p.templates[k].description || p.templates[k].name}`);
+    });
+  }
+
+  if (p.workflows) {
+    console.log('\n\x1b[33mCustom Workflows:\x1b[0m');
+    Object.keys(p.workflows).forEach(k => {
+      console.log(`  - \x1b[32m${k}\x1b[0m: ${p.workflows[k].description || p.workflows[k].name}`);
+    });
+  }
+
+  if (p.adapters) {
+    console.log('\n\x1b[33mCustom Adapters:\x1b[0m');
+    Object.keys(p.adapters).forEach(k => {
+      console.log(`  - \x1b[32m${k}\x1b[0m: ${p.adapters[k].targetFile}`);
+    });
+  }
+  console.log('');
+}
+
+function handlePluginValidate(pluginPath, options) {
+  const fullPath = resolve(process.cwd(), pluginPath);
+  if (!existsSync(fullPath)) {
+    console.error(`\x1b[31mError: Plugin file not found at: ${pluginPath}\x1b[0m`);
+    process.exit(1);
+  }
+  
+  console.log(`\n📋 \x1b[34mValidating Plugin: ${pluginPath}\x1b[0m`);
+  
+  let errors = 0;
+  let plugin = null;
+  try {
+    plugin = parseYaml(readFileSync(fullPath, 'utf8'));
+  } catch (e) {
+    console.error(`  \x1b[31m✗ Failed to parse YAML: ${e.message}\x1b[0m`);
+    errors++;
+  }
+
+  if (plugin) {
+    const reqKeys = ['name', 'slug', 'version', 'description', 'author'];
+    reqKeys.forEach(k => {
+      if (plugin[k] === undefined || plugin[k] === null) {
+        console.error(`  \x1b[31m✗ Missing required key: ${k}\x1b[0m`);
+        errors++;
+      } else if (typeof plugin[k] !== 'string') {
+        console.error(`  \x1b[31m✗ Key '${k}' must be a string (found: ${typeof plugin[k]})\x1b[0m`);
+        errors++;
+      } else {
+        console.log(`  \x1b[32m✓\x1b[0m Key: ${k} ("${plugin[k]}")`);
+      }
+    });
+
+    if (plugin.allowed_file_patterns !== undefined) {
+      if (!Array.isArray(plugin.allowed_file_patterns)) {
+        console.error(`  \x1b[31m✗ allowed_file_patterns must be an array\x1b[0m`);
+        errors++;
+      } else {
+        plugin.allowed_file_patterns.forEach(pat => {
+          if (typeof pat !== 'string') {
+            console.error(`  \x1b[31m✗ allowed_file_patterns item must be a string: ${pat}\x1b[0m`);
+            errors++;
+          }
+        });
+        console.log(`  \x1b[32m✓\x1b[0m allowed_file_patterns checked: ${plugin.allowed_file_patterns.length} items`);
+      }
+    }
+
+    if (plugin.denied_file_patterns !== undefined) {
+      if (!Array.isArray(plugin.denied_file_patterns)) {
+        console.error(`  \x1b[31m✗ denied_file_patterns must be an array\x1b[0m`);
+        errors++;
+      } else {
+        plugin.denied_file_patterns.forEach(pat => {
+          if (typeof pat !== 'string') {
+            console.error(`  \x1b[31m✗ denied_file_patterns item must be a string: ${pat}\x1b[0m`);
+            errors++;
+          }
+        });
+        console.log(`  \x1b[32m✓\x1b[0m denied_file_patterns checked: ${plugin.denied_file_patterns.length} items`);
+      }
+    }
+
+    if (plugin.workflows !== undefined) {
+      if (typeof plugin.workflows !== 'object' || Array.isArray(plugin.workflows)) {
+        console.error(`  \x1b[31m✗ workflows must be an object\x1b[0m`);
+        errors++;
+      } else {
+        console.log(`  \x1b[32m✓\x1b[0m workflows object checked`);
+      }
+    }
+
+    if (plugin.templates !== undefined) {
+      if (typeof plugin.templates !== 'object' || Array.isArray(plugin.templates)) {
+        console.error(`  \x1b[31m✗ templates must be an object\x1b[0m`);
+        errors++;
+      } else {
+        console.log(`  \x1b[32m✓\x1b[0m templates object checked`);
+      }
+    }
+
+    if (plugin.adapters !== undefined) {
+      if (typeof plugin.adapters !== 'object' || Array.isArray(plugin.adapters)) {
+        console.error(`  \x1b[31m✗ adapters must be an object\x1b[0m`);
+        errors++;
+      } else {
+        console.log(`  \x1b[32m✓\x1b[0m adapters object checked`);
+      }
+    }
+
+    if (plugin.safety_notes !== undefined) {
+      if (typeof plugin.safety_notes !== 'string') {
+        console.error(`  \x1b[31m✗ safety_notes must be a string\x1b[0m`);
+        errors++;
+      } else {
+        console.log(`  \x1b[32m✓\x1b[0m safety_notes checked`);
+      }
+    }
+  }
+
+  if (errors > 0) {
+    console.error(`\n\x1b[31mPlugin validation FAILED with ${errors} errors.\x1b[0m\n`);
+    if (options && options.noExit) return false;
+    process.exit(1);
+  } else {
+    console.log(`\n\x1b[32m✔ Plugin '${plugin.slug || plugin.name}' is fully valid and compliant!\x1b[0m\n`);
+    if (options && options.noExit) return true;
+    return true;
+  }
+}
+
+function handlePluginInstall(pluginPath, options) {
+  const fullPath = resolve(process.cwd(), pluginPath);
+  if (!existsSync(fullPath)) {
+    console.error(`\x1b[31mError: Plugin file not found at: ${pluginPath}\x1b[0m`);
+    process.exit(1);
+  }
+
+  const isValid = handlePluginValidate(pluginPath, { noExit: true });
+  if (!isValid) {
+    console.error(`\x1b[31mError: Plugin validation failed. Installation aborted.\x1b[0m`);
+    process.exit(1);
+  }
+
+  const pluginContent = readFileSync(fullPath, 'utf8');
+  const plugin = parseYaml(pluginContent);
+  const slug = plugin.slug;
+  const sourceDir = dirname(fullPath);
+
+  console.log(`\n📥 \x1b[34mInstalling Plugin: ${plugin.name} [slug: ${slug}]\x1b[0m`);
+
+  const filesToCopy = [];
+  filesToCopy.push({
+    src: fullPath,
+    dest: join('.ai', 'plugins', `${slug}.yaml`),
+    description: 'Plugin Manifest'
+  });
+
+  if (Array.isArray(plugin.allowed_file_patterns)) {
+    plugin.allowed_file_patterns.forEach(pattern => {
+      const normPattern = pattern.replace(/\\/g, '/').trim();
+      
+      const isSafeSubdir = [
+        '.ai/plugins/',
+        '.ai/registries/',
+        '.ai/templates/',
+        '.ai/skills/',
+        '.ai/checks/',
+        '.ai/prompts/',
+        '.ai/adapters/'
+      ].some(prefix => normPattern.startsWith(prefix));
+
+      const hasTraversal = normPattern.includes('..') || normPattern.startsWith('/');
+      const isBlacklisted = [
+        '.env',
+        '.npmrc',
+        '.git/',
+        'node_modules/',
+        'package.json',
+        'package-lock.json'
+      ].some(black => normPattern.includes(black));
+
+      if (!isSafeSubdir || hasTraversal || isBlacklisted) {
+        console.error(`\x1b[31mError: Path pattern '${pattern}' violates safety boundaries. Installation aborted.\x1b[0m`);
+        process.exit(1);
+      }
+
+      const srcFile = join(sourceDir, normPattern);
+      if (existsSync(srcFile) && statSync(srcFile).isFile()) {
+        filesToCopy.push({
+          src: srcFile,
+          dest: normPattern,
+          description: `Plugin asset: ${normPattern}`
+        });
+      }
+    });
+  }
+
+  let conflicts = false;
+  filesToCopy.forEach(item => {
+    const destPath = join(options.target, item.dest);
+    if (existsSync(destPath)) {
+      if (!options.force) {
+        console.error(`  \x1b[31mConflict:\x1b[0m File already exists at destination: ${item.dest}`);
+        conflicts = true;
+      }
+    }
+  });
+
+  if (conflicts) {
+    console.error(`\n\x1b[31mInstallation aborted due to overwrite conflicts. Run with --force to overwrite (creates .bak backups).\x1b[0m\n`);
+    process.exit(1);
+  }
+
+  if (!options.approved) {
+    console.log(`\n\x1b[33mPlanned Installation Actions:\x1b[0m`);
+    filesToCopy.forEach(item => {
+      const exists = existsSync(join(options.target, item.dest));
+      const suffix = exists ? ' \x1b[33m(will overwrite)\x1b[0m' : '';
+      console.log(`  - \x1b[36m[WOULD COPY]\x1b[0m ${item.src} -> ${item.dest}${suffix}`);
+    });
+    console.log(`\nRun with \x1b[32m--approved\x1b[0m to apply these changes.\n`);
+    return;
+  }
+
+  filesToCopy.forEach(item => {
+    const destPath = join(options.target, item.dest);
+    const destDir = dirname(destPath);
+    if (!existsSync(destDir)) {
+      mkdirSync(destDir, { recursive: true });
+    }
+
+    if (existsSync(destPath)) {
+      const bakPath = `${destPath}.bak`;
+      writeFileSync(bakPath, readFileSync(destPath));
+      console.log(`  \x1b[33mBACKUP:\x1b[0m Created backup: ${item.dest}.bak`);
+    }
+
+    writeFileSync(destPath, readFileSync(item.src));
+    console.log(`  \x1b[32mCOPY:\x1b[0m ${item.dest}`);
+  });
+
+  console.log(`\n\x1b[32m✔ Plugin '${plugin.name}' installed successfully!\x1b[0m\n`);
+}
+
+function handlePluginStatus(options) {
+  const pluginsDir = getPluginsDir(options.target);
+  console.log(`\n🔌 \x1b[36mAuditing Plugins Status in: ${options.target}\x1b[0m`);
+  console.log('==================================================');
+
+  if (!existsSync(pluginsDir)) {
+    console.log('  No plugins directory found. 0 plugins installed.\n');
+    return;
+  }
+
+  let files = [];
+  try {
+    files = readdirSync(pluginsDir).filter(f => f.endsWith('.yaml') || f.endsWith('.yml'));
+  } catch (e) {}
+
+  if (files.length === 0) {
+    console.log('  No plugins installed.\n');
+    return;
+  }
+
+  files.forEach(f => {
+    try {
+      const pPath = join(pluginsDir, f);
+      const p = parseYaml(readFileSync(pPath, 'utf8'));
+      if (p && p.name) {
+        console.log(`\n* \x1b[32m${p.name}\x1b[0m (v${p.version || '1.0.0'})`);
+        let missingCount = 0;
+        let presentCount = 0;
+
+        if (Array.isArray(p.allowed_file_patterns)) {
+          p.allowed_file_patterns.forEach(pat => {
+            const destPath = join(options.target, pat);
+            if (existsSync(destPath) && statSync(destPath).isFile()) {
+              presentCount++;
+            } else {
+              missingCount++;
+            }
+          });
+        }
+
+        const total = presentCount + missingCount;
+        if (total === 0) {
+          console.log(`  Status: \x1b[32mHealthy\x1b[0m (Declarative only)`);
+        } else if (missingCount === 0) {
+          console.log(`  Status: \x1b[32mHealthy\x1b[0m (All ${presentCount}/${total} assets present)`);
+        } else {
+          console.log(`  Status: \x1b[33mIncomplete\x1b[0m (${presentCount}/${total} assets present, ${missingCount} missing)`);
+        }
+      }
+    } catch (e) {
+      console.log(`  - \x1b[31mError reading: ${f}\x1b[0m (${e.message})`);
+    }
+  });
+  console.log('');
 }
 
 

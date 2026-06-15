@@ -228,7 +228,41 @@ npx multimodel-dev-os@latest show-template <name>  # Detailed template inspectio
 
 ---
 
-### 15. Registry Commands
+### 15. `dashboard` — Interactive TUI Dashboard
+
+Launch the zero-dependency interactive command center to manage all commands.
+
+```bash
+npx multimodel-dev-os@latest dashboard
+# or short alias:
+npx multimodel-dev-os@latest ui
+```
+
+---
+
+### 16. `plugin` — Declarative Plugins Engine
+
+Manage declarative plugins safely within the whitelisted `.ai/` and `adapters/` paths.
+
+```bash
+npx multimodel-dev-os@latest plugin list
+npx multimodel-dev-os@latest plugin show <slug>
+npx multimodel-dev-os@latest plugin validate <path-to-yaml>
+npx multimodel-dev-os@latest plugin install <path-to-yaml> --approved
+npx multimodel-dev-os@latest plugin status
+```
+
+| Subcommand | Description |
+|:---|:---|
+| `list` | Print all installed plugins |
+| `show <slug>` | Inspect detailed plugin capabilities and safety notes |
+| `validate <path>` | Validate a YAML manifest against the plugin JSON schema |
+| `install <path>` | Install plugin configs (creates backups, requires `--approved`) |
+| `status` | Audit workspace to verify plugin asset presence |
+
+---
+
+### 17. Registry Commands
 
 Explore model, adapter, and skill registries.
 

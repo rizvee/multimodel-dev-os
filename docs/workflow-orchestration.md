@@ -32,6 +32,9 @@ Executes the workflow steps sequentially:
 npx multimodel-dev-os workflow run repo-health
 ```
 
+> [!TIP]
+> You can also run, plan, and list workflows interactively through the [TUI Dashboard](file:///f:/multimodel-dev-os/docs/dashboard.md) under the **Quality Gates & Diagnostics** or **Memory & Intelligence** menus.
+
 ---
 
 ## 2. Standard Built-in Workflows

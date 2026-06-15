@@ -16,6 +16,8 @@ Selecting how to manage AI instructions inside a codebase impacts developer spee
 | **Memory & learning** | ❌ None | ❌ None | ❌ None | ✅ **Hash-compressed memory + feedback loops** |
 | **CI/CD integration** | ❌ None | ❌ None | ❌ None | ✅ **214+ assertion verification suite** |
 | **Onboarding existing repos** | ❌ Manual setup | ❌ Manual setup | ❌ Manual setup | ✅ **`onboard analyze` workflow** |
+| **Interactive TUI Dashboard** | ❌ None | ❌ None | ❌ None | ✅ **Zero-dependency TUI Menu** |
+| **Declarative Plugins** | ❌ None | ❌ None | ❌ None | ✅ **Safe whitelist YAML plugins** |
 | **Cost** | Free | Free | Free–Paid | ✅ **Free & open source** |
 
 ---

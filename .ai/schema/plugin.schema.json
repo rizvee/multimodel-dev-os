@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MultiModel Dev OS Plugin Schema",
+  "description": "JSON schema reference detailing declarative plugin metadata and permitted directories configuration",
+  "type": "OBJECT",
+  "required": ["name", "slug", "version", "description", "author"],
+  "properties": {
+    "name": {
+      "type": "STRING",
+      "description": "Human-readable name of the plugin"
+    },
+    "slug": {
+      "type": "STRING",
+      "description": "Unique URL-friendly slug representing the plugin"
+    },
+    "version": {
+      "type": "STRING",
+      "description": "Semantic versioning number of the plugin (e.g. 1.0.0)"
+    },
+    "description": {
+      "type": "STRING",
+      "description": "Brief summary of what capabilities and templates this plugin introduces"
+    },
+    "author": {
+      "type": "STRING",
+      "description": "Name of the developer or team who created the plugin"
+    },
+    "allowed_file_patterns": {
+      "type": "ARRAY",
+      "items": { "type": "STRING" },
+      "description": "Target paths inside .ai/ or adapters/ this plugin is permitted to write to"
+    },
+    "denied_file_patterns": {
+      "type": "ARRAY",
+      "items": { "type": "STRING" },
+      "description": "Explicit blacklisted paths this plugin is blocked from writing to"
+    },
+    "templates": {
+      "type": "OBJECT",
+      "description": "Custom templates mapped by the plugin configuration"
+    },
+    "workflows": {
+      "type": "OBJECT",
+      "description": "Custom workflows mapped by the plugin configuration"
+    },
+    "adapters": {
+      "type": "OBJECT",
+      "description": "Custom adapter settings mapped by the plugin configuration"
+    },
+    "safety_notes": {
+      "type": "STRING",
+      "description": "Explicit security notices displayed to the user during installation"
+    }
+  },
+  "additionalProperties": false
+}

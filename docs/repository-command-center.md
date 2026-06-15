@@ -50,3 +50,19 @@ npx multimodel-dev-os onboard status
 ```
 
 This prints a checklist of crucial MultiModel Dev OS files and an overall completeness percentage score.
+
+---
+
+## 4. Interactive TUI Command Center
+
+Starting in `v2.8.0`, MultiModel Dev OS introduces a full interactive terminal user interface (TUI) command center that wraps all system diagnostics, sync tools, and memory engines.
+
+To launch the interactive dashboard, run:
+
+```bash
+npx multimodel-dev-os dashboard
+# or:
+npx multimodel-dev-os ui
+```
+
+For detailed controls, menu hierarchies, and automated CI safety fallbacks, refer to the [Interactive TUI Dashboard Guide](file:///f:/multimodel-dev-os/docs/dashboard.md).

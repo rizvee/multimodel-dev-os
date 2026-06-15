@@ -84,6 +84,16 @@ npx multimodel-dev-os@latest onboard status
 
 ---
 
+## Option F: Launch the Interactive Dashboard
+
+Launch the TUI command center to manage onboarding, adapter sync, memory building, feedback collection, proposals, and quality checks in an interactive menu:
+
+```bash
+npx multimodel-dev-os@latest dashboard
+```
+
+---
+
 ## After Install
 
 1. **Edit `AGENTS.md`** — fill in your project name, stack, and build commands.

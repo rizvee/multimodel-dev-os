@@ -42,9 +42,10 @@
 │  .ai/proposals/     (improvements)  │
 │  .ai/policies/      (safety gates)  │
 ├──────────────────────────────────────┤
-│    Layer 5: Onboarding & Sync       │
-│  onboard analyze/recommend/plan     │
-│  adapter status/diff/sync           │
+│    Layer 5: CLI Dashboard & Plugins  │
+│  dashboard / ui (TUI Command Center) │
+│  plugin list/show/validate/install   │
+│  onboard / adapter sync              │
 └──────────────────────────────────────┘
 ```
 

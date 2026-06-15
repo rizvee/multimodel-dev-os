@@ -1,0 +1,32 @@
+name: "Example Git Integration Plugin"
+slug: "git-integration"
+version: "1.0.0"
+description: "Declarative plugin extending MultiModel Dev OS with custom git workflows and rules"
+author: "MultiModel Dev OS Team"
+allowed_file_patterns:
+  - ".ai/skills/git-operations.md"
+  - ".ai/checks/pre-push-audit.md"
+denied_file_patterns:
+  - "src/**"
+  - ".env"
+  - "node_modules/**"
+templates:
+  git-commit-helper:
+    name: "Git Commit Message Assistant"
+    description: "Generates semantic commit messages based on staged diffs"
+workflows:
+  git-audit:
+    name: "Pre-Push Git Audit"
+    description: "Scan branch status and verify all local commits pass verification before pushing code"
+    steps:
+      - name: "Status Check"
+        command: "status"
+      - name: "Doctor Pre-flight Audit"
+        command: "doctor"
+      - name: "Integrity Verify"
+        command: "verify"
+adapters:
+  git-rules:
+    name: "Git Rules Configuration"
+    targetFile: ".gitattributes"
+safety_notes: "This plugin only writes configurations to .ai/skills/ and .ai/checks/ to aid developer git workflows. No binary code is executed."

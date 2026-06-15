@@ -2,6 +2,19 @@
 
 All notable changes to multimodel-dev-os will be documented in this file.
 
+## [2.8.0] - 2026-06-16
+
+### Added
+- **Interactive TUI Dashboard**: Added `dashboard`/`ui` command launching a zero-dependency keyboard-interactive command center built with Node's native `readline` module.
+- **Declarative Plugin Hooks**: Added `plugin` command suite (`list`, `show`, `validate`, `install`, `status`) and JSON schema to securely extend workspace templates, workflows, and skills.
+- **Secure Plugin Installer**: Supports `--approved` execution gate, path whitelisting to `.ai/` and `adapters/` directories, and automatic conflict `.bak` backups.
+- **Headless Fallback**: Automatically degrades to listing CLI commands in non-TTY/CI environments.
+
+### Changed
+- Improved YAML parser helper in `bin/multimodel-dev-os.js` to strip quotes from array items.
+- Added comprehensive documentation pages: `dashboard.md`, `plugin-hooks.md`, `plugin-authoring.md`, `tui-safety.md`.
+- Updated all existing documentation portals, config sidebars, sitemaps, and LLM assistant discovery files for v2.8.0 compatibility.
+
 ## [2.7.0] - 2026-06-16
 
 ### Added — Website / Demo / Distribution System

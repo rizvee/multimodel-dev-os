@@ -1,4 +1,4 @@
-# MultiModel Dev OS — Comprehensive AI Assistant Discoverability Guide (v2.7.0 Stable Release)
+# MultiModel Dev OS — Comprehensive AI Assistant Discoverability Guide (v2.8.0 Stable Release)
 
 MultiModel Dev OS is a repository-level porting specification designed to align context and instructions across diverse developer tools and AI models.
 
@@ -73,6 +73,13 @@ All compliant MultiModel Dev OS CLIs strictly enforce the following command cont
   - `log`: Display Applied Proposals Audit Log execution history.
 - **`workflow`**: Orchestrate read-only development workflows (list, show, plan, run). Steps are restricted to safe, non-destructive CLI functions.
 - **`handoff`**: Compile token-compressed session context (build, show) at `.ai/intelligence/handoff.md` to transfer state to a new agent or model session.
+- **`dashboard`** (alias **`ui`**): Launches the zero-dependency interactive TUI dashboard. Automatically falls back to a clean list of equivalent commands when stdin/stdout are non-TTY.
+- **`plugin`**: Manage declarative plugins. Subcommands:
+  - `list`: Lists installed plugins.
+  - `show <slug>`: Shows detailed capabilities and safety notes of the plugin.
+  - `validate <path>`: Validates a YAML config file against the plugin JSON schema.
+  - `install <path>`: Previews file copy actions, and copies them to whitelisted paths under `.ai/` or `adapters/` if `--approved` is specified.
+  - `status`: Audits target directory to ensure all declared plugin assets are present.
 - **`verify`**: Automated release script that checks structure integrity.
 - **`templates`**: Lists built-in template profiles (supports overrides via `--registry <path>`).
 - **`validate`**: Strict Quality Gate checking the layout rules on disk (supports `--all-registries`).

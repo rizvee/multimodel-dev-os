@@ -134,13 +134,11 @@ npx multimodel-dev-os@latest handoff build
 
 ---
 
-## What's New in v2.7
+## What's New in v2.8
 
-- 📖 **Guided Demo Workflows** — 5 copy-paste walkthroughs covering onboarding, sync, handoffs, safety loops, and pre-release audits
-- 🚀 **Conversion Funnel Landing Page** — Redesigned VitePress homepage focusing on quick value demonstration
-- 🎨 **Visual SVG Diagrams** — SVG flow charts showing onboarding pathways and adapter mappings
-- 📁 **Docs-First Examples** — Clean example directories with quick-copy instructions
-- 📦 **Distribution Guide** — Comprehensive release workflows and package hygiene documentation
+- 🧠 **Interactive TUI Dashboard** — Launches an interactive menu wrapper (`dashboard` or `ui`) for keyboard-driven navigation across all MultiModel Dev OS commands with non-TTY automated fallbacks.
+- 🔌 **Declarative Plugin Hooks** — Fully offline, declarative system (`plugin`) to list, show, validate, and install plugin rules to whitelisted directories with overwrite backups.
+- 🛡️ **Zero-Dependency CLI** — Custom keypress menu handling built on Node.js's native `readline` module.
 
 **[Full Changelog →](CHANGELOG.md)**
 
@@ -157,7 +155,7 @@ npx multimodel-dev-os@latest handoff build
 | **v2.5.0** | Repository Intelligence Command Center | ✅ Released |
 | **v2.6.0** | Real-Repo Onboarding & Adapter Sync | ✅ Released |
 | **v2.7.0** | Website, Demo & Distribution System | ✅ Released |
-| **v2.8.0** | Interactive TUI Dashboard & Plugin Hooks | 🔧 Planned |
+| **v2.8.0** | Interactive TUI Dashboard & Plugin Hooks | ✅ Released |
 | **v3.0.0** | Unified Autonomous Co-Pilot Ecosystem | 🔮 Future |
 
 **[Full Roadmap →](https://rizvee.github.io/multimodel-dev-os/v2-roadmap)**

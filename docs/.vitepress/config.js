@@ -32,7 +32,7 @@ export default {
         'license': 'https://opensource.org/licenses/MIT',
         'url': 'https://github.com/rizvee/multimodel-dev-os',
         'downloadUrl': 'https://www.npmjs.com/package/multimodel-dev-os',
-        'softwareVersion': '2.7.0',
+        'softwareVersion': '2.8.0',
         'description': 'Portable, vendor-neutral AI Developer OS for multi-agent coding workflows.'
       })
     ]
@@ -166,7 +166,11 @@ export default {
           { text: 'Approved Proposal Application', link: '/approved-proposal-apply' },
           { text: 'Repository Command Center', link: '/repository-command-center' },
           { text: 'Workflow Orchestration', link: '/workflow-orchestration' },
-          { text: 'Agent Handoff Spec', link: '/agent-handoff' }
+          { text: 'Agent Handoff Spec', link: '/agent-handoff' },
+          { text: 'Interactive TUI Dashboard', link: '/dashboard' },
+          { text: 'Declarative Plugin Hooks', link: '/plugin-hooks' },
+          { text: 'Plugin Authoring Guide', link: '/plugin-authoring' },
+          { text: 'TUI & Plugin Safety', link: '/tui-safety' }
         ]
       },
       {

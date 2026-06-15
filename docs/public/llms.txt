@@ -1,4 +1,4 @@
-# MultiModel Dev OS (v2.7.0 Stable Release)
+# MultiModel Dev OS (v2.8.0 Stable Release)
 
 Portable, vendor-neutral workspace configuration standard for multi-agent AI pair-programming workflows.
 
@@ -6,6 +6,17 @@ Portable, vendor-neutral workspace configuration standard for multi-agent AI pai
 ```bash
 # Initialize workspace
 npx multimodel-dev-os@latest init
+
+# Launch interactive terminal command center (TUI Dashboard)
+npx multimodel-dev-os@latest dashboard
+npx multimodel-dev-os@latest ui
+
+# Manage declarative plugins securely
+npx multimodel-dev-os@latest plugin list
+npx multimodel-dev-os@latest plugin show git-integration
+npx multimodel-dev-os@latest plugin validate path/to/plugin.yaml
+npx multimodel-dev-os@latest plugin install path/to/plugin.yaml --approved
+npx multimodel-dev-os@latest plugin status
 
 # Scan codebase signals & check status
 npx multimodel-dev-os@latest scan
