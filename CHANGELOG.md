@@ -2,6 +2,17 @@
 
 All notable changes to multimodel-dev-os will be documented in this file.
 
+## [2.8.1] - 2026-06-16
+
+### Added
+- **Plugin Validation Checklists**: Implemented strict alphanumeric slug validation (`/^[a-z0-9-_]+$/i`) and whitelisted boundary pattern assertions in the `validate` command.
+- **Detailed Asset Audits**: Improved `plugin status` to list the exact filenames of any missing assets.
+- **TUI list-actions flag**: Added `--list-actions` parameter to bypass TUI rendering and print clean grouped action previews.
+
+### Changed
+- **Scripting Friendly Refusal**: Updated `plugin install` without `--approved` to fail with exit code 1.
+- **Polished CLI Layouts**: Grouped and padded headless command preview lists for clean terminal alignment and dynamic target folder mapping.
+
 ## [2.8.0] - 2026-06-16
 
 ### Added

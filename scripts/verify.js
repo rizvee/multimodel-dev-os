@@ -456,8 +456,96 @@ try {
     console.error(`  ${RED}✗${NC} CLI help is missing scan, memory, status, workflow, or handoff commands`);
     fail++;
   }
+
+  if (helpOutput.includes('dashboard') && helpOutput.includes('ui') && helpOutput.includes('plugin')) {
+    console.log(`  ${GREEN}✓${NC} CLI help includes dashboard, ui, and plugin commands`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} CLI help is missing dashboard, ui, or plugin commands`);
+    fail++;
+  }
 } catch (e) {
   console.error(`  ${RED}✗${NC} node bin/multimodel-dev-os.js --help failed: ${e.message}`);
+  fail++;
+}
+
+// --- v2.8.0 / v2.8.1 Dashboard & Plugin Tests ---
+console.log('\nRunning TUI Dashboard & Plugin Pre-Flight Tests...');
+
+// 1. Dashboard dry-run check
+try {
+  const output = execSync('node bin/multimodel-dev-os.js dashboard --dry-run', { cwd: projectRoot, encoding: 'utf8' });
+  if (output.includes('Headless/CI Preview') && output.includes('npx multimodel-dev-os')) {
+    console.log(`  ${GREEN}✓${NC} dashboard --dry-run executes successfully and displays headless preview`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} dashboard --dry-run output is missing preview strings`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} dashboard --dry-run execution failed: ${e.message}`);
+  fail++;
+}
+
+// 2. Dashboard list-actions check
+try {
+  const output = execSync('node bin/multimodel-dev-os.js dashboard --list-actions', { cwd: projectRoot, encoding: 'utf8' });
+  if (output.includes('Headless/CI Preview') && output.includes('npx multimodel-dev-os')) {
+    console.log(`  ${GREEN}✓${NC} dashboard --list-actions executes successfully and displays headless preview`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} dashboard --list-actions output is missing preview strings`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} dashboard --list-actions execution failed: ${e.message}`);
+  fail++;
+}
+
+// 3. Plugin validation check
+try {
+  const output = execSync('node bin/multimodel-dev-os.js plugin validate .ai/plugins/plugin.example.yaml', { cwd: projectRoot, encoding: 'utf8' });
+  if (output.includes('fully valid and compliant')) {
+    console.log(`  ${GREEN}✓${NC} plugin validate on example manifest passes successfully`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} plugin validate on example manifest failed to report compliance`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} plugin validate execution failed: ${e.message}`);
+  fail++;
+}
+
+// 4. Plugin install refusal check (no --approved, should exit with code 1)
+try {
+  execSync('node bin/multimodel-dev-os.js plugin install .ai/plugins/plugin.example.yaml', { cwd: projectRoot, stdio: 'pipe' });
+  console.error(`  ${RED}✗${NC} plugin install without --approved should have exited with code 1, but exited with 0`);
+  fail++;
+} catch (e) {
+  if (e.status === 1) {
+    const stdErrOut = e.stderr ? e.stderr.toString() : '';
+    const stdOutOut = e.stdout ? e.stdout.toString() : '';
+    if (stdErrOut.includes('Installation refused') || stdOutOut.includes('Installation refused')) {
+      console.log(`  ${GREEN}✓${NC} plugin install without --approved correctly refuses and exits with code 1`);
+      pass++;
+    } else {
+      console.error(`  ${RED}✗${NC} plugin install without --approved exited with 1 but missing refusal message`);
+      fail++;
+    }
+  } else {
+    console.error(`  ${RED}✗${NC} plugin install without --approved failed with unexpected code ${e.status}: ${e.message}`);
+    fail++;
+  }
+}
+
+// 5. Plugin status check
+try {
+  execSync('node bin/multimodel-dev-os.js plugin status', { cwd: projectRoot, stdio: 'ignore' });
+  console.log(`  ${GREEN}✓${NC} plugin status executes without crashing`);
+  pass++;
+} catch (e) {
+  console.error(`  ${RED}✗${NC} plugin status execution failed: ${e.message}`);
   fail++;
 }
 

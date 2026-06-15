@@ -11,7 +11,7 @@ A plugin is defined by a single YAML or JSON file. The manifest schema structure
 ### Required Fields
 
 * **`name`** (string): The human-readable name of the plugin (e.g. `Git Integration Plugin`).
-* **`slug`** (string): A unique, URL-friendly slug identifier (e.g. `git-integration`). This slug determines the filename under `.ai/plugins/<slug>.yaml` after installation.
+* **`slug`** (string): A unique, URL-friendly slug identifier. Must consist strictly of lowercase alphanumeric characters, dashes, or underscores (`/^[a-z0-9-_]+$/i`, e.g. `git-integration`). This slug determines the filename under `.ai/plugins/<slug>.yaml` after installation.
 * **`version`** (string): Semantic version string (e.g. `1.0.0`).
 * **`description`** (string): A brief summary of the capabilities introduced by the plugin.
 * **`author`** (string): The creator's name or team.

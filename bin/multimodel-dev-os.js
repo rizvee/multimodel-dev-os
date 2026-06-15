@@ -52,7 +52,8 @@ function parseArgs(args) {
     title: null,
     approved: false,
     intelligence: false,
-    onboarding: false
+    onboarding: false,
+    listActions: false
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -67,6 +68,8 @@ function parseArgs(args) {
       params.caveman = true;
     } else if (arg === '--dry-run' || arg === '-d') {
       params.dryRun = true;
+    } else if (arg === '--list-actions') {
+      params.listActions = true;
     } else if (arg === '--force' || arg === '-f') {
       params.force = true;
     } else if (arg === '--help' || arg === '-h') {
@@ -4407,28 +4410,33 @@ function handleDashboard(options) {
     ]
   };
 
-  if (!process.stdout.isTTY || !process.stdin.isTTY || options.dryRun) {
-    console.log(`\n🧠 \x1b[36mMultiModel Dev OS Command Center (Headless mode)\x1b[0m`);
+  if (!process.stdout.isTTY || !process.stdin.isTTY || options.dryRun || options.listActions) {
+    console.log(`\n📊 \x1b[36mMultiModel Dev OS Command Center (Headless/CI Preview)\x1b[0m`);
+    console.log(`Target Workspace: \x1b[32m${options.target}\x1b[0m`);
     console.log('==================================================');
+    
+    const targetFlag = options.target === process.cwd() ? '' : ` --target "${options.target}"`;
+
     mainMenu.forEach(item => {
       if (item.action === 'command') {
-        console.log(`  - ${item.name}: equivalent command: "npx multimodel-dev-os ${item.command}"`);
+        console.log(`  \x1b[33m•\x1b[0m ${item.name.padEnd(30)} → \x1b[36mnpx multimodel-dev-os ${item.command}${targetFlag}\x1b[0m`);
       } else if (item.action === 'submenu') {
-        console.log(`  - ${item.name}`);
+        console.log(`\n  \x1b[35m[${item.name.replace('...', '')}]\x1b[0m`);
         submenus[item.menu].forEach(sub => {
           if (sub.action === 'command') {
-            console.log(`    └─ ${sub.name}: equivalent command: "npx multimodel-dev-os ${sub.command}"`);
+            console.log(`    └─ ${sub.name.padEnd(35)} → \x1b[36mnpx multimodel-dev-os ${sub.command}${targetFlag}\x1b[0m`);
           }
         });
       }
     });
-    console.log('');
+    console.log('\n\x1b[90m(Run with -t or --target to specify another workspace directory)\x1b[0m\n');
     return;
   }
 
   const runCommandWrapper = (cmdStr) => {
     console.clear();
-    console.log(`\n\x1b[36mRunning Command:\x1b[0m npx multimodel-dev-os ${cmdStr}`);
+    const targetFlag = options.target === process.cwd() ? '' : ` --target "${options.target}"`;
+    console.log(`\n\x1b[36mRunning Command:\x1b[0m npx multimodel-dev-os ${cmdStr}${targetFlag}`);
     console.log('--------------------------------------------------\n');
     try {
       const cliPath = join(sourceRoot, 'bin', 'multimodel-dev-os.js');
@@ -4473,6 +4481,9 @@ function getPluginsDir(targetDir) {
 
 function handlePluginList(options) {
   const pluginsDir = getPluginsDir(options.target);
+  const rawRelPath = relative(process.cwd(), join(sourceRoot, '.ai', 'plugins', 'plugin.example.yaml')).replace(/\\/g, '/');
+  const examplePath = rawRelPath.startsWith('.') ? rawRelPath : `./${rawRelPath}`;
+
   if (!existsSync(pluginsDir)) {
     if (options.json) {
       console.log('[]');
@@ -4481,7 +4492,7 @@ function handlePluginList(options) {
     console.log(`\n🔌 \x1b[36mInstalled Plugins in: ${options.target}\x1b[0m`);
     console.log('==================================================');
     console.log('  No plugins installed. Try:');
-    console.log('  npx multimodel-dev-os plugin install .ai/plugins/plugin.example.yaml --approved');
+    console.log(`  npx multimodel-dev-os plugin install ${examplePath} --approved`);
     console.log('');
     return;
   }
@@ -4509,7 +4520,8 @@ function handlePluginList(options) {
   console.log(`\n🔌 \x1b[36mInstalled Plugins in: ${options.target} (${plugins.length})\x1b[0m`);
   console.log('==================================================');
   if (plugins.length === 0) {
-    console.log('  No plugins installed.');
+    console.log('  No plugins installed. Try:');
+    console.log(`  npx multimodel-dev-os plugin install ${examplePath} --approved`);
   } else {
     plugins.forEach(p => {
       console.log(`\n\x1b[32m* ${p.name} (v${p.version || '1.0.0'})\x1b[0m [slug: \x1b[33m${p.slug}\x1b[0m]`);
@@ -4521,6 +4533,11 @@ function handlePluginList(options) {
 }
 
 function handlePluginShow(slug, options) {
+  if (!/^[a-z0-9-_]+$/i.test(slug)) {
+    console.error(`\x1b[31mError: Invalid plugin slug '${slug}'. Slugs must be alphanumeric with dashes or underscores only.\x1b[0m`);
+    process.exit(1);
+  }
+
   const pluginsDir = getPluginsDir(options.target);
   let p = null;
   if (existsSync(pluginsDir)) {
@@ -4538,6 +4555,7 @@ function handlePluginShow(slug, options) {
 
   if (!p) {
     console.error(`\x1b[31mError: Plugin with slug '${slug}' is not installed.\x1b[0m`);
+    console.error(`  Run \x1b[36mplugin list\x1b[0m to see installed plugins, or validate a new plugin config using \x1b[36mplugin validate <path>\x1b[0m.`);
     process.exit(1);
   }
 
@@ -4586,13 +4604,14 @@ function handlePluginValidate(pluginPath, options) {
   }
   
   console.log(`\n📋 \x1b[34mValidating Plugin: ${pluginPath}\x1b[0m`);
+  console.log('==================================================');
   
   let errors = 0;
   let plugin = null;
   try {
     plugin = parseYaml(readFileSync(fullPath, 'utf8'));
   } catch (e) {
-    console.error(`  \x1b[31m✗ Failed to parse YAML: ${e.message}\x1b[0m`);
+    console.error(`  \x1b[31m✗ [SYNTAX] Failed to parse YAML: ${e.message}\x1b[0m`);
     errors++;
   }
 
@@ -4600,79 +4619,114 @@ function handlePluginValidate(pluginPath, options) {
     const reqKeys = ['name', 'slug', 'version', 'description', 'author'];
     reqKeys.forEach(k => {
       if (plugin[k] === undefined || plugin[k] === null) {
-        console.error(`  \x1b[31m✗ Missing required key: ${k}\x1b[0m`);
+        console.error(`  \x1b[31m✗ [METADATA] Missing required key: ${k}\x1b[0m`);
         errors++;
       } else if (typeof plugin[k] !== 'string') {
-        console.error(`  \x1b[31m✗ Key '${k}' must be a string (found: ${typeof plugin[k]})\x1b[0m`);
+        console.error(`  \x1b[31m✗ [METADATA] Key '${k}' must be a string (found: ${typeof plugin[k]})\x1b[0m`);
         errors++;
+      } else if (k === 'slug') {
+        if (!/^[a-z0-9-_]+$/i.test(plugin[k])) {
+          console.error(`  \x1b[31m✗ [METADATA] Key 'slug' must be alphanumeric with dashes or underscores only (found: "${plugin[k]}")\x1b[0m`);
+          errors++;
+        } else {
+          console.log(`  \x1b[32m✓ [METADATA] Key: slug ("${plugin[k]}")`);
+        }
       } else {
-        console.log(`  \x1b[32m✓\x1b[0m Key: ${k} ("${plugin[k]}")`);
+        console.log(`  \x1b[32m✓ [METADATA] Key: ${k} ("${plugin[k]}")`);
       }
     });
 
     if (plugin.allowed_file_patterns !== undefined) {
       if (!Array.isArray(plugin.allowed_file_patterns)) {
-        console.error(`  \x1b[31m✗ allowed_file_patterns must be an array\x1b[0m`);
+        console.error(`  \x1b[31m✗ [SAFETY] allowed_file_patterns must be an array\x1b[0m`);
         errors++;
       } else {
         plugin.allowed_file_patterns.forEach(pat => {
           if (typeof pat !== 'string') {
-            console.error(`  \x1b[31m✗ allowed_file_patterns item must be a string: ${pat}\x1b[0m`);
+            console.error(`  \x1b[31m✗ [SAFETY] allowed_file_patterns item must be a string: ${pat}\x1b[0m`);
+            errors++;
+            return;
+          }
+          const normPattern = pat.replace(/\\/g, '/').trim();
+          const isSafeSubdir = [
+            '.ai/plugins/',
+            '.ai/registries/',
+            '.ai/templates/',
+            '.ai/skills/',
+            '.ai/checks/',
+            '.ai/prompts/',
+            '.ai/adapters/'
+          ].some(prefix => normPattern.startsWith(prefix));
+
+          const hasTraversal = normPattern.includes('..') || normPattern.startsWith('/');
+          const isBlacklisted = [
+            '.env',
+            '.npmrc',
+            '.git/',
+            'node_modules/',
+            'package.json',
+            'package-lock.json'
+          ].some(black => normPattern.includes(black));
+
+          if (!isSafeSubdir || hasTraversal || isBlacklisted) {
+            console.error(`  \x1b[31m✗ [SAFETY] File pattern '${pat}' violates safety boundaries (must reside under .ai/ or adapters/, contain no '..', and exclude blacklisted files)\x1b[0m`);
             errors++;
           }
         });
-        console.log(`  \x1b[32m✓\x1b[0m allowed_file_patterns checked: ${plugin.allowed_file_patterns.length} items`);
+        if (errors === 0) {
+          console.log(`  \x1b[32m✓ [SAFETY] allowed_file_patterns verified: ${plugin.allowed_file_patterns.length} items`);
+        }
       }
     }
 
     if (plugin.denied_file_patterns !== undefined) {
       if (!Array.isArray(plugin.denied_file_patterns)) {
-        console.error(`  \x1b[31m✗ denied_file_patterns must be an array\x1b[0m`);
+        console.error(`  \x1b[31m✗ [SAFETY] denied_file_patterns must be an array\x1b[0m`);
         errors++;
       } else {
         plugin.denied_file_patterns.forEach(pat => {
           if (typeof pat !== 'string') {
-            console.error(`  \x1b[31m✗ denied_file_patterns item must be a string: ${pat}\x1b[0m`);
+            console.error(`  \x1b[31m✗ [SAFETY] denied_file_patterns item must be a string: ${pat}\x1b[0m`);
             errors++;
           }
         });
-        console.log(`  \x1b[32m✓\x1b[0m denied_file_patterns checked: ${plugin.denied_file_patterns.length} items`);
+        console.log(`  \x1b[32m✓ [SAFETY] denied_file_patterns verified: ${plugin.denied_file_patterns.length} items`);
       }
     }
 
     if (plugin.workflows !== undefined) {
       if (typeof plugin.workflows !== 'object' || Array.isArray(plugin.workflows)) {
-        console.error(`  \x1b[31m✗ workflows must be an object\x1b[0m`);
+        console.error(`  \x1b[31m✗ [CAPABILITIES] workflows must be an object\x1b[0m`);
         errors++;
       } else {
-        console.log(`  \x1b[32m✓\x1b[0m workflows object checked`);
+        console.log(`  \x1b[32m✓ [CAPABILITIES] workflows verified`);
       }
     }
 
     if (plugin.templates !== undefined) {
       if (typeof plugin.templates !== 'object' || Array.isArray(plugin.templates)) {
-        console.error(`  \x1b[31m✗ templates must be an object\x1b[0m`);
+        console.error(`  \x1b[31m✗ [CAPABILITIES] templates must be an object\x1b[0m`);
         errors++;
       } else {
-        console.log(`  \x1b[32m✓\x1b[0m templates object checked`);
+        console.log(`  \x1b[32m✓ [CAPABILITIES] templates verified`);
       }
     }
 
     if (plugin.adapters !== undefined) {
       if (typeof plugin.adapters !== 'object' || Array.isArray(plugin.adapters)) {
-        console.error(`  \x1b[31m✗ adapters must be an object\x1b[0m`);
+        console.error(`  \x1b[31m✗ [CAPABILITIES] adapters must be an object\x1b[0m`);
         errors++;
       } else {
-        console.log(`  \x1b[32m✓\x1b[0m adapters object checked`);
+        console.log(`  \x1b[32m✓ [CAPABILITIES] adapters verified`);
       }
     }
 
     if (plugin.safety_notes !== undefined) {
       if (typeof plugin.safety_notes !== 'string') {
-        console.error(`  \x1b[31m✗ safety_notes must be a string\x1b[0m`);
+        console.error(`  \x1b[31m✗ [SAFETY] safety_notes must be a string\x1b[0m`);
         errors++;
       } else {
-        console.log(`  \x1b[32m✓\x1b[0m safety_notes checked`);
+        console.log(`  \x1b[32m✓ [SAFETY] safety_notes verified`);
       }
     }
   }
@@ -4682,7 +4736,9 @@ function handlePluginValidate(pluginPath, options) {
     if (options && options.noExit) return false;
     process.exit(1);
   } else {
-    console.log(`\n\x1b[32m✔ Plugin '${plugin.slug || plugin.name}' is fully valid and compliant!\x1b[0m\n`);
+    console.log(`\n\x1b[32m✔ Plugin '${plugin.slug || plugin.name}' is fully valid and compliant!\x1b[0m`);
+    console.log(`\n\x1b[35mRecommended Next Command:\x1b[0m`);
+    console.log(`    npx multimodel-dev-os plugin install ${pluginPath} --approved\n`);
     if (options && options.noExit) return true;
     return true;
   }
@@ -4772,14 +4828,15 @@ function handlePluginInstall(pluginPath, options) {
   }
 
   if (!options.approved) {
+    console.error(`\x1b[31mError: Plugin cannot be installed without explicit user approval. Pass the --approved flag.\x1b[0m`);
     console.log(`\n\x1b[33mPlanned Installation Actions:\x1b[0m`);
     filesToCopy.forEach(item => {
       const exists = existsSync(join(options.target, item.dest));
       const suffix = exists ? ' \x1b[33m(will overwrite)\x1b[0m' : '';
       console.log(`  - \x1b[36m[WOULD COPY]\x1b[0m ${item.src} -> ${item.dest}${suffix}`);
     });
-    console.log(`\nRun with \x1b[32m--approved\x1b[0m to apply these changes.\n`);
-    return;
+    console.error(`\n\x1b[31mError: Installation refused. Run with --approved to apply these changes.\x1b[0m\n`);
+    process.exit(1);
   }
 
   filesToCopy.forEach(item => {
@@ -4799,7 +4856,22 @@ function handlePluginInstall(pluginPath, options) {
     console.log(`  \x1b[32mCOPY:\x1b[0m ${item.dest}`);
   });
 
-  console.log(`\n\x1b[32m✔ Plugin '${plugin.name}' installed successfully!\x1b[0m\n`);
+  console.log(`\n\x1b[32m✔ Plugin '${plugin.name}' installed successfully!\x1b[0m`);
+  console.log(`\nSummary of actions:`);
+  console.log(`  - Manifest registered: .ai/plugins/${slug}.yaml`);
+  const assetCount = filesToCopy.length - 1;
+  console.log(`  - Synced assets:       ${assetCount} file(s)`);
+  
+  console.log(`\n\x1b[35mRecommended Next Commands:\x1b[0m`);
+  console.log(`    • View plugin details: npx multimodel-dev-os plugin show ${slug}`);
+  console.log(`    • Audit plugin health:  npx multimodel-dev-os plugin status --target .`);
+  if (plugin.workflows) {
+    const wfKeys = Object.keys(plugin.workflows);
+    if (wfKeys.length > 0) {
+      console.log(`    • Run custom workflow:  npx multimodel-dev-os workflow run ${wfKeys[0]}`);
+    }
+  }
+  console.log('');
 }
 
 function handlePluginStatus(options) {
@@ -4849,6 +4921,15 @@ function handlePluginStatus(options) {
           console.log(`  Status: \x1b[32mHealthy\x1b[0m (All ${presentCount}/${total} assets present)`);
         } else {
           console.log(`  Status: \x1b[33mIncomplete\x1b[0m (${presentCount}/${total} assets present, ${missingCount} missing)`);
+          console.log(`  Missing Assets:`);
+          p.allowed_file_patterns.forEach(pat => {
+            const destPath = join(options.target, pat);
+            if (!existsSync(destPath) || !statSync(destPath).isFile()) {
+              console.log(`    \x1b[31m✗\x1b[0m ${pat}`);
+            }
+          });
+          console.log(`  To fix: Reinstall the plugin or validate the configuration:`);
+          console.log(`    npx multimodel-dev-os plugin validate <path-to-plugin-source.yaml>`);
         }
       }
     } catch (e) {

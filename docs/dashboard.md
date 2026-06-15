@@ -81,18 +81,20 @@ In automated environments (CI/CD pipelines, GitHub Actions) or when piped, the t
 
 To prevent execution from hanging indefinitely, the TUI automatically detects non-TTY environments:
 * **Interactive Mode**: Triggered when both `process.stdout.isTTY` and `process.stdin.isTTY` are true.
-* **Headless Fallback**: Triggered when run in non-interactive shells, or if `--dry-run` is passed. The dashboard immediately prints a structured list of all menu options along with their corresponding CLI execution strings and exits cleanly.
+* **Headless Fallback**: Triggered when run in non-interactive shells, or if `--dry-run` or `--list-actions` is passed. The dashboard immediately prints a structured, grouped list of all menu options along with their corresponding CLI execution strings (including active target flags) and exits cleanly.
 
 Example headless output:
 
 ```txt
-🧠 MultiModel Dev OS Command Center (Headless mode)
+📊 MultiModel Dev OS Command Center (Headless/CI Preview)
+Target Workspace: /workspace
 ==================================================
-  - Active Workspace Status: equivalent command: "npx multimodel-dev-os status"
-  - Codebase Scan Analysis: equivalent command: "npx multimodel-dev-os scan"
-  - Onboarding Operations...
-    └─ Onboard: Analyze Repository: equivalent command: "npx multimodel-dev-os onboard analyze"
-    └─ Onboard: Recommendation Summary: equivalent command: "npx multimodel-dev-os onboard recommend"
+  • Active Workspace Status        → npx multimodel-dev-os status
+  • Codebase Scan Analysis         → npx multimodel-dev-os scan
+
+  [Onboarding Operations]
+    └─ Onboard: Analyze Repository        → npx multimodel-dev-os onboard analyze
+    └─ Onboard: Recommendation Summary    → npx multimodel-dev-os onboard recommend
 ...
 ```
 

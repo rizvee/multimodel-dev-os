@@ -36,7 +36,7 @@ The installer restricts all plugin file copies to specific directories inside th
 * `.ai/prompts/`
 * `.ai/adapters/`
 
-If a plugin manifest attempts to write to paths outside of these folders (such as `src/`, `lib/`, or `tests/`), the validator immediately throws an error and aborts the installation.
+If a plugin manifest attempts to write to paths outside of these folders (such as `src/`, `lib/`, or `tests/`), the validator immediately throws an error and aborts the installation. To guarantee safety, the validation phase restricts plugin `slug` parameters to alphanumeric characters with dashes and underscores only (`/^[a-z0-9-_]+$/i`), hard-blocking directory traversal patterns (`..`, `/`, `\`) to prevent manifest write escapes.
 
 ### 3. Blacklist Enforcement
 The system hard-blocks write operations to critical files or directories to prevent credentials exposure or project hijack:

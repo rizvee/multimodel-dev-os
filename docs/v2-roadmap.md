@@ -7,7 +7,7 @@ This document outlines the development path, completed milestones, and future pl
 ## 1. Current Status
 
 > [!IMPORTANT]
-> **v2.7.0 is the active stable release** on the public npm registry. All features below marked ✅ are shipped and production-ready.
+> **v2.8.1 is the active stable release** on the public npm registry. All features below marked ✅ are shipped and production-ready.
 
 ---
 
@@ -59,6 +59,13 @@ This document outlines the development path, completed milestones, and future pl
 - Created docs-first examples for key developer workflows
 - Updated sitemaps, model registries, and search indices
 
+### v2.8.0 / v2.8.1 — Interactive TUI Dashboard & Plugin Hooks ✅
+- **Interactive TUI Dashboard**: Added `dashboard`/`ui` command launching a zero-dependency keyboard-interactive command center built with Node's native `readline` module.
+- **Declarative Plugin Hooks**: Added `plugin` command suite (`list`, `show`, `validate`, `install`, `status`) and JSON schema to securely extend workspace templates, workflows, and skills.
+- **Secure Plugin Installer**: Supports `--approved` execution gate, path whitelisting to `.ai/` and `adapters/` directories, and automatic conflict `.bak` backups.
+- **Headless Fallback & CI Polish**: Polish dry-run outputs and added `--list-actions` parameter to prevent TUI hangs in CI.
+- **Path Traversal Hardening**: Enforce alphanumeric slug checks (`/^[a-z0-9-_]+$/i`) and pattern validation bounds to block traversal vectors.
+
 ---
 
 ## 3. Publishing Workflow
@@ -66,7 +73,7 @@ This document outlines the development path, completed milestones, and future pl
 All releases follow this strict publishing checklist:
 
 1. Bump version in `package.json`
-2. Run `npm run verify` (214+ assertions must pass)
+2. Run `npm run verify` (220+ assertions must pass)
 3. Run `npm run docs:build` to verify documentation
 4. Run `npm publish --dry-run` to review package hygiene
 5. Set `MMDO_ALLOW_PUBLISH=true` and publish:
@@ -76,12 +83,10 @@ All releases follow this strict publishing checklist:
 
 ---
 
-## 4. Upcoming: v2.8.0 — Interactive Dashboard & Plugin Hooks
+## 4. Upcoming: v2.9.0 — Auto-Detection & Custom Adaptors
 
-*   **Interactive TUI Status Dashboard**: Rich terminal UI for `status` and `workflow` commands
-*   **Plugin Hook System**: Pre/post hooks for `init`, `scan`, `memory`, and `workflow` commands
-*   **Custom Workflow Authoring**: User-defined workflow definitions beyond bundled registries
-*   **Adapter Auto-Detection**: Detect installed tools and automatically recommend adapter setup
+*   **Adapter Auto-Detection**: Detect installed tools and automatically recommend adapter setup.
+*   **Custom Adapter Hookups**: Programmatic hooks allowing plugins to register physical adapter configurations dynamically.
 
 ---
 

@@ -97,7 +97,7 @@ The improvement proposal system enforces 12 strict safety checks including path 
 It is a terminal-based operational menu (`npx multimodel-dev-os dashboard` or `ui`) that allows developers to run diagnostics, sync rules, build memory indexes, and check proposal status in a guided interface. It uses Node.js's native `readline` module for raw-keypress navigation, keeping execution zero-dependency and fast.
 
 **Will the TUI Dashboard hang in CI/CD pipelines?**
-No. The dashboard detects when stdin or stdout is non-interactive. In non-TTY environments, it prints a dry-run list of all options with their equivalent CLI commands and exits immediately, preventing pipelines from stalling.
+No. The dashboard detects when stdin or stdout is non-interactive. In non-TTY environments, or when `--dry-run` or `--list-actions` is passed, it prints a grouped preview of all options with their equivalent CLI commands and exits immediately, preventing pipelines from stalling.
 
 **How secure is the Declarative Plugin system?**
 Extremely secure. Plugins are strictly configuration-based (YAML manifest files). They cannot run arbitrary bash commands, execute node scripts, download npm packages, or make network calls. File copies are restricted to whitelisted `.ai/` and `adapters/` directories, and blacklists protect files like `.env`, `.git/`, `package.json`, and source code folders. Overwriting existing files requires `--force` and automatically generates backups.
