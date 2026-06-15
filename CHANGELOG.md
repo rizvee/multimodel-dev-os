@@ -2,6 +2,21 @@
 
 All notable changes to multimodel-dev-os will be documented in this file.
 
+## [2.6.1] - 2026-06-16
+
+### Changed — Documentation Discovery + GitHub Star Growth Patch
+- Rewrote README for faster developer understanding and stronger GitHub conversion
+- Added clearer feature positioning for onboarding, memory, workflow, adapters, and safe improvement proposals
+- Refreshed VitePress homepage with sharper value proposition and v2.6 highlights
+- Updated quickstart to include existing-repo onboarding and adapter sync workflows
+- Expanded FAQ with practical developer questions around safety, MCP, model support, and Cursor/Roo/Aider differences
+- Improved comparison guide with clearer decision matrix
+- Updated architecture docs for Intelligence and Onboarding layers
+- Refreshed v2 roadmap to reflect shipped v2.6 reality and future v2.7/v3.0 direction
+- Improved CLI reference for new onboarding and adapter commands
+- Improved CONTRIBUTING guide with good-first-issue guidance
+- Removed stale version references and outdated roadmap claims
+
 ## [2.6.0] - 2026-06-11
 
 ### Added
