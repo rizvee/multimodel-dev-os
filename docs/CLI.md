@@ -262,7 +262,33 @@ npx multimodel-dev-os@latest plugin status
 
 ---
 
-### 17. Registry Commands
+### 17. `catalog` — Local Workflow Marketplace & Plugin Catalog
+
+Manage and discover curated workflows and plugins offline.
+
+```bash
+npx multimodel-dev-os@latest catalog list [--category <name>]
+npx multimodel-dev-os@latest catalog search <query>
+npx multimodel-dev-os@latest catalog show <slug>
+npx multimodel-dev-os@latest catalog categories
+npx multimodel-dev-os@latest catalog recommend
+npx multimodel-dev-os@latest catalog install <slug> --approved
+npx multimodel-dev-os@latest catalog status
+```
+
+| Subcommand | Description |
+|:---|:---|
+| `list` | List all curated catalog plugins |
+| `search <query>` | Case-insensitively search catalog |
+| `show <slug>` | Inspect catalog plugin capabilities and installation actions |
+| `categories` | List all unique marketplace categories |
+| `recommend` | Scan current workspace framework/language signals and recommend plugins |
+| `install <slug>` | Install a catalog plugin (requires `--approved`) |
+| `status` | Audit installation status of catalog entries |
+
+---
+
+### 18. Registry Commands
 
 Explore model, adapter, and skill registries.
 

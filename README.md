@@ -156,6 +156,7 @@ npx multimodel-dev-os@latest handoff build
 | **v2.6.0** | Real-Repo Onboarding & Adapter Sync | ✅ Released |
 | **v2.7.0** | Website, Demo & Distribution System | ✅ Released |
 | **v2.8.0 / v2.8.1** | Interactive TUI Dashboard & Plugin Hooks | ✅ Released |
+| **v2.9.0** | Local Workflow Marketplace & Plugin Catalog | ✅ Released |
 | **v3.0.0** | Unified Autonomous Co-Pilot Ecosystem | 🔮 Future |
 
 **[Full Roadmap →](https://rizvee.github.io/multimodel-dev-os/v2-roadmap)**

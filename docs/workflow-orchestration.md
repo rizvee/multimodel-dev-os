@@ -60,3 +60,9 @@ The workflow engine enforces strict safety boundaries:
 ## 4. Bundled Registry Fallback
 
 If the repository does not have a local `.ai/registries/workflows.yaml` registry file initialized yet, the workflow runner will automatically fall back to the bundled registry package templates and output a notice. This allows running read-only diagnostics prior to full project onboarding.
+
+---
+
+## Curated Workflow Packs
+
+You can extend the available workflows in your repository by installing specialized plugin packs from the [Workflow Marketplace Catalog](/workflow-marketplace) (e.g. `npx multimodel-dev-os catalog install git-workflows --approved`).

@@ -18,6 +18,7 @@ Selecting how to manage AI instructions inside a codebase impacts developer spee
 | **Onboarding existing repos** | ❌ Manual setup | ❌ Manual setup | ❌ Manual setup | ✅ **`onboard analyze` workflow** |
 | **Interactive TUI Dashboard** | ❌ None | ❌ None | ❌ None | ✅ **Zero-dependency TUI Menu** |
 | **Declarative Plugins** | ❌ None | ❌ None | ❌ None | ✅ **Safe whitelist YAML plugins** |
+| **Workflow Marketplace** | ❌ None | ❌ None | ❌ None | ✅ **Local curated plugin catalog** |
 | **Cost** | Free | Free | Free–Paid | ✅ **Free & open source** |
 
 ---

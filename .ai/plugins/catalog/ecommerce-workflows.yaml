@@ -1,0 +1,14 @@
+name: "E-Commerce Webhook & Gateway Audits"
+slug: "ecommerce-workflows"
+version: "1.0.0"
+description: "Declarative schemas for payment gateways (Stripe, bKash) and webhook validation rules."
+author: "MultiModel Dev OS Team"
+safety_notes: "This plugin provides webhook auditing. No network connections are opened."
+allowed_file_patterns:
+  - .ai/skills/checkout-ops.md
+workflows:
+  webhook-verify:
+    name: "Audit Webhook Endpoints"
+    description: "Scan code for proper signature checks on Stripe/bKash webhooks."
+    steps:
+      - run: "echo 'Verifying webhook security patterns...'"

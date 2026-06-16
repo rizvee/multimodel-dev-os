@@ -7,7 +7,7 @@ This document outlines the development path, completed milestones, and future pl
 ## 1. Current Status
 
 > [!IMPORTANT]
-> **v2.8.1 is the active stable release** on the public npm registry. All features below marked ✅ are shipped and production-ready.
+> **v2.9.0 is the active stable release** on the public npm registry. All features below marked ✅ are shipped and production-ready.
 
 ---
 
@@ -66,6 +66,13 @@ This document outlines the development path, completed milestones, and future pl
 - **Headless Fallback & CI Polish**: Polish dry-run outputs and added `--list-actions` parameter to prevent TUI hangs in CI.
 - **Path Traversal Hardening**: Enforce alphanumeric slug checks (`/^[a-z0-9-_]+$/i`) and pattern validation bounds to block traversal vectors.
 
+### v2.9.0 — Local Workflow Marketplace & Plugin Catalog ✅
+- **Workflow Marketplace**: Curated index catalog (`catalog.yaml` and `.ai/plugins/catalog/`) packaging 6 first-party plugins for Git, SEO, WordPress, Next.js, E-commerce, and releases.
+- **Catalog CLI Commands**: Added `catalog list`, `catalog search`, `catalog show`, `catalog categories`, `catalog recommend`, `catalog install`, and `catalog status` to the zero-dependency CLI.
+- **Recommendation Engine**: Automatically ranks and recommends marketplace plugins using package scripts, frameworks, languages, and repo type heuristics.
+- **TUI Dashboard Integration**: Integrated read-only catalog actions (list, search, recommend, status) directly into the interactive command center.
+- **Robust Safety Boundaries**: Reuses the plugin installer validations (traversal protection, whitelist directories, backup overwrites, and exit code 1 gates).
+
 ---
 
 ## 3. Publishing Workflow
@@ -83,10 +90,12 @@ All releases follow this strict publishing checklist:
 
 ---
 
-## 4. Upcoming: v2.9.0 — Auto-Detection & Custom Adaptors
+## 4. Upcoming: v3.0.0 — Unified Autonomous Co-Pilot Ecosystem
 
-*   **Adapter Auto-Detection**: Detect installed tools and automatically recommend adapter setup.
-*   **Custom Adapter Hookups**: Programmatic hooks allowing plugins to register physical adapter configurations dynamically.
+*   **Full Multi-Agent Orchestration**: Dynamic task handoffs between specialized agents.
+*   **Distributed Registry Syncing**: Team-wide configuration synchronization.
+*   **Cryptographic Proposal Signing**: Tamper-proof improvement proposals.
+*   **Real-Time Collaboration**: Live workspace state sharing between agents and developers.
 
 ---
 

@@ -97,3 +97,9 @@ To install this plugin locally, users run:
 ```bash
 npx multimodel-dev-os@latest plugin install your-plugin-folder/plugin.yaml --approved
 ```
+
+---
+
+## Contributing to the Marketplace Catalog
+
+If you are developing first-party plugins for inclusion in the curated catalog, follow the guidelines in the [Catalog Authoring Guide](/catalog-authoring).

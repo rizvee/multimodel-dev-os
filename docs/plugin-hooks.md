@@ -87,3 +87,9 @@ To prevent path traversal and enforce robust script auditing:
 * **Alphanumeric Slug Constraints**: Slugs are validated against `/^[a-z0-9-_]+$/i` to block directory escapes when writing to `.ai/plugins/<slug>.yaml`.
 * **Path Boundary checks**: The `plugin validate` CLI command automatically parses `allowed_file_patterns` to assert they fit within whitelisted `.ai/` and `adapters/` folders, checking that no `..` traversal or blacklisted files are referenced.
 * **Non-zero CI exit codes**: If `plugin install` is called without the `--approved` flag, it prints planned actions and exits with **exit code 1** to abort scripting pipelines safely.
+
+---
+
+## Workflow Marketplace & Plugin Catalog
+
+In `v2.9.0`, MultiModel Dev OS introduces a curated local **Workflow Marketplace & Plugin Catalog** for discoverability of safe first-party plugins. For catalog operations, see the [Workflow Marketplace Catalog Guide](/catalog).

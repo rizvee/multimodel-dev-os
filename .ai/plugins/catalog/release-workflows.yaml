@@ -1,0 +1,14 @@
+name: "Release Preparation & Package Audit"
+slug: "release-workflows"
+version: "1.0.0"
+description: "Automated release checklist, version bump verification, and NPM package pre-flight doctor checks."
+author: "MultiModel Dev OS Team"
+safety_notes: "This plugin configures packaging and release-prep workflows."
+allowed_file_patterns:
+  - .ai/skills/release-ops.md
+workflows:
+  release-check:
+    name: "Perform Release Check"
+    description: "Verify version alignments across files and run dry-run builds."
+    steps:
+      - run: "npx multimodel-dev-os doctor --release"

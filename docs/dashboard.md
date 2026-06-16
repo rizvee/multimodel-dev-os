@@ -37,6 +37,7 @@ graph TD
     Dashboard --> Adapter[Adapter Synchronization...]
     Dashboard --> Memory[Memory & Intelligence...]
     Dashboard --> Feedback[Developer Feedback Loops...]
+    Dashboard --> Catalog[Workflow Marketplace Catalog...]
     Dashboard --> Quality[Quality Gates & Diagnostics...]
     Dashboard --> Plugins[Plugins Status Overview]
 ```
@@ -67,11 +68,15 @@ graph TD
    * Summarize feedback logs (`feedback summarize`)
    * Propose improvement proposal (`improve propose`)
    * Review active proposals list (`improve review`)
-7. **Quality Gates & Diagnostics**:
+7. **Workflow Marketplace Catalog**:
+   * Catalog List (`catalog list`)
+   * Catalog Recommend (`catalog recommend`)
+   * Catalog Status (`catalog status`)
+8. **Quality Gates & Diagnostics**:
    * Run Advisory Diagnostics (`doctor`)
    * Strict Schema Compliance (`validate`)
    * Run Release verification tests (`verify`)
-8. **Plugins Status Overview**: Checks the status of all installed declarative plugins (`plugin status`).
+9. **Plugins Status Overview**: Checks the status of all installed declarative plugins (`plugin status`).
 
 ---
 

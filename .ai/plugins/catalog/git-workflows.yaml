@@ -1,0 +1,22 @@
+name: "Git Workflows & Verification"
+slug: "git-workflows"
+version: "1.0.0"
+description: "Automated git pre-commit checks, branch compliance, and tag/push audits."
+author: "MultiModel Dev OS Team"
+safety_notes: "This plugin configures git workflows and checks. It is safe and does not modify source code."
+allowed_file_patterns:
+  - .ai/skills/git-operations.md
+  - .ai/checks/pre-commit-gate.md
+workflows:
+  git-audit:
+    name: "Git Repository Audit"
+    description: "Check working tree cleanliness and verify latest tag matches version."
+    steps:
+      - run: "git status --short"
+      - run: "git log -1 --oneline"
+  pre-commit-gate:
+    name: "Pre-commit Quality Gate"
+    description: "Strict checks before making commits."
+    steps:
+      - run: "npx multimodel-dev-os validate"
+      - run: "npx multimodel-dev-os doctor"

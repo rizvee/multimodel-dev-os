@@ -1,0 +1,161 @@
+catalog:
+  version: "2.9.0"
+  description: "Curated first-party plugin and workflow catalog"
+  plugins:
+    - slug: git-workflows
+      name: "Git Workflows & Verification"
+      version: "1.0.0"
+      description: "Automated git pre-commit checks, branch compliance, and tag/push audits."
+      category: "git"
+      tags:
+        - git
+        - workflow
+        - vcs
+      use_cases:
+        - Pre-commit validation
+        - CI pre-flight checks
+      supported_templates:
+        - "*"
+      provided_workflows:
+        - git-audit
+        - pre-commit-gate
+      provided_skills:
+        - git-operations.md
+      provided_prompts:
+        - git-commit-helper.md
+      provided_checks:
+        - git-clean-check.md
+      safety_level: "sandboxed"
+      install_scope: "declarative"
+      recommended_for: "All Git repositories requiring structured push gates"
+      files_preview:
+        - dest: ".ai/plugins/git-workflows.yaml"
+        - dest: ".ai/skills/git-operations.md"
+        - dest: ".ai/checks/pre-commit-gate.md"
+    - slug: seo-workflows
+      name: "SEO Audit & Optimization"
+      version: "1.0.0"
+      description: "Automated SEO tag analysis, meta checklist validation, and sitemap auditing."
+      category: "seo"
+      tags:
+        - seo
+        - html
+        - marketing
+      use_cases:
+        - Landing page audit
+        - Semantic HTML checks
+      supported_templates:
+        - seo-landing-page
+        - wordpress-site
+        - nextjs-saas
+      provided_workflows:
+        - seo-audit
+        - meta-verify
+      provided_skills:
+        - seo-audit-ops.md
+      safety_level: "sandboxed"
+      install_scope: "declarative"
+      recommended_for: "Public-facing frontends and content-heavy sites"
+      files_preview:
+        - dest: ".ai/plugins/seo-workflows.yaml"
+        - dest: ".ai/skills/seo-audit-ops.md"
+    - slug: wordpress-workflows
+      name: "WordPress Theme & Plugin Helper"
+      version: "1.0.0"
+      description: "Standards-compliant WordPress PHP boilerplate, security checks, and folder audits."
+      category: "wordpress"
+      tags:
+        - wordpress
+        - php
+        - cms
+      use_cases:
+        - Boilerplate creation
+        - WordPress theme/plugin checks
+      supported_templates:
+        - wordpress-site
+      provided_workflows:
+        - wp-generate-boilerplate
+        - wp-security-check
+      provided_skills:
+        - wp-helper.md
+      safety_level: "sandboxed"
+      install_scope: "declarative"
+      recommended_for: "WordPress themes, custom plugins, and PHP-based CMS projects"
+      files_preview:
+        - dest: ".ai/plugins/wordpress-workflows.yaml"
+        - dest: ".ai/skills/wp-helper.md"
+    - slug: nextjs-workflows
+      name: "Next.js Route & Action Builder"
+      version: "1.0.0"
+      description: "Server Actions structural helper, Route Handler validation, and middleware auditing."
+      category: "nextjs"
+      tags:
+        - nextjs
+        - react
+        - typescript
+      use_cases:
+        - Server Action validation
+        - Route handler checks
+      supported_templates:
+        - nextjs-saas
+      provided_workflows:
+        - nextjs-action-check
+        - nextjs-route-audit
+      provided_skills:
+        - nextjs-builder.md
+      safety_level: "sandboxed"
+      install_scope: "declarative"
+      recommended_for: "Next.js applications utilizing React Server Components or App Router"
+      files_preview:
+        - dest: ".ai/plugins/nextjs-workflows.yaml"
+        - dest: ".ai/skills/nextjs-builder.md"
+    - slug: ecommerce-workflows
+      name: "E-Commerce Webhook & Gateway Audits"
+      version: "1.0.0"
+      description: "Declarative schemas for payment gateways (Stripe, bKash) and webhook validation rules."
+      category: "ecommerce"
+      tags:
+        - ecommerce
+        - checkout
+        - stripe
+      use_cases:
+        - Webhook structure checks
+        - Transaction log validation
+      supported_templates:
+        - ecommerce-store
+      provided_workflows:
+        - webhook-verify
+        - payment-flow-audit
+      provided_skills:
+        - checkout-ops.md
+      safety_level: "sandboxed"
+      install_scope: "declarative"
+      recommended_for: "E-commerce stores and subscription payment integrations"
+      files_preview:
+        - dest: ".ai/plugins/ecommerce-workflows.yaml"
+        - dest: ".ai/skills/checkout-ops.md"
+    - slug: release-workflows
+      name: "Release Preparation & Package Audit"
+      version: "1.0.0"
+      description: "Automated release checklist, version bump verification, and NPM package pre-flight doctor checks."
+      category: "release"
+      tags:
+        - release
+        - publishing
+        - npm
+      use_cases:
+        - Release prep verification
+        - Package hygiene checks
+      supported_templates:
+        - "*"
+      provided_workflows:
+        - release-check
+        - doctor-audit
+      provided_skills:
+        - release-ops.md
+      safety_level: "sandboxed"
+      install_scope: "declarative"
+      recommended_for: "Libraries, packages, and frameworks targeting public distribution"
+      files_preview:
+        - dest: ".ai/plugins/release-workflows.yaml"
+        - dest: ".ai/skills/release-ops.md"

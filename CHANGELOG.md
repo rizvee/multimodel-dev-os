@@ -2,6 +2,15 @@
 
 All notable changes to multimodel-dev-os will be documented in this file.
 
+## [2.9.0] - 2026-06-16
+
+### Added
+- **Workflow Marketplace**: Curated index catalog (`catalog.yaml` and `.ai/plugins/catalog/`) packaging 6 first-party plugins for Git, SEO, WordPress, Next.js, E-commerce, and releases.
+- **Catalog CLI Commands**: Added `catalog list`, `catalog search`, `catalog show`, `catalog categories`, `catalog recommend`, `catalog install`, and `catalog status` to the zero-dependency CLI.
+- **Recommendation Engine**: Automatically ranks and recommends marketplace plugins using package scripts, frameworks, languages, and repo type heuristics.
+- **TUI Dashboard Integration**: Integrated read-only catalog actions (list, search, recommend, status) directly into the interactive command center.
+- **Robust Safety Boundaries**: Reuses the plugin installer validations (traversal protection, whitelist directories, backup overwrites, and exit code 1 gates).
+
 ## [2.8.1] - 2026-06-16
 
 ### Added

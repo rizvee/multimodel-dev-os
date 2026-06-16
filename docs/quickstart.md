@@ -94,6 +94,23 @@ npx multimodel-dev-os@latest dashboard
 
 ---
 
+## Option G: Local Workflow Marketplace & Plugin Catalog
+
+Discover and install safe, curated first-party plugin packs to extend your workflows:
+
+```bash
+# Get recommendations for your workspace
+npx multimodel-dev-os@latest catalog recommend
+
+# List all catalog plugins
+npx multimodel-dev-os@latest catalog list
+
+# Install a plugin
+npx multimodel-dev-os@latest catalog install git-workflows --approved
+```
+
+---
+
 ## After Install
 
 1. **Edit `AGENTS.md`** — fill in your project name, stack, and build commands.

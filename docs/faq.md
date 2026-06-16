@@ -102,6 +102,9 @@ No. The dashboard detects when stdin or stdout is non-interactive. In non-TTY en
 **How secure is the Declarative Plugin system?**
 Extremely secure. Plugins are strictly configuration-based (YAML manifest files). They cannot run arbitrary bash commands, execute node scripts, download npm packages, or make network calls. File copies are restricted to whitelisted `.ai/` and `adapters/` directories, and blacklists protect files like `.env`, `.git/`, `package.json`, and source code folders. Overwriting existing files requires `--force` and automatically generates backups.
 
+**How does the local Workflow Marketplace / Plugin Catalog work?**
+It is a bundled registry catalog (`catalog.yaml`) containing safe first-party declarative plugins. You can discover them using `catalog list`, search via `catalog search`, and get recommendations via `catalog recommend`. Installing them copies their declarative manifests and assets (like skills and checks) into target directories, reusing all security validation and copy gates of local plugin installations.
+
 ---
 
 ## Diagnostics & Validation

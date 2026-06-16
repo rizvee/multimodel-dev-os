@@ -549,6 +549,165 @@ try {
   fail++;
 }
 
+// --- v2.9.0 Catalog & Marketplace Tests ---
+console.log('\nRunning Catalog & Marketplace Pre-Flight Tests...');
+
+// 1. Catalog list check
+try {
+  const output = execSync('node bin/multimodel-dev-os.js catalog list', { cwd: projectRoot, encoding: 'utf8' });
+  if (output.includes('Workflow Marketplace & Plugin Catalog') && output.includes('git-workflows')) {
+    console.log(`  ${GREEN}✓${NC} catalog list executes successfully and displays catalog listings`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} catalog list output is missing catalog listings`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} catalog list execution failed: ${e.message}`);
+  fail++;
+}
+
+// 2. Catalog categories check
+try {
+  const output = execSync('node bin/multimodel-dev-os.js catalog categories', { cwd: projectRoot, encoding: 'utf8' });
+  if (output.includes('Marketplace Categories') && output.includes('git')) {
+    console.log(`  ${GREEN}✓${NC} catalog categories executes successfully`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} catalog categories output is missing categories`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} catalog categories execution failed: ${e.message}`);
+  fail++;
+}
+
+// 3. Catalog search check
+try {
+  const output = execSync('node bin/multimodel-dev-os.js catalog search release', { cwd: projectRoot, encoding: 'utf8' });
+  if (output.includes('Search Catalog Results') && output.includes('release-workflows')) {
+    console.log(`  ${GREEN}✓${NC} catalog search release executes successfully`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} catalog search release output is missing matches`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} catalog search execution failed: ${e.message}`);
+  fail++;
+}
+
+// 4. Catalog show check
+try {
+  const output = execSync('node bin/multimodel-dev-os.js catalog show release-workflows', { cwd: projectRoot, encoding: 'utf8' });
+  if (output.includes('Catalog Plugin: Release Preparation') && output.includes('release-workflows')) {
+    console.log(`  ${GREEN}✓${NC} catalog show release-workflows executes successfully`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} catalog show output is missing details`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} catalog show execution failed: ${e.message}`);
+  fail++;
+}
+
+// 5. Catalog recommend check
+try {
+  const output = execSync('node bin/multimodel-dev-os.js catalog recommend --target .', { cwd: projectRoot, encoding: 'utf8' });
+  if (output.includes('Marketplace Recommendations') && output.includes('git-workflows')) {
+    console.log(`  ${GREEN}✓${NC} catalog recommend executes successfully`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} catalog recommend output is missing recommendations`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} catalog recommend execution failed: ${e.message}`);
+  fail++;
+}
+
+// 6. Catalog status check
+try {
+  const output = execSync('node bin/multimodel-dev-os.js catalog status --target .', { cwd: projectRoot, encoding: 'utf8' });
+  if (output.includes('Auditing Catalog Plugins') && output.includes('git-workflows')) {
+    console.log(`  ${GREEN}✓${NC} catalog status executes successfully`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} catalog status output is missing audit results`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} catalog status execution failed: ${e.message}`);
+  fail++;
+}
+
+// 7. Catalog install refusal check (no --approved)
+try {
+  execSync('node bin/multimodel-dev-os.js catalog install release-workflows', { cwd: projectRoot, stdio: 'pipe' });
+  console.error(`  ${RED}✗${NC} catalog install without --approved should have exited with code 1, but exited with 0`);
+  fail++;
+} catch (e) {
+  if (e.status === 1) {
+    const stdOutOut = e.stdout ? e.stdout.toString() : '';
+    const stdErrOut = e.stderr ? e.stderr.toString() : '';
+    if (stdOutOut.includes('Installation refused') || stdErrOut.includes('Installation refused')) {
+      console.log(`  ${GREEN}✓${NC} catalog install without --approved correctly refuses and exits with code 1`);
+      pass++;
+    } else {
+      console.error(`  ${RED}✗${NC} catalog install without --approved exited with 1 but missing refusal message`);
+      fail++;
+    }
+  } else {
+    console.error(`  ${RED}✗${NC} catalog install without --approved failed with unexpected code ${e.status}: ${e.message}`);
+    fail++;
+  }
+}
+
+// 8. Catalog file checks and schema validations
+try {
+  const catalogYamlPath = join(projectRoot, '.ai', 'plugins', 'catalog.yaml');
+  if (existsSync(catalogYamlPath)) {
+    console.log(`  ${GREEN}✓${NC} catalog.yaml file exists in registries`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} catalog.yaml is missing`);
+    fail++;
+  }
+
+  // Parse and validate catalog plugins
+  const catalogData = parseYaml(readFileSync(catalogYamlPath, 'utf8'));
+  const plugins = (catalogData.catalog && catalogData.catalog.plugins) || [];
+  let catalogValid = true;
+
+  plugins.forEach(p => {
+    const manifestPath = join(projectRoot, '.ai', 'plugins', 'catalog', `${p.slug}.yaml`);
+    if (!existsSync(manifestPath)) {
+      console.error(`  ${RED}✗${NC} Catalog plugin manifest missing for: ${p.slug}`);
+      catalogValid = false;
+    } else {
+      // Validate manifest against plugin validate logic
+      const out = execSync(`node bin/multimodel-dev-os.js plugin validate .ai/plugins/catalog/${p.slug}.yaml`, { cwd: projectRoot, encoding: 'utf8' });
+      if (!out.includes('fully valid and compliant')) {
+        console.error(`  ${RED}✗${NC} Catalog plugin validate failed for: ${p.slug}`);
+        catalogValid = false;
+      }
+    }
+  });
+
+  if (catalogValid) {
+    console.log(`  ${GREEN}✓${NC} all bundled catalog plugins exist and pass validation rules`);
+    pass++;
+  } else {
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} catalog manifests integrity checks failed: ${e.message}`);
+  fail++;
+}
+
+
+
 // Verify docs mention memory build
 try {
   const mdContent = readFileSync(join(projectRoot, 'docs', 'hash-compressed-memory.md'), 'utf8');

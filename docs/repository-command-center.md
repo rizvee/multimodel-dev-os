@@ -65,4 +65,6 @@ npx multimodel-dev-os dashboard
 npx multimodel-dev-os ui
 ```
 
+*   **Workflow Marketplace Catalog Integration**: The dashboard provides a curated marketplace lookup menu under `Workflow Marketplace Catalog...` to list, search, and recommend plugins for the workspace.
+
 For detailed controls, menu hierarchies, and automated CI safety fallbacks, refer to the [Interactive TUI Dashboard Guide](file:///f:/multimodel-dev-os/docs/dashboard.md).

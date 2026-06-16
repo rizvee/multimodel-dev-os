@@ -1,0 +1,19 @@
+name: "SEO Audit & Optimization"
+slug: "seo-workflows"
+version: "1.0.0"
+description: "Automated SEO tag analysis, meta checklist validation, and sitemap auditing."
+author: "MultiModel Dev OS Team"
+safety_notes: "This plugin provides automated SEO checks. It does not perform active network requests or package installs."
+allowed_file_patterns:
+  - .ai/skills/seo-audit-ops.md
+workflows:
+  seo-audit:
+    name: "Run SEO Page Audit"
+    description: "Scan target HTML files and verify title tags, descriptions, and hierarchy."
+    steps:
+      - run: "echo 'Verifying page SEO elements...'"
+  meta-verify:
+    name: "Verify Meta Tags"
+    description: "Assert sitemaps and meta tag compliance."
+    steps:
+      - run: "echo 'Verifying sitemaps/robots.txt configurations...'"

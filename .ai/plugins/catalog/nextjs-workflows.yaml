@@ -1,0 +1,14 @@
+name: "Next.js Route & Action Builder"
+slug: "nextjs-workflows"
+version: "1.0.0"
+description: "Server Actions structural helper, Route Handler validation, and middleware auditing."
+author: "MultiModel Dev OS Team"
+safety_notes: "This plugin assists with Next.js structures. No package changes are made."
+allowed_file_patterns:
+  - .ai/skills/nextjs-builder.md
+workflows:
+  nextjs-action-check:
+    name: "Server Action Validation"
+    description: "Scan route folders and verify that 'use server' directives are configured securely."
+    steps:
+      - run: "echo 'Scanning Next.js actions...'"

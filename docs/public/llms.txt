@@ -1,4 +1,4 @@
-# MultiModel Dev OS (v2.8.1 Stable Release)
+# MultiModel Dev OS (v2.9.0 Stable Release)
 
 Portable, vendor-neutral workspace configuration standard for multi-agent AI pair-programming workflows.
 
@@ -17,6 +17,13 @@ npx multimodel-dev-os@latest plugin show git-integration
 npx multimodel-dev-os@latest plugin validate path/to/plugin.yaml
 npx multimodel-dev-os@latest plugin install path/to/plugin.yaml --approved
 npx multimodel-dev-os@latest plugin status
+
+# Discover, recommend, and install curated plugin catalogs
+npx multimodel-dev-os@latest catalog list
+npx multimodel-dev-os@latest catalog recommend
+npx multimodel-dev-os@latest catalog show git-workflows
+npx multimodel-dev-os@latest catalog install git-workflows --approved
+npx multimodel-dev-os@latest catalog status
 
 # Scan codebase signals & check status
 npx multimodel-dev-os@latest scan

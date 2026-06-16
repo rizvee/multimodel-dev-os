@@ -1,4 +1,4 @@
-# MultiModel Dev OS — Comprehensive AI Assistant Discoverability Guide (v2.8.1 Stable Release)
+# MultiModel Dev OS — Comprehensive AI Assistant Discoverability Guide (v2.9.0 Stable Release)
 
 MultiModel Dev OS is a repository-level porting specification designed to align context and instructions across diverse developer tools and AI models.
 
@@ -80,6 +80,14 @@ All compliant MultiModel Dev OS CLIs strictly enforce the following command cont
   - `validate <path>`: Validates a YAML config file against the plugin JSON schema.
   - `install <path>`: Previews file copy actions, and copies them to whitelisted paths under `.ai/` or `adapters/` if `--approved` is specified.
   - `status`: Audits target directory to ensure all declared plugin assets are present.
+- **`catalog`**: Manage the local Workflow Marketplace & Plugin Catalog. Subcommands:
+  - `list`: Lists all catalog plugins (supports `--category`).
+  - `search <query>`: Case-insensitively searches catalog plugins.
+  - `show <slug>`: Displays catalog plugin metadata and file previews.
+  - `categories`: Lists all unique categories in the catalog.
+  - `recommend`: Scans repo signals to recommend matching catalog plugins.
+  - `install <slug>`: Installs a catalog plugin to the target repo (requires `--approved`).
+  - `status`: Audits installation status of catalog entries.
 - **`verify`**: Automated release script that checks structure integrity.
 - **`templates`**: Lists built-in template profiles (supports overrides via `--registry <path>`).
 - **`validate`**: Strict Quality Gate checking the layout rules on disk (supports `--all-registries`).

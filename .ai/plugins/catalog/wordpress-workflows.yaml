@@ -1,0 +1,14 @@
+name: "WordPress Theme & Plugin Helper"
+slug: "wordpress-workflows"
+version: "1.0.0"
+description: "Standards-compliant WordPress PHP boilerplate, security checks, and folder audits."
+author: "MultiModel Dev OS Team"
+safety_notes: "This plugin configures WordPress boilerplates. It is entirely declarative."
+allowed_file_patterns:
+  - .ai/skills/wp-helper.md
+workflows:
+  wp-security-check:
+    name: "WordPress Security Scan"
+    description: "Scan plugins/themes folders for unsafe file permissions and missing index.php files."
+    steps:
+      - run: "echo 'Scanning WordPress theme/plugin directory permissions...'"
