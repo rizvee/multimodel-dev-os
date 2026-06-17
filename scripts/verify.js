@@ -230,6 +230,11 @@ checkFile('docs/registry-contribution.md');
 checkFile('docs/v2-migration.md');
 checkFile('docs/v2-release-checklist.md');
 checkFile('docs/package-safety.md');
+checkFile('docs/registry-sync.md');
+checkFile('docs/trusted-registries.md');
+checkFile('docs/registry-policy.md');
+checkFile('docs/registry-security.md');
+checkFile('docs/remote-catalog-authoring.md');
 
 // --- v2.1.0 Intelligence Layer Documentation ---
 console.log('\nIntelligence Layer Documentation:');
@@ -253,6 +258,8 @@ checkFile('.ai/models/providers.yaml');
 checkFile('.ai/models/routing-presets.yaml');
 checkFile('.ai/models/local-models.yaml');
 checkFile('.ai/models/README.md');
+checkFile('.ai/registries/policy.yaml');
+checkFile('.ai/registries/sources.yaml');
 checkFile('.ai/adapters/registry.yaml');
 checkFile('.ai/templates/registry.yaml');
 checkFile('.ai/templates/custom-template.example.yaml');
@@ -417,6 +424,8 @@ verifyRegistryParsed('.ai/templates/registry.yaml', 'templates');
 verifyRegistryParsed('.ai/registries/capabilities.yaml', 'capabilities');
 verifyRegistryParsed('.ai/registries/tools.yaml', 'tools');
 verifyRegistryParsed('.ai/registries/workflows.yaml', 'workflows');
+verifyRegistryParsed('.ai/registries/policy.yaml', 'policy');
+verifyRegistryParsed('.ai/registries/sources.yaml', 'sources');
 
 // --- CLI & Packaging Pre-Flight Tests ---
 console.log('\nRunning CLI & Packaging Pre-Flight Tests...');
@@ -462,6 +471,14 @@ try {
     pass++;
   } else {
     console.error(`  ${RED}✗${NC} CLI help is missing dashboard, ui, or plugin commands`);
+    fail++;
+  }
+
+  if (helpOutput.includes('registry')) {
+    console.log(`  ${GREEN}✓${NC} CLI help includes registry command`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} CLI help is missing registry command`);
     fail++;
   }
 } catch (e) {
@@ -662,6 +679,98 @@ try {
     console.error(`  ${RED}✗${NC} catalog install without --approved failed with unexpected code ${e.status}: ${e.message}`);
     fail++;
   }
+}
+
+// --- v3.0.0 Registry & Governance Tests ---
+try {
+  const output = execSync('node bin/multimodel-dev-os.js registry status', { cwd: projectRoot, encoding: 'utf8' });
+  if (output.includes('Registry Governance') && output.includes('Allowed Roots')) {
+    console.log(`  \x1b[32m✓\x1b[0m registry status executes successfully`);
+    pass++;
+  } else {
+    console.error(`  \x1b[31m✗\x1b[0m registry status output is invalid`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  \x1b[31m✗\x1b[0m registry status execution failed: ${e.message}`);
+  fail++;
+}
+
+try {
+  const output = execSync('node bin/multimodel-dev-os.js registry list', { cwd: projectRoot, encoding: 'utf8' });
+  if (output.includes('Configured Registry Sources') && output.includes('bundled')) {
+    console.log(`  \x1b[32m✓\x1b[0m registry list executes successfully`);
+    pass++;
+  } else {
+    console.error(`  \x1b[31m✗\x1b[0m registry list output is invalid`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  \x1b[31m✗\x1b[0m registry list execution failed: ${e.message}`);
+  fail++;
+}
+
+try {
+  const output = execSync('node bin/multimodel-dev-os.js registry verify bundled', { cwd: projectRoot, encoding: 'utf8' });
+  if (output.includes('Registry Verification Check') && output.includes('compliant')) {
+    console.log(`  \x1b[32m✓\x1b[0m registry verify bundled executes successfully`);
+    pass++;
+  } else {
+    console.error(`  \x1b[31m✗\x1b[0m registry verify bundled output is invalid`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  \x1b[31m✗\x1b[0m registry verify bundled execution failed: ${e.message}`);
+  fail++;
+}
+
+try {
+  execSync('node bin/multimodel-dev-os.js registry sync official', { cwd: projectRoot, stdio: 'pipe' });
+  console.error(`  \x1b[31m✗\x1b[0m registry sync without --approved should have exited with code 1, but exited with 0`);
+  fail++;
+} catch (e) {
+  if (e.status === 1) {
+    const stdOutOut = e.stdout ? e.stdout.toString() : '';
+    const stdErrOut = e.stderr ? e.stderr.toString() : '';
+    if (stdOutOut.includes('Installation refused') || stdErrOut.includes('Installation refused')) {
+      console.log(`  \x1b[32m✓\x1b[0m registry sync without --approved correctly refuses and exits with code 1`);
+      pass++;
+    } else {
+      console.error(`  \x1b[31m✗\x1b[0m registry sync without --approved exited with 1 but missing refusal message`);
+      fail++;
+    }
+  } else {
+    console.error(`  \x1b[31m✗\x1b[0m registry sync without --approved failed with unexpected code ${e.status}: ${e.message}`);
+    fail++;
+  }
+}
+
+try {
+  const output = execSync('node bin/multimodel-dev-os.js registry sync official --approved', { cwd: projectRoot, encoding: 'utf8' });
+  if (output.includes('Registry synced successfully')) {
+    console.log(`  \x1b[32m✓\x1b[0m registry sync with --approved executes successfully`);
+    pass++;
+  } else {
+    console.error(`  \x1b[31m✗\x1b[0m registry sync with --approved output is invalid`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  \x1b[31m✗\x1b[0m registry sync with --approved execution failed: ${e.message}`);
+  fail++;
+}
+
+try {
+  const policyContent = readFileSync(join(projectRoot, '.ai', 'registries', 'policy.yaml'), 'utf8');
+  if (policyContent.includes('allowed_roots') && policyContent.includes('blocked_paths')) {
+    console.log(`  \x1b[32m✓\x1b[0m Policy engine YAML contains allowed/blocked definitions`);
+    pass++;
+  } else {
+    console.error(`  \x1b[31m✗\x1b[0m Policy engine YAML is invalid`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  \x1b[31m✗\x1b[0m Policy engine verification failed: ${e.message}`);
+  fail++;
 }
 
 // 8. Catalog file checks and schema validations

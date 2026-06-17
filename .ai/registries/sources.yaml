@@ -1,0 +1,11 @@
+sources:
+  bundled:
+    priority: 1
+    type: local
+  local:
+    priority: 2
+    type: cache
+  official:
+    priority: 3
+    type: remote
+    url: https://registry.multimodel-dev-os.org/

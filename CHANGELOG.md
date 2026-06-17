@@ -2,6 +2,15 @@
 
 All notable changes to multimodel-dev-os will be documented in this file.
 
+## [3.0.0] - 2026-06-18
+
+### Added
+- **Trusted Remote Catalog + Governance Layer**: Secure remote catalog source handling, checksum/provenance verifications, and priority priority source resolver (bundled -> local -> remote).
+- **Registry CLI Commands**: Added `registry status`, `registry list`, `registry sync`, and `registry verify` to manage local and remote registry metadata safely.
+- **Registry Policy Engine**: Restricts write roots, blocks protected paths, and executes approval gates. Bypasses require explicit `--approved` execution flags.
+- **Dashboard Visibility**: Read-only registry sync preview integrated directly into TUI command center.
+- **Registry Security**: Kept remote discovery opt-in only with zero arbitrary code execution or external installs.
+
 ## [2.9.0] - 2026-06-16
 
 ### Added

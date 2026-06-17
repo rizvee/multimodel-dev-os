@@ -1,0 +1,11 @@
+policy:
+  approval_gate: true
+  allowed_roots:
+    - .ai/
+    - adapters/
+  blocked_paths:
+    - .git/
+    - .env
+    - node_modules/
+    - package.json
+    - package-lock.json
