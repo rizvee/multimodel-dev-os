@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MultiModel Dev OS Registry Policy Schema",
+  "description": "JSON schema defining allowed governance settings for remote registry sync, plugin installation, and path safety boundaries",
+  "type": "object",
+  "required": [
+    "allow_remote_registries",
+    "require_approval_for_remote_sync",
+    "require_checksum",
+    "require_signature",
+    "allow_untrusted_install",
+    "allowed_write_roots",
+    "blocked_paths",
+    "allowed_file_extensions"
+  ],
+  "properties": {
+    "allow_remote_registries": {
+      "type": "boolean",
+      "description": "Master switch to enable remote registry sources. Must be true before any remote registry can be added or synced."
+    },
+    "require_approval_for_remote_sync": {
+      "type": "boolean",
+      "description": "Whether the --approved flag is required for all sync operations."
+    },
+    "require_checksum": {
+      "type": "boolean",
+      "description": "Whether SHA256 checksum verification is required for synced catalog files."
+    },
+    "require_signature": {
+      "type": "boolean",
+      "description": "Whether cryptographic signature verification is required. Placeholder for future release."
+    },
+    "allow_untrusted_install": {
+      "type": "boolean",
+      "description": "Whether plugins from untrusted registries can be installed."
+    },
+    "allowed_write_roots": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Directory prefixes where plugins are permitted to write files."
+    },
+    "blocked_paths": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Paths that are always blocked from plugin writes, regardless of allowed_write_roots."
+    },
+    "max_plugin_files": {
+      "type": "integer",
+      "description": "Maximum number of files a single plugin can install."
+    },
+    "max_plugin_size_kb": {
+      "type": "integer",
+      "description": "Maximum total size in kilobytes of files a single plugin can install."
+    },
+    "max_registry_cache_size_kb": {
+      "type": "integer",
+      "description": "Maximum total cache size in kilobytes per remote registry."
+    },
+    "allowed_file_extensions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "File extensions permitted for plugin asset files."
+    }
+  },
+  "additionalProperties": false
+}

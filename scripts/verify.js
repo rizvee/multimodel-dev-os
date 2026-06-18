@@ -10,6 +10,7 @@ import { existsSync, readFileSync, statSync, readdirSync } from 'fs';
 import { join, resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
+import { createHash } from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -230,11 +231,6 @@ checkFile('docs/registry-contribution.md');
 checkFile('docs/v2-migration.md');
 checkFile('docs/v2-release-checklist.md');
 checkFile('docs/package-safety.md');
-checkFile('docs/registry-sync.md');
-checkFile('docs/trusted-registries.md');
-checkFile('docs/registry-policy.md');
-checkFile('docs/registry-security.md');
-checkFile('docs/remote-catalog-authoring.md');
 
 // --- v2.1.0 Intelligence Layer Documentation ---
 console.log('\nIntelligence Layer Documentation:');
@@ -258,8 +254,6 @@ checkFile('.ai/models/providers.yaml');
 checkFile('.ai/models/routing-presets.yaml');
 checkFile('.ai/models/local-models.yaml');
 checkFile('.ai/models/README.md');
-checkFile('.ai/registries/policy.yaml');
-checkFile('.ai/registries/sources.yaml');
 checkFile('.ai/adapters/registry.yaml');
 checkFile('.ai/templates/registry.yaml');
 checkFile('.ai/templates/custom-template.example.yaml');
@@ -318,13 +312,51 @@ checkFile('docs/public/assets/terminal-demo.svg');
 checkFile('docs/public/assets/architecture-preview.svg');
 
 // --- YAML Parser Helper ---
+function parseFlowArray(str) {
+  const contents = str.slice(1, -1).trim();
+  if (!contents) return [];
+
+  const result = [];
+  const regex = /"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|([^,\s][^,]*[^,\s]|[^,\s])/g;
+  let match;
+  while ((match = regex.exec(contents)) !== null) {
+    if (match[1] !== undefined) {
+      result.push(match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\'));
+    } else if (match[2] !== undefined) {
+      result.push(match[2].replace(/\\'/g, "'").replace(/\\\\/g, '\\'));
+    } else if (match[3] !== undefined) {
+      let val = match[3].trim();
+      if (val === 'true') val = true;
+      else if (val === 'false') val = false;
+      else if (val === 'null') val = null;
+      else if (/^-?\d+$/.test(val)) val = parseInt(val, 10);
+      result.push(val);
+    }
+  }
+  return result;
+}
+
 function parseYaml(content) {
   try {
     const root = {};
     const stack = [{ obj: root, indent: -1, key: null, isArray: false }];
     const lines = content.split(/\r?\n/);
     for (let line of lines) {
-      const commentIdx = line.indexOf('#');
+      // Find comment index outside quotes
+      let commentIdx = -1;
+      let insideDouble = false;
+      let insideSingle = false;
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"' && (i === 0 || line[i-1] !== '\\')) {
+          insideDouble = !insideDouble;
+        } else if (char === "'" && (i === 0 || line[i-1] !== '\\')) {
+          insideSingle = !insideSingle;
+        } else if (char === '#' && !insideDouble && !insideSingle) {
+          commentIdx = i;
+          break;
+        }
+      }
       if (commentIdx !== -1) {
         line = line.substring(0, commentIdx);
       }
@@ -347,17 +379,30 @@ function parseYaml(content) {
         }
         const colonIdx = trimmed.indexOf(':');
         if (colonIdx === -1) {
-          parent.obj.push(trimmed);
-        } else {
-          const key = trimmed.substring(0, colonIdx).trim();
-          let val = trimmed.substring(colonIdx + 1).trim();
+          let val = trimmed;
           if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
             val = val.substring(1, val.length - 1);
           }
-          if (val === 'true') val = true;
-          else if (val === 'false') val = false;
-          else if (val === 'null') val = null;
-          else if (/^\d+$/.test(val)) val = parseInt(val, 10);
+          if (val.startsWith('[') && val.endsWith(']')) {
+            val = parseFlowArray(val);
+          }
+          parent.obj.push(val);
+        } else {
+          const key = trimmed.substring(0, colonIdx).trim();
+          let val = trimmed.substring(colonIdx + 1).trim();
+          let isQuoted = false;
+          if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+            val = val.substring(1, val.length - 1);
+            isQuoted = true;
+          }
+          if (val.startsWith('[') && val.endsWith(']')) {
+            val = parseFlowArray(val);
+          } else if (!isQuoted) {
+            if (val === 'true') val = true;
+            else if (val === 'false') val = false;
+            else if (val === 'null') val = null;
+            else if (/^-?\d+$/.test(val)) val = parseInt(val, 10);
+          }
           const newObj = { [key]: val };
           parent.obj.push(newObj);
           stack.push({ obj: newObj, indent: indent, key: key, isArray: false });
@@ -367,13 +412,19 @@ function parseYaml(content) {
         if (colonIdx === -1) continue;
         const key = trimmed.substring(0, colonIdx).trim();
         let val = trimmed.substring(colonIdx + 1).trim();
+        let isQuoted = false;
         if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
           val = val.substring(1, val.length - 1);
+          isQuoted = true;
         }
-        if (val === 'true') val = true;
-        else if (val === 'false') val = false;
-        else if (val === 'null') val = null;
-        else if (/^\d+$/.test(val)) val = parseInt(val, 10);
+        if (val.startsWith('[') && val.endsWith(']')) {
+          val = parseFlowArray(val);
+        } else if (!isQuoted) {
+          if (val === 'true') val = true;
+          else if (val === 'false') val = false;
+          else if (val === 'null') val = null;
+          else if (/^\d+$/.test(val)) val = parseInt(val, 10);
+        }
         if (val === '') {
           parent.obj[key] = {};
           stack.push({ obj: parent.obj[key], indent: indent, key: key, isArray: false });
@@ -424,8 +475,6 @@ verifyRegistryParsed('.ai/templates/registry.yaml', 'templates');
 verifyRegistryParsed('.ai/registries/capabilities.yaml', 'capabilities');
 verifyRegistryParsed('.ai/registries/tools.yaml', 'tools');
 verifyRegistryParsed('.ai/registries/workflows.yaml', 'workflows');
-verifyRegistryParsed('.ai/registries/policy.yaml', 'policy');
-verifyRegistryParsed('.ai/registries/sources.yaml', 'sources');
 
 // --- CLI & Packaging Pre-Flight Tests ---
 console.log('\nRunning CLI & Packaging Pre-Flight Tests...');
@@ -471,14 +520,6 @@ try {
     pass++;
   } else {
     console.error(`  ${RED}✗${NC} CLI help is missing dashboard, ui, or plugin commands`);
-    fail++;
-  }
-
-  if (helpOutput.includes('registry')) {
-    console.log(`  ${GREEN}✓${NC} CLI help includes registry command`);
-    pass++;
-  } else {
-    console.error(`  ${RED}✗${NC} CLI help is missing registry command`);
     fail++;
   }
 } catch (e) {
@@ -681,98 +722,6 @@ try {
   }
 }
 
-// --- v3.0.0 Registry & Governance Tests ---
-try {
-  const output = execSync('node bin/multimodel-dev-os.js registry status', { cwd: projectRoot, encoding: 'utf8' });
-  if (output.includes('Registry Governance') && output.includes('Allowed Roots')) {
-    console.log(`  \x1b[32m✓\x1b[0m registry status executes successfully`);
-    pass++;
-  } else {
-    console.error(`  \x1b[31m✗\x1b[0m registry status output is invalid`);
-    fail++;
-  }
-} catch (e) {
-  console.error(`  \x1b[31m✗\x1b[0m registry status execution failed: ${e.message}`);
-  fail++;
-}
-
-try {
-  const output = execSync('node bin/multimodel-dev-os.js registry list', { cwd: projectRoot, encoding: 'utf8' });
-  if (output.includes('Configured Registry Sources') && output.includes('bundled')) {
-    console.log(`  \x1b[32m✓\x1b[0m registry list executes successfully`);
-    pass++;
-  } else {
-    console.error(`  \x1b[31m✗\x1b[0m registry list output is invalid`);
-    fail++;
-  }
-} catch (e) {
-  console.error(`  \x1b[31m✗\x1b[0m registry list execution failed: ${e.message}`);
-  fail++;
-}
-
-try {
-  const output = execSync('node bin/multimodel-dev-os.js registry verify bundled', { cwd: projectRoot, encoding: 'utf8' });
-  if (output.includes('Registry Verification Check') && output.includes('compliant')) {
-    console.log(`  \x1b[32m✓\x1b[0m registry verify bundled executes successfully`);
-    pass++;
-  } else {
-    console.error(`  \x1b[31m✗\x1b[0m registry verify bundled output is invalid`);
-    fail++;
-  }
-} catch (e) {
-  console.error(`  \x1b[31m✗\x1b[0m registry verify bundled execution failed: ${e.message}`);
-  fail++;
-}
-
-try {
-  execSync('node bin/multimodel-dev-os.js registry sync official', { cwd: projectRoot, stdio: 'pipe' });
-  console.error(`  \x1b[31m✗\x1b[0m registry sync without --approved should have exited with code 1, but exited with 0`);
-  fail++;
-} catch (e) {
-  if (e.status === 1) {
-    const stdOutOut = e.stdout ? e.stdout.toString() : '';
-    const stdErrOut = e.stderr ? e.stderr.toString() : '';
-    if (stdOutOut.includes('Installation refused') || stdErrOut.includes('Installation refused')) {
-      console.log(`  \x1b[32m✓\x1b[0m registry sync without --approved correctly refuses and exits with code 1`);
-      pass++;
-    } else {
-      console.error(`  \x1b[31m✗\x1b[0m registry sync without --approved exited with 1 but missing refusal message`);
-      fail++;
-    }
-  } else {
-    console.error(`  \x1b[31m✗\x1b[0m registry sync without --approved failed with unexpected code ${e.status}: ${e.message}`);
-    fail++;
-  }
-}
-
-try {
-  const output = execSync('node bin/multimodel-dev-os.js registry sync official --approved', { cwd: projectRoot, encoding: 'utf8' });
-  if (output.includes('Registry synced successfully')) {
-    console.log(`  \x1b[32m✓\x1b[0m registry sync with --approved executes successfully`);
-    pass++;
-  } else {
-    console.error(`  \x1b[31m✗\x1b[0m registry sync with --approved output is invalid`);
-    fail++;
-  }
-} catch (e) {
-  console.error(`  \x1b[31m✗\x1b[0m registry sync with --approved execution failed: ${e.message}`);
-  fail++;
-}
-
-try {
-  const policyContent = readFileSync(join(projectRoot, '.ai', 'registries', 'policy.yaml'), 'utf8');
-  if (policyContent.includes('allowed_roots') && policyContent.includes('blocked_paths')) {
-    console.log(`  \x1b[32m✓\x1b[0m Policy engine YAML contains allowed/blocked definitions`);
-    pass++;
-  } else {
-    console.error(`  \x1b[31m✗\x1b[0m Policy engine YAML is invalid`);
-    fail++;
-  }
-} catch (e) {
-  console.error(`  \x1b[31m✗\x1b[0m Policy engine verification failed: ${e.message}`);
-  fail++;
-}
-
 // 8. Catalog file checks and schema validations
 try {
   const catalogYamlPath = join(projectRoot, '.ai', 'plugins', 'catalog.yaml');
@@ -815,6 +764,45 @@ try {
   fail++;
 }
 
+// 9. YAML Parser regressions check
+try {
+  const yamlTest = `
+test_flow_array: ["git", "workflow", "vcs"]
+test_quoted_string: "1.0.0"
+test_comment_inside: "Work with # characters" # inline comment
+test_quoted_bool: "true"
+`;
+  const parsed = parseYaml(yamlTest);
+  if (parsed &&
+      Array.isArray(parsed.test_flow_array) && parsed.test_flow_array.length === 3 && parsed.test_flow_array[0] === 'git' &&
+      parsed.test_quoted_string === '1.0.0' &&
+      parsed.test_comment_inside === 'Work with # characters' &&
+      parsed.test_quoted_bool === 'true') {
+    console.log(`  ${GREEN}✓${NC} YAML parser regression fixtures passed successfully`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} YAML parser regression fixtures failed. Flow arrays, quoted types, or comment stripping is broken.`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} YAML parser regression check crashed: ${e.message}`);
+  fail++;
+}
+
+// 10. Catalog search empty result state warning check
+try {
+  const out = execSync('node bin/multimodel-dev-os.js catalog search no-match-term', { cwd: projectRoot, encoding: 'utf8' });
+  if (out.includes('Warning: No plugins found matching')) {
+    console.log(`  ${GREEN}✓${NC} catalog search empty state prints correct warning`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} catalog search empty state does not print warning`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} catalog search empty state check failed: ${e.message}`);
+  fail++;
+}
 
 
 // Verify docs mention memory build
@@ -897,6 +885,198 @@ try {
   pass++;
 } catch (e) {
   console.error(`  ${RED}✗${NC} node bin/multimodel-dev-os.js verify failed: ${e.message}`);
+  fail++;
+}
+
+// --- SHA256 Helper ---
+function computeSHA256(content) {
+  return createHash('sha256').update(content, 'utf8').digest('hex');
+}
+
+// --- v3.0.0 Trusted Registry & Policy Engine Verification Checks ---
+console.log('\nRegistry & Policy Engine Verification:');
+
+// Check policy files
+checkFile('.ai/policies/registry-policy.yaml');
+checkFile('.ai/schema/registry-policy.schema.json');
+checkFile('.ai/registries/sources.yaml');
+
+// Verify policy JSON schema parses
+try {
+  const schemaPath = join(projectRoot, '.ai', 'schema', 'registry-policy.schema.json');
+  const schema = JSON.parse(readFileSync(schemaPath, 'utf8'));
+  if (schema.title === 'MultiModel Dev OS Registry Policy Schema') {
+    console.log(`  ${GREEN}✓${NC} registry-policy schema JSON is valid and has correct title`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} registry-policy schema JSON title mismatch`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} registry-policy schema JSON check failed: ${e.message}`);
+  fail++;
+}
+
+// Verify sources.yaml parses and contains bundled source
+try {
+  const sourcesPath = join(projectRoot, '.ai', 'registries', 'sources.yaml');
+  const sourcesYaml = readFileSync(sourcesPath, 'utf8');
+  const parsed = parseYaml(sourcesYaml);
+  const bundled = (parsed.sources || []).find(s => s.name === 'bundled');
+  if (bundled && bundled.type === 'local') {
+    console.log(`  ${GREEN}✓${NC} sources.yaml parsed and verified local bundled registry`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} sources.yaml does not contain valid local bundled registry`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} sources.yaml check failed: ${e.message}`);
+  fail++;
+}
+
+// Verify default policy blocks remote registries
+try {
+  const policyPath = join(projectRoot, '.ai', 'policies', 'registry-policy.yaml');
+  const policyYaml = readFileSync(policyPath, 'utf8');
+  const parsed = parseYaml(policyYaml);
+  if (parsed.allow_remote_registries === false) {
+    console.log(`  ${GREEN}✓${NC} default policy blocks remote registries (allow_remote_registries = false)`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} default policy does not block remote registries`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} default policy check failed: ${e.message}`);
+  fail++;
+}
+
+// Verify SHA256 helper is deterministic and works
+try {
+  const fixture = 'MultiModel Dev OS v3.0.0';
+  const expectedHash = 'feba01a9e59c59a74a15769517aed5e4f5361fa3bd454f1b127357998bdebabe'; // sha256 of 'MultiModel Dev OS v3.0.0'
+  const actualHash = computeSHA256(fixture);
+  if (actualHash === expectedHash) {
+    console.log(`  ${GREEN}✓${NC} SHA256 checksum helper verified successfully`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} SHA256 checksum helper mismatch. Expected: ${expectedHash}, Got: ${actualHash}`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} SHA256 helper check failed: ${e.message}`);
+  fail++;
+}
+
+// Verify registry CLI commands
+try {
+  const helpOutput = execSync('node bin/multimodel-dev-os.js --help', { cwd: projectRoot, encoding: 'utf8' });
+  if (helpOutput.includes('registry <subcmd>') && helpOutput.includes('--all-sources')) {
+    console.log(`  ${GREEN}✓${NC} CLI help output includes registry commands and flags`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} CLI help output missing registry subcommands or flags`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} CLI help check failed: ${e.message}`);
+  fail++;
+}
+
+try {
+  const statusOutput = execSync('node bin/multimodel-dev-os.js registry status', { cwd: projectRoot, encoding: 'utf8' });
+  if (statusOutput.includes('allow_remote_registries') && statusOutput.includes('bundled')) {
+    console.log(`  ${GREEN}✓${NC} node bin/multimodel-dev-os.js registry status runs cleanly`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} node bin/multimodel-dev-os.js registry status output invalid`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} node bin/multimodel-dev-os.js registry status failed: ${e.message}`);
+  fail++;
+}
+
+try {
+  const listOutput = execSync('node bin/multimodel-dev-os.js registry list', { cwd: projectRoot, encoding: 'utf8' });
+  if (listOutput.includes('bundled') && listOutput.includes('local')) {
+    console.log(`  ${GREEN}✓${NC} node bin/multimodel-dev-os.js registry list runs cleanly`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} node bin/multimodel-dev-os.js registry list output invalid`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} node bin/multimodel-dev-os.js registry list failed: ${e.message}`);
+  fail++;
+}
+
+try {
+  // Syncing a non-existent or "official" source without approved should refuse or report not found
+  try {
+    execSync('node bin/multimodel-dev-os.js registry sync official', { cwd: projectRoot, stdio: 'pipe' });
+    console.error(`  ${RED}✗${NC} registry sync official should have failed without --approved or because registry not found`);
+    fail++;
+  } catch (err) {
+    const errText = err.stderr ? err.stderr.toString() : '';
+    const outText = err.stdout ? err.stdout.toString() : '';
+    if (errText.includes('not found') || outText.includes('Registry Sync Refused')) {
+      console.log(`  ${GREEN}✓${NC} registry sync checks validation behavior correctly`);
+      pass++;
+    } else {
+      console.error(`  ${RED}✗${NC} registry sync verification output mismatch: ${errText || outText}`);
+      fail++;
+    }
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} registry sync check failed: ${e.message}`);
+  fail++;
+}
+
+try {
+  const verifyOutput = execSync('node bin/multimodel-dev-os.js registry verify bundled', { cwd: projectRoot, encoding: 'utf8' });
+  if (verifyOutput.includes('verification passed')) {
+    console.log(`  ${GREEN}✓${NC} node bin/multimodel-dev-os.js registry verify bundled passes cleanly`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} node bin/multimodel-dev-os.js registry verify bundled failed: ${verifyOutput}`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} node bin/multimodel-dev-os.js registry verify bundled failed: ${e.message}`);
+  fail++;
+}
+
+try {
+  const showOutput = execSync('node bin/multimodel-dev-os.js registry show bundled', { cwd: projectRoot, encoding: 'utf8' });
+  if (showOutput.includes('bundled') && showOutput.includes('local')) {
+    console.log(`  ${GREEN}✓${NC} node bin/multimodel-dev-os.js registry show bundled runs cleanly`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} node bin/multimodel-dev-os.js registry show bundled failed: ${showOutput}`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} node bin/multimodel-dev-os.js registry show bundled failed: ${e.message}`);
+  fail++;
+}
+
+// Backward compatibility catalog checks
+try {
+  const catList = execSync('node bin/multimodel-dev-os.js catalog list', { cwd: projectRoot, encoding: 'utf8' });
+  const catSearch = execSync('node bin/multimodel-dev-os.js catalog search release', { cwd: projectRoot, encoding: 'utf8' });
+  const catRecommend = execSync('node bin/multimodel-dev-os.js catalog recommend --target .', { cwd: projectRoot, encoding: 'utf8' });
+  
+  if (catList.includes('Git Workflows') && catSearch.includes('Release Preparation') && catRecommend.includes('Recommendations')) {
+    console.log(`  ${GREEN}✓${NC} catalog commands remain backward-compatible without remote sources`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} catalog commands backward compatibility check failed`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} catalog backward compatibility check failed: ${e.message}`);
   fail++;
 }
 

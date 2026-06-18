@@ -38,13 +38,17 @@
 │    Layer 4: Intelligence Layer       │
 │  .ai/intelligence/  (memory, handoff)│
 │  .ai/registries/    (workflows,     │
-│    capabilities, tools)              │
+│    capabilities, tools, sources)     │
+│  .ai/registry-cache/ (cached remote) │
 │  .ai/proposals/     (improvements)  │
-│  .ai/policies/      (safety gates)  │
+│  .ai/policies/      (safety, registry│
+│    governance gates)                 │
 ├──────────────────────────────────────┤
 │    Layer 5: CLI Dashboard & Plugins  │
 │  dashboard / ui (TUI Command Center) │
 │  plugin list/show/validate/install   │
+│  catalog list/show/recommend/install │
+│  registry list/add/sync/status/verify│
 │  onboard / adapter sync              │
 └──────────────────────────────────────┘
 ```
@@ -75,7 +79,9 @@
 | `.ai/intelligence/handoff.md` | System | Next agent | CLI (`handoff build`) |
 | `.ai/intelligence/feedback-log.jsonl` | System | CLI | CLI (`feedback add`) |
 | `.ai/proposals/*.md` | System | Human + CLI | CLI (`improve propose`) |
-| `.ai/registries/*.yaml` | System | CLI | CLI (`init`) |
+| `.ai/registries/*.yaml` | System | CLI | CLI (`init` / `registry add`) |
+| `.ai/policies/*.yaml` | Human | CLI | Human |
+| `.ai/registry-cache/` | System | CLI | CLI (`registry sync`) |
 | `adapters/*/` | Community | Specific tool | Maintainers |
 
 ## Security Considerations

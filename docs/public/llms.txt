@@ -25,6 +25,15 @@ npx multimodel-dev-os@latest catalog show git-workflows
 npx multimodel-dev-os@latest catalog install git-workflows --approved
 npx multimodel-dev-os@latest catalog status
 
+# Manage trusted remote catalog registries (v3.0.0+)
+npx multimodel-dev-os@latest registry list
+npx multimodel-dev-os@latest registry status
+npx multimodel-dev-os@latest registry verify bundled
+npx multimodel-dev-os@latest registry show bundled
+npx multimodel-dev-os@latest registry add official https://example.com/catalog.yaml --approved
+npx multimodel-dev-os@latest registry sync official --approved
+npx multimodel-dev-os@latest registry cache clear --approved
+
 # Scan codebase signals & check status
 npx multimodel-dev-os@latest scan
 npx multimodel-dev-os@latest status

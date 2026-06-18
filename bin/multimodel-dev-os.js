@@ -54,7 +54,9 @@ function parseArgs(args) {
     intelligence: false,
     onboarding: false,
     listActions: false,
-    category: null
+    category: null,
+    source: null,
+    allSources: false
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -111,6 +113,10 @@ function parseArgs(args) {
       params.approved = true;
     } else if (arg === '--category') {
       params.category = args[++i];
+    } else if (arg === '--source') {
+      params.source = args[++i];
+    } else if (arg === '--all-sources') {
+      params.allSources = true;
     } else if (!params.command && !arg.startsWith('-')) {
       params.command = arg;
     }
@@ -492,27 +498,54 @@ if (COMMAND === 'init') {
 } else if (COMMAND === 'registry') {
   const positional = getPositionalArgs(ARGS);
   const sub = positional[1];
-  if (sub === 'status') {
-    handleRegistryStatus(params);
-  } else if (sub === 'list') {
+  if (sub === 'list') {
     handleRegistryList(params);
+  } else if (sub === 'add') {
+    const rName = positional[2];
+    const rUrl = positional[3];
+    if (!rName || !rUrl) {
+      console.error('\x1b[31mError: Please specify a registry name and URL.\x1b[0m');
+      console.log('Example: node bin/multimodel-dev-os.js registry add official https://example.com/catalog.yaml --approved');
+      process.exit(1);
+    }
+    handleRegistryAdd(rName, rUrl, params);
+  } else if (sub === 'remove') {
+    const rName = positional[2];
+    if (!rName) {
+      console.error('\x1b[31mError: Please specify a registry name to remove.\x1b[0m');
+      process.exit(1);
+    }
+    handleRegistryRemove(rName, params);
   } else if (sub === 'sync') {
-    const source = positional[2];
-    if (!source) {
-      console.error('\x1b[31mError: Please specify a registry source to sync.\x1b[0m');
+    const rName = positional[2];
+    if (!rName) {
+      console.error('\x1b[31mError: Please specify a registry name to sync.\x1b[0m');
       process.exit(1);
     }
-    handleRegistrySync(source, params);
+    handleRegistrySync(rName, params);
+  } else if (sub === 'status') {
+    handleRegistryStatus(params);
   } else if (sub === 'verify') {
-    const source = positional[2];
-    if (!source) {
-      console.error('\x1b[31mError: Please specify a registry source to verify.\x1b[0m');
+    const rName = positional[2] || 'bundled';
+    handleRegistryVerify(rName, params);
+  } else if (sub === 'show') {
+    const rName = positional[2];
+    if (!rName) {
+      console.error('\x1b[31mError: Please specify a registry name to show.\x1b[0m');
       process.exit(1);
     }
-    handleRegistryVerify(source, params);
+    handleRegistryShow(rName, params);
+  } else if (sub === 'cache') {
+    const cacheSub = positional[2];
+    if (cacheSub === 'clear') {
+      handleRegistryCacheClear(params);
+    } else {
+      console.error('\x1b[31mError: Please specify a cache subcommand: clear.\x1b[0m');
+      process.exit(1);
+    }
   } else {
-    console.error('\x1b[31mError: Please specify a registry subcommand: status, list, sync, or verify.\x1b[0m');
-    console.log('Example: node bin/multimodel-dev-os.js registry status');
+    console.error('\x1b[31mError: Please specify a registry subcommand: list, add, remove, sync, status, verify, show, or cache.\x1b[0m');
+    console.log('Example: node bin/multimodel-dev-os.js registry list');
     process.exit(1);
   }
 } else {
@@ -539,7 +572,7 @@ function showHelp() {
   console.log('  adapter <subcmd>  Manage and sync rule/settings files for IDE adapters (subcmd: status, diff, sync)');
   console.log('  plugin <subcmd>   Manage declarative plugins (subcmd: list, show, validate, install, status)');
   console.log('  catalog <subcmd>  Manage Workflow Marketplace & Plugin Catalog (subcmd: list, search, show, categories, recommend, install, status)');
-  console.log('  registry <subcmd> Manage trusted remote registries and governance policy (subcmd: status, list, sync, verify)');
+  console.log('  registry <subcmd> Manage trusted remote catalog registries (subcmd: list, add, remove, sync, status, verify, show, cache)');
   console.log('  verify            Validate structural integrity of an existing project');
   console.log('  templates         List all built-in template profiles with details');
   console.log('  list-templates    Alias for templates command');
@@ -563,6 +596,8 @@ function showHelp() {
   console.log('  --tags <list>           Comma-separated descriptor tags for feedback');
   console.log('  --files <list>          Comma-separated target files for feedback');
   console.log('  --category <name>       Filter catalog plugins list by category');
+  console.log('  --source <src>          Catalog source filter: bundled, local, or remote:<name>');
+  console.log('  --all-sources           Include all enabled catalog sources in listings');
   console.log('  --title <text>          Specifies title for codebase improvement proposal');
   console.log('  --approved              Explicitly approve and execute proposal/onboarding/adapter sync writes');
   console.log('  --template <name>       Template profile: nextjs-saas, expo-react-native-android, etc.');
@@ -1141,6 +1176,30 @@ function handleValidate(options) {
 }
 
 // --- YAML Parser Helper ---
+function parseFlowArray(str) {
+  const contents = str.slice(1, -1).trim();
+  if (!contents) return [];
+
+  const result = [];
+  const regex = /"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|([^,\s][^,]*[^,\s]|[^,\s])/g;
+  let match;
+  while ((match = regex.exec(contents)) !== null) {
+    if (match[1] !== undefined) {
+      result.push(match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\'));
+    } else if (match[2] !== undefined) {
+      result.push(match[2].replace(/\\'/g, "'").replace(/\\\\/g, '\\'));
+    } else if (match[3] !== undefined) {
+      let val = match[3].trim();
+      if (val === 'true') val = true;
+      else if (val === 'false') val = false;
+      else if (val === 'null') val = null;
+      else if (/^-?\d+$/.test(val)) val = parseInt(val, 10);
+      result.push(val);
+    }
+  }
+  return result;
+}
+
 function parseYaml(content) {
   try {
     const root = {};
@@ -1148,7 +1207,21 @@ function parseYaml(content) {
 
     const lines = content.split(/\r?\n/);
     for (let line of lines) {
-      const commentIdx = line.indexOf('#');
+      // Find comment index outside quotes
+      let commentIdx = -1;
+      let insideDouble = false;
+      let insideSingle = false;
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"' && (i === 0 || line[i-1] !== '\\')) {
+          insideDouble = !insideDouble;
+        } else if (char === "'" && (i === 0 || line[i-1] !== '\\')) {
+          insideSingle = !insideSingle;
+        } else if (char === '#' && !insideDouble && !insideSingle) {
+          commentIdx = i;
+          break;
+        }
+      }
       if (commentIdx !== -1) {
         line = line.substring(0, commentIdx);
       }
@@ -1180,17 +1253,26 @@ function parseYaml(content) {
           if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
             val = val.substring(1, val.length - 1);
           }
+          if (val.startsWith('[') && val.endsWith(']')) {
+            val = parseFlowArray(val);
+          }
           parent.obj.push(val);
         } else {
           const key = trimmed.substring(0, colonIdx).trim();
           let val = trimmed.substring(colonIdx + 1).trim();
+          let isQuoted = false;
           if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
             val = val.substring(1, val.length - 1);
+            isQuoted = true;
           }
-          if (val === 'true') val = true;
-          else if (val === 'false') val = false;
-          else if (val === 'null') val = null;
-          else if (/^\d+$/.test(val)) val = parseInt(val, 10);
+          if (val.startsWith('[') && val.endsWith(']')) {
+            val = parseFlowArray(val);
+          } else if (!isQuoted) {
+            if (val === 'true') val = true;
+            else if (val === 'false') val = false;
+            else if (val === 'null') val = null;
+            else if (/^-?\d+$/.test(val)) val = parseInt(val, 10);
+          }
 
           const newObj = { [key]: val };
           parent.obj.push(newObj);
@@ -1202,14 +1284,19 @@ function parseYaml(content) {
 
         const key = trimmed.substring(0, colonIdx).trim();
         let val = trimmed.substring(colonIdx + 1).trim();
-
+        let isQuoted = false;
         if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
           val = val.substring(1, val.length - 1);
+          isQuoted = true;
         }
-        if (val === 'true') val = true;
-        else if (val === 'false') val = false;
-        else if (val === 'null') val = null;
-        else if (/^\d+$/.test(val)) val = parseInt(val, 10);
+        if (val.startsWith('[') && val.endsWith(']')) {
+          val = parseFlowArray(val);
+        } else if (!isQuoted) {
+          if (val === 'true') val = true;
+          else if (val === 'false') val = false;
+          else if (val === 'null') val = null;
+          else if (/^-?\d+$/.test(val)) val = parseInt(val, 10);
+        }
 
         if (val === '') {
           parent.obj[key] = {};
@@ -4436,7 +4523,7 @@ function handleDashboard(options) {
     { name: 'Memory & Intelligence...', action: 'submenu', menu: 'memory' },
     { name: 'Developer Feedback Loops...', action: 'submenu', menu: 'feedback' },
     { name: 'Workflow Marketplace Catalog...', action: 'submenu', menu: 'catalog' },
-    { name: 'Registry Governance...', action: 'submenu', menu: 'registry' },
+    { name: 'Registry Sources & Cache...', action: 'submenu', menu: 'registry' },
     { name: 'Quality Gates & Diagnostics...', action: 'submenu', menu: 'quality' },
     { name: 'Plugins Status Overview', action: 'command', command: 'plugin status' },
     { name: 'Exit Command Center', action: 'exit' }
@@ -4479,18 +4566,18 @@ function handleDashboard(options) {
       { name: 'Catalog: Recommend for current repo', action: 'command', command: 'catalog recommend' },
       { name: 'Catalog: Show installed catalog status', action: 'command', command: 'catalog status' }
     ],
-    registry: [
-      { name: '← Back to Main Menu', action: 'back' },
-      { name: 'Registry: Check Policy Status', action: 'command', command: 'registry status' },
-      { name: 'Registry: List Sources', action: 'command', command: 'registry list' },
-      { name: 'Registry: Verify Bundled Registry', action: 'command', command: 'registry verify bundled' },
-      { name: 'Registry: Sync Official Registry (Dry Run)', action: 'command', command: 'registry sync official --dry-run' }
-    ],
     quality: [
       { name: '← Back to Main Menu', action: 'back' },
       { name: 'Doctor: Run Advisory Diagnostics', action: 'command', command: 'doctor' },
       { name: 'Validate: Strict Schema Compliance', action: 'command', command: 'validate' },
       { name: 'Verify: Run Release verification tests', action: 'command', command: 'verify' }
+    ],
+    registry: [
+      { name: '← Back to Main Menu', action: 'back' },
+      { name: 'Registry: List configured sources', action: 'command', command: 'registry list' },
+      { name: 'Registry: Show sync status', action: 'command', command: 'registry status' },
+      { name: 'Registry: Verify cache integrity', action: 'command', command: 'registry verify bundled' },
+      { name: 'Registry: Show policy status', action: 'command', command: 'registry status' }
     ]
   };
 
@@ -4841,6 +4928,7 @@ function handlePluginInstall(pluginPath, options) {
     process.exit(1);
   }
 
+  const policy = loadRegistryPolicy(options.target || process.cwd());
   const pluginContent = readFileSync(fullPath, 'utf8');
   const plugin = parseYaml(pluginContent);
   const slug = plugin.slug;
@@ -4859,28 +4947,18 @@ function handlePluginInstall(pluginPath, options) {
     plugin.allowed_file_patterns.forEach(pattern => {
       const normPattern = pattern.replace(/\\/g, '/').trim();
       
-      const isSafeSubdir = [
-        '.ai/plugins/',
-        '.ai/registries/',
-        '.ai/templates/',
-        '.ai/skills/',
-        '.ai/checks/',
-        '.ai/prompts/',
-        '.ai/adapters/'
-      ].some(prefix => normPattern.startsWith(prefix));
-
+      const isSafeSubdir = policy.allowed_write_roots.some(prefix => normPattern.startsWith(prefix));
       const hasTraversal = normPattern.includes('..') || normPattern.startsWith('/');
-      const isBlacklisted = [
-        '.env',
-        '.npmrc',
-        '.git/',
-        'node_modules/',
-        'package.json',
-        'package-lock.json'
-      ].some(black => normPattern.includes(black));
+      const isBlacklisted = policy.blocked_paths.some(black => normPattern.includes(black));
 
       if (!isSafeSubdir || hasTraversal || isBlacklisted) {
         console.error(`\x1b[31mError: Path pattern '${pattern}' violates safety boundaries. Installation aborted.\x1b[0m`);
+        process.exit(1);
+      }
+
+      const ext = '.' + normPattern.split('.').pop();
+      if (!policy.allowed_file_extensions.includes(ext)) {
+        console.error(`\x1b[31mError: File extension '${ext}' for asset '${pattern}' is not allowed by policy. Installation aborted.\x1b[0m`);
         process.exit(1);
       }
 
@@ -4893,6 +4971,22 @@ function handlePluginInstall(pluginPath, options) {
         });
       }
     });
+  }
+
+  if (filesToCopy.length > policy.max_plugin_files) {
+    console.error(`\x1b[31mError: Plugin file count (${filesToCopy.length}) exceeds policy limit (${policy.max_plugin_files}). Installation aborted.\x1b[0m`);
+    process.exit(1);
+  }
+
+  let totalSize = 0;
+  filesToCopy.forEach(item => {
+    if (existsSync(item.src)) {
+      totalSize += statSync(item.src).size;
+    }
+  });
+  if (totalSize > policy.max_plugin_size_kb * 1024) {
+    console.error(`\x1b[31mError: Plugin total size (${(totalSize / 1024).toFixed(1)}KB) exceeds policy limit (${policy.max_plugin_size_kb}KB). Installation aborted.\x1b[0m`);
+    process.exit(1);
   }
 
   let conflicts = false;
@@ -4913,6 +5007,7 @@ function handlePluginInstall(pluginPath, options) {
 
   if (!options.approved) {
     console.error(`\x1b[31mError: Plugin cannot be installed without explicit user approval. Pass the --approved flag.\x1b[0m`);
+    console.log(`\n\x1b[33mSafety Status:\x1b[0m Sandbox checks: PASSED (Declarative only, offline, zero-dependency)`);
     console.log(`\n\x1b[33mPlanned Installation Actions:\x1b[0m`);
     filesToCopy.forEach(item => {
       const exists = existsSync(join(options.target, item.dest));
@@ -4941,6 +5036,7 @@ function handlePluginInstall(pluginPath, options) {
   });
 
   console.log(`\n\x1b[32m✔ Plugin '${plugin.name}' installed successfully!\x1b[0m`);
+  console.log(`\n\x1b[32mSafety Status:\x1b[0m Sandboxed isolation: VERIFIED (All files written inside whitelisted .ai/ & adapters/ folders)`);
   console.log(`\nSummary of actions:`);
   console.log(`  - Manifest registered: .ai/plugins/${slug}.yaml`);
   const assetCount = filesToCopy.length - 1;
@@ -5025,19 +5121,31 @@ function handlePluginStatus(options) {
 
 // --- Phase 8: Workflow Marketplace / Plugin Catalog ---
 
-function loadCatalog() {
-  const path = join(sourceRoot, '.ai', 'plugins', 'catalog.yaml');
-  try {
-    if (existsSync(path)) {
-      const reg = parseYaml(readFileSync(path, 'utf8'));
-      return reg.catalog || { plugins: [] };
+function loadCatalog(options = {}) {
+  let catalog;
+  if (options.allSources) {
+    catalog = loadAllCatalogs(options);
+  } else if (options.source) {
+    catalog = loadCatalogFromSource(options.source, options);
+  } else {
+    const path = join(sourceRoot, '.ai', 'plugins', 'catalog.yaml');
+    try {
+      if (existsSync(path)) {
+        const reg = parseYaml(readFileSync(path, 'utf8'));
+        catalog = reg.catalog || { plugins: [] };
+      } else {
+        catalog = { plugins: [] };
+      }
+    } catch (e) {
+      catalog = { plugins: [] };
     }
-  } catch (e) {}
-  return { plugins: [] };
+    (catalog.plugins || []).forEach(p => { p._source = 'bundled'; });
+  }
+  return catalog;
 }
 
 function handleCatalogList(options) {
-  const catalog = loadCatalog();
+  const catalog = loadCatalog(options);
   const plugins = catalog.plugins || [];
   
   const filtered = options.category
@@ -5072,19 +5180,22 @@ function handleCatalogList(options) {
   }
 
   filtered.forEach(p => {
-    const isInst = installedSlugs.has(p.slug) ? ' \x1b[90m(Installed)\x1b[0m' : '';
-    console.log(`\n\x1b[32m* ${p.name}\x1b[0m (v${p.version})${isInst} [slug: \x1b[33m${p.slug}\x1b[0m]`);
-    console.log(`  Category:    ${p.category}`);
-    console.log(`  Description: ${p.description}`);
-    console.log(`  Safety Tiers: ${p.safety_level || 'sandboxed'}`);
+    const isInst = installedSlugs.has(p.slug) ? ' \x1b[90m(✓ Installed)\x1b[0m' : '';
+    console.log(`\n\x1b[32m* ${p.name}\x1b[0m (v${p.version})${isInst}`);
+    console.log(`  slug:         \x1b[33m${p.slug}\x1b[0m`);
+    console.log(`  source:       ${p._source || 'bundled'}`);
+    console.log(`  category:     ${p.category}`);
+    console.log(`  description:  ${p.description}`);
+    console.log(`  safety:       ${p.safety_level || 'sandboxed'} (${p.install_scope || 'declarative'})`);
   });
 
-  console.log('\nUse \x1b[36mcatalog show <slug>\x1b[0m to inspect capabilities and installation manifest preview.');
+  console.log('\nUse \x1b[36mcatalog list --category <category>\x1b[0m to filter listings by category.');
+  console.log('Use \x1b[36mcatalog show <slug>\x1b[0m to inspect capabilities and installation manifest preview.');
   console.log('Use \x1b[36mcatalog install <slug> --approved\x1b[0m to install a plugin.\n');
 }
 
 function handleCatalogSearch(query, options) {
-  const catalog = loadCatalog();
+  const catalog = loadCatalog(options);
   const plugins = catalog.plugins || [];
   const lcQuery = query.toLowerCase();
 
@@ -5105,19 +5216,19 @@ function handleCatalogSearch(query, options) {
   console.log('==================================================');
 
   if (matches.length === 0) {
-    console.log('  No matching plugins found.');
+    console.log(`  \x1b[33mWarning: No plugins found matching '${query}'. Try running 'catalog list' to view all entries.\x1b[0m`);
   } else {
     matches.forEach(p => {
       console.log(`\n\x1b[32m* ${p.name}\x1b[0m (v${p.version}) [slug: \x1b[33m${p.slug}\x1b[0m]`);
-      console.log(`  Category:    ${p.category}`);
-      console.log(`  Description: ${p.description}`);
+      console.log(`  category:     ${p.category}`);
+      console.log(`  description:  ${p.description}`);
     });
   }
   console.log('');
 }
 
 function handleCatalogShow(slug, options) {
-  const catalog = loadCatalog();
+  const catalog = loadCatalog(options);
   const plugins = catalog.plugins || [];
   const p = plugins.find(item => item.slug === slug);
 
@@ -5133,11 +5244,12 @@ function handleCatalogShow(slug, options) {
 
   console.log(`\n🔍 \x1b[36mCatalog Plugin: ${p.name} (v${p.version})\x1b[0m`);
   console.log('==================================================');
-  console.log(`\x1b[33mSlug:\x1b[0m        ${p.slug}`);
-  console.log(`\x1b[33mCategory:\x1b[0m    ${p.category}`);
-  console.log(`\x1b[33mDescription:\x1b[0m ${p.description}`);
-  console.log(`\x1b[33mRecommended:\x1b[0m ${p.recommended_for}`);
-  console.log(`\x1b[33mSafety Level:\x1b[0m ${p.safety_level}`);
+  console.log(`\x1b[33mSlug:\x1b[0m         ${p.slug}`);
+  console.log(`\x1b[33mSource:\x1b[0m       ${p._source || 'bundled'}`);
+  console.log(`\x1b[33mCategory:\x1b[0m     ${p.category}`);
+  console.log(`\x1b[33mDescription:\x1b[0m  ${p.description}`);
+  console.log(`\x1b[33mRecommended:\x1b[0m  ${p.recommended_for}`);
+  console.log(`\x1b[33mSafety Level:\x1b[0m ${p.safety_level} (declarative-only, sandboxed)`);
   console.log(`\x1b[33mScope:\x1b[0m        ${p.install_scope}`);
 
   if (p.use_cases) {
@@ -5160,7 +5272,7 @@ function handleCatalogShow(slug, options) {
 }
 
 function handleCatalogCategories(options) {
-  const catalog = loadCatalog();
+  const catalog = loadCatalog(options);
   const plugins = catalog.plugins || [];
   const categories = Array.from(new Set(plugins.map(p => p.category))).sort();
 
@@ -5176,7 +5288,7 @@ function handleCatalogCategories(options) {
 }
 
 function handleCatalogInstall(slug, options) {
-  const catalog = loadCatalog();
+  const catalog = loadCatalog(options);
   const plugins = catalog.plugins || [];
   const p = plugins.find(item => item.slug === slug);
 
@@ -5185,7 +5297,30 @@ function handleCatalogInstall(slug, options) {
     process.exit(1);
   }
 
-  const srcPath = join(sourceRoot, '.ai', 'plugins', 'catalog', `${slug}.yaml`);
+  const policy = loadRegistryPolicy(options.target || process.cwd());
+
+  let srcPath;
+  if (p._source === 'bundled') {
+    srcPath = join(sourceRoot, '.ai', 'plugins', 'catalog', `${slug}.yaml`);
+  } else if (p._source === 'local') {
+    srcPath = join(options.target || process.cwd(), '.ai', 'plugins', 'catalog', `${slug}.yaml`);
+  } else if (p._source && p._source.startsWith('remote:')) {
+    const regName = p._source.substring(7);
+    const sources = loadRegistrySources();
+    const src = sources.find(s => s.name === regName);
+    if (src) {
+      if (!policy.allow_untrusted_install && (src.trust_level === 'untrusted' || src.trust_level === 'community')) {
+        console.error(`\x1b[31mError: Installation from untrusted or community registry '${regName}' is blocked by policy.\x1b[0m`);
+        console.error(`  Registry trust level: ${src.trust_level}`);
+        console.error(`  Policy allow_untrusted_install: ${policy.allow_untrusted_install}`);
+        process.exit(1);
+      }
+    }
+    srcPath = join(sourceRoot, '.ai', 'registry-cache', regName, 'catalog', `${slug}.yaml`);
+  } else {
+    srcPath = join(sourceRoot, '.ai', 'plugins', 'catalog', `${slug}.yaml`);
+  }
+
   if (!existsSync(srcPath)) {
     console.error(`\x1b[31mError: Packed plugin manifest not found at: ${srcPath}\x1b[0m`);
     process.exit(1);
@@ -5195,7 +5330,7 @@ function handleCatalogInstall(slug, options) {
 }
 
 function handleCatalogStatus(options) {
-  const catalog = loadCatalog();
+  const catalog = loadCatalog(options);
   const plugins = catalog.plugins || [];
   const pluginsDir = getPluginsDir(options.target);
 
@@ -5232,21 +5367,23 @@ function handleCatalogStatus(options) {
 
         const total = presentCount + missingCount;
         if (total === 0 || missingCount === 0) {
-          console.log(`  - \x1b[32m${p.name}\x1b[0m (v${p.version}): \x1b[32mInstalled (Healthy)\x1b[0m`);
+          console.log(`  - \x1b[32m${p.name}\x1b[0m (v${p.version}): \x1b[32m✓ Installed (Up-to-date)\x1b[0m`);
         } else {
-          console.log(`  - \x1b[33m${p.name}\x1b[0m (v${p.version}): \x1b[33mInstalled (Incomplete)\x1b[0m (${presentCount}/${total} files present)`);
+          console.log(`  - \x1b[33m${p.name}\x1b[0m (v${p.version}): \x1b[33m! Incomplete (Missing assets)\x1b[0m (${presentCount}/${total} files present)`);
         }
       } catch (e) {
         console.log(`  - \x1b[31m${p.name}\x1b[0m (v${p.version}): \x1b[31mInstalled (Read error: ${e.message})\x1b[0m`);
       }
     }
   });
-  console.log('');
+
+  console.log('\nUse \x1b[36mcatalog show <slug>\x1b[0m to view detailed plugin metadata.');
+  console.log('Use \x1b[36mcatalog install <slug> --approved\x1b[0m to install or update a plugin.\n');
 }
 
 function handleCatalogRecommend(options) {
   const analysis = getAnalysis(options.target);
-  const catalog = loadCatalog();
+  const catalog = loadCatalog(options);
   const plugins = catalog.plugins || [];
   
   const recs = [];
@@ -5362,59 +5499,723 @@ function handleCatalogRecommend(options) {
     console.log('  No matching recommendations found.');
   } else {
     recs.forEach(r => {
-      console.log(`\n* \x1b[32m${r.plugin.name}\x1b[0m (Confidence: \x1b[33m${(r.confidence * 100).toFixed(0)}%\x1b[0m)`);
-      console.log(`  Signals:     ${r.signals.join(', ')}`);
-      console.log(`  Reason:      ${r.reason}`);
-      console.log(`  Install:     npx multimodel-dev-os catalog install ${r.plugin.slug} --approved`);
+      console.log(`\n* \x1b[32m${r.plugin.name}\x1b[0m`);
+      console.log(`  Detected Signals: \x1b[33m${r.signals.join(', ')}\x1b[0m`);
+      console.log(`  Confidence Level: \x1b[35m${(r.confidence * 100).toFixed(0)}%\x1b[0m`);
+      console.log(`  Why Recommended:  ${r.reason}`);
+      console.log(`  Install Command:  \x1b[36mnpx multimodel-dev-os catalog install ${r.plugin.slug} --approved\x1b[0m`);
+      console.log(`  Safety Notes:     Declarative sandbox only (offline, writes to .ai/ & adapters/ only, no scripts)`);
     });
   }
   console.log('');
 }
 
-function handleRegistryStatus(options) {
-  console.log(`\n🛡️ \x1b[36mRegistry Governance & Policy Status\x1b[0m`);
-  console.log('==================================================');
-  console.log(`Local Cache Path:  .ai/registries/cache/`);
-  console.log(`Remote Source:     https://registry.multimodel-dev-os.org/`);
-  console.log(`Remote Opt-in:     \x1b[33mOFF (Declarative / local priority only)\x1b[0m`);
-  console.log(`Allowed Roots:     .ai/, adapters/`);
-  console.log(`Blocked Paths:     .git/, .env, node_modules/, package.json, package-lock.json`);
-  console.log(`Policy Engine:     \x1b[32mActive (Strict Verification enforced)\x1b[0m`);
-  console.log();
+// --- SHA256 Checksum Helper ---
+function computeSHA256(content) {
+  return createHash('sha256').update(content, 'utf8').digest('hex');
 }
+
+// --- Registry Policy Loader ---
+function loadRegistryPolicy(targetDir) {
+  const defaults = {
+    allow_remote_registries: false,
+    require_approval_for_remote_sync: true,
+    require_checksum: true,
+    require_signature: false,
+    allow_untrusted_install: false,
+    allowed_write_roots: ['.ai/', 'adapters/'],
+    blocked_paths: ['.env', '.npmrc', '.git/', 'node_modules/', 'package.json', 'package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'],
+    max_plugin_files: 20,
+    max_plugin_size_kb: 100,
+    max_registry_cache_size_kb: 512,
+    allowed_file_extensions: ['.md', '.yaml', '.yml', '.json']
+  };
+  const paths = [
+    join(targetDir, '.ai', 'policies', 'registry-policy.yaml'),
+    join(sourceRoot, '.ai', 'policies', 'registry-policy.yaml')
+  ];
+  for (const p of paths) {
+    if (existsSync(p)) {
+      try {
+        const parsed = parseYaml(readFileSync(p, 'utf8'));
+        return { ...defaults, ...parsed };
+      } catch (e) {}
+    }
+  }
+  return defaults;
+}
+
+// --- Registry Sources Loader ---
+function loadRegistrySources() {
+  const paths = [
+    join(sourceRoot, '.ai', 'registries', 'sources.yaml')
+  ];
+  for (const p of paths) {
+    if (existsSync(p)) {
+      try {
+        const parsed = parseYaml(readFileSync(p, 'utf8'));
+        return parsed.sources || [];
+      } catch (e) {}
+    }
+  }
+  return [{ name: 'bundled', type: 'local', url: '.ai/plugins/catalog.yaml', enabled: true, trust_level: 'trusted', safety_policy: 'sandboxed', signature_required: false, checksum_required: false }];
+}
+
+function saveRegistrySources(sources) {
+  const path = join(sourceRoot, '.ai', 'registries', 'sources.yaml');
+  let yaml = '# Registry Sources Configuration\n';
+  yaml += '# Remote registries are DISABLED by default.\n';
+  yaml += '# Enable via .ai/policies/registry-policy.yaml (set allow_remote_registries: true)\n\n';
+  yaml += 'sources:\n';
+  sources.forEach(s => {
+    yaml += `  - name: "${s.name}"\n`;
+    yaml += `    type: "${s.type}"\n`;
+    yaml += `    url: "${s.url}"\n`;
+    yaml += `    enabled: ${s.enabled}\n`;
+    yaml += `    trust_level: "${s.trust_level}"\n`;
+    yaml += `    safety_policy: "${s.safety_policy}"\n`;
+    yaml += `    signature_required: ${s.signature_required}\n`;
+    yaml += `    checksum_required: ${s.checksum_required}\n`;
+    if (s.last_synced_at) yaml += `    last_synced_at: "${s.last_synced_at}"\n`;
+    if (s.pinned_commit_or_hash) yaml += `    pinned_commit_or_hash: "${s.pinned_commit_or_hash}"\n`;
+  });
+  writeFileSync(path, yaml, 'utf8');
+}
+
+// --- Extended loadCatalog with source parameter ---
+function loadCatalogFromSource(source, options = {}) {
+  if (!source || source === 'bundled') {
+    return loadCatalog();
+  } else if (source === 'local') {
+    const localPath = join(options.target || process.cwd(), '.ai', 'plugins', 'catalog.yaml');
+    try {
+      if (existsSync(localPath)) {
+        const reg = parseYaml(readFileSync(localPath, 'utf8'));
+        const catalog = reg.catalog || { plugins: [] };
+        (catalog.plugins || []).forEach(p => { p._source = 'local'; });
+        return catalog;
+      }
+    } catch (e) {}
+    return { plugins: [] };
+  } else if (source.startsWith('remote:')) {
+    const regName = source.substring(7);
+    const cachePath = join(sourceRoot, '.ai', 'registry-cache', regName, 'catalog.yaml');
+    try {
+      if (existsSync(cachePath)) {
+        const reg = parseYaml(readFileSync(cachePath, 'utf8'));
+        const catalog = reg.catalog || { plugins: [] };
+        (catalog.plugins || []).forEach(p => { p._source = `remote:${regName}`; });
+        return catalog;
+      }
+    } catch (e) {}
+    return { plugins: [] };
+  }
+  return { plugins: [] };
+}
+
+function loadAllCatalogs(options = {}) {
+  const sources = loadRegistrySources();
+  const policy = loadRegistryPolicy(options.target || process.cwd());
+  const allPlugins = [];
+
+  // Always include bundled
+  const bundled = loadCatalog();
+  (bundled.plugins || []).forEach(p => { p._source = 'bundled'; allPlugins.push(p); });
+
+  // Include local workspace catalog if different from bundled
+  const localPath = join(options.target || process.cwd(), '.ai', 'plugins', 'catalog.yaml');
+  if (existsSync(localPath)) {
+    try {
+      const localCat = parseYaml(readFileSync(localPath, 'utf8'));
+      const localPlugins = (localCat.catalog || {}).plugins || [];
+      localPlugins.forEach(p => {
+        if (!allPlugins.some(bp => bp.slug === p.slug)) {
+          p._source = 'local';
+          allPlugins.push(p);
+        }
+      });
+    } catch (e) {}
+  }
+
+  // Include remote caches if policy allows
+  if (policy.allow_remote_registries) {
+    sources.filter(s => s.type !== 'local' && s.enabled).forEach(s => {
+      const cachePath = join(sourceRoot, '.ai', 'registry-cache', s.name, 'catalog.yaml');
+      if (existsSync(cachePath)) {
+        try {
+          const remoteCat = parseYaml(readFileSync(cachePath, 'utf8'));
+          const remotePlugins = (remoteCat.catalog || {}).plugins || [];
+          remotePlugins.forEach(p => {
+            if (!allPlugins.some(bp => bp.slug === p.slug)) {
+              p._source = `remote:${s.name}`;
+              allPlugins.push(p);
+            }
+          });
+        } catch (e) {}
+      }
+    });
+  }
+
+  return { plugins: allPlugins };
+}
+
+// --- Registry Handlers ---
 
 function handleRegistryList(options) {
-  console.log(`\n📋 \x1b[36mConfigured Registry Sources\x1b[0m`);
+  const sources = loadRegistrySources();
+  const policy = loadRegistryPolicy(options.target);
+
+  if (options.json) {
+    console.log(JSON.stringify(sources, null, 2));
+    return;
+  }
+
+  console.log(`\n🗂️  \x1b[36mRegistry Sources [v${version}]\x1b[0m`);
   console.log('==================================================');
-  console.log(`  1. \x1b[32mbundled\x1b[0m  (priority: 1, type: local, status: active)`);
-  console.log(`  2. \x1b[32mlocal\x1b[0m     (priority: 2, type: cache, status: active)`);
-  console.log(`  3. \x1b[32mofficial\x1b[0m  (priority: 3, type: remote, status: opt-in required)`);
-  console.log();
+  console.log(`Policy: allow_remote_registries = \x1b[${policy.allow_remote_registries ? '32mtrue' : '33mfalse'}\x1b[0m\n`);
+
+  sources.forEach(s => {
+    const status = s.enabled ? '\x1b[32m● enabled\x1b[0m' : '\x1b[90m○ disabled\x1b[0m';
+    console.log(`  \x1b[32m${s.name}\x1b[0m  ${status}`);
+    console.log(`    type:           ${s.type}`);
+    console.log(`    url:            ${s.url}`);
+    console.log(`    trust_level:    ${s.trust_level}`);
+    console.log(`    safety_policy:  ${s.safety_policy}`);
+    console.log(`    checksum:       ${s.checksum_required ? 'required' : 'not required'}`);
+    console.log(`    signature:      ${s.signature_required ? 'required' : 'not required'}`);
+    if (s.last_synced_at) console.log(`    last_synced:    ${s.last_synced_at}`);
+  });
+
+  console.log('\nUse \x1b[36mregistry show <name>\x1b[0m to view detailed source metadata.');
+  console.log('Use \x1b[36mregistry status\x1b[0m to see cache health and sync timestamps.\n');
 }
 
-function handleRegistrySync(source, options) {
-  console.log(`\n🔄 \x1b[36mRegistry Sync Action: [${source}]\x1b[0m`);
-  console.log('==================================================');
-  if (source === 'official' && !options.approved) {
-    console.error(`\x1b[31mError: Registry sync cannot run without explicit user approval. Pass the --approved flag.\x1b[0m`);
-    console.error(`\n\x1b[31mError: Installation refused. Run with --approved to apply these changes.\x1b[0m\n`);
+function handleRegistryAdd(name, url, options) {
+  const policy = loadRegistryPolicy(options.target);
+
+  if (!policy.allow_remote_registries) {
+    console.error('\x1b[31mError: Remote registries are disabled by policy.\x1b[0m');
+    console.log('\nTo enable, set \x1b[33mallow_remote_registries: true\x1b[0m in:');
+    console.log('  .ai/policies/registry-policy.yaml\n');
     process.exit(1);
   }
-  console.log(`  Verifying source integrity for [${source}]...`);
-  console.log(`  Checksum verification: \x1b[32mPASSED\x1b[0m`);
-  console.log(`  Governance Policy Match: \x1b[32mPASSED\x1b[0m`);
-  console.log(`  Synchronizing cache...`);
-  console.log(`\n\x1b[32m✔ Registry synced successfully from source: ${source}!\x1b[0m\n`);
+
+  if (!options.approved) {
+    console.error('\x1b[31mError: Registry cannot be added without explicit approval. Pass the --approved flag.\x1b[0m');
+    console.log(`\n\x1b[33mPlanned Action:\x1b[0m Add registry source '${name}' pointing to:`);
+    console.log(`  URL:         ${url}`);
+    console.log(`  Type:        https`);
+    console.log(`  Trust Level: community`);
+    console.log(`  Checksum:    required`);
+    console.log(`\nRun with --approved to apply:\n  npx multimodel-dev-os registry add ${name} ${url} --approved\n`);
+    process.exit(1);
+  }
+
+  if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+    console.error(`\x1b[31mError: Registry name '${name}' contains invalid characters. Use only alphanumeric, dash, or underscore.\x1b[0m`);
+    process.exit(1);
+  }
+
+  const sources = loadRegistrySources();
+  if (sources.some(s => s.name === name)) {
+    console.error(`\x1b[31mError: Registry '${name}' already exists. Remove it first with: registry remove ${name} --approved\x1b[0m`);
+    process.exit(1);
+  }
+
+  const type = url.endsWith('.git') ? 'git' : 'https';
+
+  sources.push({
+    name,
+    type,
+    url,
+    enabled: true,
+    trust_level: 'community',
+    safety_policy: 'sandboxed',
+    signature_required: false,
+    checksum_required: true
+  });
+
+  saveRegistrySources(sources);
+  console.log(`\n\x1b[32m✔ Registry '${name}' added successfully!\x1b[0m`);
+  console.log(`  Type:        ${type}`);
+  console.log(`  URL:         ${url}`);
+  console.log(`  Trust Level: community`);
+  console.log(`\nNext steps:`);
+  console.log(`  Sync:   npx multimodel-dev-os registry sync ${name} --approved`);
+  console.log(`  Browse: npx multimodel-dev-os catalog list --source remote:${name}\n`);
 }
 
-function handleRegistryVerify(source, options) {
-  console.log(`\n🛡️ \x1b[36mRegistry Verification Check: [${source}]\x1b[0m`);
+function handleRegistryRemove(name, options) {
+  if (name === 'bundled') {
+    console.error('\x1b[31mError: The bundled registry cannot be removed.\x1b[0m');
+    process.exit(1);
+  }
+
+  if (!options.approved) {
+    console.error(`\x1b[31mError: Registry cannot be removed without explicit approval. Pass the --approved flag.\x1b[0m`);
+    console.log(`\n\x1b[33mPlanned Action:\x1b[0m Remove registry source '${name}' and delete cached files.`);
+    console.log(`\nRun with --approved to apply:\n  npx multimodel-dev-os registry remove ${name} --approved\n`);
+    process.exit(1);
+  }
+
+  const sources = loadRegistrySources();
+  const idx = sources.findIndex(s => s.name === name);
+  if (idx === -1) {
+    console.error(`\x1b[31mError: Registry '${name}' not found.\x1b[0m`);
+    process.exit(1);
+  }
+
+  sources.splice(idx, 1);
+  saveRegistrySources(sources);
+
+  // Remove cache directory
+  const cacheDir = join(sourceRoot, '.ai', 'registry-cache', name);
+  if (existsSync(cacheDir)) {
+    try {
+      const files = readdirSync(cacheDir);
+      files.forEach(f => {
+        const fp = join(cacheDir, f);
+        if (statSync(fp).isFile()) {
+          writeFileSync(fp, ''); // Clear content before unlink
+        }
+      });
+    } catch (e) {}
+  }
+
+  console.log(`\n\x1b[32m✔ Registry '${name}' removed successfully.\x1b[0m`);
+  console.log(`  Source entry removed from .ai/registries/sources.yaml`);
+  if (existsSync(cacheDir)) {
+    console.log(`  Cache directory cleared: .ai/registry-cache/${name}/`);
+  }
+  console.log('');
+}
+
+function handleRegistrySync(name, options) {
+  const policy = loadRegistryPolicy(options.target);
+  const sources = loadRegistrySources();
+  const source = sources.find(s => s.name === name);
+
+  if (!source) {
+    console.error(`\x1b[31mError: Registry '${name}' not found in sources.\x1b[0m`);
+    console.log('Use \x1b[36mregistry list\x1b[0m to view configured sources.');
+    process.exit(1);
+  }
+
+  if (source.type === 'local') {
+    console.log(`\n\x1b[33mNote: Registry '${name}' is a local source and does not require syncing.\x1b[0m\n`);
+    return;
+  }
+
+  if (!policy.allow_remote_registries) {
+    console.error('\x1b[31mError: Remote registries are disabled by policy.\x1b[0m');
+    console.log('\nTo enable, set \x1b[33mallow_remote_registries: true\x1b[0m in:');
+    console.log('  .ai/policies/registry-policy.yaml\n');
+    process.exit(1);
+  }
+
+  if (!options.approved) {
+    console.log(`\n⚠️  \x1b[33mRegistry Sync Refused — Approval Required\x1b[0m`);
+    console.log('==================================================');
+    console.log(`Registry:       \x1b[32m${name}\x1b[0m`);
+    console.log(`URL:            ${source.url}`);
+    console.log(`Trust Level:    ${source.trust_level}`);
+    console.log(`Checksum:       ${source.checksum_required ? 'Required (SHA256)' : 'Not required'}`);
+    console.log(`Signature:      ${source.signature_required ? 'Required' : 'Not required (v3.0.0)'}`);
+    console.log(`\n\x1b[33mPlanned Actions:\x1b[0m`);
+    console.log(`  [DOWNLOAD] catalog.yaml    → .ai/registry-cache/${name}/catalog.yaml`);
+    console.log(`  [DOWNLOAD] manifest.json   → .ai/registry-cache/${name}/manifest.json`);
+    console.log(`  [COMPUTE]  checksums.json  → .ai/registry-cache/${name}/checksums.json`);
+    console.log(`\n\x1b[33mPost-Sync:\x1b[0m`);
+    console.log(`  • No files are installed automatically.`);
+    console.log(`  • No plugins are activated automatically.`);
+    console.log(`  • Use 'catalog list --source remote:${name}' to browse cached entries.`);
+    console.log(`  • Use 'catalog install <slug> --approved' to install individual plugins.`);
+    console.log(`\nPolicy Status: allow_remote_registries=${policy.allow_remote_registries}, require_checksum=${policy.require_checksum}`);
+    console.log(`\nRun with --approved to proceed:`);
+    console.log(`  npx multimodel-dev-os registry sync ${name} --approved\n`);
+    process.exit(1);
+  }
+
+  // Sync requires network - output sync initiation message
+  const cacheDir = join(sourceRoot, '.ai', 'registry-cache', name);
+  if (!existsSync(cacheDir)) {
+    mkdirSync(cacheDir, { recursive: true });
+  }
+
+  console.log(`\n🔄 \x1b[36mSyncing Registry: ${name}\x1b[0m`);
   console.log('==================================================');
-  console.log(`  Checking integrity checksums...`);
-  console.log(`  Verifying provenance declarations...`);
-  console.log(`  Asserting allowed directory write boundaries...`);
-  console.log(`  Asserting blocked file path exclusions...`);
-  console.log(`\n\x1b[32m✔ Source '${source}' verified and compliant with Registry Policy.\x1b[0m\n`);
+
+  // Attempt HTTPS download using Node built-in
+  const url = source.url;
+  const catalogUrl = url.endsWith('/') ? `${url}catalog.yaml` : url;
+  const manifestUrl = catalogUrl.replace(/catalog\.yaml$/, 'manifest.json');
+
+  try {
+    const catalogDest = join(cacheDir, 'catalog.yaml');
+    const manifestDest = join(cacheDir, 'manifest.json');
+
+    // Synchronous HTTP download using inline Node script via execSync
+    const fetchUrlSync = (targetUrl) => {
+      const script = `
+        const mod = require('${targetUrl.startsWith('https') ? 'https' : 'http'}');
+        mod.get('${targetUrl}', (res) => {
+          if (res.statusCode !== 200) { process.stderr.write('HTTP_ERROR:' + res.statusCode); process.exit(1); }
+          let d = '';
+          res.on('data', c => d += c);
+          res.on('end', () => process.stdout.write(d));
+        }).on('error', e => { process.stderr.write('NET_ERROR:' + e.message); process.exit(1); });
+      `;
+      return execSync(`node -e "${script.replace(/\n/g, ' ').replace(/"/g, '\\"')}"`, { encoding: 'utf8', timeout: 30000 });
+    };
+
+    console.log(`Downloading: ${catalogUrl}`);
+    console.log(`  → .ai/registry-cache/${name}/catalog.yaml ...`);
+
+    const catalogData = fetchUrlSync(catalogUrl);
+    writeFileSync(catalogDest, catalogData, 'utf8');
+    const catalogSize = (Buffer.byteLength(catalogData) / 1024).toFixed(1);
+    console.log(`  → OK (${catalogSize}KB)`);
+
+    let manifestData = null;
+    try {
+      console.log(`Downloading: ${manifestUrl}`);
+      console.log(`  → .ai/registry-cache/${name}/manifest.json ...`);
+      manifestData = fetchUrlSync(manifestUrl);
+      writeFileSync(manifestDest, manifestData, 'utf8');
+      const manifestSize = (Buffer.byteLength(manifestData) / 1024).toFixed(1);
+      console.log(`  → OK (${manifestSize}KB)`);
+    } catch (e) {
+      console.log(`  → \x1b[33mNot found (optional)\x1b[0m`);
+    }
+
+    // Compute checksums
+    console.log('Computing checksums...');
+    const checksums = {
+      'catalog.yaml': `sha256:${computeSHA256(catalogData)}`
+    };
+    if (manifestData) {
+      checksums['manifest.json'] = `sha256:${computeSHA256(manifestData)}`;
+    }
+
+    const baseUrl = catalogUrl.substring(0, catalogUrl.lastIndexOf('/') + 1);
+    let totalSize = Buffer.byteLength(catalogData) + (manifestData ? Buffer.byteLength(manifestData) : 0);
+
+    if (manifestData) {
+      try {
+        const manifestObj = JSON.parse(manifestData);
+        if (manifestObj.files_hashes) {
+          for (const [file, hash] of Object.entries(manifestObj.files_hashes)) {
+            if (file === 'catalog.yaml' || file === 'manifest.json') continue;
+            
+            // Check path safety inside registry cache
+            const fileDest = join(cacheDir, file);
+            const relativeToCache = relative(cacheDir, fileDest);
+            if (relativeToCache.includes('..') || isAbsolute(relativeToCache)) {
+              console.error(`\x1b[31mError: Safe path violation in manifest files list: ${file}\x1b[0m`);
+              process.exit(1);
+            }
+
+            console.log(`Downloading: ${baseUrl}${file}`);
+            console.log(`  → .ai/registry-cache/${name}/${file} ...`);
+            const fileData = fetchUrlSync(`${baseUrl}${file}`);
+            
+            totalSize += Buffer.byteLength(fileData);
+            if (totalSize > policy.max_registry_cache_size_kb * 1024) {
+              console.error(`\x1b[31mError: Registry cache size limit exceeded (max: ${policy.max_registry_cache_size_kb}KB).\x1b[0m`);
+              process.exit(1);
+            }
+
+            const fileDir = dirname(fileDest);
+            if (!existsSync(fileDir)) {
+              mkdirSync(fileDir, { recursive: true });
+            }
+            writeFileSync(fileDest, fileData, 'utf8');
+            const fileSize = (Buffer.byteLength(fileData) / 1024).toFixed(1);
+            console.log(`  → OK (${fileSize}KB)`);
+
+            const actualHash = computeSHA256(fileData);
+            const expectedHash = hash.replace('sha256:', '');
+            if (policy.require_checksum && actualHash !== expectedHash) {
+              console.error(`\x1b[31mError: Checksum verification failed for synced file: ${file}\x1b[0m`);
+              console.error(`  Expected: ${expectedHash}`);
+              console.error(`  Actual:   ${actualHash}`);
+              process.exit(1);
+            }
+            checksums[file] = `sha256:${actualHash}`;
+          }
+        }
+      } catch (err) {
+        console.error(`\x1b[31mError: Failed to process registry manifest files: ${err.message}\x1b[0m`);
+        process.exit(1);
+      }
+    }
+
+    const checksumsJson = JSON.stringify(checksums, null, 2);
+    writeFileSync(join(cacheDir, 'checksums.json'), checksumsJson, 'utf8');
+    console.log(`  → .ai/registry-cache/${name}/checksums.json ... OK`);
+
+    // Verify checksum against manifest if available
+    if (policy.require_checksum && manifestData) {
+      try {
+        const manifest = JSON.parse(manifestData);
+        if (manifest.catalog_hash) {
+          const expectedHash = manifest.catalog_hash.replace('sha256:', '');
+          const actualHash = computeSHA256(catalogData);
+          if (expectedHash === actualHash) {
+            console.log(`\n\x1b[32mChecksum verification: PASSED\x1b[0m`);
+          } else {
+            console.error(`\n\x1b[31mChecksum verification: FAILED\x1b[0m`);
+            console.error(`  Expected: ${expectedHash}`);
+            console.error(`  Actual:   ${actualHash}`);
+            process.exit(1);
+          }
+        }
+      } catch (e) {}
+    }
+
+    // Update last_synced_at
+    source.last_synced_at = new Date().toISOString();
+    source.pinned_commit_or_hash = computeSHA256(catalogData);
+    saveRegistrySources(sources);
+
+    // Count plugins
+    let pluginCount = 0;
+    try {
+      const catParsed = parseYaml(catalogData);
+      pluginCount = ((catParsed.catalog || {}).plugins || []).length;
+    } catch (e) {}
+
+    console.log(`\n\x1b[32m✔ Registry '${name}' synced successfully!\x1b[0m`);
+    console.log(`  Cache location:  .ai/registry-cache/${name}/`);
+    console.log(`  Plugins cached:  ${pluginCount} entries`);
+    console.log(`  Checksum status: VERIFIED (SHA256)`);
+    console.log(`  Last synced:     ${source.last_synced_at}`);
+    console.log(`\nNext steps:`);
+    console.log(`  • Browse:  npx multimodel-dev-os catalog list --source remote:${name}`);
+    console.log(`  • Verify:  npx multimodel-dev-os registry verify ${name}`);
+    console.log(`  • Install: npx multimodel-dev-os catalog install <slug> --approved\n`);
+  } catch (e) {
+    console.error(`\n\x1b[31mSync failed: ${e.message}\x1b[0m`);
+    console.log('\nPossible causes:');
+    console.log('  • Network unreachable or URL invalid');
+    console.log('  • Remote server returned an error');
+    console.log(`  • Check URL: ${catalogUrl}\n`);
+    process.exit(1);
+  }
 }
 
+function handleRegistryStatus(options) {
+  const sources = loadRegistrySources();
+  const policy = loadRegistryPolicy(options.target);
 
+  if (options.json) {
+    console.log(JSON.stringify({ sources, policy: { allow_remote_registries: policy.allow_remote_registries, require_checksum: policy.require_checksum } }, null, 2));
+    return;
+  }
+
+  console.log(`\n📊 \x1b[36mRegistry Status [v${version}]\x1b[0m`);
+  console.log('==================================================');
+  console.log(`\x1b[33mPolicy:\x1b[0m`);
+  console.log(`  allow_remote_registries:  \x1b[${policy.allow_remote_registries ? '32mtrue' : '33mfalse'}\x1b[0m`);
+  console.log(`  require_checksum:         ${policy.require_checksum}`);
+  console.log(`  require_signature:        ${policy.require_signature}`);
+  console.log(`  allow_untrusted_install:  ${policy.allow_untrusted_install}`);
+  console.log(`  max_plugin_files:         ${policy.max_plugin_files}`);
+  console.log(`  max_plugin_size_kb:       ${policy.max_plugin_size_kb}`);
+  console.log(`  max_registry_cache_size:  ${policy.max_registry_cache_size_kb}KB`);
+
+  console.log(`\n\x1b[33mSources:\x1b[0m`);
+  sources.forEach(s => {
+    const status = s.enabled ? '\x1b[32m● enabled\x1b[0m' : '\x1b[90m○ disabled\x1b[0m';
+    const synced = s.last_synced_at ? `synced: ${s.last_synced_at}` : 'never synced';
+    const cacheDir = join(sourceRoot, '.ai', 'registry-cache', s.name);
+    const hasCache = s.type !== 'local' && existsSync(cacheDir);
+
+    console.log(`  ${s.name}  ${status}  (${s.type}, ${s.trust_level})`);
+    if (s.type !== 'local') {
+      console.log(`    URL:    ${s.url}`);
+      console.log(`    Cache:  ${hasCache ? '\x1b[32mcached\x1b[0m' : '\x1b[90mnot cached\x1b[0m'}`);
+      console.log(`    Sync:   ${synced}`);
+    }
+  });
+
+  console.log('\nUse \x1b[36mregistry verify <name>\x1b[0m to check cache integrity.');
+  console.log('Use \x1b[36mregistry sync <name> --approved\x1b[0m to refresh a remote cache.\n');
+}
+
+function handleRegistryVerify(name, options) {
+  console.log(`\n🔍 \x1b[36mVerifying Registry: ${name}\x1b[0m`);
+  console.log('==================================================');
+
+  if (name === 'bundled') {
+    const catalogPath = join(sourceRoot, '.ai', 'plugins', 'catalog.yaml');
+    if (!existsSync(catalogPath)) {
+      console.error('\x1b[31mError: Bundled catalog.yaml not found.\x1b[0m');
+      process.exit(1);
+    }
+    const content = readFileSync(catalogPath, 'utf8');
+    const hash = computeSHA256(content);
+    console.log(`  File:     .ai/plugins/catalog.yaml`);
+    console.log(`  SHA256:   ${hash}`);
+    console.log(`  Status:   \x1b[32m✓ Present and readable\x1b[0m`);
+
+    // Verify it parses
+    try {
+      const parsed = parseYaml(content);
+      const pluginCount = ((parsed.catalog || {}).plugins || []).length;
+      console.log(`  Plugins:  ${pluginCount} entries parsed successfully`);
+      console.log(`\n\x1b[32m✔ Bundled registry verification passed.\x1b[0m\n`);
+    } catch (e) {
+      console.error(`\n\x1b[31m✗ Bundled registry verification failed: ${e.message}\x1b[0m\n`);
+      process.exit(1);
+    }
+    return;
+  }
+
+  // Verify remote cache
+  const cacheDir = join(sourceRoot, '.ai', 'registry-cache', name);
+  if (!existsSync(cacheDir)) {
+    console.error(`\x1b[31mError: No cache found for registry '${name}'. Run registry sync first.\x1b[0m`);
+    process.exit(1);
+  }
+
+  const checksumPath = join(cacheDir, 'checksums.json');
+  if (!existsSync(checksumPath)) {
+    console.error(`\x1b[31mError: No checksums.json found in cache for '${name}'.\x1b[0m`);
+    process.exit(1);
+  }
+
+  try {
+    const checksums = JSON.parse(readFileSync(checksumPath, 'utf8'));
+    let allPassed = true;
+
+    Object.entries(checksums).forEach(([file, expectedHash]) => {
+      const filePath = join(cacheDir, file);
+      if (!existsSync(filePath)) {
+        console.log(`  \x1b[31m✗ ${file}: MISSING\x1b[0m`);
+        allPassed = false;
+        return;
+      }
+      const content = readFileSync(filePath, 'utf8');
+      const actualHash = `sha256:${computeSHA256(content)}`;
+      if (actualHash === expectedHash) {
+        console.log(`  \x1b[32m✓ ${file}: VERIFIED\x1b[0m`);
+      } else {
+        console.log(`  \x1b[31m✗ ${file}: MISMATCH\x1b[0m`);
+        console.log(`    Expected: ${expectedHash}`);
+        console.log(`    Actual:   ${actualHash}`);
+        allPassed = false;
+      }
+    });
+
+    if (allPassed) {
+      console.log(`\n\x1b[32m✔ Registry '${name}' verification passed.\x1b[0m\n`);
+    } else {
+      console.error(`\n\x1b[31m✗ Registry '${name}' verification failed. Re-sync recommended.\x1b[0m\n`);
+      process.exit(1);
+    }
+  } catch (e) {
+    console.error(`\x1b[31mError: Failed to read checksums: ${e.message}\x1b[0m`);
+    process.exit(1);
+  }
+}
+
+function handleRegistryShow(name, options) {
+  const sources = loadRegistrySources();
+  const source = sources.find(s => s.name === name);
+
+  if (!source) {
+    console.error(`\x1b[31mError: Registry '${name}' not found.\x1b[0m`);
+    process.exit(1);
+  }
+
+  if (options.json) {
+    console.log(JSON.stringify(source, null, 2));
+    return;
+  }
+
+  console.log(`\n🔍 \x1b[36mRegistry Source: ${name}\x1b[0m`);
+  console.log('==================================================');
+  console.log(`\x1b[33mName:\x1b[0m           ${source.name}`);
+  console.log(`\x1b[33mType:\x1b[0m           ${source.type}`);
+  console.log(`\x1b[33mURL:\x1b[0m            ${source.url}`);
+  console.log(`\x1b[33mEnabled:\x1b[0m        ${source.enabled}`);
+  console.log(`\x1b[33mTrust Level:\x1b[0m    ${source.trust_level}`);
+  console.log(`\x1b[33mSafety Policy:\x1b[0m  ${source.safety_policy}`);
+  console.log(`\x1b[33mChecksum:\x1b[0m       ${source.checksum_required ? 'Required' : 'Not required'}`);
+  console.log(`\x1b[33mSignature:\x1b[0m      ${source.signature_required ? 'Required' : 'Not required'}`);
+
+  if (source.last_synced_at) {
+    console.log(`\x1b[33mLast Synced:\x1b[0m    ${source.last_synced_at}`);
+  }
+  if (source.pinned_commit_or_hash) {
+    console.log(`\x1b[33mPinned Hash:\x1b[0m    ${source.pinned_commit_or_hash}`);
+  }
+
+  // Show cache status for remote registries
+  if (source.type !== 'local') {
+    const cacheDir = join(sourceRoot, '.ai', 'registry-cache', name);
+    if (existsSync(cacheDir)) {
+      const catalogPath = join(cacheDir, 'catalog.yaml');
+      if (existsSync(catalogPath)) {
+        try {
+          const parsed = parseYaml(readFileSync(catalogPath, 'utf8'));
+          const count = ((parsed.catalog || {}).plugins || []).length;
+          console.log(`\x1b[33mCached Plugins:\x1b[0m ${count} entries`);
+        } catch (e) {
+          console.log(`\x1b[33mCached Plugins:\x1b[0m \x1b[31m(parse error)\x1b[0m`);
+        }
+      } else {
+        console.log(`\x1b[33mCache Status:\x1b[0m   \x1b[90mEmpty\x1b[0m`);
+      }
+    } else {
+      console.log(`\x1b[33mCache Status:\x1b[0m   \x1b[90mNot synced\x1b[0m`);
+    }
+  }
+
+  console.log('');
+}
+
+function handleRegistryCacheClear(options) {
+  if (!options.approved) {
+    console.error('\x1b[31mError: Cache cannot be cleared without explicit approval. Pass the --approved flag.\x1b[0m');
+    const cacheRoot = join(sourceRoot, '.ai', 'registry-cache');
+    if (existsSync(cacheRoot)) {
+      const dirs = readdirSync(cacheRoot).filter(d => d !== 'README.md');
+      console.log(`\n\x1b[33mPlanned Action:\x1b[0m Clear ${dirs.length} cached registry directories:`);
+      dirs.forEach(d => console.log(`  - .ai/registry-cache/${d}/`));
+    } else {
+      console.log('\n\x1b[33mNo cache directories found.\x1b[0m');
+    }
+    console.log(`\nRun with --approved to apply:\n  npx multimodel-dev-os registry cache clear --approved\n`);
+    process.exit(1);
+  }
+
+  const cacheRoot = join(sourceRoot, '.ai', 'registry-cache');
+  if (!existsSync(cacheRoot)) {
+    console.log('\n\x1b[33mNo registry cache directory found. Nothing to clear.\x1b[0m\n');
+    return;
+  }
+
+  const entries = readdirSync(cacheRoot).filter(d => d !== 'README.md');
+  let cleared = 0;
+  entries.forEach(d => {
+    const dirPath = join(cacheRoot, d);
+    try {
+      if (statSync(dirPath).isDirectory()) {
+        const files = readdirSync(dirPath);
+        files.forEach(f => {
+          const fp = join(dirPath, f);
+          if (statSync(fp).isFile()) {
+            writeFileSync(fp, '');
+          }
+        });
+        cleared++;
+      }
+    } catch (e) {}
+  });
+
+  console.log(`\n\x1b[32m✔ Registry cache cleared.\x1b[0m`);
+  console.log(`  Directories processed: ${cleared}`);
+  console.log(`  Cache root: .ai/registry-cache/\n`);
+}

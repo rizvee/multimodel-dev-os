@@ -2,14 +2,25 @@
 
 All notable changes to multimodel-dev-os will be documented in this file.
 
-## [3.0.0] - 2026-06-18
+## [3.0.0] - 2026-06-17
 
 ### Added
-- **Trusted Remote Catalog + Governance Layer**: Secure remote catalog source handling, checksum/provenance verifications, and priority priority source resolver (bundled -> local -> remote).
-- **Registry CLI Commands**: Added `registry status`, `registry list`, `registry sync`, and `registry verify` to manage local and remote registry metadata safely.
-- **Registry Policy Engine**: Restricts write roots, blocks protected paths, and executes approval gates. Bypasses require explicit `--approved` execution flags.
-- **Dashboard Visibility**: Read-only registry sync preview integrated directly into TUI command center.
-- **Registry Security**: Kept remote discovery opt-in only with zero arbitrary code execution or external installs.
+- **Trusted Remote Registry Sync**: Introduced the `registry` CLI command suite allowing users to optionally sync remote catalogs, including `list`, `add`, `remove`, `sync`, `status`, `verify`, `show`, and `cache clear` commands.
+- **Declarative Security Policy Engine**: Implemented `.ai/policies/registry-policy.yaml` governing remote registries, with opt-in defaults, permitted write directories, blocked file paths, size limits, allowed extensions, and registry trust levels.
+- **SHA256 Integrity Verification**: Standardized SHA256 integrity verification inside registry manifest files, verified on sync and installation, using Node's native `crypto` module.
+- **Source-Aware Catalog Loading**: Extended `loadCatalog` and existing `catalog` commands with `--source` and `--all-sources` flags, ensuring seamless prioritization across bundled, local, and synced remote registries.
+- **TUI Dashboard Integration**: Added a read-only "Registry Sources & Cache" submenu to the zero-dependency keyboard-interactive command center.
+- **Zero-Dependency Core**: Deployed the remote integration layer natively using Node's built-in modules (`https`, `crypto`, `fs`, `path`).
+- **Comprehensive Documentation**: Added five new manuals (`registry-sync.md`, `trusted-registries.md`, `registry-policy.md`, `registry-security.md`, and `remote-catalog-authoring.md`) and updated sitemaps, configs, and existing guides.
+
+## [2.9.1] - 2026-06-17
+
+### Added
+- **YAML Parser Safety Check**: Implemented a quote scanner in `parseYaml` to only strip comments outside quotes, and added flow-style array parsing support (`[a, "b", 123]`) using `parseFlowArray`.
+- **Parser Type Preservation**: Ensured quoted numbers and booleans (e.g. `version: "1.0"`) are kept as strings instead of being converted to integers/booleans.
+- **Improved UX Outputs**: Polished terminal formatting layouts, alignment paddings, and safety status indicators for all catalog subcommands.
+- **Search Empty State Warning**: Added custom warning logs for zero-match search results.
+- **Expanded Verification Tests**: Added flow arrays, comment-aware parsing, and empty search terminal check assertions to `scripts/verify.js`.
 
 ## [2.9.0] - 2026-06-16
 

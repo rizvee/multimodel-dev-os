@@ -47,3 +47,26 @@ Check which catalog plugins are installed and if any of their declared files are
 ```bash
 npx multimodel-dev-os catalog status
 ```
+
+---
+
+## Source Filtering
+
+By default, catalog commands query the bundled first-party catalog. In `v3.0.0`, you can filter queries by source or merge all enabled registry sources:
+
+* **Filter by a specific source:**
+  ```bash
+  npx multimodel-dev-os catalog list --source remote:partner-registry
+  npx multimodel-dev-os catalog search nextjs --source local
+  ```
+* **Query all enabled sources:**
+  ```bash
+  npx multimodel-dev-os catalog list --all-sources
+  npx multimodel-dev-os catalog recommend --all-sources
+  ```
+
+Supported values for `--source` are:
+* `bundled`: The default offline catalog shipped with the package.
+* `local`: The local workspace catalog at `.ai/plugins/catalog.yaml`.
+* `remote:<name>`: A cached registry catalog index synced from a remote source.
+

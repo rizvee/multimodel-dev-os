@@ -32,7 +32,7 @@ export default {
         'license': 'https://opensource.org/licenses/MIT',
         'url': 'https://github.com/rizvee/multimodel-dev-os',
         'downloadUrl': 'https://www.npmjs.com/package/multimodel-dev-os',
-        'softwareVersion': '2.9.0',
+        'softwareVersion': '3.0.0',
         'description': 'Portable, vendor-neutral AI Developer OS for multi-agent coding workflows.'
       })
     ]
@@ -175,6 +175,16 @@ export default {
           { text: 'Curated Plugin Catalog', link: '/plugin-catalog' },
           { text: 'Workflow Marketplace Guide', link: '/workflow-marketplace' },
           { text: 'Catalog Authoring Guide', link: '/catalog-authoring' }
+        ]
+      },
+      {
+        text: 'Trusted Registry & Governance',
+        items: [
+          { text: 'Registry Sync Guide', link: '/registry-sync' },
+          { text: 'Trusted Registries', link: '/trusted-registries' },
+          { text: 'Registry Policy Engine', link: '/registry-policy' },
+          { text: 'Registry Security Model', link: '/registry-security' },
+          { text: 'Remote Catalog Authoring', link: '/remote-catalog-authoring' }
         ]
       },
       {

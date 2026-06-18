@@ -1,0 +1,51 @@
+# Registry Policy Configuration
+# Controls what remote registry operations are permitted.
+# All remote operations are DISABLED by default.
+# This file is the single source of truth for registry governance.
+
+# Master switch: must be true before any remote registry can be added or synced.
+allow_remote_registries: false
+
+# Require the --approved flag for all sync operations.
+require_approval_for_remote_sync: true
+
+# Require SHA256 checksum verification for synced catalog files.
+require_checksum: true
+
+# Require cryptographic signature verification (placeholder for future release).
+require_signature: false
+
+# Allow installing plugins from registries with trust_level: untrusted.
+allow_untrusted_install: false
+
+# Directories where plugins are allowed to write files.
+allowed_write_roots:
+  - ".ai/"
+  - "adapters/"
+
+# Paths that are always blocked from plugin writes.
+blocked_paths:
+  - ".env"
+  - ".npmrc"
+  - ".git/"
+  - "node_modules/"
+  - "package.json"
+  - "package-lock.json"
+  - "pnpm-lock.yaml"
+  - "yarn.lock"
+
+# Maximum number of files a single plugin can install.
+max_plugin_files: 20
+
+# Maximum total size (KB) of files a single plugin can install.
+max_plugin_size_kb: 100
+
+# Maximum total cache size (KB) per remote registry.
+max_registry_cache_size_kb: 512
+
+# File extensions allowed for plugin assets.
+allowed_file_extensions:
+  - ".md"
+  - ".yaml"
+  - ".yml"
+  - ".json"

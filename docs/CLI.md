@@ -300,3 +300,30 @@ npx multimodel-dev-os@latest providers       # View API providers
 npx multimodel-dev-os@latest adapters        # View adapter registry
 npx multimodel-dev-os@latest skills          # View skill registry
 ```
+
+---
+
+### 19. `registry` — Trusted Remote Catalog Registries
+
+Manage trusted remote catalog registries under policy-enforced safety gates.
+
+```bash
+npx multimodel-dev-os@latest registry list
+npx multimodel-dev-os@latest registry add <name> <url> --approved
+npx multimodel-dev-os@latest registry sync <name> --approved
+npx multimodel-dev-os@latest registry status
+npx multimodel-dev-os@latest registry verify <name>
+npx multimodel-dev-os@latest registry show <name>
+npx multimodel-dev-os@latest registry cache clear --approved
+```
+
+| Subcommand | Description |
+|:---|:---|
+| `list` | Print all configured registry sources |
+| `add <name> <url>` | Add a remote registry source (requires `--approved`) |
+| `remove <name>` | Remove a registry source and its cache (requires `--approved`) |
+| `sync <name>` | Sync and cache registry manifest and assets (requires `--approved`) |
+| `status` | Show cache health, timestamps, and policy configuration |
+| `verify <name>` | Verify cached files against expected SHA256 checksums |
+| `show <name>` | Display detailed registry configuration metadata |
+| `cache clear` | Delete all files in cache directory (requires `--approved`) |

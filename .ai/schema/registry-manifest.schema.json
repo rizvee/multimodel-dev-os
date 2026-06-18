@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MultiModel Dev OS Registry Manifest Schema",
+  "description": "JSON schema for the registry manifest file that accompanies remote catalog indexes, providing provenance metadata and integrity checksums",
+  "type": "object",
+  "required": [
+    "registry_name",
+    "publisher",
+    "version",
+    "generated_at",
+    "catalog_hash",
+    "files_hashes",
+    "minimum_mmdo_version",
+    "safety_policy_version"
+  ],
+  "properties": {
+    "registry_name": {
+      "type": "string",
+      "description": "Unique name identifier of the registry."
+    },
+    "publisher": {
+      "type": "string",
+      "description": "Name of the person or organization that published this registry."
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version of the registry catalog."
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the manifest was generated."
+    },
+    "catalog_hash": {
+      "type": "string",
+      "description": "SHA256 hash of the catalog.yaml file, prefixed with 'sha256:'."
+    },
+    "files_hashes": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Map of filename to SHA256 hash string for each file in the registry."
+    },
+    "minimum_mmdo_version": {
+      "type": "string",
+      "description": "Minimum MultiModel Dev OS version required to use this registry."
+    },
+    "safety_policy_version": {
+      "type": "string",
+      "description": "Version of the safety policy specification this registry conforms to."
+    },
+    "signature": {
+      "type": ["string", "null"],
+      "description": "Cryptographic signature of the manifest. Placeholder for future implementation."
+    }
+  },
+  "additionalProperties": false
+}

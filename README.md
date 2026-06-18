@@ -134,11 +134,11 @@ npx multimodel-dev-os@latest handoff build
 
 ---
 
-## What's New in v2.8
+## What's New in v3.0
 
-- 🧠 **Interactive TUI Dashboard** — Launches an interactive menu wrapper (`dashboard` or `ui`) for keyboard-driven navigation across all MultiModel Dev OS commands with non-TTY automated fallbacks.
-- 🔌 **Declarative Plugin Hooks** — Fully offline, declarative system (`plugin`) to list, show, validate, and install plugin rules to whitelisted directories with overwrite backups.
-- 🛡️ **Zero-Dependency CLI** — Custom keypress menu handling built on Node.js's native `readline` module.
+- 🛡️ **Trusted Remote Registries & Governance** — Manage and synchronize remote catalog indexes safely via `registry` command suite.
+- 🎛️ **Policy Engine** — Configurable safety rules whitelisting destination directories, allowed extensions, and blocking sensitive file paths.
+- 🔒 **Zero Trust Integrity Chain** — SHA256 checksum verification for all downloaded remote catalog assets.
 
 **[Full Changelog →](CHANGELOG.md)**
 
@@ -157,7 +157,7 @@ npx multimodel-dev-os@latest handoff build
 | **v2.7.0** | Website, Demo & Distribution System | ✅ Released |
 | **v2.8.0 / v2.8.1** | Interactive TUI Dashboard & Plugin Hooks | ✅ Released |
 | **v2.9.0** | Local Workflow Marketplace & Plugin Catalog | ✅ Released |
-| **v3.0.0** | Unified Autonomous Co-Pilot Ecosystem | 🔮 Future |
+| **v3.0.0** | Trusted Remote Catalog & Registry Governance Layer | ✅ Released |
 
 **[Full Roadmap →](https://rizvee.github.io/multimodel-dev-os/v2-roadmap)**
 

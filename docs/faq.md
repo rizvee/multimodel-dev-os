@@ -107,6 +107,22 @@ It is a bundled registry catalog (`catalog.yaml`) containing safe first-party de
 
 ---
 
+## Trusted Registries & Governance
+
+**Are remote registries enabled by default?**
+No. Remote registries are completely disabled out-of-the-box. You must explicitly configure `.ai/policies/registry-policy.yaml` (set `allow_remote_registries: true`) before you can add, sync, or install plugins from any remote registry.
+
+**Does `registry sync` download or run arbitrary code?**
+Never. Remote sync only downloads declarative YAML and JSON files (catalogs, manifests, and plugin assets). These are written to a strictly segregated, gitignored directory (`.ai/registry-cache/`). The sync process never runs npm package scripts, invokes compilers, or executes binary code.
+
+**How does checksum verification work?**
+The publisher of a remote registry includes a signed manifest (`manifest.json`) listing all registry files and their SHA256 hashes. When synchronizing, the client computes local SHA256 hashes of all downloaded assets and verifies them against the manifest. If a hash mismatch is detected, the synchronization fails immediately.
+
+**Can I restrict which paths a remote plugin can write to?**
+Yes. The registry policy file (`registry-policy.yaml`) Whitelists allowed directories (`allowed_write_roots`) and blacklists sensitive targets (`blocked_paths`). Any plugin that attempts to write outside the whitelist or overwrite a blacklisted file (such as `.env` or `package.json`) will be blocked by the installer.
+
+---
+
 ## Diagnostics & Validation
 
 **What is the difference between `validate` and `doctor`?**

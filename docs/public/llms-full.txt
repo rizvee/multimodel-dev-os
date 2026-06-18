@@ -88,6 +88,15 @@ All compliant MultiModel Dev OS CLIs strictly enforce the following command cont
   - `recommend`: Scans repo signals to recommend matching catalog plugins.
   - `install <slug>`: Installs a catalog plugin to the target repo (requires `--approved`).
   - `status`: Audits installation status of catalog entries.
+- **`registry`**: Manage trusted remote catalog registries (v3.0.0+). Subcommands:
+  - `list`: Lists all configured registry sources from `sources.yaml`.
+  - `add <name> <url>`: Adds a new remote registry source (requires `--approved`).
+  - `remove <name>`: Removes a registry source and its cache (requires `--approved`).
+  - `sync <name>`: Fetches remote `catalog.yaml` and `manifest.json` into `.ai/registry-cache/<name>/` (requires `--approved`).
+  - `status`: Shows all sources, sync timestamps, cache health, and policy status.
+  - `verify <name>`: Verifies SHA256 checksums of cached files against `checksums.json`.
+  - `show <name>`: Shows detailed metadata and policies of a specific registry source.
+  - `cache clear`: Deletes all files in `.ai/registry-cache/` (requires `--approved`).
 - **`verify`**: Automated release script that checks structure integrity.
 - **`templates`**: Lists built-in template profiles (supports overrides via `--registry <path>`).
 - **`validate`**: Strict Quality Gate checking the layout rules on disk (supports `--all-registries`).

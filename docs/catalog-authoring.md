@@ -54,3 +54,10 @@ Verify that your catalog entry complies with all safety rules:
 ```bash
 npx multimodel-dev-os plugin validate .ai/plugins/catalog/custom-workflows.yaml
 ```
+
+## Parser-Safe YAML Guidelines
+
+To ensure parser compatibility across all environments:
+1. **Flow Arrays**: Both block lists (using `-`) and inline flow arrays (e.g. `tags: ["api", "audit"]`) are fully supported.
+2. **Type Preservation**: Wrap version numbers and slugs in quotes (e.g., `version: "1.0.0"`) to prevent them from being incorrectly converted to integers or floats.
+3. **Quoted Hash Characters**: Quoted strings containing `#` symbols (e.g., `description: "Includes # tag"`) are parsed safely without stripping the hash character.

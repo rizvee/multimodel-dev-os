@@ -38,6 +38,7 @@ graph TD
     Dashboard --> Memory[Memory & Intelligence...]
     Dashboard --> Feedback[Developer Feedback Loops...]
     Dashboard --> Catalog[Workflow Marketplace Catalog...]
+    Dashboard --> Registry[Registry Sources & Cache...]
     Dashboard --> Quality[Quality Gates & Diagnostics...]
     Dashboard --> Plugins[Plugins Status Overview]
 ```
@@ -72,11 +73,16 @@ graph TD
    * Catalog List (`catalog list`)
    * Catalog Recommend (`catalog recommend`)
    * Catalog Status (`catalog status`)
-8. **Quality Gates & Diagnostics**:
+8. **Registry Sources & Cache**:
+   * List configured sources (`registry list`)
+   * Show sync status (`registry status`)
+   * Verify cache integrity (`registry verify bundled`)
+   * Show policy status (`registry status` output)
+9. **Quality Gates & Diagnostics**:
    * Run Advisory Diagnostics (`doctor`)
    * Strict Schema Compliance (`validate`)
    * Run Release verification tests (`verify`)
-9. **Plugins Status Overview**: Checks the status of all installed declarative plugins (`plugin status`).
+10. **Plugins Status Overview**: Checks the status of all installed declarative plugins (`plugin status`).
 
 ---
 
