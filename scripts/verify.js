@@ -564,7 +564,7 @@ try {
     }
   }
 
-  // Test 2: Allows version 3.1.0 with MMDO_ALLOW_PUBLISH=true
+  // Test 2: Allows version 3.2.0 with MMDO_ALLOW_PUBLISH=true
   try {
     const output = execSync('node scripts/prepublish-guard.js', { 
       cwd: projectRoot, 
@@ -572,7 +572,7 @@ try {
       encoding: 'utf8' 
     });
     if (output.includes('Prepublish guard passed')) {
-      console.log(`  ${GREEN}✓${NC} prepublish guard allows version 3.1.0 when MMDO_ALLOW_PUBLISH=true`);
+      console.log(`  ${GREEN}✓${NC} prepublish guard allows version 3.2.0 when MMDO_ALLOW_PUBLISH=true`);
       pass++;
     } else {
       console.error(`  ${RED}✗${NC} prepublish guard passed but stdout missing success indicator`);
@@ -580,7 +580,7 @@ try {
     }
   } catch (err) {
     const errText = err.stderr ? err.stderr.toString() : '';
-    console.error(`  ${RED}✗${NC} prepublish guard blocked version 3.1.0: ${errText || err.message}`);
+    console.error(`  ${RED}✗${NC} prepublish guard blocked version 3.2.0: ${errText || err.message}`);
     fail++;
   }
 
@@ -594,12 +594,12 @@ try {
     pass++;
   }
 
-  // Test 4: Package.json version is exactly 3.1.0
-  if (expectedVersion === '3.1.0') {
-    console.log(`  ${GREEN}✓${NC} package.json version is exactly 3.1.0`);
+  // Test 4: Package.json version is exactly 3.2.0
+  if (expectedVersion === '3.2.0') {
+    console.log(`  ${GREEN}✓${NC} package.json version is exactly 3.2.0`);
     pass++;
   } else {
-    console.error(`  ${RED}✗${NC} package.json version is not 3.1.0 (found ${expectedVersion})`);
+    console.error(`  ${RED}✗${NC} package.json version is not 3.2.0 (found ${expectedVersion})`);
     fail++;
   }
 } catch (e) {
@@ -610,6 +610,16 @@ try {
 // --- Post-build Generated CLI Checks ---
 console.log('\nPost-build Generated CLI Checks:');
 try {
+  // 0. Check build freshness
+  try {
+    execSync('node scripts/check-build-fresh.js', { cwd: projectRoot, stdio: 'ignore' });
+    console.log(`  ${GREEN}✓${NC} generated bin matches current source layout`);
+    pass++;
+  } catch (err) {
+    console.error(`  ${RED}✗${NC} generated bin is stale! Run 'npm run build' and commit bin/multimodel-dev-os.js`);
+    fail++;
+  }
+
   const buildPath = join(projectRoot, 'bin', 'multimodel-dev-os.js');
   const binContent = readFileSync(buildPath, 'utf8');
   

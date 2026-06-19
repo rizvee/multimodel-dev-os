@@ -35,3 +35,19 @@ A security hotfix has been applied in `v3.0.2` to secure the registry synchroniz
 * **Registry URL Sanitization:** Enforces strict validation of remote registry URLs using Node's `URL` parser. URLs must use HTTPS by default. Control characters, credentials, spaces, quotes, and shell metacharacters are strictly rejected.
 * **Upgrade Guidance:** Users running `v3.0.0` or `v3.0.1` must upgrade to `v3.0.2` immediately.
 * **Safety Boundaries Preserved:** Remote registries remain disabled by default, sync operations are cache-only (never installing or running plugins), and conflict checks on sensitive files (`.env`, `.npmrc`, package configuration files) are strictly enforced.
+
+## Package Governance Policies
+
+1. **Zero Runtime Dependencies:**
+   * The runtime package is strictly zero-dependency to ensure minimal installation footprint and maximum security.
+   * All compilation, testing, and dev tools (e.g., `esbuild`, `vitest`, `vitepress`) are restricted to `devDependencies` only.
+
+2. **Open-Source Transparency:**
+   * The complete modular source files (`src/`) and testing suites (`tests/`) are intentionally included in the published NPM package, allowing for visual auditing, validation, and debugging.
+
+3. **Manual NPM Publishing Only:**
+   * Automated publishing via CI is disabled. NPM publish is performed manually by maintainers using verification guards.
+
+4. **Milestone-Based Releases:**
+   * Patch-level releases are kept internal by default for stabilization sprints (such as `v3.2.0-prep`).
+   * Public updates are batched into stable, fully-audited milestone releases (e.g., `v3.2.0`). Critical security hotfixes are the only exception.

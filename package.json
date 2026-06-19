@@ -1,6 +1,6 @@
 {
   "name": "multimodel-dev-os",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "bin": {
     "multimodel-dev-os": "bin/multimodel-dev-os.js"
   },
@@ -41,8 +41,9 @@
   ],
   "scripts": {
     "build": "node scripts/build-cli.js",
+    "check:build": "node scripts/check-build-fresh.js",
     "test": "vitest run",
-    "verify": "npm run build && npm test && node scripts/verify.js",
+    "verify": "npm run check:build && npm test && node scripts/verify.js",
     "verify:bash": "bash scripts/verify.sh",
     "test:cli": "node bin/multimodel-dev-os.js verify",
     "pack:template": "bash scripts/pack-template.sh",

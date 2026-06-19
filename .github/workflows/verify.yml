@@ -1,4 +1,4 @@
-name: Verify Repository Structure
+name: CI Verification
 
 on:
   push:
@@ -8,10 +8,57 @@ on:
 
 jobs:
   verify:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [20.x, 22.x]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Build
+        run: npm run build
+
+      - name: Check Build Freshness
+        run: npm run check:build
+
+      - name: Run Unit Tests
+        run: npm test
+
+      - name: Run Release Verification Gate
+        run: npm run verify
+        env:
+          MMDO_ALLOW_PUBLISH: "true"
+
+      - name: Run Package Dry Run Check
+        run: npm pack --dry-run
+
+  docs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Run verification script
-        run: bash scripts/verify.sh
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Docs
+        run: npm run docs:build

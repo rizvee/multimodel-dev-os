@@ -2,7 +2,12 @@
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-06-20
+
 ### Added
+- **Build Freshness Auditing**: Integrated `check-build-fresh.js` to ensure the generated single-file CLI binary matches standard ES modules under `src/` dynamically.
+- **Hardened Package Governance**: Configured the NPM manifest (`package.json`) to include the modular source folder (`src/`) and unit test suites (`tests/unit/`) for developer auditability, while verifying the strict exclusion of sensitive and temporary files.
+- **Cross-Platform CI Pipeline**: Configured a complete multi-platform CI verification matrix on GitHub Actions covering Windows, Linux, and macOS across Node.js versions `20.x` and `22.x`.
 - **Source and Test Packaging Inclusions**: Configured the npm package manifest (`package.json`) to include the modular source folder (`src/`) and unit test suites (`tests/unit/`) for developer auditability.
 - **Build Output Unit Tests**: Implemented `tests/unit/build-output.test.js` validating shebang counts, warning headers, and URL safety.
 

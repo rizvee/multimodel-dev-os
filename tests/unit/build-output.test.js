@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { execSync } from 'child_process';
 
 describe('Build Output Verification', () => {
   const buildPath = join(process.cwd(), 'bin', 'multimodel-dev-os.js');
@@ -29,5 +30,11 @@ describe('Build Output Verification', () => {
     expect(hasUnsafeSync).toBe(false);
     
     expect(content).toContain('execFileSync(process.execPath');
+  });
+
+  it('should be completely fresh and match the source modules', () => {
+    expect(() => {
+      execSync('node scripts/check-build-fresh.js', { stdio: 'ignore' });
+    }).not.toThrow();
   });
 });

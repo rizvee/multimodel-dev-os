@@ -192,6 +192,8 @@ check_file "docs/cli-roadmap.md"
 check_file "docs/faq.md"
 check_file "docs/testing.md"
 check_file "docs/npm-publishing.md"
+check_file "docs/release-policy.md"
+check_file "docs/package-safety.md"
 
 # --- CLI & Packaging Pre-Flight Tests ---
 echo ""
@@ -232,6 +234,14 @@ if ! node bin/multimodel-dev-os.js --help >/dev/null; then
   FAIL=$((FAIL + 1))
 else
   echo -e "  ${GREEN}✓${NC} node bin/multimodel-dev-os.js --help"
+  PASS=$((PASS + 1))
+fi
+
+if ! npm run check:build >/dev/null; then
+  echo -e "  ${RED}✗${NC} Generated CLI is stale. Run npm run build."
+  FAIL=$((FAIL + 1))
+else
+  echo -e "  ${GREEN}✓${NC} Generated CLI is fresh"
   PASS=$((PASS + 1))
 fi
 

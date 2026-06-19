@@ -214,12 +214,12 @@ You use **Cursor** for autocomplete, **Claude Code** for terminal ops, **Gemini*
 
 <div class="highlight-box">
 
-### 🆕 What's New in v2.7
+### 🆕 What's New in v3.2
 
-- 🎬 **Demo Workflow Pages** — 5 copy-paste guided workflows for onboarding, adapter sync, improvement loops, handoffs, and release checks
-- 📖 **Distribution Guide** — comprehensive release, verification, and package hygiene documentation
-- 🖼️ **Visual Flow Diagrams** — SVG assets for onboarding and adapter sync flows
-- 📁 **Docs-First Examples** — 4 new example workflows with commands and expected output
+- 🏗️ **Modular Source Layout** — Pure ES modules under `src/` cleanly isolate core, CLI routing, catalog engines, and security systems.
+- 🧪 **Formal Unit Testing** — Integrated a Vitest-powered test suite executing 45 unit tests covering path safety, sandbox boundaries, and policy validation.
+- ⚙️ **Build Freshness Guard** — Automated build auditing checks to ensure the generated CLI binary is always synchronized with the source modules.
+- 🛡️ **Hardened Registry Sync** — Strict HTTPS-only URL syntax parsing and argument-isolated sub-process executors prevent shell injection vulnerabilities.
 
 </div>
 

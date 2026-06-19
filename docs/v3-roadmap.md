@@ -7,11 +7,17 @@ This document outlines the development path, completed milestones, and future pl
 ## 1. Current Status
 
 > [!IMPORTANT]
-> **v3.1.0 is the active stable release** on the public npm registry. All features below marked ✅ are shipped and production-ready.
+> **v3.2.0 is the active stable release** on the public npm registry. All features below marked ✅ are shipped and production-ready.
 
 ---
 
 ## 2. Completed Milestones
+
+### v3.2.0 — Stable Modular Build + Package Governance ✅
+- **Build Freshness Auditing**: Integrated `check-build-fresh.js` to ensure the generated single-file CLI binary matches standard ES modules under `src/` dynamically.
+- **Hardened Package Governance**: Configured the NPM manifest (`package.json`) to include the modular source folder (`src/`) and unit test suites (`tests/unit/`) for developer auditability, while verifying the strict exclusion of sensitive and temporary files.
+- **Cross-Platform CI Pipeline**: Configured a complete multi-platform CI verification matrix on GitHub Actions covering Windows, Linux, and macOS across Node.js versions `20.x` and `22.x`.
+- **Harden Build & Verification Gates**: Applied post-build validations asserting shebang count uniqueness, warning headers, and URL shell-injection safety, while expanding integration audits to 269 assertions.
 
 ### v3.1.0 — Modular Source Layout + Formal Unit Tests ✅
 - **Modular Source Layout**: Refactored the monolithic CLI structure into isolated, clean modules under `src/` (core, registry, catalog, plugin, cli).
@@ -74,9 +80,8 @@ All releases follow this strict publishing checklist:
 
 ---
 
-## 4. Upcoming: v3.2.0 stable candidate — Cryptographic Signing & Stabilization
+## 4. Upcoming: v3.3.0 stable candidate — Asymmetric Key Signatures
 
-*   **Build & Packaging Stability**: Hardened esbuild programmatic compiler and expanded release audits ensuring shebang uniqueness, generated warning header, and package file inclusions (`src/`, `tests/`).
 *   **Asymmetric Key Signatures**: Cryptographic signature validation for remote registries using public/private key pairs.
 *   **Decentralized Trust Anchors**: Trust anchors configuration allowing teams to pin public keys of verified catalog authors.
 *   **Tamper-Proof Audit Chain**: Signed change logs and history verification.
