@@ -51,6 +51,12 @@ Run the `registry add` command with the `--approved` flag to define a new regist
 npx multimodel-dev-os registry add partner-registry https://registry.example.com/catalog.yaml --approved
 ```
 
+> [!IMPORTANT]
+> **Strict URL Constraints (v3.0.2+)**
+> * All remote registry URLs must be valid and must use HTTPS by default to prevent sniffing and tampering.
+> * URLs containing quotes (`'`, `"`, `` ` ``), spaces, or shell metacharacters (`$`, `;`, etc.) are rejected to eliminate command injection risks.
+> * Local testing via HTTP localhost can be enabled if `allow_http_localhost` is set to `true` inside `registry-policy.yaml`.
+
 ### 3. Synchronize Registry Data
 
 To fetch the remote catalog, run `registry sync`. Executing without the approval flag displays a safety audit preview:

@@ -10,7 +10,7 @@ import { join, dirname, resolve, relative, isAbsolute, basename } from 'path';
 import { fileURLToPath } from 'url';
 import { createHash } from 'crypto';
 import readline from 'readline';
-import { execSync } from 'child_process';
+import { execSync, execFileSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -5519,6 +5519,7 @@ function computeSHA256(content) {
 function loadRegistryPolicy(targetDir) {
   const defaults = {
     allow_remote_registries: false,
+    allow_http_localhost: false,
     require_approval_for_remote_sync: true,
     require_checksum: true,
     require_signature: false,
@@ -5543,6 +5544,52 @@ function loadRegistryPolicy(targetDir) {
     }
   }
   return defaults;
+}
+
+function validateRegistryUrl(urlStr, policy = {}) {
+  if (!urlStr || typeof urlStr !== 'string') {
+    throw new Error('Registry URL must be a non-empty string.');
+  }
+
+  // Reject empty/whitespace/control characters
+  if (urlStr.trim() === '' || /\s/.test(urlStr) || /[\x00-\x1F\x7F-\x9F]/.test(urlStr)) {
+    throw new Error('Registry URL must not contain whitespace or control characters.');
+  }
+
+  // Reject single quotes, double quotes, backticks
+  if (/['"`]/.test(urlStr)) {
+    throw new Error('Registry URL must not contain quotes or backticks.');
+  }
+
+  // Reject shell metacharacters
+  if (/[\$\;\&\|<>\(\)\*]/.test(urlStr)) {
+    throw new Error('Registry URL must not contain shell metacharacters.');
+  }
+
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(urlStr);
+  } catch (e) {
+    throw new Error('Registry URL is malformed or invalid.');
+  }
+
+  // Reject username/password credentials
+  if (parsedUrl.username || parsedUrl.password) {
+    throw new Error('Registry URL must not contain credentials.');
+  }
+
+  const protocol = parsedUrl.protocol;
+  const allowedProtocols = ['https:'];
+
+  if (policy.allow_http_localhost === true) {
+    if (parsedUrl.hostname === 'localhost' || parsedUrl.hostname === '127.0.0.1') {
+      allowedProtocols.push('http:');
+    }
+  }
+
+  if (!allowedProtocols.includes(protocol)) {
+    throw new Error(`Registry URL protocol '${protocol}' is not allowed. Only HTTPS is permitted.`);
+  }
 }
 
 // --- Registry Sources Loader ---
@@ -5599,6 +5646,17 @@ function loadCatalogFromSource(source, options = {}) {
     return { plugins: [] };
   } else if (source.startsWith('remote:')) {
     const regName = source.substring(7);
+    const sources = loadRegistrySources();
+    const src = sources.find(s => s.name === regName);
+    if (src && src.type !== 'local') {
+      const policy = loadRegistryPolicy(options.target || process.cwd());
+      try {
+        validateRegistryUrl(src.url, policy);
+      } catch (err) {
+        console.error(`\x1b[31mError: Registry '${regName}' has an invalid URL: ${err.message}\x1b[0m`);
+        process.exit(1);
+      }
+    }
     const cachePath = join(sourceRoot, '.ai', 'registry-cache', regName, 'catalog.yaml');
     try {
       if (existsSync(cachePath)) {
@@ -5713,6 +5771,13 @@ function handleRegistryAdd(name, url, options) {
     process.exit(1);
   }
 
+  try {
+    validateRegistryUrl(url, policy);
+  } catch (err) {
+    console.error(`\x1b[31mError: Registry URL is invalid: ${err.message}\x1b[0m`);
+    process.exit(1);
+  }
+
   if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
     console.error(`\x1b[31mError: Registry name '${name}' contains invalid characters. Use only alphanumeric, dash, or underscore.\x1b[0m`);
     process.exit(1);
@@ -5810,6 +5875,13 @@ function handleRegistrySync(name, options) {
     return;
   }
 
+  try {
+    validateRegistryUrl(source.url, policy);
+  } catch (err) {
+    console.error(`\x1b[31mError: Registry '${name}' has an invalid URL: ${err.message}\x1b[0m`);
+    process.exit(1);
+  }
+
   if (!policy.allow_remote_registries) {
     console.error('\x1b[31mError: Remote registries are disabled by policy.\x1b[0m');
     console.log('\nTo enable, set \x1b[33mallow_remote_registries: true\x1b[0m in:');
@@ -5858,18 +5930,25 @@ function handleRegistrySync(name, options) {
     const catalogDest = join(cacheDir, 'catalog.yaml');
     const manifestDest = join(cacheDir, 'manifest.json');
 
-    // Synchronous HTTP download using inline Node script via execSync
+    // Synchronous HTTP download using inline Node script via execFileSync
     const fetchUrlSync = (targetUrl) => {
+      validateRegistryUrl(targetUrl, policy);
+
       const script = `
-        const mod = require('${targetUrl.startsWith('https') ? 'https' : 'http'}');
-        mod.get('${targetUrl}', (res) => {
-          if (res.statusCode !== 200) { process.stderr.write('HTTP_ERROR:' + res.statusCode); process.exit(1); }
-          let d = '';
-          res.on('data', c => d += c);
-          res.on('end', () => process.stdout.write(d));
-        }).on('error', e => { process.stderr.write('NET_ERROR:' + e.message); process.exit(1); });
+        const url = process.argv[1];
+        const mod = require(url.startsWith('https') ? 'https' : 'http');
+        mod.get(url, (res) => {
+          if (res.statusCode !== 200) {
+            process.stderr.write('HTTP_ERROR:' + res.statusCode);
+            process.exit(1);
+          }
+          res.pipe(process.stdout);
+        }).on('error', (e) => {
+          process.stderr.write('NET_ERROR:' + e.message);
+          process.exit(1);
+        });
       `;
-      return execSync(`node -e "${script.replace(/\n/g, ' ').replace(/"/g, '\\"')}"`, { encoding: 'utf8', timeout: 30000 });
+      return execFileSync(process.execPath, ['-e', script, '--', targetUrl], { encoding: 'utf8', timeout: 30000 });
     };
 
     console.log(`Downloading: ${catalogUrl}`);
@@ -6080,6 +6159,18 @@ function handleRegistryVerify(name, options) {
   }
 
   // Verify remote cache
+  const sources = loadRegistrySources();
+  const source = sources.find(s => s.name === name);
+  if (source && source.type !== 'local') {
+    const policy = loadRegistryPolicy(options.target || process.cwd());
+    try {
+      validateRegistryUrl(source.url, policy);
+    } catch (err) {
+      console.error(`\x1b[31mError: Registry '${name}' has an invalid URL: ${err.message}\x1b[0m`);
+      process.exit(1);
+    }
+  }
+
   const cacheDir = join(sourceRoot, '.ai', 'registry-cache', name);
   if (!existsSync(cacheDir)) {
     console.error(`\x1b[31mError: No cache found for registry '${name}'. Run registry sync first.\x1b[0m`);
@@ -6138,6 +6229,16 @@ function handleRegistryShow(name, options) {
     console.log('\nTo add a remote source, run:');
     console.log(`  npx multimodel-dev-os registry add <name> <url> --approved`);
     process.exit(1);
+  }
+
+  if (source.type !== 'local') {
+    const policy = loadRegistryPolicy(options.target || process.cwd());
+    try {
+      validateRegistryUrl(source.url, policy);
+    } catch (err) {
+      console.error(`\x1b[31mError: Registry '${name}' has an invalid URL: ${err.message}\x1b[0m`);
+      process.exit(1);
+    }
   }
 
   if (options.json) {

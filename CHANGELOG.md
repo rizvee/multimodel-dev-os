@@ -1,6 +1,12 @@
 # Changelog
 
-All notable changes to multimodel-dev-os will be documented in this file.
+## [3.0.2] - 2026-06-19
+
+### Fixed
+- **Registry Sync Command Injection Remediation**: Patched the synchronous fetch helper `fetchUrlSync` to use `execFileSync` instead of shell-based `execSync` interpolation. Registry URL inputs are passed strictly as process arguments (`process.argv[1]`), fully preventing shell injection risks.
+- **Strict Registry URL Validation**: Implemented strict URL checking in `registry add` and sync execution paths. Registry URLs are parsed with `new URL()` and must use HTTPS by default. Credentials, whitespaces, quotes, backticks, and shell metacharacters are rejected.
+- **Diagnostics Validation**: Added strict URL validations to `registry show`, `registry verify`, and source loading paths.
+- **Local Host HTTP Option**: Added `allow_http_localhost` policy flag to `loadRegistryPolicy` defaults (disabled by default) to optionally allow HTTP local development registries under localhost or 127.0.0.1.
 
 ## [3.0.1] - 2026-06-19
 

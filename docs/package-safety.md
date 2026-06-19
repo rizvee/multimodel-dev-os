@@ -27,3 +27,11 @@ The project release audit scripts strictly enforce these checks:
 npm run verify
 ```
 Any violation will cause verification and build pipelines to fail immediately.
+
+## Registry Security Update (v3.0.2)
+
+A security hotfix has been applied in `v3.0.2` to secure the registry synchronization and validation channels:
+* **Remediation of Command Injection Risk:** Removed shell-based url interpolation. Sub-process fetches now use safe, argument-based `execFileSync` invocations, isolating URL arguments from evaluated code context.
+* **Registry URL Sanitization:** Enforces strict validation of remote registry URLs using Node's `URL` parser. URLs must use HTTPS by default. Control characters, credentials, spaces, quotes, and shell metacharacters are strictly rejected.
+* **Upgrade Guidance:** Users running `v3.0.0` or `v3.0.1` must upgrade to `v3.0.2` immediately.
+* **Safety Boundaries Preserved:** Remote registries remain disabled by default, sync operations are cache-only (never installing or running plugins), and conflict checks on sensitive files (`.env`, `.npmrc`, package configuration files) are strictly enforced.

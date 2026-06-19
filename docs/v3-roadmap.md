@@ -7,11 +7,17 @@ This document outlines the development path, completed milestones, and future pl
 ## 1. Current Status
 
 > [!IMPORTANT]
-> **v3.0.1 is the active stable release** on the public npm registry. All features below marked ✅ are shipped and production-ready.
+> **v3.0.2 is the active stable release** on the public npm registry. All features below marked ✅ are shipped and production-ready.
 
 ---
 
 ## 2. Completed Milestones
+
+### v3.0.2 — Registry Sync Security Hotfix ✅
+- **Registry Sync Command Injection Remediation**: Replaced shell-based URL interpolation in fetch helper with safe process arguments passed via `execFileSync`.
+- **Strict URL Validation**: Implemented strict syntax checks using `new URL()` and HTTPS-only transport requirements.
+- **Diagnostics Security**: Hardened URL validations on diagnostics commands (`registry show` and `registry verify`).
+- **HTTP localhost Exception**: Added the `allow_http_localhost` policy flag to optionally support local HTTP development testing.
 
 ### v3.0.1 — Registry UX & Policy Safety Patch ✅
 - **Registry Command UX**: Improved formatting and next-step actions for `registry status`, `registry list`, `registry show`, `registry verify`, and `registry sync`.

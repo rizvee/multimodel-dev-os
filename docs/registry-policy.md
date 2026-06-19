@@ -35,6 +35,10 @@ Here is a list of all fields supported in `.ai/policies/registry-policy.yaml`:
 * **Default:** `false`
 * **Description:** When `false`, blocks installation of plugins originating from registries with `trust_level` set to `community` or `untrusted`.
 
+### `allow_http_localhost` (Boolean)
+* **Default:** `false`
+* **Description:** (Added in `v3.0.2`) When `true`, optionally permits remote registry URLs to use unencrypted `http://localhost` or `http://127.0.0.1` endpoints. Intended strictly for local development and testing.
+
 ### `allowed_write_roots` (Array of Strings)
 * **Default:** `['.ai/', 'adapters/']`
 * **Description:** A whitelist of directory paths relative to the project root. Plugins are only permitted to write files into these directories.

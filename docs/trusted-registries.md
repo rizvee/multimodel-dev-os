@@ -31,6 +31,10 @@ graph TD
 * **Safety:** Sandboxed logic, restricted file paths.
 * **Installation:** Refused unless `allow_untrusted_install: true` is configured in `.ai/policies/registry-policy.yaml`.
 
+> [!IMPORTANT]
+> **HTTPS Transport Enforcement (v3.0.2+)**
+> All remote community or verified registries must use secure `https:` transport URLs. URLs are validated strictly against injection risks. Unencrypted `http:` transport is strictly rejected, except for localhost testing if `allow_http_localhost` is enabled.
+
 ### 4. Untrusted
 * **Source:** Unknown or flagged endpoints.
 * **Verification:** None.

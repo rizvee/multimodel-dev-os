@@ -41,6 +41,13 @@ Threat: Malicious Remote Registry
   * **In-process verification:** The `registry verify` command performs SHA256 checksum checks against the manifest.
   * **ReadOnly Dashboard:** The interactive TUI Dashboard is completely read-only for registry and plugin operations, preventing UI-driven privilege escalation.
 
+### 5. Sync Command Injection & URL Validation (Patched in v3.0.2)
+* **Threat:** A compromised or malicious remote registry URL is pre-configured in `.ai/registries/sources.yaml` to execute command injection payloads (e.g. via quotes or shell metacharacters) during sync.
+* **Mitigation:**
+  * **No Shell Execution:** Remote synchronization (`registry sync`) does not invoke shell interpreters. It spawns the Node sub-process using the safe `execFileSync` API, passing the target URL as arguments (`process.argv[1]`) rather than string-interpolating it into evaluated code.
+  * **Strict URL Sanitization:** URLs are validated using the native `URL` class. Remote registry URLs must use HTTPS by default. Credentials, quotes (`'`, `"`, `` ` ``), spaces, and shell metacharacters (`$`, `;`, `&`, `|`, `<`, `>`, `(`, `)`, `*`) are strictly blocked.
+  * **HTTP Localhost Exception:** The `allow_http_localhost` policy flag (defaulting to `false`) optionally allows local development registries using `http://localhost` or `http://127.0.0.1`.
+
 ---
 
 ## Safety Boundaries Matrix

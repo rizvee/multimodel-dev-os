@@ -6,7 +6,7 @@
  * Runs on Windows, macOS, and Linux with zero external dependencies.
  */
 
-import { existsSync, readFileSync, statSync, readdirSync } from 'fs';
+import { existsSync, readFileSync, statSync, readdirSync, mkdirSync, writeFileSync, rmSync } from 'fs';
 import { join, resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
@@ -549,7 +549,7 @@ try {
     }
   }
 
-  // Test 2: Allows version 3.0.1 with MMDO_ALLOW_PUBLISH=true
+  // Test 2: Allows version 3.0.2 with MMDO_ALLOW_PUBLISH=true
   try {
     const output = execSync('node scripts/prepublish-guard.js', { 
       cwd: projectRoot, 
@@ -557,7 +557,7 @@ try {
       encoding: 'utf8' 
     });
     if (output.includes('Prepublish guard passed')) {
-      console.log(`  ${GREEN}✓${NC} prepublish guard allows version 3.0.1 when MMDO_ALLOW_PUBLISH=true`);
+      console.log(`  ${GREEN}✓${NC} prepublish guard allows version 3.0.2 when MMDO_ALLOW_PUBLISH=true`);
       pass++;
     } else {
       console.error(`  ${RED}✗${NC} prepublish guard passed but stdout missing success indicator`);
@@ -565,7 +565,7 @@ try {
     }
   } catch (err) {
     const errText = err.stderr ? err.stderr.toString() : '';
-    console.error(`  ${RED}✗${NC} prepublish guard blocked version 3.0.1: ${errText || err.message}`);
+    console.error(`  ${RED}✗${NC} prepublish guard blocked version 3.0.2: ${errText || err.message}`);
     fail++;
   }
 
@@ -579,12 +579,12 @@ try {
     pass++;
   }
 
-  // Test 4: Package.json version is exactly 3.0.1
-  if (expectedVersion === '3.0.1') {
-    console.log(`  ${GREEN}✓${NC} package.json version is exactly 3.0.1`);
+  // Test 4: Package.json version is exactly 3.0.2
+  if (expectedVersion === '3.0.2') {
+    console.log(`  ${GREEN}✓${NC} package.json version is exactly 3.0.2`);
     pass++;
   } else {
-    console.error(`  ${RED}✗${NC} package.json version is not 3.0.1 (found ${expectedVersion})`);
+    console.error(`  ${RED}✗${NC} package.json version is not 3.0.2 (found ${expectedVersion})`);
     fail++;
   }
 } catch (e) {
@@ -1124,6 +1124,97 @@ try {
   }
 } catch (e) {
   console.error(`  ${RED}✗${NC} node bin/multimodel-dev-os.js registry show bundled failed: ${e.message}`);
+  fail++;
+}
+
+// Security Hotfix v3.0.2 Regression checks
+console.log('\nSecurity Hotfix v3.0.2 Regression checks:');
+
+const tempPolicyDir = join(projectRoot, 'temp-verify-policy');
+const tempPolicySubdir = join(tempPolicyDir, '.ai', 'policies');
+const tempPolicyFile = join(tempPolicySubdir, 'registry-policy.yaml');
+
+try {
+  // Create temporary policy directory and file
+  mkdirSync(tempPolicySubdir, { recursive: true });
+  writeFileSync(tempPolicyFile, 'allow_remote_registries: true\n', 'utf8');
+
+  // 1. registry add rejects malformed URL
+  try {
+    execSync(`node bin/multimodel-dev-os.js registry add testmalformed not-a-url --approved --target "${tempPolicyDir}"`, { cwd: projectRoot, stdio: 'pipe' });
+    console.error(`  ${RED}✗${NC} registry add should have rejected malformed URL`);
+    fail++;
+  } catch (err) {
+    const errText = err.stderr ? err.stderr.toString() : '';
+    if (errText.includes('invalid') || errText.includes('malformed')) {
+      console.log(`  ${GREEN}✓${NC} registry add rejects malformed URL`);
+      pass++;
+    } else {
+      console.error(`  ${RED}✗${NC} registry add malformed URL failed with unexpected error: ${errText}`);
+      fail++;
+    }
+  }
+
+  // 2. registry add rejects URL containing quote/shell-injection characters
+  try {
+    execSync(`node bin/multimodel-dev-os.js registry add testinjection "https://example.com'console.log(1)" --approved --target "${tempPolicyDir}"`, { cwd: projectRoot, stdio: 'pipe' });
+    console.error(`  ${RED}✗${NC} registry add should have rejected URL containing single quote`);
+    fail++;
+  } catch (err) {
+    const errText = err.stderr ? err.stderr.toString() : '';
+    if (errText.includes('quote') || errText.includes('invalid') || errText.includes('metacharacter')) {
+      console.log(`  ${GREEN}✓${NC} registry add rejects URL containing quote/shell-injection characters`);
+      pass++;
+    } else {
+      console.error(`  ${RED}✗${NC} registry add URL with quotes failed with unexpected error: ${errText}`);
+      fail++;
+    }
+  }
+
+  // 3. registry add rejects non-HTTPS remote URL
+  try {
+    execSync(`node bin/multimodel-dev-os.js registry add testnonhttps http://example.com/catalog.yaml --approved --target "${tempPolicyDir}"`, { cwd: projectRoot, stdio: 'pipe' });
+    console.error(`  ${RED}✗${NC} registry add should have rejected non-HTTPS URL`);
+    fail++;
+  } catch (err) {
+    const errText = err.stderr ? err.stderr.toString() : '';
+    if (errText.includes('Only HTTPS is permitted') || errText.includes('protocol') || errText.includes('invalid')) {
+      console.log(`  ${GREEN}✓${NC} registry add rejects non-HTTPS remote URL`);
+      pass++;
+    } else {
+      console.error(`  ${RED}✗${NC} registry add non-HTTPS URL failed with unexpected error: ${errText}`);
+      fail++;
+    }
+  }
+} catch (tempErr) {
+  console.error(`  ${RED}✗${NC} Setting up temporary policy folder failed: ${tempErr.message}`);
+  fail++;
+} finally {
+  // Clean up temporary policy directory
+  try {
+    if (existsSync(tempPolicyDir)) {
+      rmSync(tempPolicyDir, { recursive: true, force: true });
+    }
+  } catch (e) {}
+}
+
+// 4. Codebase structural checks for shell-based fetch URL interpolation
+try {
+  const cliCode = readFileSync(join(projectRoot, 'bin', 'multimodel-dev-os.js'), 'utf8');
+  
+  // Check for mod.get('${targetUrl}') or similar interpolation in node -e
+  const hasUnsafeSync = cliCode.includes("mod.get('${targetUrl}'") || (cliCode.includes('execSync(`node -e "') && cliCode.includes('${targetUrl}'));
+  const usesExecFileSync = cliCode.includes('execFileSync(process.execPath');
+  
+  if (!hasUnsafeSync && usesExecFileSync) {
+    console.log(`  ${GREEN}✓${NC} fetch helper uses execFileSync and does not use shell-based URL interpolation`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} codebase security check failed. Unsafe shell execution or URL interpolation detected.`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} codebase structural check failed: ${e.message}`);
   fail++;
 }
 
