@@ -2,7 +2,7 @@
 
 MultiModel Dev OS is designed with a **zero-trust architecture** for remote registries and plugins. Because plugins configure coding guidelines, workflows, and prompts for AI coding agents, securing the distribution channel is critical.
 
-This document describes the threat model, safety boundaries, and mitigation strategies implemented in `v3.0.0`.
+This document describes the threat model, safety boundaries, and mitigation strategies implemented in `v3.0.0+`.
 
 ---
 

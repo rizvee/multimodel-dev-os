@@ -224,7 +224,7 @@ checkFile('docs/agent-compatibility.md');
 checkFile('docs/adapter-authoring.md');
 checkFile('docs/token-optimization.md');
 checkFile('docs/mobile-android.md');
-checkFile('docs/v2-roadmap.md');
+checkFile('docs/v3-roadmap.md');
 checkFile('docs/template-authoring.md');
 checkFile('docs/skill-authoring.md');
 checkFile('docs/registry-contribution.md');
@@ -549,7 +549,7 @@ try {
     }
   }
 
-  // Test 2: Allows version 3.0.0 with MMDO_ALLOW_PUBLISH=true
+  // Test 2: Allows version 3.0.1 with MMDO_ALLOW_PUBLISH=true
   try {
     const output = execSync('node scripts/prepublish-guard.js', { 
       cwd: projectRoot, 
@@ -557,7 +557,7 @@ try {
       encoding: 'utf8' 
     });
     if (output.includes('Prepublish guard passed')) {
-      console.log(`  ${GREEN}✓${NC} prepublish guard allows version 3.0.0 when MMDO_ALLOW_PUBLISH=true`);
+      console.log(`  ${GREEN}✓${NC} prepublish guard allows version 3.0.1 when MMDO_ALLOW_PUBLISH=true`);
       pass++;
     } else {
       console.error(`  ${RED}✗${NC} prepublish guard passed but stdout missing success indicator`);
@@ -565,7 +565,7 @@ try {
     }
   } catch (err) {
     const errText = err.stderr ? err.stderr.toString() : '';
-    console.error(`  ${RED}✗${NC} prepublish guard blocked version 3.0.0: ${errText || err.message}`);
+    console.error(`  ${RED}✗${NC} prepublish guard blocked version 3.0.1: ${errText || err.message}`);
     fail++;
   }
 
@@ -579,12 +579,12 @@ try {
     pass++;
   }
 
-  // Test 4: Package.json version is exactly 3.0.0
-  if (expectedVersion === '3.0.0') {
-    console.log(`  ${GREEN}✓${NC} package.json version is exactly 3.0.0`);
+  // Test 4: Package.json version is exactly 3.0.1
+  if (expectedVersion === '3.0.1') {
+    console.log(`  ${GREEN}✓${NC} package.json version is exactly 3.0.1`);
     pass++;
   } else {
-    console.error(`  ${RED}✗${NC} package.json version is not 3.0.0 (found ${expectedVersion})`);
+    console.error(`  ${RED}✗${NC} package.json version is not 3.0.1 (found ${expectedVersion})`);
     fail++;
   }
 } catch (e) {

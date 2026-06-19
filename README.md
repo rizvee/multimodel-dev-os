@@ -48,7 +48,7 @@ Your workspace now has a **single source of truth** that every AI coding tool re
 | 🧠 | **Intelligence Engine** | Hash-compressed memory, feedback learning, self-improvement proposals with HITL safety gates |
 | 📁 | **Repo Onboarding** | Analyze existing projects, recommend templates, and bootstrap configs without breaking anything |
 | 🔧 | **Zero Dependencies** | Pure Node.js CLI — no runtime, no build step, no package manager lock-in |
-| 🛡️ | **214+ Quality Gates** | Built-in `validate`, `doctor`, and `verify` commands with strict structural assertions |
+| 🛡️ | **248+ Quality Gates** | Built-in `validate`, `doctor`, and `verify` commands with strict structural assertions |
 
 ---
 
@@ -158,8 +158,9 @@ npx multimodel-dev-os@latest handoff build
 | **v2.8.0 / v2.8.1** | Interactive TUI Dashboard & Plugin Hooks | ✅ Released |
 | **v2.9.0** | Local Workflow Marketplace & Plugin Catalog | ✅ Released |
 | **v3.0.0** | Trusted Remote Catalog & Registry Governance Layer | ✅ Released |
+| **v3.0.1** | Registry UX & Policy Safety Patch | ✅ Released |
 
-**[Full Roadmap →](https://rizvee.github.io/multimodel-dev-os/v2-roadmap)**
+**[Full Roadmap →](https://rizvee.github.io/multimodel-dev-os/v3-roadmap)**
 
 ---
 

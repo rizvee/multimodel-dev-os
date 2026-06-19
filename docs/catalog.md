@@ -52,7 +52,7 @@ npx multimodel-dev-os catalog status
 
 ## Source Filtering
 
-By default, catalog commands query the bundled first-party catalog. In `v3.0.0`, you can filter queries by source or merge all enabled registry sources:
+By default, catalog commands query the bundled first-party catalog. In `v3.0.0+`, you can filter queries by source or merge all enabled registry sources:
 
 * **Filter by a specific source:**
   ```bash

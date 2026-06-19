@@ -2,6 +2,18 @@
 
 All notable changes to multimodel-dev-os will be documented in this file.
 
+## [3.0.1] - 2026-06-19
+
+### Added
+- **Enhanced Registry UX**: Improved CLI outputs for `registry status`, `registry list`, `registry show`, `registry verify`, and `registry sync` with clearer labels and next-step actions.
+- **Hardened Policy Safety**: Clarified remote registry policy defaults (disabled by default) and safety boundaries (offline verify, no automated installs, path sandboxing).
+- **Offline Integrity Diagnostics**: Added distinct local/offline verification labels for `bundled` and `local` catalog sources.
+
+### Fixed
+- **Prepublish Guard Rule**: Patched the prepublish guard to permit publishing stable major versions >= 2 (e.g. v3.x.x) under `MMDO_ALLOW_PUBLISH=true`.
+- **Registry Error Handling**: Improved error output when displaying non-configured registry sources.
+- **Release Version Parity**: Bumped installer script version variables and sitemap indexes to preserve v3.0.1 release consistency.
+
 ## [3.0.0] - 2026-06-17
 
 ### Added

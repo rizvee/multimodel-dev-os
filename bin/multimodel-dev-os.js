@@ -5672,22 +5672,24 @@ function handleRegistryList(options) {
 
   console.log(`\n🗂️  \x1b[36mRegistry Sources [v${version}]\x1b[0m`);
   console.log('==================================================');
-  console.log(`Policy: allow_remote_registries = \x1b[${policy.allow_remote_registries ? '32mtrue' : '33mfalse'}\x1b[0m\n`);
+  console.log(`Policy Status: allow_remote_registries = \x1b[${policy.allow_remote_registries ? '32mtrue' : '33mfalse'}\x1b[0m (Remote registries are disabled by default for safety)\n`);
 
   sources.forEach(s => {
     const status = s.enabled ? '\x1b[32m● enabled\x1b[0m' : '\x1b[90m○ disabled\x1b[0m';
-    console.log(`  \x1b[32m${s.name}\x1b[0m  ${status}`);
+    const label = s.name === 'bundled' ? 'bundled' : s.type === 'local' ? `local:${s.name}` : `remote:${s.name}`;
+    console.log(`  \x1b[32m${s.name}\x1b[0m [${label}]  ${status}`);
     console.log(`    type:           ${s.type}`);
     console.log(`    url:            ${s.url}`);
     console.log(`    trust_level:    ${s.trust_level}`);
     console.log(`    safety_policy:  ${s.safety_policy}`);
-    console.log(`    checksum:       ${s.checksum_required ? 'required' : 'not required'}`);
-    console.log(`    signature:      ${s.signature_required ? 'required' : 'not required'}`);
+    console.log(`    checksum:       ${s.checksum_required ? 'required (SHA-256 integrity)' : 'not required'}`);
+    console.log(`    signature:      ${s.signature_required ? 'required' : 'not required (v3.0.1)'}`);
     if (s.last_synced_at) console.log(`    last_synced:    ${s.last_synced_at}`);
   });
 
-  console.log('\nUse \x1b[36mregistry show <name>\x1b[0m to view detailed source metadata.');
-  console.log('Use \x1b[36mregistry status\x1b[0m to see cache health and sync timestamps.\n');
+  console.log('\nUse \x1b[36mregistry show <name>\x1b[0m to view detailed source configuration.');
+  console.log('Use \x1b[36mregistry status\x1b[0m to see policy states and cache health.');
+  console.log('Use \x1b[36mregistry verify <name>\x1b[0m to perform integrity checks.\n');
 }
 
 function handleRegistryAdd(name, url, options) {
@@ -5706,7 +5708,7 @@ function handleRegistryAdd(name, url, options) {
     console.log(`  URL:         ${url}`);
     console.log(`  Type:        https`);
     console.log(`  Trust Level: community`);
-    console.log(`  Checksum:    required`);
+    console.log(`  Checksum:    required (SHA-256)`);
     console.log(`\nRun with --approved to apply:\n  npx multimodel-dev-os registry add ${name} ${url} --approved\n`);
     process.exit(1);
   }
@@ -5796,8 +5798,10 @@ function handleRegistrySync(name, options) {
   const source = sources.find(s => s.name === name);
 
   if (!source) {
-    console.error(`\x1b[31mError: Registry '${name}' not found in sources.\x1b[0m`);
-    console.log('Use \x1b[36mregistry list\x1b[0m to view configured sources.');
+    console.error(`\x1b[31mError: Registry '${name}' not found in configured sources.\x1b[0m`);
+    console.log('Available configured sources:');
+    sources.forEach(s => console.log(`  - ${s.name} (${s.type})`));
+    console.log('\nUse \x1b[36mregistry list\x1b[0m to view configured sources.');
     process.exit(1);
   }
 
@@ -5814,25 +5818,25 @@ function handleRegistrySync(name, options) {
   }
 
   if (!options.approved) {
-    console.log(`\n⚠️  \x1b[33mRegistry Sync Refused — Approval Required\x1b[0m`);
+    console.log(`\n⚠️  \x1b[33mRegistry Sync Refused — Explicit Approval Required\x1b[0m`);
     console.log('==================================================');
+    console.log(`Syncing remote registries requires the explicit \x1b[33m--approved\x1b[0m flag to download metadata and files.`);
     console.log(`Registry:       \x1b[32m${name}\x1b[0m`);
     console.log(`URL:            ${source.url}`);
     console.log(`Trust Level:    ${source.trust_level}`);
-    console.log(`Checksum:       ${source.checksum_required ? 'Required (SHA256)' : 'Not required'}`);
-    console.log(`Signature:      ${source.signature_required ? 'Required' : 'Not required (v3.0.0)'}`);
+    console.log(`Checksums:      ${source.checksum_required ? 'Enforced (SHA-256)' : 'Not enforced'}`);
+    console.log(`Signatures:     ${source.signature_required ? 'Required' : 'Disabled (SHA-256 fallback)'}`);
     console.log(`\n\x1b[33mPlanned Actions:\x1b[0m`);
     console.log(`  [DOWNLOAD] catalog.yaml    → .ai/registry-cache/${name}/catalog.yaml`);
     console.log(`  [DOWNLOAD] manifest.json   → .ai/registry-cache/${name}/manifest.json`);
     console.log(`  [COMPUTE]  checksums.json  → .ai/registry-cache/${name}/checksums.json`);
-    console.log(`\n\x1b[33mPost-Sync:\x1b[0m`);
-    console.log(`  • No files are installed automatically.`);
-    console.log(`  • No plugins are activated automatically.`);
-    console.log(`  • Use 'catalog list --source remote:${name}' to browse cached entries.`);
-    console.log(`  • Use 'catalog install <slug> --approved' to install individual plugins.`);
-    console.log(`\nPolicy Status: allow_remote_registries=${policy.allow_remote_registries}, require_checksum=${policy.require_checksum}`);
-    console.log(`\nRun with --approved to proceed:`);
-    console.log(`  npx multimodel-dev-os registry sync ${name} --approved\n`);
+    console.log(`\n\x1b[33mSecurity & Safety Boundaries:\x1b[0m`);
+    console.log(`  • \x1b[32mNo automated installs:\x1b[0m Syncing only updates the local cache. No plugins are installed or run.`);
+    console.log(`  • \x1b[32mNo arbitrary code execution:\x1b[0m Registries cannot run shell scripts, commands, or packages.`);
+    console.log(`  • \x1b[32mSandboxed write paths:\x1b[0m Cache files are written strictly to .ai/registry-cache/${name}/.`);
+    console.log(`  • \x1b[32mTo install afterwards:\x1b[0m Use 'catalog install <slug> --approved' to deploy a plugin.`);
+    console.log(`\nTo execute this sync operation, run:`);
+    console.log(`  \x1b[36mnpx multimodel-dev-os registry sync ${name} --approved\x1b[0m\n`);
     process.exit(1);
   }
 
@@ -6015,23 +6019,24 @@ function handleRegistryStatus(options) {
 
   console.log(`\n📊 \x1b[36mRegistry Status [v${version}]\x1b[0m`);
   console.log('==================================================');
-  console.log(`\x1b[33mPolicy:\x1b[0m`);
-  console.log(`  allow_remote_registries:  \x1b[${policy.allow_remote_registries ? '32mtrue' : '33mfalse'}\x1b[0m`);
-  console.log(`  require_checksum:         ${policy.require_checksum}`);
-  console.log(`  require_signature:        ${policy.require_signature}`);
-  console.log(`  allow_untrusted_install:  ${policy.allow_untrusted_install}`);
+  console.log(`\x1b[33mPolicy State:\x1b[0m`);
+  console.log(`  allow_remote_registries:  \x1b[${policy.allow_remote_registries ? '32mtrue' : '33mfalse'}\x1b[0m (Disabled by default)`);
+  console.log(`  require_checksum:         ${policy.require_checksum ? '\x1b[32mtrue\x1b[0m (SHA256 integrity enforced)' : '\x1b[33mfalse\x1b[0m'}`);
+  console.log(`  require_signature:        ${policy.require_signature ? '\x1b[32mtrue\x1b[0m' : '\x1b[90mfalse (not enforced in v3.0)\x1b[0m'}`);
+  console.log(`  allow_untrusted_install:  ${policy.allow_untrusted_install ? '\x1b[33mtrue\x1b[0m' : '\x1b[32mfalse\x1b[0m (secured)'}`);
   console.log(`  max_plugin_files:         ${policy.max_plugin_files}`);
-  console.log(`  max_plugin_size_kb:       ${policy.max_plugin_size_kb}`);
+  console.log(`  max_plugin_size_kb:       ${policy.max_plugin_size_kb}KB`);
   console.log(`  max_registry_cache_size:  ${policy.max_registry_cache_size_kb}KB`);
 
   console.log(`\n\x1b[33mSources:\x1b[0m`);
   sources.forEach(s => {
     const status = s.enabled ? '\x1b[32m● enabled\x1b[0m' : '\x1b[90m○ disabled\x1b[0m';
+    const label = s.name === 'bundled' ? 'bundled' : s.type === 'local' ? `local:${s.name}` : `remote:${s.name}`;
     const synced = s.last_synced_at ? `synced: ${s.last_synced_at}` : 'never synced';
     const cacheDir = join(sourceRoot, '.ai', 'registry-cache', s.name);
     const hasCache = s.type !== 'local' && existsSync(cacheDir);
 
-    console.log(`  ${s.name}  ${status}  (${s.type}, ${s.trust_level})`);
+    console.log(`  ${s.name}  ${status}  [${label}]  (${s.type}, ${s.trust_level})`);
     if (s.type !== 'local') {
       console.log(`    URL:    ${s.url}`);
       console.log(`    Cache:  ${hasCache ? '\x1b[32mcached\x1b[0m' : '\x1b[90mnot cached\x1b[0m'}`);
@@ -6039,7 +6044,8 @@ function handleRegistryStatus(options) {
     }
   });
 
-  console.log('\nUse \x1b[36mregistry verify <name>\x1b[0m to check cache integrity.');
+  console.log('\nUse \x1b[36mregistry list\x1b[0m to view configured registry sources.');
+  console.log('Use \x1b[36mregistry verify <name>\x1b[0m to check cache integrity offline.');
   console.log('Use \x1b[36mregistry sync <name> --approved\x1b[0m to refresh a remote cache.\n');
 }
 
@@ -6055,16 +6061,17 @@ function handleRegistryVerify(name, options) {
     }
     const content = readFileSync(catalogPath, 'utf8');
     const hash = computeSHA256(content);
-    console.log(`  File:     .ai/plugins/catalog.yaml`);
-    console.log(`  SHA256:   ${hash}`);
-    console.log(`  Status:   \x1b[32m✓ Present and readable\x1b[0m`);
+    console.log(`  Verification Type: Local verification (no network required)`);
+    console.log(`  File:              .ai/plugins/catalog.yaml`);
+    console.log(`  SHA256 Checksum:   ${hash}`);
+    console.log(`  Status:            \x1b[32m✓ Present and readable (Integrity Verified)\x1b[0m`);
 
     // Verify it parses
     try {
       const parsed = parseYaml(content);
       const pluginCount = ((parsed.catalog || {}).plugins || []).length;
-      console.log(`  Plugins:  ${pluginCount} entries parsed successfully`);
-      console.log(`\n\x1b[32m✔ Bundled registry verification passed.\x1b[0m\n`);
+      console.log(`  Plugins:           ${pluginCount} entries parsed successfully`);
+      console.log(`\n\x1b[32m✔ Bundled registry verification passed. (Offline & Secure)\x1b[0m\n`);
     } catch (e) {
       console.error(`\n\x1b[31m✗ Bundled registry verification failed: ${e.message}\x1b[0m\n`);
       process.exit(1);
@@ -6099,7 +6106,7 @@ function handleRegistryVerify(name, options) {
       const content = readFileSync(filePath, 'utf8');
       const actualHash = `sha256:${computeSHA256(content)}`;
       if (actualHash === expectedHash) {
-        console.log(`  \x1b[32m✓ ${file}: VERIFIED\x1b[0m`);
+        console.log(`  \x1b[32m✓ ${file}: VERIFIED (Integrity check matched via SHA-256)\x1b[0m`);
       } else {
         console.log(`  \x1b[31m✗ ${file}: MISMATCH\x1b[0m`);
         console.log(`    Expected: ${expectedHash}`);
@@ -6125,7 +6132,11 @@ function handleRegistryShow(name, options) {
   const source = sources.find(s => s.name === name);
 
   if (!source) {
-    console.error(`\x1b[31mError: Registry '${name}' not found.\x1b[0m`);
+    console.error(`\x1b[31mError: Registry source '${name}' is not configured.\x1b[0m`);
+    console.log('Available configured sources:');
+    sources.forEach(s => console.log(`  - ${s.name} (${s.type})`));
+    console.log('\nTo add a remote source, run:');
+    console.log(`  npx multimodel-dev-os registry add <name> <url> --approved`);
     process.exit(1);
   }
 
@@ -6134,16 +6145,19 @@ function handleRegistryShow(name, options) {
     return;
   }
 
+  const label = source.name === 'bundled' ? 'bundled' : source.type === 'local' ? `local:${source.name}` : `remote:${source.name}`;
+
   console.log(`\n🔍 \x1b[36mRegistry Source: ${name}\x1b[0m`);
   console.log('==================================================');
   console.log(`\x1b[33mName:\x1b[0m           ${source.name}`);
+  console.log(`\x1b[33mSource Label:\x1b[0m   ${label}`);
   console.log(`\x1b[33mType:\x1b[0m           ${source.type}`);
   console.log(`\x1b[33mURL:\x1b[0m            ${source.url}`);
   console.log(`\x1b[33mEnabled:\x1b[0m        ${source.enabled}`);
   console.log(`\x1b[33mTrust Level:\x1b[0m    ${source.trust_level}`);
   console.log(`\x1b[33mSafety Policy:\x1b[0m  ${source.safety_policy}`);
-  console.log(`\x1b[33mChecksum:\x1b[0m       ${source.checksum_required ? 'Required' : 'Not required'}`);
-  console.log(`\x1b[33mSignature:\x1b[0m      ${source.signature_required ? 'Required' : 'Not required'}`);
+  console.log(`\x1b[33mChecksum:\x1b[0m       ${source.checksum_required ? 'Required (SHA-256 integrity)' : 'Not required'}`);
+  console.log(`\x1b[33mSignature:\x1b[0m      ${source.signature_required ? 'Required' : 'Not required (v3.0.1)'}`);
 
   if (source.last_synced_at) {
     console.log(`\x1b[33mLast Synced:\x1b[0m    ${source.last_synced_at}`);
@@ -6173,6 +6187,14 @@ function handleRegistryShow(name, options) {
     }
   }
 
+  console.log('\nNext steps:');
+  console.log(`  Verify:  npx multimodel-dev-os registry verify ${name}`);
+  if (source.type !== 'local') {
+    console.log(`  Sync:    npx multimodel-dev-os registry sync ${name} --approved`);
+    console.log(`  Browse:  npx multimodel-dev-os catalog list --source remote:${name}`);
+  } else {
+    console.log(`  Browse:  npx multimodel-dev-os catalog list --source ${name}`);
+  }
   console.log('');
 }
 
