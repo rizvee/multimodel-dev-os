@@ -56,7 +56,7 @@ To guarantee that remote catalogs have not been tampered with in transit, the re
 1. **Manifest File (`manifest.json`):** Every verified remote registry publishes a manifest file containing a map of all relative files in the catalog and their expected SHA256 checksums.
 2. **SHA256 Verification:** During `registry sync`, the client downloads the manifest and computes the SHA256 hash of all retrieved assets.
 3. **Local Audit:** The computed hashes are written to `checksums.json` in the cache directory.
-4. **Signature Verification (v3.0.0 Placeholder):** The `signature` field in the manifest provides a placeholder for future asymmetric public-key signature verification.
+4. **Signature Verification (v3.5.0-prep)**: The `signature` object or `signatures` array in the manifest is cryptographically verified using Ed25519 public-key signature verification against keys registered in the trust store (`.ai/registries/trusted-keys.yaml`).
 
 ---
 

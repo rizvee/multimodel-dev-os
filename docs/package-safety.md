@@ -9,6 +9,7 @@ To prevent security compromises, credential exposure, or prompt bloating, the fo
 1. **Local Credentials & API Keys:**
    * `.npmrc` (specifically containing authentication tokens)
    * `.env` / `.env.local`
+   * `.ai/registry-signing-key` (project-scoped HMAC signing key)
 2. **Build and Cache Artifacts:**
    * `node_modules/`
    * `dist/` / `build/`

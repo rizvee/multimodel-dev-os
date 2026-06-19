@@ -29,7 +29,35 @@ Here is a list of all fields supported in `.ai/policies/registry-policy.yaml`:
 
 ### `require_signature` (Boolean)
 * **Default:** `false`
-* **Description:** Reserved for future cryptographic signature validation.
+* **Description:** Requires cryptographic signature verification (HMAC-SHA256 or Ed25519) of registry manifests when syncing or verifying.
+
+### `allow_unsigned_local` (Boolean)
+* **Default:** `true`
+* **Description:** Allows unsigned local registries.
+
+### `allow_unsigned_bundled` (Boolean)
+* **Default:** `true`
+* **Description:** Allows unsigned bundled registries.
+
+### `allow_unsigned_remote` (Boolean)
+* **Default:** `false`
+* **Description:** Controls whether unsigned remote registries are permitted.
+
+### `trusted_keys_file` (String)
+* **Default:** `".ai/registries/trusted-keys.yaml"`
+* **Description:** Path to the trusted publisher key store file.
+
+### `allowed_signature_algorithms` (Array of Strings)
+* **Default:** `['ed25519', 'hmac-sha256']`
+* **Description:** List of cryptographic signature algorithms permitted for verification.
+
+### `require_trusted_publisher` (Boolean)
+* **Default:** `false`
+* **Description:** Requires that registry signatures come from a publisher registered in the trust store.
+
+### `provenance_required` (Boolean)
+* **Default:** `true`
+* **Description:** Requires local provenance verification via lockfile entries.
 
 ### `allow_untrusted_install` (Boolean)
 * **Default:** `false`

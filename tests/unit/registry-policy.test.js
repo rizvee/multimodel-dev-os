@@ -24,6 +24,12 @@ describe('Registry Policy Engine', () => {
     expect(policy.allow_http_localhost).toBe(false);
     expect(policy.require_checksum).toBe(true);
     expect(policy.allowed_write_roots).toEqual(['.ai/', 'adapters/']);
+    expect(policy.allow_unsigned_local).toBe(true);
+    expect(policy.allow_unsigned_bundled).toBe(true);
+    expect(policy.allow_unsigned_remote).toBe(false);
+    expect(policy.require_trusted_publisher).toBe(false);
+    expect(policy.provenance_required).toBe(true);
+    expect(policy.allowed_signature_algorithms).toEqual(['ed25519', 'hmac-sha256']);
   });
 
   it('should override default fields with written policy configurations', () => {

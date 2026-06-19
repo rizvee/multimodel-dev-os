@@ -23,11 +23,14 @@ The `registry` command suite provides the following operations:
 | `registry list` | Read-only | List all configured registry sources |
 | `registry status` | Read-only | View sync status, timestamps, and cache health |
 | `registry show <name>` | Read-only | View configuration details of a specific source |
-| `registry verify <name>` | Read-only | Audit SHA256 checksums of cached registry files |
+| `registry verify <name>` | Read-only | Audit SHA256 checksums, lockfile hash, and signatures |
 | `registry add <name> <url> --approved` | Write | Add a new remote registry source |
-| `registry sync <name> --approved` | Network + Write | Download and cache remote catalog and manifest |
+| `registry sync <name> --approved` | Network + Write | Download and cache remote catalog, manifest, and verify signature |
 | `registry remove <name> --approved` | Write | Remove a registry source and clear its cache |
 | `registry cache clear --approved` | Write | Clear all cached registry files |
+| `registry keygen --approved` | Write | Generate local project-scoped HMAC key |
+| `registry lock` | Read-only | Inspect registry provenance lockfile |
+| `registry trust <subcmd>` | Read/Write | Inspect or verify trusted publisher store (subcmd: list, show, verify) |
 
 ---
 

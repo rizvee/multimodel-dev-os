@@ -1,19 +1,16 @@
 /**
- * Registry Signing — HMAC-SHA256 key management + verification
+ * Registry Signing — HMAC-SHA256 and Ed25519 key management + verification
  *
- * Provides project-scoped signing for registry catalogs.
+ * Provides project-scoped HMAC signing and public-key Ed25519 signature verification
+ * for registry manifests.
  *
- * Signing key is stored at `.ai/registry-signing-key` as a 64-char hex string
+ * HMAC key is stored at `.ai/registry-signing-key` as a 64-char hex string
  * (32 random bytes). The file should be gitignored.
- *
- * Signing algorithm: HMAC-SHA256
- * The "payload" signed is the SHA-256 hex of the catalog content, so the
- * signature binds the key to the exact catalog content hash.
  *
  * Uses only Node.js built-in `crypto` — zero runtime dependencies.
  */
 
-import { createHmac, timingSafeEqual, randomBytes } from 'crypto';
+import { generateKeyPairSync, sign, verify, createHmac, timingSafeEqual, randomBytes } from 'crypto';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, chmodSync } from 'fs';
 import { join, dirname } from 'path';
 
@@ -138,4 +135,258 @@ export function verifySignature(hexKey, payload, expectedSig) {
   } catch (_e) {
     return false;
   }
+}
+
+/**
+ * Generate a deterministic canonical payload string from an object based on specified fields.
+ * Recursively sorts keys of nested objects to ensure key order stability.
+ *
+ * @param {Object} data    The source object.
+ * @param {string[]} fields The fields to extract and canonicalize.
+ * @returns {string}       JSON-serialized canonical string.
+ */
+export function createCanonicalPayload(data, fields) {
+  if (!data || typeof data !== 'object') {
+    throw new Error('Data must be an object.');
+  }
+  if (!Array.isArray(fields)) {
+    throw new Error('Fields must be an array of strings.');
+  }
+  const sortedFields = [...fields].sort();
+  const obj = {};
+  for (const field of sortedFields) {
+    if (data[field] !== undefined) {
+      obj[field] = data[field];
+    }
+  }
+  return JSON.stringify(obj, (key, value) => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return Object.keys(value).sort().reduce((sorted, k) => {
+        sorted[k] = value[k];
+        return sorted;
+      }, {});
+    }
+    return value;
+  });
+}
+
+/**
+ * Generate an Ed25519 keypair in PEM SPKI/PKCS8 format.
+ *
+ * @returns {{ publicKey: string, privateKey: string }}
+ */
+export function generateEd25519KeyPair() {
+  const { publicKey, privateKey } = generateKeyPairSync('ed25519', {
+    publicKeyEncoding: {
+      type: 'spki',
+      format: 'pem'
+    },
+    privateKeyEncoding: {
+      type: 'pkcs8',
+      format: 'pem'
+    }
+  });
+  return { publicKey, privateKey };
+}
+
+/**
+ * Sign a payload using an Ed25519 private key PEM.
+ *
+ * @param {string} privateKey Ed25519 PEM private key string.
+ * @param {string} payload    Canonical payload string.
+ * @returns {string}          Base64-encoded signature.
+ */
+export function signEd25519Payload(privateKey, payload) {
+  if (typeof privateKey !== 'string') {
+    throw new Error('Private key must be a PEM string.');
+  }
+  if (typeof payload !== 'string') {
+    throw new Error('Payload to sign must be a string.');
+  }
+  const signatureBuffer = sign(null, Buffer.from(payload, 'utf8'), privateKey);
+  return signatureBuffer.toString('base64');
+}
+
+/**
+ * Normalize a public key to ensure it is in PEM SPKI format.
+ * Wraps bare base64 public keys in SPKI headers/footers if needed.
+ *
+ * @param {string} input  PEM public key or raw base64.
+ * @returns {string}      Normalized PEM public key string.
+ */
+export function normalizePublicKey(input) {
+  if (typeof input !== 'string') {
+    throw new Error('Public key must be a string.');
+  }
+  let trimmed = input.trim();
+  if (trimmed.startsWith('-----BEGIN PUBLIC KEY-----')) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('-----BEGIN')) {
+    return trimmed;
+  }
+  const clean = trimmed.replace(/\s+/g, '');
+  const lines = [];
+  for (let i = 0; i < clean.length; i += 64) {
+    lines.push(clean.slice(i, i + 64));
+  }
+  return `-----BEGIN PUBLIC KEY-----\n${lines.join('\n')}\n-----END PUBLIC KEY-----`;
+}
+
+/**
+ * Verify an Ed25519 signature of a payload.
+ *
+ * @param {string} publicKey Public key in PEM or raw base64.
+ * @param {string} payload   Payload that was signed.
+ * @param {string} signature Base64 signature to verify.
+ * @returns {boolean}        true if signature is valid, false otherwise.
+ */
+export function verifyEd25519Payload(publicKey, payload, signature) {
+  if (typeof publicKey !== 'string' || typeof payload !== 'string' || typeof signature !== 'string') {
+    return false;
+  }
+  try {
+    const pubKey = normalizePublicKey(publicKey);
+    const sigBuffer = Buffer.from(signature, 'base64');
+    return verify(null, Buffer.from(payload, 'utf8'), pubKey, sigBuffer);
+  } catch (_e) {
+    return false;
+  }
+}
+
+/**
+ * Detect the signature algorithm from a signature block object.
+ *
+ * @param {Object} signatureBlock  The signature block.
+ * @returns {string|null}          Algorithm name or null.
+ */
+export function detectSignatureAlgorithm(signatureBlock) {
+  if (!signatureBlock || typeof signatureBlock !== 'object') {
+    return null;
+  }
+  return signatureBlock.algorithm || null;
+}
+
+/**
+ * Verify a manifest signature or signatures array block using trusted keys and policy.
+ *
+ * @param {Object} options
+ * @param {Object} options.manifest     Parsed registry manifest object.
+ * @param {Object[]} options.trustedKeys Array of trusted publishers from trust store.
+ * @param {Object} [options.policy]      Policy settings.
+ * @param {string|null} [options.hmacKey] Project HMAC key.
+ * @param {Object} [options.source]     Source configuration for the registry.
+ * @returns {{ verified: boolean, status: string, error?: string, errors?: string[], warning?: string, message?: string, verified_signatures?: Object[] }}
+ */
+export function verifySignatureBlock({ manifest, trustedKeys, policy = {}, hmacKey = null, source = {} }) {
+  const isBundled = source.name === 'bundled';
+  const isLocal = source.type === 'local';
+  const isRemote = source.type === 'remote' || (!isBundled && !isLocal);
+
+  const signatureBlocks = [];
+  if (manifest.signature && typeof manifest.signature === 'object') {
+    signatureBlocks.push(manifest.signature);
+  }
+  if (Array.isArray(manifest.signatures)) {
+    signatureBlocks.push(...manifest.signatures);
+  }
+
+  if (signatureBlocks.length === 0) {
+    if (policy.require_signature) {
+      return { verified: false, status: 'failed', error: 'Signature is required by policy but missing from manifest.' };
+    }
+    if (isRemote && policy.allow_unsigned_remote === false) {
+      return { verified: false, status: 'failed', error: 'Unsigned remote registries are not allowed by policy.' };
+    }
+    if (isBundled && policy.allow_unsigned_bundled === false) {
+      return { verified: false, status: 'failed', error: 'Unsigned bundled registries are not allowed by policy.' };
+    }
+    if (isLocal && !isBundled && policy.allow_unsigned_local === false) {
+      return { verified: false, status: 'failed', error: 'Unsigned local registries are not allowed by policy.' };
+    }
+    return { verified: true, status: 'unsigned', message: 'Registry is unsigned (allowed by policy).' };
+  }
+
+  let verifiedCount = 0;
+  const errors = [];
+  const allowedAlgs = policy.allowed_signature_algorithms || ['ed25519', 'hmac-sha256'];
+
+  for (const sigBlock of signatureBlocks) {
+    const alg = sigBlock.algorithm;
+    const keyId = sigBlock.key_id;
+    const signature = sigBlock.signature;
+    const signedFields = sigBlock.signed_fields;
+
+    if (!alg || !keyId || !signature || !Array.isArray(signedFields)) {
+      errors.push(`Malformed signature block for key_id '${keyId || 'unknown'}'.`);
+      continue;
+    }
+
+    if (!allowedAlgs.includes(alg)) {
+      errors.push(`Signature algorithm '${alg}' is not allowed by policy (allowed: ${allowedAlgs.join(', ')}).`);
+      continue;
+    }
+
+    if (alg === 'hmac-sha256') {
+      if (!hmacKey) {
+        errors.push(`HMAC key not configured locally for key_id '${keyId}'.`);
+        continue;
+      }
+      try {
+        const payload = createCanonicalPayload(manifest, signedFields);
+        const expected = createHmac('sha256', Buffer.from(hmacKey, 'hex')).update(payload, 'utf8').digest('hex');
+        if (timingSafeEqual(Buffer.from(signature, 'hex'), Buffer.from(expected, 'hex'))) {
+          verifiedCount++;
+        } else {
+          errors.push(`Invalid HMAC signature for key_id '${keyId}'.`);
+        }
+      } catch (err) {
+        errors.push(`HMAC signature verification failed: ${err.message}`);
+      }
+    } else if (alg === 'ed25519') {
+      const trustedKey = trustedKeys ? trustedKeys.find(k => k.key_id === keyId) : null;
+      if (!trustedKey) {
+        errors.push(`Key ID '${keyId}' not found in trust store.`);
+        continue;
+      }
+
+      if (trustedKey.status !== 'active') {
+        errors.push(`Key ID '${keyId}' is ${trustedKey.status} (must be active).`);
+        continue;
+      }
+
+      const scopes = trustedKey.scopes || [];
+      if (!scopes.includes('registry') && !scopes.includes('catalog')) {
+        errors.push(`Key ID '${keyId}' does not have required scope 'registry' or 'catalog' (scopes: ${scopes.join(', ')}).`);
+        continue;
+      }
+
+      try {
+        const payload = createCanonicalPayload(manifest, signedFields);
+        if (verifyEd25519Payload(trustedKey.public_key, payload, signature)) {
+          verifiedCount++;
+        } else {
+          errors.push(`Invalid Ed25519 signature for key_id '${keyId}'.`);
+        }
+      } catch (err) {
+        errors.push(`Ed25519 signature verification failed: ${err.message}`);
+      }
+    } else {
+      errors.push(`Unsupported signature algorithm '${alg}' for key_id '${keyId}'.`);
+    }
+  }
+
+  if (verifiedCount > 0) {
+    return {
+      verified: true,
+      status: 'verified',
+      verified_signatures: signatureBlocks.map(s => ({ key_id: s.key_id, algorithm: s.algorithm }))
+    };
+  }
+
+  return {
+    verified: false,
+    status: 'failed',
+    errors
+  };
 }

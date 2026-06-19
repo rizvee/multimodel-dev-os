@@ -100,6 +100,15 @@ export function updateLockfileEntry(lockfile, name, entry) {
     catalog_sha256: entry.catalog_sha256,
     manifest_sha256: entry.manifest_sha256 ?? null,
     signature: entry.signature ?? null,
-    signature_alg: entry.signature_alg || 'hmac-sha256'
+    signature_alg: entry.signature_alg || 'hmac-sha256',
+    public_signature_status: entry.public_signature_status ?? null,
+    public_signature_algorithm: entry.public_signature_algorithm ?? null,
+    public_signature_key_id: entry.public_signature_key_id ?? null,
+    trusted_publisher_status: entry.trusted_publisher_status ?? null,
+    trust_store_path: entry.trust_store_path ?? null,
+    trust_verdict: entry.trust_verdict ?? null,
+    lockfile_verdict: entry.lockfile_verdict ?? null,
+    verification_errors: entry.verification_errors ?? [],
+    verification_warnings: entry.verification_warnings ?? []
   };
 }

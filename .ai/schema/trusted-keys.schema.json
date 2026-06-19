@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MultiModel Dev OS Trusted Keys Schema",
+  "description": "JSON schema defining trusted publisher keys for remote registry signature verification",
+  "type": "object",
+  "required": [
+    "trusted_publishers"
+  ],
+  "properties": {
+    "trusted_publishers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key_id",
+          "name",
+          "algorithm",
+          "public_key",
+          "scopes",
+          "status"
+        ],
+        "properties": {
+          "key_id": {
+            "type": "string",
+            "description": "Unique identifier of the trusted key."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the publisher associated with the key."
+          },
+          "algorithm": {
+            "type": "string",
+            "enum": [
+              "ed25519",
+              "hmac-sha256"
+            ],
+            "description": "Cryptographic signature algorithm."
+          },
+          "public_key": {
+            "type": "string",
+            "description": "PEM-encoded public key or key string."
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "registry",
+                "catalog"
+              ]
+            },
+            "description": "Allowed scopes for this key."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "revoked",
+              "disabled"
+            ],
+            "description": "Key status."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

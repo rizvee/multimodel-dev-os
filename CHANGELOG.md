@@ -3,23 +3,26 @@
 ## [Unreleased] — v3.5.0-prep: Trusted Registry Signing + Provenance Foundation
 
 ### Added
-- **Registry Provenance Lockfile** (`src/registry/provenance.js`): New module implementing a tamper-evident `.ai/registry-lock.json` lockfile. Each registry sync now writes a provenance entry recording the URL, catalog/manifest SHA-256 hashes, sync timestamp, and optional HMAC-SHA256 signature.
-- **Registry Signing Module** (`src/registry/signing.js`): New module implementing HMAC-SHA256 signing and timing-safe verification using Node.js built-in `crypto` only (zero new runtime deps). Exports `generateSigningKey`, `loadSigningKey`, `saveSigningKey`, `signPayload`, and `verifySignature` (using `crypto.timingSafeEqual`).
-- **`registry keygen` subcommand**: Generates a 32-byte random signing key at `.ai/registry-signing-key` with mode `0o600`. Refuses to overwrite without `--force`. Includes safety notes about gitignore.
-- **`registry lock` subcommand**: Displays the current `.ai/registry-lock.json` lockfile state — all registry entries, their SHA-256 hashes, signature status, and sync timestamps. Supports `--json` output.
-- **Signing integration in `registry sync`**: After a successful sync, the CLI attempts to load the project signing key and signs `catalog_sha256`. If `require_signature: true` and no key is present, sync fails with a clear error. Lockfile is always written (unsigned if no key).
-- **Provenance checks in `registry verify`**: Now performs three validation layers — SHA-256 file integrity (existing), lockfile hash match (re-hash vs. lockfile entry), and HMAC signature verification (if key + signature present). Uses `timingSafeEqual`.
-- **Signing/lockfile status in `registry status`**: Now reports signing key configured state and lockfile presence + per-registry signature badges.
-- **Signing badge in `registry list`**: Each source now shows `[signed]`, `[unsigned]`, or `[no lockfile entry]` badge inline.
-- **`require_lockfile_on_verify` policy field**: New policy gate (default `false`). When `true`, `registry verify` fails if no lockfile entry exists for the registry.
-- **10 new unit tests**: `tests/unit/registry-provenance.test.js` (10 tests) and `tests/unit/registry-signing.test.js` (23 tests) cover all new provenance I/O, signing, verification, and timing-safe comparison logic.
-- **`scripts/verify.js` expanded**: Added 5 new structural assertions for provenance/signing modules, `.gitignore` signing-key check, policy.js default check, and main.js import/handler check. Also added 10 unit test file assertions.
+- **Public-Key Registry Signatures** (`src/registry/signing.js`): Extended the signing module to support Ed25519 asymmetric keypairs, deterministic canonical JSON payload serialization, normalizing PEM/SPKI formatted public keys, and multi-signer signature block verification (zero runtime dependencies).
+- **Trusted Key Store** (`src/registry/trust-store.js`): New module to parse, validate, and load trusted keys from `.ai/registries/trusted-keys.yaml` under strict status, active date, and scope constraint checks.
+- **`registry trust` subcommands**: Added `registry trust list` and `registry trust show <key_id>` to inspect the trust store contents directly from the CLI.
+- **Extended Registry Policies**: Configured default signature rules in `src/core/policy.js` (`allow_unsigned_local`, `allow_unsigned_bundled`, `allow_unsigned_remote`, `require_trusted_publisher`, `provenance_required`) to govern remote vs local registries safely.
+- **Structured Schemas**: Created `.ai/schema/trusted-keys.schema.json` and updated `.ai/schema/registry-manifest.schema.json` and `.ai/schema/registry-policy.schema.json` to enforce public key schemas.
+- **New Unit Test Suites**: Added `tests/unit/registry-public-signing.test.js` (9 tests), `tests/unit/registry-trust-store.test.js` (5 tests), and `tests/unit/registry-signature-policy.test.js` (6 tests). Total test count increased to 98 tests (all passing).
+- **Expanded Release Verification**: Added assertions in `scripts/verify.js` for new public signing modules, schemas, trust store config files, policies, and unit tests.
+- **Registry Provenance Lockfile** (`src/registry/provenance.js`): Implemented a tamper-evident `.ai/registry-lock.json` lockfile. Each registry sync writes a provenance entry recording the URL, catalog/manifest hashes, sync timestamp, and signatures.
+- **Registry Signing Module** (`src/registry/signing.js`): Implemented HMAC-SHA256 signing and timing-safe verification using Node.js built-in `crypto` only (zero new runtime deps).
+- **`registry keygen` subcommand**: Generates a 32-byte random signing key at `.ai/registry-signing-key` with mode `0o600`. Refuses to overwrite without `--force`.
+- **`registry lock` subcommand**: Displays the current `.ai/registry-lock.json` lockfile state with signature status badges. Supports `--json` output.
+- **Signing integration in `registry sync`**: signs `catalog_sha256` after sync, failing if `require_signature: true` and no key is present.
+- **Provenance checks in `registry verify`**: Performs multi-layer validation — file integrity, lockfile hash match, and HMAC/Ed25519 signature checks.
 
 ### Security
-- **Gitignore enforcement**: `.ai/registry-signing-key` is now automatically gitignored in the project-level `.gitignore`.
-- **Timing-safe comparison**: All signature verification uses `crypto.timingSafeEqual` to prevent timing-based side-channel attacks.
-- **Signing key file permissions**: Key files are written with `0o600` (owner-only) permissions.
-- **`require_signature` enforcement**: When enabled in policy, `registry sync` hard-fails if no signing key is configured, preventing unsigned syncs.
+- **Asymmetric trust boundary**: Signatures can be verified using public keys from the trust store without disclosing the private signing keys.
+- **Gitignore enforcement**: `.ai/registry-signing-key` is automatically gitignored at the project level.
+- **Timing-safe comparison**: Signature verification uses `crypto.timingSafeEqual` to prevent side-channel leaks.
+- **Key file permissions**: Private key files are written with `0o600` (owner-only) permissions.
+
 
 
 

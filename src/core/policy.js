@@ -17,7 +17,14 @@ export function loadRegistryPolicy(targetDir) {
     max_plugin_files: 20,
     max_plugin_size_kb: 100,
     max_registry_cache_size_kb: 512,
-    allowed_file_extensions: ['.md', '.yaml', '.yml', '.json']
+    allowed_file_extensions: ['.md', '.yaml', '.yml', '.json'],
+    allow_unsigned_local: true,
+    allow_unsigned_bundled: true,
+    allow_unsigned_remote: false,
+    trusted_keys_file: '.ai/registries/trusted-keys.yaml',
+    allowed_signature_algorithms: ['ed25519', 'hmac-sha256'],
+    require_trusted_publisher: false,
+    provenance_required: true
   };
   const paths = [];
   if (targetDir) {

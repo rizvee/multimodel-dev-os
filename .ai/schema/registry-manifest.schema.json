@@ -49,8 +49,37 @@
       "description": "Version of the safety policy specification this registry conforms to."
     },
     "signature": {
-      "type": ["string", "null"],
-      "description": "Cryptographic signature of the manifest. Placeholder for future implementation."
+      "type": ["object", "null"],
+      "description": "Cryptographic signature block of the manifest.",
+      "properties": {
+        "algorithm": { "type": "string", "enum": ["ed25519", "hmac-sha256"] },
+        "key_id": { "type": "string" },
+        "signature": { "type": "string" },
+        "signed_fields": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["algorithm", "key_id", "signature", "signed_fields"],
+      "additionalProperties": false
+    },
+    "signatures": {
+      "type": "array",
+      "description": "List of cryptographic signature blocks of the manifest.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "algorithm": { "type": "string", "enum": ["ed25519", "hmac-sha256"] },
+          "key_id": { "type": "string" },
+          "signature": { "type": "string" },
+          "signed_fields": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["algorithm", "key_id", "signature", "signed_fields"],
+        "additionalProperties": false
+      }
     }
   },
   "additionalProperties": false

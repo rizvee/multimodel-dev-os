@@ -3,8 +3,8 @@
 
 
 // src/cli/main.js
-import { existsSync as existsSync7, mkdirSync as mkdirSync3, readFileSync as readFileSync8, writeFileSync as writeFileSync4, readdirSync, statSync } from "fs";
-import { join as join7, dirname as dirname4, resolve as resolve3, relative, isAbsolute, basename } from "path";
+import { existsSync as existsSync8, mkdirSync as mkdirSync3, readFileSync as readFileSync9, writeFileSync as writeFileSync4, readdirSync, statSync } from "fs";
+import { join as join8, dirname as dirname4, resolve as resolve3, relative, isAbsolute as isAbsolute2, basename } from "path";
 import { createHash as createHash2 } from "crypto";
 import readline from "readline";
 import { execSync, execFileSync } from "child_process";
@@ -333,7 +333,7 @@ function showHelp() {
   console.log("  adapter <subcmd>  Manage and sync rule/settings files for IDE adapters (subcmd: status, diff, sync)");
   console.log("  plugin <subcmd>   Manage declarative plugins (subcmd: list, show, validate, install, status)");
   console.log("  catalog <subcmd>  Manage Workflow Marketplace & Plugin Catalog (subcmd: list, search, show, categories, recommend, install, status)");
-  console.log("  registry <subcmd> Manage trusted remote catalog registries (subcmd: list, add, remove, sync, status, verify, show, cache)");
+  console.log("  registry <subcmd> Manage trusted remote catalog registries (subcmd: list, add, remove, sync, status, verify, show, cache, keygen, lock, trust)");
   console.log("  verify            Validate structural integrity of an existing project");
   console.log("  templates         List all built-in template profiles with details");
   console.log("  list-templates    Alias for templates command");
@@ -406,7 +406,14 @@ function loadRegistryPolicy(targetDir) {
     max_plugin_files: 20,
     max_plugin_size_kb: 100,
     max_registry_cache_size_kb: 512,
-    allowed_file_extensions: [".md", ".yaml", ".yml", ".json"]
+    allowed_file_extensions: [".md", ".yaml", ".yml", ".json"],
+    allow_unsigned_local: true,
+    allow_unsigned_bundled: true,
+    allow_unsigned_remote: false,
+    trusted_keys_file: ".ai/registries/trusted-keys.yaml",
+    allowed_signature_algorithms: ["ed25519", "hmac-sha256"],
+    require_trusted_publisher: false,
+    provenance_required: true
   };
   const paths = [];
   if (targetDir) {
@@ -580,12 +587,21 @@ function updateLockfileEntry(lockfile, name, entry) {
     catalog_sha256: entry.catalog_sha256,
     manifest_sha256: entry.manifest_sha256 ?? null,
     signature: entry.signature ?? null,
-    signature_alg: entry.signature_alg || "hmac-sha256"
+    signature_alg: entry.signature_alg || "hmac-sha256",
+    public_signature_status: entry.public_signature_status ?? null,
+    public_signature_algorithm: entry.public_signature_algorithm ?? null,
+    public_signature_key_id: entry.public_signature_key_id ?? null,
+    trusted_publisher_status: entry.trusted_publisher_status ?? null,
+    trust_store_path: entry.trust_store_path ?? null,
+    trust_verdict: entry.trust_verdict ?? null,
+    lockfile_verdict: entry.lockfile_verdict ?? null,
+    verification_errors: entry.verification_errors ?? [],
+    verification_warnings: entry.verification_warnings ?? []
   };
 }
 
 // src/registry/signing.js
-import { createHmac, timingSafeEqual, randomBytes } from "crypto";
+import { generateKeyPairSync, sign, verify, createHmac, timingSafeEqual, randomBytes } from "crypto";
 import { existsSync as existsSync5, readFileSync as readFileSync6, writeFileSync as writeFileSync3, mkdirSync as mkdirSync2, chmodSync } from "fs";
 import { join as join5, dirname as dirname3 } from "path";
 var SIGNING_KEY_FILENAME = "registry-signing-key";
@@ -630,32 +646,188 @@ function signPayload(hexKey, payload) {
   const keyBytes = Buffer.from(hexKey, "hex");
   return createHmac("sha256", keyBytes).update(payload, "utf8").digest("hex");
 }
-function verifySignature(hexKey, payload, expectedSig) {
-  if (typeof hexKey !== "string" || typeof payload !== "string" || typeof expectedSig !== "string") {
+function createCanonicalPayload(data, fields) {
+  if (!data || typeof data !== "object") {
+    throw new Error("Data must be an object.");
+  }
+  if (!Array.isArray(fields)) {
+    throw new Error("Fields must be an array of strings.");
+  }
+  const sortedFields = [...fields].sort();
+  const obj = {};
+  for (const field of sortedFields) {
+    if (data[field] !== void 0) {
+      obj[field] = data[field];
+    }
+  }
+  return JSON.stringify(obj, (key, value) => {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      return Object.keys(value).sort().reduce((sorted, k) => {
+        sorted[k] = value[k];
+        return sorted;
+      }, {});
+    }
+    return value;
+  });
+}
+function normalizePublicKey2(input) {
+  if (typeof input !== "string") {
+    throw new Error("Public key must be a string.");
+  }
+  let trimmed = input.trim();
+  if (trimmed.startsWith("-----BEGIN PUBLIC KEY-----")) {
+    return trimmed;
+  }
+  if (trimmed.startsWith("-----BEGIN")) {
+    return trimmed;
+  }
+  const clean = trimmed.replace(/\s+/g, "");
+  const lines = [];
+  for (let i = 0; i < clean.length; i += 64) {
+    lines.push(clean.slice(i, i + 64));
+  }
+  return `-----BEGIN PUBLIC KEY-----
+${lines.join("\n")}
+-----END PUBLIC KEY-----`;
+}
+function verifyEd25519Payload(publicKey, payload, signature) {
+  if (typeof publicKey !== "string" || typeof payload !== "string" || typeof signature !== "string") {
     return false;
   }
-  let actualSig;
   try {
-    actualSig = signPayload(hexKey, payload);
-  } catch (_e) {
-    return false;
-  }
-  if (actualSig.length !== expectedSig.length) {
-    return false;
-  }
-  try {
-    return timingSafeEqual(
-      Buffer.from(actualSig, "hex"),
-      Buffer.from(expectedSig, "hex")
-    );
+    const pubKey = normalizePublicKey2(publicKey);
+    const sigBuffer = Buffer.from(signature, "base64");
+    return verify(null, Buffer.from(payload, "utf8"), pubKey, sigBuffer);
   } catch (_e) {
     return false;
   }
 }
+function verifySignatureBlock({ manifest, trustedKeys, policy = {}, hmacKey = null, source = {} }) {
+  const isBundled = source.name === "bundled";
+  const isLocal = source.type === "local";
+  const isRemote = source.type === "remote" || !isBundled && !isLocal;
+  const signatureBlocks = [];
+  if (manifest.signature && typeof manifest.signature === "object") {
+    signatureBlocks.push(manifest.signature);
+  }
+  if (Array.isArray(manifest.signatures)) {
+    signatureBlocks.push(...manifest.signatures);
+  }
+  if (signatureBlocks.length === 0) {
+    if (policy.require_signature) {
+      return { verified: false, status: "failed", error: "Signature is required by policy but missing from manifest." };
+    }
+    if (isRemote && policy.allow_unsigned_remote === false) {
+      return { verified: false, status: "failed", error: "Unsigned remote registries are not allowed by policy." };
+    }
+    if (isBundled && policy.allow_unsigned_bundled === false) {
+      return { verified: false, status: "failed", error: "Unsigned bundled registries are not allowed by policy." };
+    }
+    if (isLocal && !isBundled && policy.allow_unsigned_local === false) {
+      return { verified: false, status: "failed", error: "Unsigned local registries are not allowed by policy." };
+    }
+    return { verified: true, status: "unsigned", message: "Registry is unsigned (allowed by policy)." };
+  }
+  let verifiedCount = 0;
+  const errors = [];
+  const allowedAlgs = policy.allowed_signature_algorithms || ["ed25519", "hmac-sha256"];
+  for (const sigBlock of signatureBlocks) {
+    const alg = sigBlock.algorithm;
+    const keyId = sigBlock.key_id;
+    const signature = sigBlock.signature;
+    const signedFields = sigBlock.signed_fields;
+    if (!alg || !keyId || !signature || !Array.isArray(signedFields)) {
+      errors.push(`Malformed signature block for key_id '${keyId || "unknown"}'.`);
+      continue;
+    }
+    if (!allowedAlgs.includes(alg)) {
+      errors.push(`Signature algorithm '${alg}' is not allowed by policy (allowed: ${allowedAlgs.join(", ")}).`);
+      continue;
+    }
+    if (alg === "hmac-sha256") {
+      if (!hmacKey) {
+        errors.push(`HMAC key not configured locally for key_id '${keyId}'.`);
+        continue;
+      }
+      try {
+        const payload = createCanonicalPayload(manifest, signedFields);
+        const expected = createHmac("sha256", Buffer.from(hmacKey, "hex")).update(payload, "utf8").digest("hex");
+        if (timingSafeEqual(Buffer.from(signature, "hex"), Buffer.from(expected, "hex"))) {
+          verifiedCount++;
+        } else {
+          errors.push(`Invalid HMAC signature for key_id '${keyId}'.`);
+        }
+      } catch (err) {
+        errors.push(`HMAC signature verification failed: ${err.message}`);
+      }
+    } else if (alg === "ed25519") {
+      const trustedKey = trustedKeys ? trustedKeys.find((k) => k.key_id === keyId) : null;
+      if (!trustedKey) {
+        errors.push(`Key ID '${keyId}' not found in trust store.`);
+        continue;
+      }
+      if (trustedKey.status !== "active") {
+        errors.push(`Key ID '${keyId}' is ${trustedKey.status} (must be active).`);
+        continue;
+      }
+      const scopes = trustedKey.scopes || [];
+      if (!scopes.includes("registry") && !scopes.includes("catalog")) {
+        errors.push(`Key ID '${keyId}' does not have required scope 'registry' or 'catalog' (scopes: ${scopes.join(", ")}).`);
+        continue;
+      }
+      try {
+        const payload = createCanonicalPayload(manifest, signedFields);
+        if (verifyEd25519Payload(trustedKey.public_key, payload, signature)) {
+          verifiedCount++;
+        } else {
+          errors.push(`Invalid Ed25519 signature for key_id '${keyId}'.`);
+        }
+      } catch (err) {
+        errors.push(`Ed25519 signature verification failed: ${err.message}`);
+      }
+    } else {
+      errors.push(`Unsupported signature algorithm '${alg}' for key_id '${keyId}'.`);
+    }
+  }
+  if (verifiedCount > 0) {
+    return {
+      verified: true,
+      status: "verified",
+      verified_signatures: signatureBlocks.map((s) => ({ key_id: s.key_id, algorithm: s.algorithm }))
+    };
+  }
+  return {
+    verified: false,
+    status: "failed",
+    errors
+  };
+}
+
+// src/registry/trust-store.js
+import { existsSync as existsSync6, readFileSync as readFileSync7 } from "fs";
+import { join as join6, isAbsolute } from "path";
+function loadTrustedKeys(targetDir, policy) {
+  const pol = policy || loadRegistryPolicy(targetDir);
+  const keyFile = pol.trusted_keys_file || ".ai/registries/trusted-keys.yaml";
+  const filePath = isAbsolute(keyFile) ? keyFile : join6(targetDir, keyFile);
+  if (!existsSync6(filePath)) {
+    return [];
+  }
+  try {
+    const raw = readFileSync7(filePath, "utf8");
+    const parsed = parseYaml(raw);
+    if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.trusted_publishers)) {
+      return [];
+    }
+    return parsed.trusted_publishers;
+  } catch (_e) {
+    return [];
+  }
+}
 
 // src/catalog/loader.js
-import { existsSync as existsSync6, readFileSync as readFileSync7 } from "fs";
-import { join as join6 } from "path";
+import { existsSync as existsSync7, readFileSync as readFileSync8 } from "fs";
+import { join as join7 } from "path";
 function loadCatalog(options = {}) {
   let catalog;
   if (options.allSources) {
@@ -663,10 +835,10 @@ function loadCatalog(options = {}) {
   } else if (options.source) {
     catalog = loadCatalogFromSource(options.source, options);
   } else {
-    const path = join6(sourceRoot, ".ai", "plugins", "catalog.yaml");
+    const path = join7(sourceRoot, ".ai", "plugins", "catalog.yaml");
     try {
-      if (existsSync6(path)) {
-        const reg = parseYaml(readFileSync7(path, "utf8"));
+      if (existsSync7(path)) {
+        const reg = parseYaml(readFileSync8(path, "utf8"));
         catalog = reg.catalog || { plugins: [] };
       } else {
         catalog = { plugins: [] };
@@ -684,10 +856,10 @@ function loadCatalogFromSource(source, options = {}) {
   if (!source || source === "bundled") {
     return loadCatalog();
   } else if (source === "local") {
-    const localPath = join6(options.target || process.cwd(), ".ai", "plugins", "catalog.yaml");
+    const localPath = join7(options.target || process.cwd(), ".ai", "plugins", "catalog.yaml");
     try {
-      if (existsSync6(localPath)) {
-        const reg = parseYaml(readFileSync7(localPath, "utf8"));
+      if (existsSync7(localPath)) {
+        const reg = parseYaml(readFileSync8(localPath, "utf8"));
         const catalog = reg.catalog || { plugins: [] };
         (catalog.plugins || []).forEach((p) => {
           p._source = "local";
@@ -710,10 +882,10 @@ function loadCatalogFromSource(source, options = {}) {
         process.exit(1);
       }
     }
-    const cachePath = join6(sourceRoot, ".ai", "registry-cache", regName, "catalog.yaml");
+    const cachePath = join7(sourceRoot, ".ai", "registry-cache", regName, "catalog.yaml");
     try {
-      if (existsSync6(cachePath)) {
-        const reg = parseYaml(readFileSync7(cachePath, "utf8"));
+      if (existsSync7(cachePath)) {
+        const reg = parseYaml(readFileSync8(cachePath, "utf8"));
         const catalog = reg.catalog || { plugins: [] };
         (catalog.plugins || []).forEach((p) => {
           p._source = `remote:${regName}`;
@@ -735,10 +907,10 @@ function loadAllCatalogs(options = {}) {
     p._source = "bundled";
     allPlugins.push(p);
   });
-  const localPath = join6(options.target || process.cwd(), ".ai", "plugins", "catalog.yaml");
-  if (existsSync6(localPath)) {
+  const localPath = join7(options.target || process.cwd(), ".ai", "plugins", "catalog.yaml");
+  if (existsSync7(localPath)) {
     try {
-      const localCat = parseYaml(readFileSync7(localPath, "utf8"));
+      const localCat = parseYaml(readFileSync8(localPath, "utf8"));
       const localPlugins = (localCat.catalog || {}).plugins || [];
       localPlugins.forEach((p) => {
         if (!allPlugins.some((bp) => bp.slug === p.slug)) {
@@ -751,10 +923,10 @@ function loadAllCatalogs(options = {}) {
   }
   if (policy.allow_remote_registries) {
     sources.filter((s) => s.type !== "local" && s.enabled).forEach((s) => {
-      const cachePath = join6(sourceRoot, ".ai", "registry-cache", s.name, "catalog.yaml");
-      if (existsSync6(cachePath)) {
+      const cachePath = join7(sourceRoot, ".ai", "registry-cache", s.name, "catalog.yaml");
+      if (existsSync7(cachePath)) {
         try {
-          const remoteCat = parseYaml(readFileSync7(cachePath, "utf8"));
+          const remoteCat = parseYaml(readFileSync8(cachePath, "utf8"));
           const remotePlugins = (remoteCat.catalog || {}).plugins || [];
           remotePlugins.forEach((p) => {
             if (!allPlugins.some((bp) => bp.slug === p.slug)) {
@@ -1141,8 +1313,26 @@ if (COMMAND === "init") {
     handleRegistryKeygen(params);
   } else if (sub === "lock") {
     handleRegistryLock(params);
+  } else if (sub === "trust") {
+    const trustSub = positional[2];
+    if (trustSub === "list") {
+      handleRegistryTrustList(params);
+    } else if (trustSub === "show") {
+      const keyId = positional[3];
+      if (!keyId) {
+        console.error("\x1B[31mError: Please specify a key ID.\x1B[0m");
+        process.exit(1);
+      }
+      handleRegistryTrustShow(keyId, params);
+    } else if (trustSub === "verify") {
+      handleRegistryTrustVerify(params);
+    } else {
+      console.error("\x1B[31mError: Please specify a trust subcommand: list, show, or verify.\x1B[0m");
+      console.log("Example: node bin/multimodel-dev-os.js registry trust list");
+      process.exit(1);
+    }
   } else {
-    console.error("\x1B[31mError: Please specify a registry subcommand: list, add, remove, sync, status, verify, show, cache, keygen, or lock.\x1B[0m");
+    console.error("\x1B[31mError: Please specify a registry subcommand: list, add, remove, sync, status, verify, show, cache, keygen, lock, or trust.\x1B[0m");
     console.log("Example: node bin/multimodel-dev-os.js registry list");
     process.exit(1);
   }
@@ -1226,40 +1416,40 @@ function handleInit(options) {
     console.log("\x1B[36mDry Run active - no actual modifications will occur\x1B[0m");
   const operations = [];
   const conflicts = [];
-  let templateDir = join7(sourceRoot, "examples", options.template);
-  if (!existsSync7(templateDir)) {
+  let templateDir = join8(sourceRoot, "examples", options.template);
+  if (!existsSync8(templateDir)) {
     console.warn(`  \x1B[33m[WARNING] Template '${options.template}' source files could not be found.\x1B[0m`);
     console.warn(`  To view available templates, run: \x1B[36mnpx multimodel-dev-os templates\x1B[0m`);
     console.warn(`  Falling back to the stable \x1B[32m'general-app'\x1B[0m profile...
 `);
-    templateDir = join7(sourceRoot, "examples", "general-app");
+    templateDir = join8(sourceRoot, "examples", "general-app");
   }
-  let agentsSrc = join7(templateDir, "AGENTS.md");
-  let memorySrc = join7(templateDir, "MEMORY.md");
-  let tasksSrc = join7(templateDir, "TASKS.md");
-  let runbookSrc = join7(sourceRoot, "RUNBOOK.md");
-  let configSrc = join7(templateDir, ".ai", "config.yaml");
+  let agentsSrc = join8(templateDir, "AGENTS.md");
+  let memorySrc = join8(templateDir, "MEMORY.md");
+  let tasksSrc = join8(templateDir, "TASKS.md");
+  let runbookSrc = join8(sourceRoot, "RUNBOOK.md");
+  let configSrc = join8(templateDir, ".ai", "config.yaml");
   if (options.caveman) {
-    agentsSrc = join7(sourceRoot, ".ai", "templates", "AGENTS.caveman.md");
-    memorySrc = join7(sourceRoot, ".ai", "templates", "MEMORY.caveman.md");
-    tasksSrc = join7(sourceRoot, ".ai", "templates", "TASKS.caveman.md");
-    runbookSrc = join7(sourceRoot, ".ai", "templates", "RUNBOOK.caveman.md");
+    agentsSrc = join8(sourceRoot, ".ai", "templates", "AGENTS.caveman.md");
+    memorySrc = join8(sourceRoot, ".ai", "templates", "MEMORY.caveman.md");
+    tasksSrc = join8(sourceRoot, ".ai", "templates", "TASKS.caveman.md");
+    runbookSrc = join8(sourceRoot, ".ai", "templates", "RUNBOOK.caveman.md");
   }
   operations.push({ dest: "AGENTS.md", src: agentsSrc });
   operations.push({ dest: "MEMORY.md", src: memorySrc });
   operations.push({ dest: "TASKS.md", src: tasksSrc });
   operations.push({ dest: "RUNBOOK.md", src: runbookSrc });
   operations.push({ dest: ".ai/config.yaml", src: configSrc });
-  const templateAiDir = join7(templateDir, ".ai");
-  if (existsSync7(templateAiDir) && !options.caveman) {
+  const templateAiDir = join8(templateDir, ".ai");
+  if (existsSync8(templateAiDir) && !options.caveman) {
     const subdirs = ["context", "skills"];
     subdirs.forEach((sub) => {
-      const subPath = join7(templateAiDir, sub);
-      if (existsSync7(subPath)) {
+      const subPath = join8(templateAiDir, sub);
+      if (existsSync8(subPath)) {
         readdirSync(subPath).forEach((file) => {
           operations.push({
-            dest: join7(".ai", sub, file),
-            src: join7(subPath, file)
+            dest: join8(".ai", sub, file),
+            src: join8(subPath, file)
           });
         });
       }
@@ -1267,47 +1457,47 @@ function handleInit(options) {
   }
   const globalAiSubdirs = ["context", "agents", "skills", "prompts", "checks", "templates", "session-logs", "registries", "proposals", "intelligence"];
   globalAiSubdirs.forEach((sub) => {
-    const globalPath = join7(sourceRoot, ".ai", sub);
-    if (existsSync7(globalPath)) {
+    const globalPath = join8(sourceRoot, ".ai", sub);
+    if (existsSync8(globalPath)) {
       readdirSync(globalPath).forEach((file) => {
-        const destRel = join7(".ai", sub, file);
+        const destRel = join8(".ai", sub, file);
         if (!operations.some((op) => op.dest === destRel)) {
           if (options.caveman && (sub === "context" || sub === "skills" || sub === "prompts" || sub === "checks")) {
             return;
           }
           operations.push({
             dest: destRel,
-            src: join7(globalPath, file)
+            src: join8(globalPath, file)
           });
         }
       });
     }
   });
   options.adapters.forEach((adapter) => {
-    const adapterDir = join7(sourceRoot, "adapters", adapter);
-    if (existsSync7(adapterDir)) {
+    const adapterDir = join8(sourceRoot, "adapters", adapter);
+    if (existsSync8(adapterDir)) {
       const copyRecursive = (currSrc, currRel) => {
         if (statSync(currSrc).isDirectory()) {
           readdirSync(currSrc).forEach((file) => {
-            copyRecursive(join7(currSrc, file), join7(currRel, file));
+            copyRecursive(join8(currSrc, file), join8(currRel, file));
           });
         } else {
           operations.push({
-            dest: join7("adapters", adapter, currRel),
+            dest: join8("adapters", adapter, currRel),
             src: currSrc
           });
         }
       };
       readdirSync(adapterDir).forEach((file) => {
-        copyRecursive(join7(adapterDir, file), file);
+        copyRecursive(join8(adapterDir, file), file);
       });
     } else {
       console.warn(`\x1B[33mWarning: Adapter '${adapter}' not found. Skipping.\x1B[0m`);
     }
   });
   operations.forEach((op) => {
-    const targetFile = join7(options.target, op.dest);
-    if (existsSync7(targetFile)) {
+    const targetFile = join8(options.target, op.dest);
+    if (existsSync8(targetFile)) {
       if (!options.force) {
         conflicts.push(op.dest);
       }
@@ -1321,23 +1511,23 @@ function handleInit(options) {
     process.exit(1);
   }
   operations.forEach((op) => {
-    const targetFile = join7(options.target, op.dest);
+    const targetFile = join8(options.target, op.dest);
     const targetDir = dirname4(targetFile);
     if (options.dryRun) {
       console.log(`  \x1B[36m[DRY-RUN] WOULD CREATE:\x1B[0m ${op.dest}`);
     } else {
-      if (!existsSync7(targetDir)) {
+      if (!existsSync8(targetDir)) {
         mkdirSync3(targetDir, { recursive: true });
       }
-      const data = readFileSync8(op.src);
+      const data = readFileSync9(op.src);
       writeFileSync4(targetFile, data);
       console.log(`  \x1B[32mCREATE:\x1B[0m ${op.dest}`);
     }
   });
   const dirsToEnsure = [".ai/context", ".ai/skills", ".ai/session-logs"];
   dirsToEnsure.forEach((d) => {
-    const fullPath = join7(options.target, d);
-    if (!options.dryRun && !existsSync7(fullPath)) {
+    const fullPath = join8(options.target, d);
+    if (!options.dryRun && !existsSync8(fullPath)) {
       mkdirSync3(fullPath, { recursive: true });
       console.log(`  \x1B[32mCREATE DIR:\x1B[0m ${d}`);
     }
@@ -1346,20 +1536,20 @@ function handleInit(options) {
     options.adapters.forEach((adapter) => {
       const a = ADAPTERS[adapter];
       if (a && a.rules_file) {
-        const srcFile = join7(sourceRoot, "adapters", adapter, a.rules_file);
-        const destFile = join7(options.target, a.rules_file);
+        const srcFile = join8(sourceRoot, "adapters", adapter, a.rules_file);
+        const destFile = join8(options.target, a.rules_file);
         const destDir = dirname4(destFile);
-        if (existsSync7(srcFile)) {
-          if (!existsSync7(destDir))
+        if (existsSync8(srcFile)) {
+          if (!existsSync8(destDir))
             mkdirSync3(destDir, { recursive: true });
-          writeFileSync4(destFile, readFileSync8(srcFile));
+          writeFileSync4(destFile, readFileSync9(srcFile));
           console.log(`  \x1B[32mCREATE ROOT ADAPTER FILE:\x1B[0m ${a.rules_file}`);
         }
       }
     });
-    const targetConfigPath = join7(options.target, ".ai/config.yaml");
-    if (existsSync7(targetConfigPath) && options.adapters.length > 0) {
-      let configContent = readFileSync8(targetConfigPath, "utf8");
+    const targetConfigPath = join8(options.target, ".ai/config.yaml");
+    if (existsSync8(targetConfigPath) && options.adapters.length > 0) {
+      let configContent = readFileSync9(targetConfigPath, "utf8");
       options.adapters.forEach((adapter) => {
         const regex = new RegExp(`${adapter}:\\s*false`, "g");
         configContent = configContent.replace(regex, `${adapter}: true`);
@@ -1408,8 +1598,8 @@ function handleVerify(options) {
   let passed = 0;
   let failed = 0;
   const assertFile = (relPath) => {
-    const fullPath = join7(options.target, relPath);
-    if (existsSync7(fullPath) && statSync(fullPath).isFile()) {
+    const fullPath = join8(options.target, relPath);
+    if (existsSync8(fullPath) && statSync(fullPath).isFile()) {
       console.log(`  \x1B[32m\u2713\x1B[0m ${relPath}`);
       passed++;
     } else {
@@ -1480,9 +1670,9 @@ function handleDoctor(options) {
     console.warn(`  \x1B[33m[WARNING]\x1B[0m ${msg}`);
     warnings++;
   };
-  const gitignorePath = join7(options.target, ".gitignore");
-  if (existsSync7(gitignorePath)) {
-    const content = readFileSync8(gitignorePath, "utf8");
+  const gitignorePath = join8(options.target, ".gitignore");
+  if (existsSync8(gitignorePath)) {
+    const content = readFileSync9(gitignorePath, "utf8");
     if (!content.includes("node_modules")) {
       warn(".gitignore is missing node_modules! This will cause AI tools to choke by scanning dependencies.");
     }
@@ -1492,9 +1682,9 @@ function handleDoctor(options) {
   } else {
     warn("Missing .gitignore file in target workspace! AI tools might read large build artifacts.");
   }
-  const agentsPath = join7(options.target, "AGENTS.md");
-  if (existsSync7(agentsPath)) {
-    const content = readFileSync8(agentsPath, "utf8");
+  const agentsPath = join8(options.target, "AGENTS.md");
+  if (existsSync8(agentsPath)) {
+    const content = readFileSync9(agentsPath, "utf8");
     if (!content.includes("build:") && !content.includes("build")) {
       warn("AGENTS.md is missing build command specifications.");
     }
@@ -1507,31 +1697,31 @@ function handleDoctor(options) {
   } else {
     warn("AGENTS.md is missing from project root.");
   }
-  const memoryPath = join7(options.target, "MEMORY.md");
-  if (existsSync7(memoryPath)) {
-    const content = readFileSync8(memoryPath, "utf8");
+  const memoryPath = join8(options.target, "MEMORY.md");
+  if (existsSync8(memoryPath)) {
+    const content = readFileSync9(memoryPath, "utf8");
     const placeholdersCount = (content.match(/null/g) || []).length;
     if (placeholdersCount > 3) {
       warn(`MEMORY.md contains ${placeholdersCount} empty 'null' placeholders. Update project constraints.`);
     }
   }
-  const tasksPath = join7(options.target, "TASKS.md");
-  if (existsSync7(tasksPath)) {
-    const content = readFileSync8(tasksPath, "utf8");
+  const tasksPath = join8(options.target, "TASKS.md");
+  if (existsSync8(tasksPath)) {
+    const content = readFileSync9(tasksPath, "utf8");
     if (!content.includes("- [ ]") && !content.includes("- [/]")) {
       warn("TASKS.md has no active task section (no tasks marked as - [ ] or - [/]).");
     }
   } else {
     warn("TASKS.md is missing from project root.");
   }
-  const configPath = join7(options.target, ".ai", "config.yaml");
-  if (existsSync7(configPath)) {
-    const content = readFileSync8(configPath, "utf8");
+  const configPath = join8(options.target, ".ai", "config.yaml");
+  if (existsSync8(configPath)) {
+    const content = readFileSync9(configPath, "utf8");
     const checkAdapter = (adapterName, filename) => {
       const regex = new RegExp(`${adapterName}:\\s*true`);
       if (regex.test(content)) {
-        const filePath = join7(options.target, filename);
-        if (!existsSync7(filePath)) {
+        const filePath = join8(options.target, filename);
+        if (!existsSync8(filePath)) {
           warn(`Adapter '${adapterName}' is enabled in .ai/config.yaml but matching adapter file '${filename}' is missing from root.`);
         }
       }
@@ -1546,9 +1736,9 @@ function handleDoctor(options) {
   }
   const sinkFolders = ["node_modules", "dist", "build", ".next", ".git"];
   sinkFolders.forEach((folder) => {
-    const fullPath = join7(options.target, folder);
-    if (existsSync7(fullPath)) {
-      const gitignore = existsSync7(gitignorePath) ? readFileSync8(gitignorePath, "utf8") : "";
+    const fullPath = join8(options.target, folder);
+    if (existsSync8(fullPath)) {
+      const gitignore = existsSync8(gitignorePath) ? readFileSync9(gitignorePath, "utf8") : "";
       if (!gitignore.includes(folder)) {
         warn(`Large token-sink directory '${folder}/' is present in workspace but not ignored in .gitignore. AI tools may read it.`);
       }
@@ -1572,8 +1762,8 @@ function handleValidate(options) {
 `);
   let errors = 0;
   const assertPath = (relPath, type) => {
-    const fullPath = join7(options.target, relPath);
-    if (existsSync7(fullPath)) {
+    const fullPath = join8(options.target, relPath);
+    if (existsSync8(fullPath)) {
       const stat = statSync(fullPath);
       const isOk = type === "file" ? stat.isFile() : stat.isDirectory();
       if (isOk) {
@@ -1591,15 +1781,15 @@ function handleValidate(options) {
   core.forEach((f) => assertPath(f, "file"));
   const dirs = [".ai/context", ".ai/skills", ".ai/session-logs"];
   dirs.forEach((d) => assertPath(d, "dir"));
-  const agentsPath = join7(options.target, ".ai/agents");
-  const agentsExist = existsSync7(agentsPath) && statSync(agentsPath).isDirectory();
+  const agentsPath = join8(options.target, ".ai/agents");
+  const agentsExist = existsSync8(agentsPath) && statSync(agentsPath).isDirectory();
   if (agentsExist) {
     console.log(`  \x1B[32m\u2713\x1B[0m .ai/agents (dir)`);
   } else {
-    const agentsMdPath = join7(options.target, "AGENTS.md");
+    const agentsMdPath = join8(options.target, "AGENTS.md");
     let explained = false;
-    if (existsSync7(agentsMdPath)) {
-      const agentsMdContent = readFileSync8(agentsMdPath, "utf8");
+    if (existsSync8(agentsMdPath)) {
+      const agentsMdContent = readFileSync9(agentsMdPath, "utf8");
       if (agentsMdContent.includes("multimodel") || agentsMdContent.includes("orchestrator") || agentsMdContent.includes("global") || agentsMdContent.includes("role") || agentsMdContent.includes("Agent Roles")) {
         explained = true;
       }
@@ -1611,14 +1801,14 @@ function handleValidate(options) {
       errors++;
     }
   }
-  const configPath = join7(options.target, ".ai", "config.yaml");
-  if (existsSync7(configPath)) {
-    const content = readFileSync8(configPath, "utf8");
+  const configPath = join8(options.target, ".ai", "config.yaml");
+  if (existsSync8(configPath)) {
+    const content = readFileSync9(configPath, "utf8");
     const assertAdapter = (adapterName, filename) => {
       const regex = new RegExp(`${adapterName}:\\s*true`);
       if (regex.test(content)) {
-        const fullPath = join7(options.target, filename);
-        if (existsSync7(fullPath)) {
+        const fullPath = join8(options.target, filename);
+        if (existsSync8(fullPath)) {
           console.log(`  \x1B[32m\u2713\x1B[0m ${filename} (enabled adapter rules file verified)`);
         } else {
           console.error(`  \x1B[31m\u2717 ${filename} (adapter '${adapterName}' is enabled in .ai/config.yaml, but rule file is missing!)\x1B[0m`);
@@ -1662,12 +1852,12 @@ function handleValidate(options) {
   }
 }
 function handleListModels(options) {
-  const registryPath = join7(sourceRoot, ".ai", "models", "registry.yaml");
-  if (!existsSync7(registryPath)) {
+  const registryPath = join8(sourceRoot, ".ai", "models", "registry.yaml");
+  if (!existsSync8(registryPath)) {
     console.error("Error: Model registry not found.");
     process.exit(1);
   }
-  const registry = parseYaml(readFileSync8(registryPath, "utf8"));
+  const registry = parseYaml(readFileSync9(registryPath, "utf8"));
   const models = registry.models || {};
   if (options && options.json) {
     console.log(JSON.stringify(models, null, 2));
@@ -1688,12 +1878,12 @@ function handleListModels(options) {
   console.log("\nUse \x1B[36mshow-model <model-alias>\x1B[0m to view detailed model capabilities.\n");
 }
 function handleShowModel(name) {
-  const registryPath = join7(sourceRoot, ".ai", "models", "registry.yaml");
-  if (!existsSync7(registryPath)) {
+  const registryPath = join8(sourceRoot, ".ai", "models", "registry.yaml");
+  if (!existsSync8(registryPath)) {
     console.error("Error: Model registry not found.");
     process.exit(1);
   }
-  const registry = parseYaml(readFileSync8(registryPath, "utf8"));
+  const registry = parseYaml(readFileSync9(registryPath, "utf8"));
   const models = registry.models || {};
   const m = models[name];
   if (!m) {
@@ -1718,12 +1908,12 @@ function handleShowModel(name) {
   console.log();
 }
 function handleListProviders() {
-  const providersPath = join7(sourceRoot, ".ai", "models", "providers.yaml");
-  if (!existsSync7(providersPath)) {
+  const providersPath = join8(sourceRoot, ".ai", "models", "providers.yaml");
+  if (!existsSync8(providersPath)) {
     console.error("Error: Providers registry not found.");
     process.exit(1);
   }
-  const reg = parseYaml(readFileSync8(providersPath, "utf8"));
+  const reg = parseYaml(readFileSync9(providersPath, "utf8"));
   const providers = reg.providers || {};
   console.log(`
 \u{1F50C} \x1B[36mAI Providers [v${version}]\x1B[0m`);
@@ -1738,12 +1928,12 @@ function handleListProviders() {
   console.log();
 }
 function handleRouteModel(task) {
-  const presetsPath = join7(sourceRoot, ".ai", "models", "routing-presets.yaml");
-  if (!existsSync7(presetsPath)) {
+  const presetsPath = join8(sourceRoot, ".ai", "models", "routing-presets.yaml");
+  if (!existsSync8(presetsPath)) {
     console.error("Error: Routing presets not found.");
     process.exit(1);
   }
-  const reg = parseYaml(readFileSync8(presetsPath, "utf8"));
+  const reg = parseYaml(readFileSync9(presetsPath, "utf8"));
   const presets = reg.presets || {};
   const preset = presets[task];
   if (!preset) {
@@ -1758,12 +1948,12 @@ function handleRouteModel(task) {
   console.log();
 }
 function handleListAdapters(options) {
-  const adaptersPath = join7(sourceRoot, ".ai", "adapters", "registry.yaml");
-  if (!existsSync7(adaptersPath)) {
+  const adaptersPath = join8(sourceRoot, ".ai", "adapters", "registry.yaml");
+  if (!existsSync8(adaptersPath)) {
     console.error("Error: Adapters registry not found.");
     process.exit(1);
   }
-  const reg = parseYaml(readFileSync8(adaptersPath, "utf8"));
+  const reg = parseYaml(readFileSync9(adaptersPath, "utf8"));
   const adapters = reg.adapters || {};
   if (options && options.json) {
     console.log(JSON.stringify(adapters, null, 2));
@@ -1783,12 +1973,12 @@ function handleListAdapters(options) {
   console.log("\nUse \x1B[36mshow-adapter <adapter-name>\x1B[0m to view detailed adapter metadata.\n");
 }
 function handleShowAdapter(name) {
-  const adaptersPath = join7(sourceRoot, ".ai", "adapters", "registry.yaml");
-  if (!existsSync7(adaptersPath)) {
+  const adaptersPath = join8(sourceRoot, ".ai", "adapters", "registry.yaml");
+  if (!existsSync8(adaptersPath)) {
     console.error("Error: Adapters registry not found.");
     process.exit(1);
   }
-  const reg = parseYaml(readFileSync8(adaptersPath, "utf8"));
+  const reg = parseYaml(readFileSync9(adaptersPath, "utf8"));
   const adapters = reg.adapters || {};
   const a = adapters[name];
   if (!a) {
@@ -1804,8 +1994,8 @@ function handleShowAdapter(name) {
   console.log();
 }
 function handleListSkills(options) {
-  const skillsDir = join7(options.target, ".ai", "skills");
-  if (!existsSync7(skillsDir)) {
+  const skillsDir = join8(options.target, ".ai", "skills");
+  if (!existsSync8(skillsDir)) {
     console.log("\n\x1B[33m[Notice] .ai/skills directory is not initialized in the target workspace.\x1B[0m\n");
     return;
   }
@@ -1819,16 +2009,16 @@ function handleListSkills(options) {
   console.log("\nUse \x1B[36mshow-skill <skill-name>\x1B[0m to read a skill's prompt text.\n");
 }
 function handleShowSkill(name, options) {
-  const skillsDir = join7(options.target, ".ai", "skills");
-  const skillFile = join7(skillsDir, name.endsWith(".md") ? name : `${name}.md`);
-  if (!existsSync7(skillFile)) {
+  const skillsDir = join8(options.target, ".ai", "skills");
+  const skillFile = join8(skillsDir, name.endsWith(".md") ? name : `${name}.md`);
+  if (!existsSync8(skillFile)) {
     console.error(`\x1B[31mError: Skill '${name}' not found in target .ai/skills/.\x1B[0m`);
     process.exit(1);
   }
   console.log(`
 \u{1F4D6} \x1B[36mSkill Prompt: ${name}\x1B[0m`);
   console.log("==================================================");
-  console.log(readFileSync8(skillFile, "utf8"));
+  console.log(readFileSync9(skillFile, "utf8"));
   console.log();
 }
 function parseThresholdToBytes(val) {
@@ -1852,13 +2042,13 @@ function handleDoctorTokens(options) {
   const filesFound = [];
   const ignoredDirs = [".git", "node_modules", "dist", "build", ".next", ".expo", "bin", "assets", "docs", "web-build", "out", "coverage", ".nuxt", ".svelte-kit", "bower_components", "vendor"];
   function scan(dir) {
-    if (!existsSync7(dir))
+    if (!existsSync8(dir))
       return;
     const items = readdirSync(dir);
     for (const item of items) {
       if (ignoredDirs.includes(item))
         continue;
-      const fullPath = join7(dir, item);
+      const fullPath = join8(dir, item);
       try {
         const stat = statSync(fullPath);
         if (stat.isDirectory()) {
@@ -1920,19 +2110,19 @@ function handleValidateTemplate(name) {
       console.log(`  \x1B[32m\u2713\x1B[0m Registry key: ${k}`);
     }
   });
-  const templateDir = join7(sourceRoot, "examples", name);
-  if (!existsSync7(templateDir)) {
+  const templateDir = join8(sourceRoot, "examples", name);
+  if (!existsSync8(templateDir)) {
     console.error(`  \x1B[31m\u2717 Source folder missing: examples/${name}\x1B[0m`);
     errors++;
   } else {
     console.log(`  \x1B[32m\u2713\x1B[0m Source folder: examples/${name}`);
     if (Array.isArray(t.required_files)) {
       t.required_files.forEach((f) => {
-        const filePath = join7(templateDir, f);
-        const globalPath = join7(sourceRoot, f);
-        if (existsSync7(filePath)) {
+        const filePath = join8(templateDir, f);
+        const globalPath = join8(sourceRoot, f);
+        if (existsSync8(filePath)) {
           console.log(`  \x1B[32m\u2713\x1B[0m Required file (template override): ${f}`);
-        } else if (existsSync7(globalPath)) {
+        } else if (existsSync8(globalPath)) {
           console.log(`  \x1B[32m\u2713\x1B[0m Required file (global fallback): ${f}`);
         } else {
           console.error(`  \x1B[31m\u2717 Required file missing: ${f}\x1B[0m`);
@@ -1971,22 +2161,22 @@ function handleValidateAdapter(name) {
       console.log(`  \x1B[32m\u2713\x1B[0m Registry key: ${k}`);
     }
   });
-  const adapterDir = join7(sourceRoot, "adapters", name);
-  if (!existsSync7(adapterDir)) {
+  const adapterDir = join8(sourceRoot, "adapters", name);
+  if (!existsSync8(adapterDir)) {
     console.error(`  \x1B[31m\u2717 Source folder missing: adapters/${name}\x1B[0m`);
     errors++;
   } else {
     console.log(`  \x1B[32m\u2713\x1B[0m Source folder: adapters/${name}`);
-    const setupFile = join7(adapterDir, "setup.md");
-    if (existsSync7(setupFile)) {
+    const setupFile = join8(adapterDir, "setup.md");
+    if (existsSync8(setupFile)) {
       console.log(`  \x1B[32m\u2713\x1B[0m Required file: setup.md`);
     } else {
       console.error(`  \x1B[31m\u2717 Required file missing: adapters/${name}/setup.md\x1B[0m`);
       errors++;
     }
     if (a.rules_file) {
-      const rulesFile = join7(adapterDir, a.rules_file);
-      if (existsSync7(rulesFile)) {
+      const rulesFile = join8(adapterDir, a.rules_file);
+      if (existsSync8(rulesFile)) {
         console.log(`  \x1B[32m\u2713\x1B[0m Rules file: ${a.rules_file}`);
       } else {
         console.error(`  \x1B[31m\u2717 Rules file missing: adapters/${name}/${a.rules_file}\x1B[0m`);
@@ -2007,18 +2197,18 @@ function handleValidateAdapter(name) {
   }
 }
 function handleValidateSkill(name, options) {
-  const skillsDir = join7(options.target, ".ai", "skills");
-  let skillFile = join7(skillsDir, name.endsWith(".md") ? name : `${name}.md`);
-  if (!existsSync7(skillFile)) {
-    skillFile = join7(sourceRoot, ".ai", "skills", name.endsWith(".md") ? name : `${name}.md`);
+  const skillsDir = join8(options.target, ".ai", "skills");
+  let skillFile = join8(skillsDir, name.endsWith(".md") ? name : `${name}.md`);
+  if (!existsSync8(skillFile)) {
+    skillFile = join8(sourceRoot, ".ai", "skills", name.endsWith(".md") ? name : `${name}.md`);
   }
-  if (!existsSync7(skillFile)) {
+  if (!existsSync8(skillFile)) {
     console.error(`\x1B[31mError: Skill '${name}' not found.\x1B[0m`);
     process.exit(1);
   }
   console.log(`
 \u{1F4CB} \x1B[34mValidating Skill: ${name}\x1B[0m`);
-  const content = readFileSync8(skillFile, "utf8");
+  const content = readFileSync9(skillFile, "utf8");
   let errors = 0;
   const reqHeaders = [
     { header: "# Purpose", regex: /^#\s+Purpose/mi },
@@ -2067,8 +2257,8 @@ Validating Template: ${name}`);
         errors++;
       }
     });
-    const templateDir = join7(sourceRoot, "examples", name);
-    if (t.status === "stable" && !existsSync7(templateDir)) {
+    const templateDir = join8(sourceRoot, "examples", name);
+    if (t.status === "stable" && !existsSync8(templateDir)) {
       console.error(`  \x1B[31m\u2717 Stable template source folder missing: examples/${name}\x1B[0m`);
       errors++;
     }
@@ -2102,7 +2292,7 @@ function handleDoctorRelease(options) {
   let warnings = 0;
   let packageVersion = "unknown";
   try {
-    const pkg = JSON.parse(readFileSync8(join7(sourceRoot, "package.json"), "utf8"));
+    const pkg = JSON.parse(readFileSync9(join8(sourceRoot, "package.json"), "utf8"));
     packageVersion = pkg.version;
     console.log(`  \x1B[32m\u2713\x1B[0m package.json version: ${packageVersion}`);
   } catch (e) {
@@ -2110,9 +2300,9 @@ function handleDoctorRelease(options) {
     warnings++;
   }
   const checkInstallScript = (filename, regex) => {
-    const filePath = join7(sourceRoot, filename);
-    if (existsSync7(filePath)) {
-      const content = readFileSync8(filePath, "utf8");
+    const filePath = join8(sourceRoot, filename);
+    if (existsSync8(filePath)) {
+      const content = readFileSync9(filePath, "utf8");
       const match = content.match(regex);
       if (match && match[1] === packageVersion) {
         console.log(`  \x1B[32m\u2713\x1B[0m ${filename} version aligns: ${match[1]}`);
@@ -2126,8 +2316,8 @@ function handleDoctorRelease(options) {
   checkInstallScript("scripts/install.ps1", /\$VERSION\s*=\s*"([^"]+)"/i);
   const blacklist = [".npmrc"];
   blacklist.forEach((file) => {
-    const fullPath = join7(sourceRoot, file);
-    if (existsSync7(fullPath)) {
+    const fullPath = join8(sourceRoot, file);
+    if (existsSync8(fullPath)) {
       console.warn(`  \x1B[33m[WARNING]\x1B[0m Blacklisted file found in release root: ${file}`);
       warnings++;
     } else {
@@ -2135,11 +2325,11 @@ function handleDoctorRelease(options) {
     }
   });
   const scanSafety = (dir) => {
-    if (!existsSync7(dir))
+    if (!existsSync8(dir))
       return;
     const items = readdirSync(dir);
     for (const item of items) {
-      const fullPath = join7(dir, item);
+      const fullPath = join8(dir, item);
       try {
         const stat = statSync(fullPath);
         if (stat.isDirectory()) {
@@ -2154,7 +2344,7 @@ function handleDoctorRelease(options) {
       }
     }
   };
-  scanSafety(join7(sourceRoot, "examples"));
+  scanSafety(join8(sourceRoot, "examples"));
   console.log("\n==================================================");
   if (warnings > 0) {
     console.warn(`  \x1B[33mRelease doctor complete with ${warnings} warnings.\x1B[0m
@@ -2167,11 +2357,11 @@ function scanTarget(targetDir) {
   const files = [];
   let ignoredCount = 0;
   function walk(dir) {
-    if (!existsSync7(dir))
+    if (!existsSync8(dir))
       return;
     const items = readdirSync(dir);
     for (const item of items) {
-      const fullPath = join7(dir, item);
+      const fullPath = join8(dir, item);
       const relPath = relative(targetDir, fullPath).replace(/\\/g, "/");
       if (shouldIgnorePath(relPath)) {
         ignoredCount++;
@@ -2210,7 +2400,7 @@ function detectFrameworkSignals(files, targetDir) {
   if (hasFile("package.json")) {
     signals.push("Node.js");
     try {
-      const pkg = JSON.parse(readFileSync8(join7(targetDir, "package.json"), "utf8"));
+      const pkg = JSON.parse(readFileSync9(join8(targetDir, "package.json"), "utf8"));
       const deps = { ...pkg.dependencies, ...pkg.devDependencies };
       if (deps["react"])
         signals.push("React");
@@ -2292,8 +2482,8 @@ function detectAiDevOsSignals(files) {
 }
 function detectRisks(files, targetDir) {
   const risks = [];
-  const gitignorePath = join7(targetDir, ".gitignore");
-  const gitignoreContent = existsSync7(gitignorePath) ? readFileSync8(gitignorePath, "utf8") : "";
+  const gitignorePath = join8(targetDir, ".gitignore");
+  const gitignoreContent = existsSync8(gitignorePath) ? readFileSync9(gitignorePath, "utf8") : "";
   const hasFolder = (name) => files.some((f) => f.relPath.split("/")[0] === name);
   if (hasFolder("node_modules") && !gitignoreContent.includes("node_modules")) {
     risks.push({
@@ -2350,13 +2540,13 @@ function buildMemoryIndex(targetDir) {
   };
 }
 function writeMemoryFiles(targetDir, index) {
-  const intelDir = join7(targetDir, ".ai", "intelligence");
-  if (!existsSync7(intelDir)) {
+  const intelDir = join8(targetDir, ".ai", "intelligence");
+  if (!existsSync8(intelDir)) {
     mkdirSync3(intelDir, { recursive: true });
   }
-  const hashJsonPath = join7(intelDir, "memory.hash.json");
+  const hashJsonPath = join8(intelDir, "memory.hash.json");
   writeFileSync4(hashJsonPath, JSON.stringify(index, null, 2), "utf8");
-  const summaryMdPath = join7(intelDir, "memory.summary.md");
+  const summaryMdPath = join8(intelDir, "memory.summary.md");
   let md = `# MultiModel Dev OS Repository Memory Summary
 
 `;
@@ -2408,13 +2598,13 @@ function writeMemoryFiles(targetDir, index) {
   writeFileSync4(summaryMdPath, md, "utf8");
 }
 function diffMemory(targetDir) {
-  const hashJsonPath = join7(targetDir, ".ai", "intelligence", "memory.hash.json");
-  if (!existsSync7(hashJsonPath)) {
+  const hashJsonPath = join8(targetDir, ".ai", "intelligence", "memory.hash.json");
+  if (!existsSync8(hashJsonPath)) {
     return null;
   }
   let existing;
   try {
-    existing = JSON.parse(readFileSync8(hashJsonPath, "utf8"));
+    existing = JSON.parse(readFileSync9(hashJsonPath, "utf8"));
   } catch (e) {
     return null;
   }
@@ -2549,8 +2739,8 @@ function handleMemoryDiff(options) {
   console.log();
 }
 function handleFeedbackAdd(options) {
-  const intelDir = join7(options.target, ".ai", "intelligence");
-  if (!options.dryRun && !existsSync7(intelDir)) {
+  const intelDir = join8(options.target, ".ai", "intelligence");
+  if (!options.dryRun && !existsSync8(intelDir)) {
     mkdirSync3(intelDir, { recursive: true });
   }
   const addIdx = process.argv.indexOf("add");
@@ -2576,15 +2766,15 @@ function handleFeedbackAdd(options) {
   };
   rawRecord.hash = createHash2("sha256").update(JSON.stringify(rawRecord)).digest("hex");
   const recordLine = JSON.stringify(rawRecord) + "\n";
-  const feedbackLogPath = join7(intelDir, "feedback-log.jsonl");
+  const feedbackLogPath = join8(intelDir, "feedback-log.jsonl");
   if (options.dryRun) {
     console.log(`\x1B[36m[DRY-RUN] WOULD APPEND TO ${feedbackLogPath}:\x1B[0m`);
     console.log(recordLine.trim());
   } else {
     try {
       let isDuplicate = false;
-      if (existsSync7(feedbackLogPath)) {
-        const lines = readFileSync8(feedbackLogPath, "utf8").split("\n");
+      if (existsSync8(feedbackLogPath)) {
+        const lines = readFileSync9(feedbackLogPath, "utf8").split("\n");
         for (const line of lines) {
           if (!line.trim())
             continue;
@@ -2611,13 +2801,13 @@ function handleFeedbackAdd(options) {
   }
 }
 function handleFeedbackList(options) {
-  const feedbackLogPath = join7(options.target, ".ai", "intelligence", "feedback-log.jsonl");
-  if (!existsSync7(feedbackLogPath)) {
+  const feedbackLogPath = join8(options.target, ".ai", "intelligence", "feedback-log.jsonl");
+  if (!existsSync8(feedbackLogPath)) {
     console.log("No feedback logged yet.");
     return;
   }
   try {
-    const content = readFileSync8(feedbackLogPath, "utf8");
+    const content = readFileSync9(feedbackLogPath, "utf8");
     const lines = content.split("\n").filter((l) => l.trim() !== "");
     if (lines.length === 0) {
       console.log("No feedback logged yet.");
@@ -2649,14 +2839,14 @@ function handleFeedbackList(options) {
   }
 }
 function handleFeedbackSummarize(options) {
-  const intelDir = join7(options.target, ".ai", "intelligence");
-  const feedbackLogPath = join7(intelDir, "feedback-log.jsonl");
-  if (!existsSync7(feedbackLogPath)) {
+  const intelDir = join8(options.target, ".ai", "intelligence");
+  const feedbackLogPath = join8(intelDir, "feedback-log.jsonl");
+  if (!existsSync8(feedbackLogPath)) {
     console.log("No feedback logs found to compile.");
     return;
   }
   try {
-    const content = readFileSync8(feedbackLogPath, "utf8");
+    const content = readFileSync9(feedbackLogPath, "utf8");
     const lines = content.split("\n").filter((l) => l.trim() !== "");
     if (lines.length === 0) {
       console.log("No feedback logs found to compile.");
@@ -2701,7 +2891,7 @@ function handleFeedbackSummarize(options) {
 `;
       });
     });
-    const targetRulesPath = join7(intelDir, "learning-rules.md");
+    const targetRulesPath = join8(intelDir, "learning-rules.md");
     if (options.dryRun) {
       console.log(`\x1B[36m[DRY-RUN] WOULD WRITE TO ${targetRulesPath}:\x1B[0m`);
       console.log(md);
@@ -2715,8 +2905,8 @@ function handleFeedbackSummarize(options) {
   }
 }
 function handleImprovePropose(options) {
-  const proposalsDir = join7(options.target, ".ai", "proposals");
-  if (!options.dryRun && !existsSync7(proposalsDir)) {
+  const proposalsDir = join8(options.target, ".ai", "proposals");
+  if (!options.dryRun && !existsSync8(proposalsDir)) {
     mkdirSync3(proposalsDir, { recursive: true });
   }
   const now = /* @__PURE__ */ new Date();
@@ -2733,15 +2923,15 @@ function handleImprovePropose(options) {
   let suggestedChange = "No code suggestions compiled.";
   let verifyCommand = "npm run verify";
   let rollbackPlan = "git checkout -- .";
-  const gitignorePath = join7(options.target, ".gitignore");
-  const agentsPath = join7(options.target, "AGENTS.md");
-  if (!existsSync7(gitignorePath)) {
+  const gitignorePath = join8(options.target, ".gitignore");
+  const agentsPath = join8(options.target, "AGENTS.md");
+  if (!existsSync8(gitignorePath)) {
     problem = "Missing .gitignore file in target workspace. AI agents may scan large build directories and run out of token context.";
     evidence = `.gitignore file is not present at root directory: ${options.target}`;
     affectedFiles = [".gitignore"];
     suggestedChange = "Create a standard .gitignore file to exclude node_modules, build/ and dist/ directories.";
     rollbackPlan = "git clean -fd .gitignore";
-  } else if (!existsSync7(agentsPath)) {
+  } else if (!existsSync8(agentsPath)) {
     problem = "Missing AGENTS.md document in target workspace. Models will lack stack-specific implementation blueprints.";
     evidence = `AGENTS.md file is not present at root directory: ${options.target}`;
     affectedFiles = ["AGENTS.md"];
@@ -2795,7 +2985,7 @@ ${suggestedChange}
 *   **Rollback Command**: \`${rollbackPlan}\`
 *   **Approval Status**: PENDING (Manual approval required before implementation)
 `;
-  const proposalFile = join7(proposalsDir, `${id}.md`);
+  const proposalFile = join8(proposalsDir, `${id}.md`);
   if (options.dryRun) {
     console.log(`\x1B[36m[DRY-RUN] WOULD WRITE PROPOSAL TO ${proposalFile}:\x1B[0m`);
     console.log(md);
@@ -2805,8 +2995,8 @@ ${suggestedChange}
   }
 }
 function handleImproveReview(options) {
-  const proposalsDir = join7(options.target, ".ai", "proposals");
-  if (!existsSync7(proposalsDir)) {
+  const proposalsDir = join8(options.target, ".ai", "proposals");
+  if (!existsSync8(proposalsDir)) {
     console.log("No improvement proposals found.");
     return;
   }
@@ -2820,8 +3010,8 @@ function handleImproveReview(options) {
 \u{1F4CB} \x1B[36mCodebase Improvement Proposals\x1B[0m`);
     console.log("==================================================");
     files.forEach((file) => {
-      const fullPath = join7(proposalsDir, file);
-      const content = readFileSync8(fullPath, "utf8");
+      const fullPath = join8(proposalsDir, file);
+      const content = readFileSync9(fullPath, "utf8");
       const fmMatch = content.match(/^---([\s\S]*?)---/);
       if (!fmMatch)
         return;
@@ -2844,8 +3034,8 @@ function handleImproveReview(options) {
   }
 }
 function handleImproveStatus(options) {
-  const proposalsDir = join7(options.target, ".ai", "proposals");
-  if (!existsSync7(proposalsDir)) {
+  const proposalsDir = join8(options.target, ".ai", "proposals");
+  if (!existsSync8(proposalsDir)) {
     console.log("Improvement Proposal Engine Status:");
     console.log("  Total Proposals:  0");
     console.log("  Pending Approval: 0");
@@ -2857,7 +3047,7 @@ function handleImproveStatus(options) {
     let approved = 0;
     let rejected = 0;
     files.forEach((file) => {
-      const content = readFileSync8(join7(proposalsDir, file), "utf8");
+      const content = readFileSync9(join8(proposalsDir, file), "utf8");
       const fmMatch = content.match(/^---([\s\S]*?)---/);
       if (fmMatch) {
         const metadata = parseYaml(fmMatch[1]) || {};
@@ -2893,7 +3083,7 @@ function validatePath(targetRoot, relPath) {
   }
   const resolved = resolve3(targetRoot, relPath);
   const relativeFromRoot = relative(targetRoot, resolved);
-  if (relativeFromRoot.startsWith("..") || isAbsolute(relativeFromRoot) || resolved === targetRoot) {
+  if (relativeFromRoot.startsWith("..") || isAbsolute2(relativeFromRoot) || resolved === targetRoot) {
     return { valid: false, reason: `Path '${relPath}' resolves outside the target root.`, type: "outside" };
   }
   const parts = relativeFromRoot.replace(/\\/g, "/").split("/");
@@ -2933,11 +3123,11 @@ function validateProposal(proposalFile, targetRoot) {
     permissions: { status: "skip" },
     constraints: { status: "skip" }
   };
-  if (!existsSync7(proposalFile)) {
+  if (!existsSync8(proposalFile)) {
     gates.frontmatter = { status: "fail", reason: "missing frontmatter" };
     return { valid: false, reason: "missing frontmatter", gates };
   }
-  const content = readFileSync8(proposalFile, "utf8");
+  const content = readFileSync9(proposalFile, "utf8");
   const fmMatch = content.match(/^---([\s\S]*?)---/);
   if (!fmMatch) {
     gates.frontmatter = { status: "fail", reason: "missing frontmatter" };
@@ -3048,7 +3238,7 @@ function validateProposal(proposalFile, targetRoot) {
           constraintsStatus = "fail";
           constraintsReason = `unsupported operation type`;
         }
-      } else if (existsSync7(resolvedPath) && !op.overwrite) {
+      } else if (existsSync8(resolvedPath) && !op.overwrite) {
         if (constraintsStatus === "pass") {
           constraintsStatus = "fail";
           constraintsReason = `create_file target exists without overwrite`;
@@ -3067,13 +3257,13 @@ function validateProposal(proposalFile, targetRoot) {
           constraintsStatus = "fail";
           constraintsReason = `unsupported operation type`;
         }
-      } else if (!existsSync7(resolvedPath)) {
+      } else if (!existsSync8(resolvedPath)) {
         if (constraintsStatus === "pass") {
           constraintsStatus = "fail";
           constraintsReason = `replace_text zero matches`;
         }
       } else {
-        const fileContent = readFileSync8(resolvedPath, "utf8");
+        const fileContent = readFileSync9(resolvedPath, "utf8");
         let count = 0;
         let pos = fileContent.indexOf(op.find);
         while (pos !== -1) {
@@ -3242,7 +3432,7 @@ function handleImproveDiff(proposalFile, options) {
       console.log(`
 \x1B[33m[Operation #${idx + 1}] Target: ${op.path}\x1B[0m`);
       if (type === "create_file") {
-        const exists = existsSync7(op.resolvedPath);
+        const exists = existsSync8(op.resolvedPath);
         if (exists) {
           console.log(`  \x1B[31m\u26A0\uFE0F  [Overwriting existing file]\x1B[0m`);
         } else {
@@ -3252,10 +3442,10 @@ function handleImproveDiff(proposalFile, options) {
         console.log(`  + [File content: ${linesCount} line(s), overwrite: ${!!op.overwrite}]`);
         printTruncatedLines(op.content, "  +", "\x1B[32m");
       } else if (type === "append_line") {
-        const exists = existsSync7(op.resolvedPath);
+        const exists = existsSync8(op.resolvedPath);
         let currentFileContent = "";
         if (exists) {
-          currentFileContent = readFileSync8(op.resolvedPath, "utf8");
+          currentFileContent = readFileSync9(op.resolvedPath, "utf8");
         }
         const fileLines = currentFileContent.split(/\r?\n/);
         const lineExists = fileLines.some((l) => l.trim() === op.line.trim());
@@ -3288,14 +3478,14 @@ function handleImproveApply(proposalFile, options) {
   if (!validation.valid) {
     console.error(`\x1B[31mValidation FAILED: ${validation.reason}\x1B[0m`);
     const applyId2 = `apply-${(/* @__PURE__ */ new Date()).toISOString().replace(/[-:T.Z]/g, "").slice(0, 14)}`;
-    const logDir2 = join7(options.target, ".ai", "proposals");
-    if (!existsSync7(logDir2)) {
+    const logDir2 = join8(options.target, ".ai", "proposals");
+    if (!existsSync8(logDir2)) {
       try {
         mkdirSync3(logDir2, { recursive: true });
       } catch (e) {
       }
     }
-    const logFile2 = join7(logDir2, "apply-log.jsonl");
+    const logFile2 = join8(logDir2, "apply-log.jsonl");
     const record2 = {
       id: applyId2,
       proposal_id: validation.proposalId || basename(proposalFile, ".md"),
@@ -3338,8 +3528,8 @@ Applying changes...`);
       if (!filesChanged.includes(relPath)) {
         filesChanged.push(relPath);
       }
-      if (existsSync7(op.resolvedPath)) {
-        const fileContent = readFileSync8(op.resolvedPath, "utf8");
+      if (existsSync8(op.resolvedPath)) {
+        const fileContent = readFileSync9(op.resolvedPath, "utf8");
         beforeHashes[relPath] = getSha256(fileContent);
       } else {
         beforeHashes[relPath] = null;
@@ -3350,10 +3540,10 @@ Applying changes...`);
       console.log(`  Executing Operation #${idx + 1} (${op.type}) on '${relPath}'...`);
       if (op.type === "create_file") {
         const dir = dirname4(op.resolvedPath);
-        if (!existsSync7(dir)) {
+        if (!existsSync8(dir)) {
           mkdirSync3(dir, { recursive: true });
         }
-        const exists = existsSync7(op.resolvedPath);
+        const exists = existsSync8(op.resolvedPath);
         writeFileSync4(op.resolvedPath, op.content, "utf8");
         if (exists) {
           console.log(`    [OVERWRITTEN] Overwrote existing file '${relPath}'.`);
@@ -3362,8 +3552,8 @@ Applying changes...`);
         }
       } else if (op.type === "append_line") {
         let content = "";
-        if (existsSync7(op.resolvedPath)) {
-          content = readFileSync8(op.resolvedPath, "utf8");
+        if (existsSync8(op.resolvedPath)) {
+          content = readFileSync9(op.resolvedPath, "utf8");
         }
         const fileLines = content.split(/\r?\n/);
         const lineExists = fileLines.some((l) => l.trim() === op.line.trim());
@@ -3374,7 +3564,7 @@ Applying changes...`);
           }
           newContent += op.line + "\n";
           const dir = dirname4(op.resolvedPath);
-          if (!existsSync7(dir)) {
+          if (!existsSync8(dir)) {
             mkdirSync3(dir, { recursive: true });
           }
           writeFileSync4(op.resolvedPath, newContent, "utf8");
@@ -3383,7 +3573,7 @@ Applying changes...`);
           console.log(`    [IDEMPOTENT] Line already exists in '${relPath}'. Skipping append.`);
         }
       } else if (op.type === "replace_text") {
-        const fileContent = readFileSync8(op.resolvedPath, "utf8");
+        const fileContent = readFileSync9(op.resolvedPath, "utf8");
         let count = 0;
         let pos = fileContent.indexOf(op.find);
         while (pos !== -1) {
@@ -3404,8 +3594,8 @@ Applying changes...`);
     });
     filesChanged.forEach((relPath) => {
       const fullPath = resolve3(options.target, relPath);
-      if (existsSync7(fullPath)) {
-        const fileContent = readFileSync8(fullPath, "utf8");
+      if (existsSync8(fullPath)) {
+        const fileContent = readFileSync9(fullPath, "utf8");
         afterHashes[relPath] = getSha256(fileContent);
       } else {
         afterHashes[relPath] = null;
@@ -3417,11 +3607,11 @@ Applying changes...`);
     notes = `Execution error: ${e.message}`;
     console.error(`\x1B[31mError applying proposal: ${e.message}\x1B[0m`);
   }
-  const logDir = join7(options.target, ".ai", "proposals");
-  if (!existsSync7(logDir)) {
+  const logDir = join8(options.target, ".ai", "proposals");
+  if (!existsSync8(logDir)) {
     mkdirSync3(logDir, { recursive: true });
   }
-  const logFile = join7(logDir, "apply-log.jsonl");
+  const logFile = join8(logDir, "apply-log.jsonl");
   const record = {
     id: applyId,
     proposal_id: proposalId,
@@ -3451,13 +3641,13 @@ Applying changes...`);
   }
 }
 function handleImproveLog(options) {
-  const logFile = join7(options.target, ".ai", "proposals", "apply-log.jsonl");
-  if (!existsSync7(logFile)) {
+  const logFile = join8(options.target, ".ai", "proposals", "apply-log.jsonl");
+  if (!existsSync8(logFile)) {
     console.log("No apply log found.");
     return;
   }
   try {
-    const lines = readFileSync8(logFile, "utf8").trim().split(/\r?\n/);
+    const lines = readFileSync9(logFile, "utf8").trim().split(/\r?\n/);
     console.log(`
 \u{1F4DC} \x1B[36mApplied Proposals Audit Log\x1B[0m`);
     console.log("==================================================");
@@ -3487,9 +3677,9 @@ function handleStatus(options) {
   let pkgName = "unknown";
   let pkgVersion2 = "unknown";
   try {
-    const pkgPath = join7(options.target, "package.json");
-    if (existsSync7(pkgPath)) {
-      const pkg = JSON.parse(readFileSync8(pkgPath, "utf8"));
+    const pkgPath = join8(options.target, "package.json");
+    if (existsSync8(pkgPath)) {
+      const pkg = JSON.parse(readFileSync9(pkgPath, "utf8"));
       pkgName = pkg.name || pkgName;
       pkgVersion2 = pkg.version || pkgVersion2;
     }
@@ -3504,12 +3694,12 @@ function handleStatus(options) {
   console.log(`  \x1B[33mFramework & Dependency Signals:\x1B[0m`);
   console.log(`    Frameworks:      ${frameworkSignals.join(", ") || "None"}`);
   console.log(`    Dependencies:    ${dependencySignals.join(", ") || "None"}`);
-  const memoryHashPath = join7(options.target, ".ai", "intelligence", "memory.hash.json");
+  const memoryHashPath = join8(options.target, ".ai", "intelligence", "memory.hash.json");
   let memoryStatus = "\x1B[31mMISSING\x1B[0m";
   let lastBuildTime = "N/A";
-  if (existsSync7(memoryHashPath)) {
+  if (existsSync8(memoryHashPath)) {
     try {
-      const memObj = JSON.parse(readFileSync8(memoryHashPath, "utf8"));
+      const memObj = JSON.parse(readFileSync9(memoryHashPath, "utf8"));
       lastBuildTime = memObj.generated_at || "N/A";
       const diff = diffMemory(options.target);
       if (diff) {
@@ -3526,30 +3716,30 @@ function handleStatus(options) {
   console.log(`  \x1B[33mMemory State:\x1B[0m`);
   console.log(`    Status:          ${memoryStatus}`);
   console.log(`    Last Built:      ${lastBuildTime}`);
-  const feedbackPath = join7(options.target, ".ai", "intelligence", "feedback-log.jsonl");
+  const feedbackPath = join8(options.target, ".ai", "intelligence", "feedback-log.jsonl");
   let feedbackCount = 0;
-  if (existsSync7(feedbackPath)) {
+  if (existsSync8(feedbackPath)) {
     try {
-      feedbackCount = readFileSync8(feedbackPath, "utf8").trim().split(/\r?\n/).filter((l) => l.trim() !== "").length;
+      feedbackCount = readFileSync9(feedbackPath, "utf8").trim().split(/\r?\n/).filter((l) => l.trim() !== "").length;
     } catch (e) {
     }
   }
-  const rulesPath = join7(options.target, ".ai", "intelligence", "learning-rules.md");
-  const rulesStatus = existsSync7(rulesPath) ? "\x1B[32mPRESENT\x1B[0m" : "\x1B[31mMISSING\x1B[0m";
+  const rulesPath = join8(options.target, ".ai", "intelligence", "learning-rules.md");
+  const rulesStatus = existsSync8(rulesPath) ? "\x1B[32mPRESENT\x1B[0m" : "\x1B[31mMISSING\x1B[0m";
   console.log(`  \x1B[33mFeedback Loop & Rules:\x1B[0m`);
   console.log(`    Feedback Count:  ${feedbackCount}`);
   console.log(`    Learning Rules:  ${rulesStatus}`);
-  const proposalsDir = join7(options.target, ".ai", "proposals");
+  const proposalsDir = join8(options.target, ".ai", "proposals");
   let pendingCount = 0;
   let approvedCount = 0;
   let rejectedCount = 0;
   let totalProposals = 0;
-  if (existsSync7(proposalsDir)) {
+  if (existsSync8(proposalsDir)) {
     try {
       const propFiles = readdirSync(proposalsDir).filter((f) => f.startsWith("proposal-") && f.endsWith(".md"));
       totalProposals = propFiles.length;
       propFiles.forEach((file) => {
-        const content = readFileSync8(join7(proposalsDir, file), "utf8");
+        const content = readFileSync9(join8(proposalsDir, file), "utf8");
         const fmMatch = content.match(/^---([\s\S]*?)---/);
         if (fmMatch) {
           const metadata = parseYaml(fmMatch[1]) || {};
@@ -3570,26 +3760,26 @@ function handleStatus(options) {
   console.log(`    Pending:         \x1B[33m${pendingCount}\x1B[0m`);
   console.log(`    Approved:        \x1B[32m${approvedCount}\x1B[0m`);
   console.log(`    Rejected:        \x1B[31m${rejectedCount}\x1B[0m`);
-  const applyLogPath = join7(options.target, ".ai", "proposals", "apply-log.jsonl");
+  const applyLogPath = join8(options.target, ".ai", "proposals", "apply-log.jsonl");
   let applyLogCount = 0;
-  if (existsSync7(applyLogPath)) {
+  if (existsSync8(applyLogPath)) {
     try {
-      applyLogCount = readFileSync8(applyLogPath, "utf8").trim().split(/\r?\n/).filter((l) => l.trim() !== "").length;
+      applyLogCount = readFileSync9(applyLogPath, "utf8").trim().split(/\r?\n/).filter((l) => l.trim() !== "").length;
     } catch (e) {
     }
   }
   console.log(`  \x1B[33mApply Audit Log:\x1B[0m`);
   console.log(`    Apply Count:     ${applyLogCount}`);
   let nextMove = "mmdo status";
-  if (!existsSync7(join7(options.target, ".ai", "config.yaml"))) {
+  if (!existsSync8(join8(options.target, ".ai", "config.yaml"))) {
     nextMove = "\x1B[36mnpx multimodel-dev-os init\x1B[0m (initialize MultiModel Dev OS first)";
-  } else if (!existsSync7(memoryHashPath)) {
+  } else if (!existsSync8(memoryHashPath)) {
     nextMove = "\x1B[36mnpx multimodel-dev-os memory build\x1B[0m (initialize memory index)";
   } else {
     const diff = diffMemory(options.target);
     if (diff && (diff.added.length > 0 || diff.removed.length > 0 || diff.changed.length > 0)) {
       nextMove = "\x1B[36mnpx multimodel-dev-os memory refresh\x1B[0m (update memory with changes)";
-    } else if (feedbackCount > 0 && !existsSync7(rulesPath)) {
+    } else if (feedbackCount > 0 && !existsSync8(rulesPath)) {
       nextMove = "\x1B[36mnpx multimodel-dev-os feedback summarize\x1B[0m (compile feedback into learning rules)";
     } else if (pendingCount > 0) {
       nextMove = "\x1B[36mnpx multimodel-dev-os improve review\x1B[0m (review pending proposals)";
@@ -3603,11 +3793,11 @@ function handleStatus(options) {
 `);
 }
 function getWorkflowsPath(target) {
-  let workflowsPath = join7(target, ".ai", "registries", "workflows.yaml");
+  let workflowsPath = join8(target, ".ai", "registries", "workflows.yaml");
   let usingFallback = false;
-  if (!existsSync7(workflowsPath)) {
-    const fallbackPath = join7(sourceRoot, ".ai", "registries", "workflows.yaml");
-    if (existsSync7(fallbackPath)) {
+  if (!existsSync8(workflowsPath)) {
+    const fallbackPath = join8(sourceRoot, ".ai", "registries", "workflows.yaml");
+    if (existsSync8(fallbackPath)) {
       workflowsPath = fallbackPath;
       usingFallback = true;
     }
@@ -3616,7 +3806,7 @@ function getWorkflowsPath(target) {
 }
 function handleWorkflowList(options) {
   const { workflowsPath, usingFallback } = getWorkflowsPath(options.target);
-  if (!existsSync7(workflowsPath)) {
+  if (!existsSync8(workflowsPath)) {
     console.log("No workflows registry found.");
     return;
   }
@@ -3624,7 +3814,7 @@ function handleWorkflowList(options) {
     console.log("\x1B[33mNotice: Local workflows registry not found. Using bundled workflows registry fallback.\x1B[0m");
   }
   try {
-    const registry = parseYaml(readFileSync8(workflowsPath, "utf8")) || {};
+    const registry = parseYaml(readFileSync9(workflowsPath, "utf8")) || {};
     const workflows = registry.workflows || {};
     console.log(`
 \u2699 \x1B[36mRegistered Workflows\x1B[0m`);
@@ -3646,7 +3836,7 @@ function handleWorkflowList(options) {
 }
 function handleWorkflowShow(wName, options) {
   const { workflowsPath, usingFallback } = getWorkflowsPath(options.target);
-  if (!existsSync7(workflowsPath)) {
+  if (!existsSync8(workflowsPath)) {
     console.log("No workflows registry found.");
     return;
   }
@@ -3654,7 +3844,7 @@ function handleWorkflowShow(wName, options) {
     console.log("\x1B[33mNotice: Local workflows registry not found. Using bundled workflows registry fallback.\x1B[0m");
   }
   try {
-    const registry = parseYaml(readFileSync8(workflowsPath, "utf8")) || {};
+    const registry = parseYaml(readFileSync9(workflowsPath, "utf8")) || {};
     const workflows = registry.workflows || {};
     const wf = workflows[wName];
     if (!wf) {
@@ -3687,7 +3877,7 @@ function handleWorkflowShow(wName, options) {
 }
 function handleWorkflowPlan(wName, options) {
   const { workflowsPath, usingFallback } = getWorkflowsPath(options.target);
-  if (!existsSync7(workflowsPath)) {
+  if (!existsSync8(workflowsPath)) {
     console.log("No workflows registry found.");
     return;
   }
@@ -3695,7 +3885,7 @@ function handleWorkflowPlan(wName, options) {
     console.log("\x1B[33mNotice: Local workflows registry not found. Using bundled workflows registry fallback.\x1B[0m");
   }
   try {
-    const registry = parseYaml(readFileSync8(workflowsPath, "utf8")) || {};
+    const registry = parseYaml(readFileSync9(workflowsPath, "utf8")) || {};
     const workflows = registry.workflows || {};
     const wf = workflows[wName];
     if (!wf) {
@@ -3722,7 +3912,7 @@ function handleWorkflowPlan(wName, options) {
 }
 function handleWorkflowRun(wName, options) {
   const { workflowsPath, usingFallback } = getWorkflowsPath(options.target);
-  if (!existsSync7(workflowsPath)) {
+  if (!existsSync8(workflowsPath)) {
     console.log("No workflows registry found.");
     return;
   }
@@ -3730,7 +3920,7 @@ function handleWorkflowRun(wName, options) {
     console.log("\x1B[33mNotice: Local workflows registry not found. Using bundled workflows registry fallback.\x1B[0m");
   }
   try {
-    const registry = parseYaml(readFileSync8(workflowsPath, "utf8")) || {};
+    const registry = parseYaml(readFileSync9(workflowsPath, "utf8")) || {};
     const workflows = registry.workflows || {};
     const wf = workflows[wName];
     if (!wf) {
@@ -3782,17 +3972,17 @@ function handleWorkflowRun(wName, options) {
   }
 }
 function handleHandoffBuild(options) {
-  const intelDir = join7(options.target, ".ai", "intelligence");
-  if (!existsSync7(intelDir)) {
+  const intelDir = join8(options.target, ".ai", "intelligence");
+  if (!existsSync8(intelDir)) {
     mkdirSync3(intelDir, { recursive: true });
   }
-  const handoffPath = join7(intelDir, "handoff.md");
+  const handoffPath = join8(intelDir, "handoff.md");
   let pkgName = "unknown";
   let pkgVersion2 = "unknown";
   try {
-    const pkgPath = join7(options.target, "package.json");
-    if (existsSync7(pkgPath)) {
-      const pkg = JSON.parse(readFileSync8(pkgPath, "utf8"));
+    const pkgPath = join8(options.target, "package.json");
+    if (existsSync8(pkgPath)) {
+      const pkg = JSON.parse(readFileSync9(pkgPath, "utf8"));
       pkgName = pkg.name || pkgName;
       pkgVersion2 = pkg.version || pkgVersion2;
     }
@@ -3801,12 +3991,12 @@ function handleHandoffBuild(options) {
   const { files } = scanTarget(options.target);
   const frameworkSignals = detectFrameworkSignals(files, options.target);
   const dependencySignals = detectDependencySignals(files, options.target);
-  const memoryHashPath = join7(intelDir, "memory.hash.json");
+  const memoryHashPath = join8(intelDir, "memory.hash.json");
   let memoryStatus = "MISSING";
   let memoryTime = "N/A";
-  if (existsSync7(memoryHashPath)) {
+  if (existsSync8(memoryHashPath)) {
     try {
-      const memObj = JSON.parse(readFileSync8(memoryHashPath, "utf8"));
+      const memObj = JSON.parse(readFileSync9(memoryHashPath, "utf8"));
       memoryTime = memObj.generated_at || "N/A";
       const diff = diffMemory(options.target);
       if (diff) {
@@ -3816,25 +4006,25 @@ function handleHandoffBuild(options) {
       memoryStatus = "CORRUPT";
     }
   }
-  const feedbackPath = join7(intelDir, "feedback-log.jsonl");
+  const feedbackPath = join8(intelDir, "feedback-log.jsonl");
   let feedbackCount = 0;
-  if (existsSync7(feedbackPath)) {
+  if (existsSync8(feedbackPath)) {
     try {
-      feedbackCount = readFileSync8(feedbackPath, "utf8").trim().split(/\r?\n/).filter((l) => l.trim() !== "").length;
+      feedbackCount = readFileSync9(feedbackPath, "utf8").trim().split(/\r?\n/).filter((l) => l.trim() !== "").length;
     } catch (e) {
     }
   }
-  const rulesPath = join7(intelDir, "learning-rules.md");
-  const rulesStatus = existsSync7(rulesPath) ? "PRESENT" : "MISSING";
-  const proposalsDir = join7(options.target, ".ai", "proposals");
+  const rulesPath = join8(intelDir, "learning-rules.md");
+  const rulesStatus = existsSync8(rulesPath) ? "PRESENT" : "MISSING";
+  const proposalsDir = join8(options.target, ".ai", "proposals");
   let pendingCount = 0;
   let approvedCount = 0;
   let rejectedCount = 0;
-  if (existsSync7(proposalsDir)) {
+  if (existsSync8(proposalsDir)) {
     try {
       const propFiles = readdirSync(proposalsDir).filter((f) => f.startsWith("proposal-") && f.endsWith(".md"));
       propFiles.forEach((file) => {
-        const content = readFileSync8(join7(proposalsDir, file), "utf8");
+        const content = readFileSync9(join8(proposalsDir, file), "utf8");
         const fmMatch = content.match(/^---([\s\S]*?)---/);
         if (fmMatch) {
           const metadata = parseYaml(fmMatch[1]) || {};
@@ -3850,12 +4040,12 @@ function handleHandoffBuild(options) {
     } catch (e) {
     }
   }
-  const applyLogPath = join7(proposalsDir, "apply-log.jsonl");
+  const applyLogPath = join8(proposalsDir, "apply-log.jsonl");
   let applyLogCount = 0;
   let lastApplyId = "None";
-  if (existsSync7(applyLogPath)) {
+  if (existsSync8(applyLogPath)) {
     try {
-      const lines = readFileSync8(applyLogPath, "utf8").trim().split(/\r?\n/).filter((l) => l.trim() !== "");
+      const lines = readFileSync9(applyLogPath, "utf8").trim().split(/\r?\n/).filter((l) => l.trim() !== "");
       applyLogCount = lines.length;
       if (applyLogCount > 0) {
         const lastRecord = JSON.parse(lines[lines.length - 1]);
@@ -3865,9 +4055,9 @@ function handleHandoffBuild(options) {
     }
   }
   let rulesSummary = "No learning rules defined yet.";
-  if (existsSync7(rulesPath)) {
+  if (existsSync8(rulesPath)) {
     try {
-      const rulesContent = readFileSync8(rulesPath, "utf8");
+      const rulesContent = readFileSync9(rulesPath, "utf8");
       const lines = rulesContent.split(/\r?\n/);
       const summaryLines = [];
       for (const line of lines) {
@@ -3884,7 +4074,7 @@ function handleHandoffBuild(options) {
     }
   }
   let recs = "1. Run `npx multimodel-dev-os workflow run repo-health` to check the directory hygiene.\n2. Review pending proposals if any exist.";
-  if (!existsSync7(join7(options.target, ".ai", "config.yaml"))) {
+  if (!existsSync8(join8(options.target, ".ai", "config.yaml"))) {
     recs = "1. Run `npx multimodel-dev-os init` to bootstrap MultiModel Dev OS.\n2. Run `npx multimodel-dev-os memory build` to initialize codebase memory.";
   } else if (memoryStatus === "MISSING") {
     recs = "1. Run `npx multimodel-dev-os memory build` to initialize codebase index.\n2. Verify package safety boundaries.";
@@ -3930,13 +4120,13 @@ ${recs}
   }
 }
 function handleHandoffShow(options) {
-  const handoffPath = join7(options.target, ".ai", "intelligence", "handoff.md");
-  if (!existsSync7(handoffPath)) {
+  const handoffPath = join8(options.target, ".ai", "intelligence", "handoff.md");
+  if (!existsSync8(handoffPath)) {
     console.log("No compiled handoff file exists. Building first...");
     handleHandoffBuild(options);
   }
   try {
-    const content = readFileSync8(handoffPath, "utf8");
+    const content = readFileSync9(handoffPath, "utf8");
     console.log("\n" + content);
   } catch (e) {
     console.error(`\x1B[31mError reading handoff: ${e.message}\x1B[0m`);
@@ -3951,8 +4141,8 @@ function handleDoctorIntelligence(options) {
     console.warn(`  \x1B[33m[WARNING]\x1B[0m ${msg}`);
     warnings++;
   };
-  const memoryHashPath = join7(options.target, ".ai", "intelligence", "memory.hash.json");
-  if (!existsSync7(memoryHashPath)) {
+  const memoryHashPath = join8(options.target, ".ai", "intelligence", "memory.hash.json");
+  if (!existsSync8(memoryHashPath)) {
     warn("Memory hash index (.ai/intelligence/memory.hash.json) is MISSING. Run `memory build` first.");
   } else {
     try {
@@ -3966,23 +4156,23 @@ function handleDoctorIntelligence(options) {
       warn("Failed to diff memory index.");
     }
   }
-  const feedbackPath = join7(options.target, ".ai", "intelligence", "feedback-log.jsonl");
-  if (!existsSync7(feedbackPath)) {
+  const feedbackPath = join8(options.target, ".ai", "intelligence", "feedback-log.jsonl");
+  if (!existsSync8(feedbackPath)) {
     warn("Feedback log (.ai/intelligence/feedback-log.jsonl) is MISSING.");
   }
-  const rulesPath = join7(options.target, ".ai", "intelligence", "learning-rules.md");
-  if (!existsSync7(rulesPath)) {
+  const rulesPath = join8(options.target, ".ai", "intelligence", "learning-rules.md");
+  if (!existsSync8(rulesPath)) {
     warn("Learning rules (.ai/intelligence/learning-rules.md) are MISSING. Run `feedback summarize` to compile logs.");
   }
-  const proposalsDir = join7(options.target, ".ai", "proposals");
-  if (!existsSync7(proposalsDir)) {
+  const proposalsDir = join8(options.target, ".ai", "proposals");
+  if (!existsSync8(proposalsDir)) {
     warn("Proposals directory (.ai/proposals) is MISSING.");
   } else {
     try {
       const files = readdirSync(proposalsDir).filter((f) => f.startsWith("proposal-") && f.endsWith(".md"));
       let pending = 0;
       files.forEach((file) => {
-        const content = readFileSync8(join7(proposalsDir, file), "utf8");
+        const content = readFileSync9(join8(proposalsDir, file), "utf8");
         const fmMatch = content.match(/^---([\s\S]*?)---/);
         if (fmMatch) {
           const metadata = parseYaml(fmMatch[1]) || {};
@@ -3997,13 +4187,13 @@ function handleDoctorIntelligence(options) {
     } catch (e) {
     }
   }
-  const applyLogPath = join7(options.target, ".ai", "proposals", "apply-log.jsonl");
-  if (!existsSync7(applyLogPath)) {
+  const applyLogPath = join8(options.target, ".ai", "proposals", "apply-log.jsonl");
+  if (!existsSync8(applyLogPath)) {
     warn("Apply audit log (.ai/proposals/apply-log.jsonl) is MISSING.");
   }
-  const gitignorePath = join7(options.target, ".gitignore");
-  if (existsSync7(gitignorePath)) {
-    const gitignoreContent = readFileSync8(gitignorePath, "utf8");
+  const gitignorePath = join8(options.target, ".gitignore");
+  if (existsSync8(gitignorePath)) {
+    const gitignoreContent = readFileSync9(gitignorePath, "utf8");
     const checkIgnore = (pattern) => {
       if (!gitignoreContent.includes(pattern)) {
         warn(`.gitignore is missing rules ignoring: ${pattern}`);
@@ -4017,9 +4207,9 @@ function handleDoctorIntelligence(options) {
   } else {
     warn(".gitignore file is missing in target root.");
   }
-  if (existsSync7(memoryHashPath)) {
+  if (existsSync8(memoryHashPath)) {
     try {
-      const memObj = JSON.parse(readFileSync8(memoryHashPath, "utf8"));
+      const memObj = JSON.parse(readFileSync9(memoryHashPath, "utf8"));
       const fingerprints = memObj.file_fingerprints || {};
       Object.keys(fingerprints).forEach((file) => {
         const name = file.toLowerCase();
@@ -4079,7 +4269,7 @@ function getAnalysis(target) {
     repoType = "docs";
   } else if (files.some((f) => f.relPath === "package.json")) {
     try {
-      const pkg = JSON.parse(readFileSync8(join7(target, "package.json"), "utf8"));
+      const pkg = JSON.parse(readFileSync9(join8(target, "package.json"), "utf8"));
       if (pkg.main && (pkg.main.includes("dist/") || pkg.main.includes("lib/"))) {
         repoType = "library";
       }
@@ -4100,7 +4290,7 @@ function getAnalysis(target) {
   const packageScripts = [];
   if (files.some((f) => f.relPath === "package.json")) {
     try {
-      const pkg = JSON.parse(readFileSync8(join7(target, "package.json"), "utf8"));
+      const pkg = JSON.parse(readFileSync9(join8(target, "package.json"), "utf8"));
       if (pkg.scripts) {
         Object.keys(pkg.scripts).forEach((k) => packageScripts.push(k));
       }
@@ -4108,8 +4298,8 @@ function getAnalysis(target) {
     }
   }
   const githubWorkflows = [];
-  const githubDir = join7(target, ".github", "workflows");
-  if (existsSync7(githubDir)) {
+  const githubDir = join8(target, ".github", "workflows");
+  if (existsSync8(githubDir)) {
     try {
       readdirSync(githubDir).forEach((f) => {
         if (f.endsWith(".yml") || f.endsWith(".yaml"))
@@ -4217,8 +4407,8 @@ function handleOnboardPlan(options) {
   console.log("==================================================");
   const analysis = getAnalysis(options.target);
   const rec = getRecommendation(analysis);
-  const planPath = join7(options.target, ".ai", "intelligence", "onboarding.plan.json");
-  const reportPath = join7(options.target, ".ai", "intelligence", "onboarding.report.md");
+  const planPath = join8(options.target, ".ai", "intelligence", "onboarding.plan.json");
+  const reportPath = join8(options.target, ".ai", "intelligence", "onboarding.report.md");
   const plannedFiles = [
     { action: "CREATE", path: "AGENTS.md", source_template: `examples/${rec.template}/AGENTS.md` },
     { action: "CREATE", path: "MEMORY.md", source_template: `examples/${rec.template}/MEMORY.md` },
@@ -4294,8 +4484,8 @@ function handleOnboardPlan(options) {
   reportMd += `\`\`\`
 `;
   try {
-    const intelDir = join7(options.target, ".ai", "intelligence");
-    if (!options.dryRun && !existsSync7(intelDir)) {
+    const intelDir = join8(options.target, ".ai", "intelligence");
+    if (!options.dryRun && !existsSync8(intelDir)) {
       mkdirSync3(intelDir, { recursive: true });
     }
     if (!options.dryRun) {
@@ -4318,14 +4508,14 @@ function handleOnboardApply(options) {
     console.log("Example: node bin/multimodel-dev-os.js onboard apply --approved");
     process.exit(1);
   }
-  const planPath = join7(options.target, ".ai", "intelligence", "onboarding.plan.json");
-  if (!existsSync7(planPath)) {
+  const planPath = join8(options.target, ".ai", "intelligence", "onboarding.plan.json");
+  if (!existsSync8(planPath)) {
     console.error('\x1B[31mError: Onboarding plan not found. Run "npx multimodel-dev-os onboard plan" first.\x1B[0m');
     process.exit(1);
   }
   let plan;
   try {
-    plan = JSON.parse(readFileSync8(planPath, "utf8"));
+    plan = JSON.parse(readFileSync9(planPath, "utf8"));
   } catch (e) {
     console.error(`\x1B[31mError reading plan JSON: ${e.message}\x1B[0m`);
     process.exit(1);
@@ -4339,23 +4529,23 @@ function handleOnboardApply(options) {
   plan.planned_files.forEach((f) => {
     let srcFile;
     if (f.source_template === "RUNBOOK.md") {
-      srcFile = join7(sourceRoot, "RUNBOOK.md");
+      srcFile = join8(sourceRoot, "RUNBOOK.md");
     } else {
-      srcFile = join7(sourceRoot, f.source_template);
+      srcFile = join8(sourceRoot, f.source_template);
     }
     operations.push({ dest: f.path, src: srcFile });
   });
-  const templateDir = join7(sourceRoot, "examples", template);
-  const templateAiDir = join7(templateDir, ".ai");
-  if (existsSync7(templateAiDir) && !options.caveman) {
+  const templateDir = join8(sourceRoot, "examples", template);
+  const templateAiDir = join8(templateDir, ".ai");
+  if (existsSync8(templateAiDir) && !options.caveman) {
     const subdirs = ["context", "skills"];
     subdirs.forEach((sub) => {
-      const subPath = join7(templateAiDir, sub);
-      if (existsSync7(subPath)) {
+      const subPath = join8(templateAiDir, sub);
+      if (existsSync8(subPath)) {
         readdirSync(subPath).forEach((file) => {
           operations.push({
-            dest: join7(".ai", sub, file),
-            src: join7(subPath, file)
+            dest: join8(".ai", sub, file),
+            src: join8(subPath, file)
           });
         });
       }
@@ -4363,17 +4553,17 @@ function handleOnboardApply(options) {
   }
   const globalAiSubdirs = ["context", "agents", "skills", "prompts", "checks", "templates", "session-logs", "registries", "proposals", "intelligence"];
   globalAiSubdirs.forEach((sub) => {
-    const globalPath = join7(sourceRoot, ".ai", sub);
-    if (existsSync7(globalPath)) {
+    const globalPath = join8(sourceRoot, ".ai", sub);
+    if (existsSync8(globalPath)) {
       readdirSync(globalPath).forEach((file) => {
-        const destRel = join7(".ai", sub, file);
+        const destRel = join8(".ai", sub, file);
         if (!operations.some((op) => op.dest === destRel)) {
           if (options.caveman && (sub === "context" || sub === "skills" || sub === "prompts" || sub === "checks")) {
             return;
           }
           operations.push({
             dest: destRel,
-            src: join7(globalPath, file)
+            src: join8(globalPath, file)
           });
         }
       });
@@ -4383,16 +4573,16 @@ function handleOnboardApply(options) {
   let skippedCount = 0;
   let updatedCount = 0;
   operations.forEach((op) => {
-    const destPath = join7(options.target, op.dest);
+    const destPath = join8(options.target, op.dest);
     const destDir = dirname4(destPath);
-    if (existsSync7(destPath)) {
+    if (existsSync8(destPath)) {
       if (options.force) {
         if (!options.dryRun) {
           const backupPath = destPath + ".bak";
-          writeFileSync4(backupPath, readFileSync8(destPath));
-          if (!existsSync7(destDir))
+          writeFileSync4(backupPath, readFileSync9(destPath));
+          if (!existsSync8(destDir))
             mkdirSync3(destDir, { recursive: true });
-          writeFileSync4(destPath, readFileSync8(op.src));
+          writeFileSync4(destPath, readFileSync9(op.src));
           console.log(`  \x1B[33mOVERWRITE (BACKUP CREATED):\x1B[0m ${op.dest} -> ${op.dest}.bak`);
         } else {
           console.log(`  \x1B[36m[DRY-RUN] WOULD OVERWRITE & BACKUP:\x1B[0m ${op.dest}`);
@@ -4404,9 +4594,9 @@ function handleOnboardApply(options) {
       }
     } else {
       if (!options.dryRun) {
-        if (!existsSync7(destDir))
+        if (!existsSync8(destDir))
           mkdirSync3(destDir, { recursive: true });
-        writeFileSync4(destPath, readFileSync8(op.src));
+        writeFileSync4(destPath, readFileSync9(op.src));
         console.log(`  \x1B[32mCREATE:\x1B[0m ${op.dest}`);
       } else {
         console.log(`  \x1B[36m[DRY-RUN] WOULD CREATE:\x1B[0m ${op.dest}`);
@@ -4431,8 +4621,8 @@ function handleOnboardStatus(options) {
   ];
   let presentCount = 0;
   crucialFiles.forEach((f) => {
-    const fullPath = join7(options.target, f);
-    const exists = existsSync7(fullPath);
+    const fullPath = join8(options.target, f);
+    const exists = existsSync8(fullPath);
     if (exists)
       presentCount++;
     console.log(`  [${exists ? "\u2714" : " "}] ${f}`);
@@ -4449,10 +4639,10 @@ function handleOnboardStatus(options) {
   }
 }
 function getEnabledAdapters(target) {
-  const configPath = join7(target, ".ai", "config.yaml");
-  if (existsSync7(configPath)) {
+  const configPath = join8(target, ".ai", "config.yaml");
+  if (existsSync8(configPath)) {
     try {
-      const config = parseYaml(readFileSync8(configPath, "utf8")) || {};
+      const config = parseYaml(readFileSync9(configPath, "utf8")) || {};
       return config.adapters || {};
     } catch (e) {
     }
@@ -4468,7 +4658,7 @@ function handleAdapterStatus(options) {
     const a = ADAPTERS[name];
     const isEnabled = enabled[name] || false;
     const rulesFile = a.rules_file;
-    const exists = existsSync7(join7(options.target, rulesFile));
+    const exists = existsSync8(join8(options.target, rulesFile));
     let statusStr = "\x1B[31mMISSING\x1B[0m";
     if (exists) {
       statusStr = "\x1B[32mINSTALLED\x1B[0m";
@@ -4527,15 +4717,15 @@ function handleAdapterDiff(aName, options) {
   }
   adaptersToDiff.forEach((name) => {
     const a = ADAPTERS[name];
-    const srcFile = join7(sourceRoot, "adapters", name, a.rules_file);
-    const destFile = join7(options.target, a.rules_file);
-    if (!existsSync7(srcFile)) {
+    const srcFile = join8(sourceRoot, "adapters", name, a.rules_file);
+    const destFile = join8(options.target, a.rules_file);
+    if (!existsSync8(srcFile)) {
       console.warn(`Warning: Source file for adapter '${name}' is missing at: ${srcFile}`);
       return;
     }
-    const srcContent = readFileSync8(srcFile, "utf8");
-    if (existsSync7(destFile)) {
-      const destContent = readFileSync8(destFile, "utf8");
+    const srcContent = readFileSync9(srcFile, "utf8");
+    if (existsSync8(destFile)) {
+      const destContent = readFileSync9(destFile, "utf8");
       printDiff(srcContent, destContent, a.rules_file);
     } else {
       console.log(`
@@ -4574,21 +4764,21 @@ function handleAdapterSync(aName, options) {
   console.log("==================================================");
   adaptersToSync.forEach((name) => {
     const a = ADAPTERS[name];
-    const srcFile = join7(sourceRoot, "adapters", name, a.rules_file);
-    const destFile = join7(options.target, a.rules_file);
+    const srcFile = join8(sourceRoot, "adapters", name, a.rules_file);
+    const destFile = join8(options.target, a.rules_file);
     const destDir = dirname4(destFile);
-    if (!existsSync7(srcFile)) {
+    if (!existsSync8(srcFile)) {
       console.warn(`Warning: Source file for adapter '${name}' is missing at: ${srcFile}`);
       return;
     }
-    if (existsSync7(destFile)) {
+    if (existsSync8(destFile)) {
       if (options.force) {
         if (!options.dryRun) {
           const backupPath = destFile + ".bak";
-          writeFileSync4(backupPath, readFileSync8(destFile));
-          if (!existsSync7(destDir))
+          writeFileSync4(backupPath, readFileSync9(destFile));
+          if (!existsSync8(destDir))
             mkdirSync3(destDir, { recursive: true });
-          writeFileSync4(destFile, readFileSync8(srcFile));
+          writeFileSync4(destFile, readFileSync9(srcFile));
           console.log(`  \x1B[33mOVERWRITE (BACKUP CREATED):\x1B[0m ${a.rules_file} -> ${a.rules_file}.bak`);
         } else {
           console.log(`  \x1B[36m[DRY-RUN] WOULD OVERWRITE & BACKUP:\x1B[0m ${a.rules_file}`);
@@ -4598,9 +4788,9 @@ function handleAdapterSync(aName, options) {
       }
     } else {
       if (!options.dryRun) {
-        if (!existsSync7(destDir))
+        if (!existsSync8(destDir))
           mkdirSync3(destDir, { recursive: true });
-        writeFileSync4(destFile, readFileSync8(srcFile));
+        writeFileSync4(destFile, readFileSync9(srcFile));
         console.log(`  \x1B[32mCREATE:\x1B[0m ${a.rules_file}`);
       } else {
         console.log(`  \x1B[36m[DRY-RUN] WOULD CREATE:\x1B[0m ${a.rules_file}`);
@@ -4625,29 +4815,29 @@ function handleDoctorOnboarding(options) {
     "RUNBOOK.md"
   ];
   crucialFiles.forEach((f) => {
-    if (!existsSync7(join7(options.target, f))) {
+    if (!existsSync8(join8(options.target, f))) {
       warn(`Crucial onboarding file '${f}' is missing from project root.`);
     }
   });
-  const configPath = join7(options.target, ".ai", "config.yaml");
-  if (!existsSync7(configPath)) {
+  const configPath = join8(options.target, ".ai", "config.yaml");
+  if (!existsSync8(configPath)) {
     warn("MultiModel Dev OS configuration file (.ai/config.yaml) is missing.");
   }
-  const registriesDir = join7(options.target, ".ai", "registries");
-  if (!existsSync7(registriesDir)) {
+  const registriesDir = join8(options.target, ".ai", "registries");
+  if (!existsSync8(registriesDir)) {
     warn("Registries directory (.ai/registries) is missing.");
   }
-  const proposalsDir = join7(options.target, ".ai", "proposals");
-  if (!existsSync7(proposalsDir)) {
+  const proposalsDir = join8(options.target, ".ai", "proposals");
+  if (!existsSync8(proposalsDir)) {
     warn("Proposals directory (.ai/proposals) is missing.");
   }
-  const intelligenceDir = join7(options.target, ".ai", "intelligence");
-  if (!existsSync7(intelligenceDir)) {
+  const intelligenceDir = join8(options.target, ".ai", "intelligence");
+  if (!existsSync8(intelligenceDir)) {
     warn("Intelligence directory (.ai/intelligence) is missing.");
   }
-  const gitignorePath = join7(options.target, ".gitignore");
-  if (existsSync7(gitignorePath)) {
-    const gitignoreContent = readFileSync8(gitignorePath, "utf8");
+  const gitignorePath = join8(options.target, ".gitignore");
+  if (existsSync8(gitignorePath)) {
+    const gitignoreContent = readFileSync9(gitignorePath, "utf8");
     const checkIgnore = (pattern) => {
       if (!gitignoreContent.includes(pattern)) {
         warn(`Generated runtime file '${pattern}' is not ignored in .gitignore.`);
@@ -4811,7 +5001,7 @@ function handleDashboard(options) {
 \x1B[36mRunning Command:\x1B[0m npx multimodel-dev-os ${cmdStr}${targetFlag}`);
     console.log("--------------------------------------------------\n");
     try {
-      const cliPath = join7(sourceRoot, "bin", "multimodel-dev-os.js");
+      const cliPath = join8(sourceRoot, "bin", "multimodel-dev-os.js");
       execSync(`node "${cliPath}" ${cmdStr} --target "${options.target}"`, { stdio: "inherit" });
     } catch (e) {
       console.error(`
@@ -4846,13 +5036,13 @@ function handleDashboard(options) {
   showMenu(mainMenu, "MultiModel Dev OS Command Center");
 }
 function getPluginsDir(targetDir) {
-  return join7(targetDir, ".ai", "plugins");
+  return join8(targetDir, ".ai", "plugins");
 }
 function handlePluginList(options) {
   const pluginsDir = getPluginsDir(options.target);
-  const rawRelPath = relative(process.cwd(), join7(sourceRoot, ".ai", "plugins", "plugin.example.yaml")).replace(/\\/g, "/");
+  const rawRelPath = relative(process.cwd(), join8(sourceRoot, ".ai", "plugins", "plugin.example.yaml")).replace(/\\/g, "/");
   const examplePath = rawRelPath.startsWith(".") ? rawRelPath : `./${rawRelPath}`;
-  if (!existsSync7(pluginsDir)) {
+  if (!existsSync8(pluginsDir)) {
     if (options.json) {
       console.log("[]");
       return;
@@ -4873,7 +5063,7 @@ function handlePluginList(options) {
   const plugins = [];
   files.forEach((f) => {
     try {
-      const p = parseYaml(readFileSync8(join7(pluginsDir, f), "utf8"));
+      const p = parseYaml(readFileSync9(join8(pluginsDir, f), "utf8"));
       if (p && p.name && p.slug) {
         plugins.push(p);
       }
@@ -4907,11 +5097,11 @@ function handlePluginShow(slug, options) {
   }
   const pluginsDir = getPluginsDir(options.target);
   let p = null;
-  if (existsSync7(pluginsDir)) {
+  if (existsSync8(pluginsDir)) {
     const files = readdirSync(pluginsDir).filter((f) => f.endsWith(".yaml") || f.endsWith(".yml"));
     for (const f of files) {
       try {
-        const parsed = parseYaml(readFileSync8(join7(pluginsDir, f), "utf8"));
+        const parsed = parseYaml(readFileSync9(join8(pluginsDir, f), "utf8"));
         if (parsed && parsed.slug === slug) {
           p = parsed;
           break;
@@ -4960,7 +5150,7 @@ function handlePluginShow(slug, options) {
 }
 function handlePluginValidate(pluginPath, options) {
   const fullPath = resolve3(process.cwd(), pluginPath);
-  if (!existsSync7(fullPath)) {
+  if (!existsSync8(fullPath)) {
     console.error(`\x1B[31mError: Plugin file not found at: ${pluginPath}\x1B[0m`);
     process.exit(1);
   }
@@ -4970,7 +5160,7 @@ function handlePluginValidate(pluginPath, options) {
   let errors = 0;
   let plugin = null;
   try {
-    plugin = parseYaml(readFileSync8(fullPath, "utf8"));
+    plugin = parseYaml(readFileSync9(fullPath, "utf8"));
   } catch (e) {
     console.error(`  \x1B[31m\u2717 [SYNTAX] Failed to parse YAML: ${e.message}\x1B[0m`);
     errors++;
@@ -5103,7 +5293,7 @@ function handlePluginValidate(pluginPath, options) {
 }
 function handlePluginInstall(pluginPath, options) {
   const fullPath = resolve3(process.cwd(), pluginPath);
-  if (!existsSync7(fullPath)) {
+  if (!existsSync8(fullPath)) {
     console.error(`\x1B[31mError: Plugin file not found at: ${pluginPath}\x1B[0m`);
     process.exit(1);
   }
@@ -5113,7 +5303,7 @@ function handlePluginInstall(pluginPath, options) {
     process.exit(1);
   }
   const policy = loadRegistryPolicy(options.target || process.cwd());
-  const pluginContent = readFileSync8(fullPath, "utf8");
+  const pluginContent = readFileSync9(fullPath, "utf8");
   const plugin = parseYaml(pluginContent);
   const slug = plugin.slug;
   const sourceDir = dirname4(fullPath);
@@ -5122,7 +5312,7 @@ function handlePluginInstall(pluginPath, options) {
   const filesToCopy = [];
   filesToCopy.push({
     src: fullPath,
-    dest: join7(".ai", "plugins", `${slug}.yaml`),
+    dest: join8(".ai", "plugins", `${slug}.yaml`),
     description: "Plugin Manifest"
   });
   if (Array.isArray(plugin.allowed_file_patterns)) {
@@ -5140,8 +5330,8 @@ function handlePluginInstall(pluginPath, options) {
         console.error(`\x1B[31mError: File extension '${ext}' for asset '${pattern}' is not allowed by policy. Installation aborted.\x1B[0m`);
         process.exit(1);
       }
-      const srcFile = join7(sourceDir, normPattern);
-      if (existsSync7(srcFile) && statSync(srcFile).isFile()) {
+      const srcFile = join8(sourceDir, normPattern);
+      if (existsSync8(srcFile) && statSync(srcFile).isFile()) {
         filesToCopy.push({
           src: srcFile,
           dest: normPattern,
@@ -5156,7 +5346,7 @@ function handlePluginInstall(pluginPath, options) {
   }
   let totalSize = 0;
   filesToCopy.forEach((item) => {
-    if (existsSync7(item.src)) {
+    if (existsSync8(item.src)) {
       totalSize += statSync(item.src).size;
     }
   });
@@ -5166,8 +5356,8 @@ function handlePluginInstall(pluginPath, options) {
   }
   let conflicts = false;
   filesToCopy.forEach((item) => {
-    const destPath = join7(options.target, item.dest);
-    if (existsSync7(destPath)) {
+    const destPath = join8(options.target, item.dest);
+    if (existsSync8(destPath)) {
       if (!options.force) {
         console.error(`  \x1B[31mConflict:\x1B[0m File already exists at destination: ${item.dest}`);
         conflicts = true;
@@ -5187,7 +5377,7 @@ function handlePluginInstall(pluginPath, options) {
     console.log(`
 \x1B[33mPlanned Installation Actions:\x1B[0m`);
     filesToCopy.forEach((item) => {
-      const exists = existsSync7(join7(options.target, item.dest));
+      const exists = existsSync8(join8(options.target, item.dest));
       const suffix = exists ? " \x1B[33m(will overwrite)\x1B[0m" : "";
       console.log(`  - \x1B[36m[WOULD COPY]\x1B[0m ${item.src} -> ${item.dest}${suffix}`);
     });
@@ -5197,17 +5387,17 @@ function handlePluginInstall(pluginPath, options) {
     process.exit(1);
   }
   filesToCopy.forEach((item) => {
-    const destPath = join7(options.target, item.dest);
+    const destPath = join8(options.target, item.dest);
     const destDir = dirname4(destPath);
-    if (!existsSync7(destDir)) {
+    if (!existsSync8(destDir)) {
       mkdirSync3(destDir, { recursive: true });
     }
-    if (existsSync7(destPath)) {
+    if (existsSync8(destPath)) {
       const bakPath = `${destPath}.bak`;
-      writeFileSync4(bakPath, readFileSync8(destPath));
+      writeFileSync4(bakPath, readFileSync9(destPath));
       console.log(`  \x1B[33mBACKUP:\x1B[0m Created backup: ${item.dest}.bak`);
     }
-    writeFileSync4(destPath, readFileSync8(item.src));
+    writeFileSync4(destPath, readFileSync9(item.src));
     console.log(`  \x1B[32mCOPY:\x1B[0m ${item.dest}`);
   });
   console.log(`
@@ -5236,7 +5426,7 @@ function handlePluginStatus(options) {
   console.log(`
 \u{1F50C} \x1B[36mAuditing Plugins Status in: ${options.target}\x1B[0m`);
   console.log("==================================================");
-  if (!existsSync7(pluginsDir)) {
+  if (!existsSync8(pluginsDir)) {
     console.log("  No plugins directory found. 0 plugins installed.\n");
     return;
   }
@@ -5251,8 +5441,8 @@ function handlePluginStatus(options) {
   }
   files.forEach((f) => {
     try {
-      const pPath = join7(pluginsDir, f);
-      const p = parseYaml(readFileSync8(pPath, "utf8"));
+      const pPath = join8(pluginsDir, f);
+      const p = parseYaml(readFileSync9(pPath, "utf8"));
       if (p && p.name) {
         console.log(`
 * \x1B[32m${p.name}\x1B[0m (v${p.version || "1.0.0"})`);
@@ -5260,8 +5450,8 @@ function handlePluginStatus(options) {
         let presentCount = 0;
         if (Array.isArray(p.allowed_file_patterns)) {
           p.allowed_file_patterns.forEach((pat) => {
-            const destPath = join7(options.target, pat);
-            if (existsSync7(destPath) && statSync(destPath).isFile()) {
+            const destPath = join8(options.target, pat);
+            if (existsSync8(destPath) && statSync(destPath).isFile()) {
               presentCount++;
             } else {
               missingCount++;
@@ -5277,8 +5467,8 @@ function handlePluginStatus(options) {
           console.log(`  Status: \x1B[33mIncomplete\x1B[0m (${presentCount}/${total} assets present, ${missingCount} missing)`);
           console.log(`  Missing Assets:`);
           p.allowed_file_patterns.forEach((pat) => {
-            const destPath = join7(options.target, pat);
-            if (!existsSync7(destPath) || !statSync(destPath).isFile()) {
+            const destPath = join8(options.target, pat);
+            if (!existsSync8(destPath) || !statSync(destPath).isFile()) {
               console.log(`    \x1B[31m\u2717\x1B[0m ${pat}`);
             }
           });
@@ -5308,12 +5498,12 @@ function handleCatalogList(options) {
   }
   const installedSlugs = /* @__PURE__ */ new Set();
   const pluginsDir = getPluginsDir(options.target);
-  if (existsSync7(pluginsDir)) {
+  if (existsSync8(pluginsDir)) {
     try {
       const files = readdirSync(pluginsDir).filter((f) => f.endsWith(".yaml") || f.endsWith(".yml"));
       files.forEach((f) => {
         try {
-          const parsed = parseYaml(readFileSync8(join7(pluginsDir, f), "utf8"));
+          const parsed = parseYaml(readFileSync9(join8(pluginsDir, f), "utf8"));
           if (parsed && parsed.slug) {
             installedSlugs.add(parsed.slug);
           }
@@ -5427,9 +5617,9 @@ function handleCatalogInstall(slug, options) {
   const policy = loadRegistryPolicy(options.target || process.cwd());
   let srcPath;
   if (p._source === "bundled") {
-    srcPath = join7(sourceRoot, ".ai", "plugins", "catalog", `${slug}.yaml`);
+    srcPath = join8(sourceRoot, ".ai", "plugins", "catalog", `${slug}.yaml`);
   } else if (p._source === "local") {
-    srcPath = join7(options.target || process.cwd(), ".ai", "plugins", "catalog", `${slug}.yaml`);
+    srcPath = join8(options.target || process.cwd(), ".ai", "plugins", "catalog", `${slug}.yaml`);
   } else if (p._source && p._source.startsWith("remote:")) {
     const regName = p._source.substring(7);
     const sources = loadRegistrySources();
@@ -5442,11 +5632,11 @@ function handleCatalogInstall(slug, options) {
         process.exit(1);
       }
     }
-    srcPath = join7(sourceRoot, ".ai", "registry-cache", regName, "catalog", `${slug}.yaml`);
+    srcPath = join8(sourceRoot, ".ai", "registry-cache", regName, "catalog", `${slug}.yaml`);
   } else {
-    srcPath = join7(sourceRoot, ".ai", "plugins", "catalog", `${slug}.yaml`);
+    srcPath = join8(sourceRoot, ".ai", "plugins", "catalog", `${slug}.yaml`);
   }
-  if (!existsSync7(srcPath)) {
+  if (!existsSync8(srcPath)) {
     console.error(`\x1B[31mError: Packed plugin manifest not found at: ${srcPath}\x1B[0m`);
     process.exit(1);
   }
@@ -5465,19 +5655,19 @@ function handleCatalogStatus(options) {
   }
   plugins.forEach((p) => {
     const slug = p.slug;
-    const destManifest = join7(pluginsDir, `${slug}.yaml`);
-    if (!existsSync7(destManifest)) {
+    const destManifest = join8(pluginsDir, `${slug}.yaml`);
+    if (!existsSync8(destManifest)) {
       console.log(`  - \x1B[33m${p.name}\x1B[0m (v${p.version}): \x1B[90mNot installed\x1B[0m`);
       console.log(`    Install via: \x1B[36mnpx multimodel-dev-os catalog install ${slug} --approved\x1B[0m`);
     } else {
       let missingCount = 0;
       let presentCount = 0;
       try {
-        const targetP = parseYaml(readFileSync8(destManifest, "utf8"));
+        const targetP = parseYaml(readFileSync9(destManifest, "utf8"));
         if (Array.isArray(targetP.allowed_file_patterns)) {
           targetP.allowed_file_patterns.forEach((pat) => {
-            const destPath = join7(options.target, pat);
-            if (existsSync7(destPath) && statSync(destPath).isFile()) {
+            const destPath = join8(options.target, pat);
+            if (existsSync8(destPath) && statSync(destPath).isFile()) {
               presentCount++;
             } else {
               missingCount++;
@@ -5740,12 +5930,12 @@ Run with --approved to apply:
   }
   sources.splice(idx, 1);
   saveRegistrySources(sources);
-  const cacheDir = join7(sourceRoot, ".ai", "registry-cache", name);
-  if (existsSync7(cacheDir)) {
+  const cacheDir = join8(sourceRoot, ".ai", "registry-cache", name);
+  if (existsSync8(cacheDir)) {
     try {
       const files = readdirSync(cacheDir);
       files.forEach((f) => {
-        const fp = join7(cacheDir, f);
+        const fp = join8(cacheDir, f);
         if (statSync(fp).isFile()) {
           writeFileSync4(fp, "");
         }
@@ -5756,7 +5946,7 @@ Run with --approved to apply:
   console.log(`
 \x1B[32m\u2714 Registry '${name}' removed successfully.\x1B[0m`);
   console.log(`  Source entry removed from .ai/registries/sources.yaml`);
-  if (existsSync7(cacheDir)) {
+  if (existsSync8(cacheDir)) {
     console.log(`  Cache directory cleared: .ai/registry-cache/${name}/`);
   }
   console.log("");
@@ -5817,8 +6007,8 @@ To execute this sync operation, run:`);
 `);
     process.exit(1);
   }
-  const cacheDir = join7(sourceRoot, ".ai", "registry-cache", name);
-  if (!existsSync7(cacheDir)) {
+  const cacheDir = join8(sourceRoot, ".ai", "registry-cache", name);
+  if (!existsSync8(cacheDir)) {
     mkdirSync3(cacheDir, { recursive: true });
   }
   console.log(`
@@ -5828,8 +6018,8 @@ To execute this sync operation, run:`);
   const catalogUrl = url.endsWith("/") ? `${url}catalog.yaml` : url;
   const manifestUrl = catalogUrl.replace(/catalog\.yaml$/, "manifest.json");
   try {
-    const catalogDest = join7(cacheDir, "catalog.yaml");
-    const manifestDest = join7(cacheDir, "manifest.json");
+    const catalogDest = join8(cacheDir, "catalog.yaml");
+    const manifestDest = join8(cacheDir, "manifest.json");
     const fetchUrlSync = (targetUrl) => {
       validateRegistryUrl(targetUrl, policy);
       const script = `
@@ -5881,9 +6071,9 @@ To execute this sync operation, run:`);
           for (const [file, hash] of Object.entries(manifestObj.files_hashes)) {
             if (file === "catalog.yaml" || file === "manifest.json")
               continue;
-            const fileDest = join7(cacheDir, file);
+            const fileDest = join8(cacheDir, file);
             const relativeToCache = relative(cacheDir, fileDest);
-            if (relativeToCache.includes("..") || isAbsolute(relativeToCache)) {
+            if (relativeToCache.includes("..") || isAbsolute2(relativeToCache)) {
               console.error(`\x1B[31mError: Safe path violation in manifest files list: ${file}\x1B[0m`);
               process.exit(1);
             }
@@ -5896,7 +6086,7 @@ To execute this sync operation, run:`);
               process.exit(1);
             }
             const fileDir = dirname4(fileDest);
-            if (!existsSync7(fileDir)) {
+            if (!existsSync8(fileDir)) {
               mkdirSync3(fileDir, { recursive: true });
             }
             writeFileSync4(fileDest, fileData, "utf8");
@@ -5919,7 +6109,7 @@ To execute this sync operation, run:`);
       }
     }
     const checksumsJson = JSON.stringify(checksums, null, 2);
-    writeFileSync4(join7(cacheDir, "checksums.json"), checksumsJson, "utf8");
+    writeFileSync4(join8(cacheDir, "checksums.json"), checksumsJson, "utf8");
     console.log(`  \u2192 .ai/registry-cache/${name}/checksums.json ... OK`);
     if (policy.require_checksum && manifestData) {
       try {
@@ -5971,14 +6161,63 @@ To execute this sync operation, run:`);
       console.log("  \x1B[33m\u26A0 No signing key \u2014 provenance recorded without signature.\x1B[0m");
       console.log("    Generate a key with: npx multimodel-dev-os registry keygen --approved");
     }
+    const trustedKeys = loadTrustedKeys(projectDir, policy);
+    let verifyRes = { verified: true, status: "unsigned" };
+    let parsedManifest = null;
+    if (manifestData) {
+      try {
+        parsedManifest = JSON.parse(manifestData);
+        verifyRes = verifySignatureBlock({
+          manifest: parsedManifest,
+          trustedKeys,
+          policy,
+          hmacKey: signingKey,
+          source
+        });
+      } catch (_e) {
+      }
+    } else {
+      if (policy.require_signature || policy.allow_unsigned_remote === false) {
+        verifyRes = { verified: false, error: "Manifest missing but signature is required by policy." };
+      }
+    }
+    const firstSig = parsedManifest && (parsedManifest.signature || Array.isArray(parsedManifest.signatures) && parsedManifest.signatures[0]);
+    const sigBlock = firstSig && typeof firstSig === "object" ? firstSig : null;
+    let trustedPublisherStatus = "unknown";
+    if (sigBlock && sigBlock.key_id) {
+      const tk = trustedKeys.find((k) => k.key_id === sigBlock.key_id);
+      if (tk) {
+        trustedPublisherStatus = tk.status || "inactive";
+      }
+    }
+    let trustVerdict = "failed";
+    if (verifyRes.verified) {
+      if (verifyRes.status === "verified") {
+        trustVerdict = "verified";
+      } else {
+        trustVerdict = "unsigned_allowed";
+      }
+    }
+    const verificationErrors = verifyRes.errors || (verifyRes.error ? [verifyRes.error] : []);
+    const verificationWarnings = verifyRes.warning ? [verifyRes.warning] : [];
     const lockfile = loadRegistryLockfile(projectDir);
     updateLockfileEntry(lockfile, name, {
       url: source.url,
-      synced_at: syncedAt,
+      synced_at: options.synced_at || syncedAt,
+      // Allow override for test determinism
       catalog_sha256: catalogHash,
       manifest_sha256: manifestHash,
       signature,
-      signature_alg: "hmac-sha256"
+      signature_alg: "hmac-sha256",
+      public_signature_status: verifyRes.status || "unsigned",
+      public_signature_algorithm: sigBlock ? sigBlock.algorithm : null,
+      public_signature_key_id: sigBlock ? sigBlock.key_id : null,
+      trusted_publisher_status: trustedPublisherStatus,
+      trust_store_path: policy.trusted_keys_file || ".ai/registries/trusted-keys.yaml",
+      trust_verdict: trustVerdict,
+      lockfile_verdict: "verified",
+      verification_errors: verificationErrors,
+      verification_warnings: verificationWarnings
     });
     saveRegistryLockfile(projectDir, lockfile);
     console.log(`  \x1B[32m\u2713 Provenance lockfile updated: .ai/registry-lock.json\x1B[0m`);
@@ -6017,7 +6256,7 @@ function handleRegistryStatus(options) {
   const sources = loadRegistrySources();
   const policy = loadRegistryPolicy(options.target);
   if (options.json) {
-    console.log(JSON.stringify({ sources, policy: { allow_remote_registries: policy.allow_remote_registries, require_checksum: policy.require_checksum } }, null, 2));
+    console.log(JSON.stringify({ sources, policy }, null, 2));
     return;
   }
   const projectDir = options.target || process.cwd();
@@ -6031,7 +6270,7 @@ function handleRegistryStatus(options) {
   const lockfile = loadRegistryLockfile(projectDir);
   const lockfileEntryCount = Object.keys(lockfile.entries).length;
   const lockfilePath = getLockfilePath(projectDir);
-  const lockfileStatus = existsSync7(lockfilePath) ? `\x1B[32mpresent\x1B[0m (${lockfileEntryCount} entr${lockfileEntryCount === 1 ? "y" : "ies"})` : "\x1B[90mnot present\x1B[0m";
+  const lockfileStatus = existsSync8(lockfilePath) ? `\x1B[32mpresent\x1B[0m (${lockfileEntryCount} entr${lockfileEntryCount === 1 ? "y" : "ies"})` : "\x1B[90mnot present\x1B[0m";
   console.log(`
 \u{1F4CA} \x1B[36mRegistry Status [v${version}]\x1B[0m`);
   console.log("==================================================");
@@ -6041,6 +6280,13 @@ function handleRegistryStatus(options) {
   console.log(`  require_signature:          ${policy.require_signature ? "\x1B[32mtrue\x1B[0m (HMAC-SHA256 enforced)" : "\x1B[90mfalse\x1B[0m"}`);
   console.log(`  require_lockfile_on_verify: ${policy.require_lockfile_on_verify ? "\x1B[32mtrue\x1B[0m" : "\x1B[90mfalse\x1B[0m"}`);
   console.log(`  allow_untrusted_install:    ${policy.allow_untrusted_install ? "\x1B[33mtrue\x1B[0m" : "\x1B[32mfalse\x1B[0m (secured)"}`);
+  console.log(`  allow_unsigned_local:       ${policy.allow_unsigned_local ? "\x1B[32mtrue\x1B[0m" : "\x1B[33mfalse\x1B[0m"}`);
+  console.log(`  allow_unsigned_bundled:     ${policy.allow_unsigned_bundled ? "\x1B[32mtrue\x1B[0m" : "\x1B[33mfalse\x1B[0m"}`);
+  console.log(`  allow_unsigned_remote:      ${policy.allow_unsigned_remote ? "\x1B[32mtrue\x1B[0m" : "\x1B[33mfalse\x1B[0m"}`);
+  console.log(`  require_trusted_publisher:  ${policy.require_trusted_publisher ? "\x1B[32mtrue\x1B[0m" : "\x1B[90mfalse\x1B[0m"}`);
+  console.log(`  provenance_required:        ${policy.provenance_required ? "\x1B[32mtrue\x1B[0m" : "\x1B[90mfalse\x1B[0m"}`);
+  console.log(`  trusted_keys_file:          \x1B[36m${policy.trusted_keys_file}\x1B[0m`);
+  console.log(`  allowed_signature_algs:     \x1B[36m${(policy.allowed_signature_algorithms || []).join(", ")}\x1B[0m`);
   console.log(`  max_plugin_files:           ${policy.max_plugin_files}`);
   console.log(`  max_plugin_size_kb:         ${policy.max_plugin_size_kb}KB`);
   console.log(`  max_registry_cache_size:    ${policy.max_registry_cache_size_kb}KB`);
@@ -6060,8 +6306,8 @@ function handleRegistryStatus(options) {
     const status = s.enabled ? "\x1B[32m\u25CF enabled\x1B[0m" : "\x1B[90m\u25CB disabled\x1B[0m";
     const label = s.name === "bundled" ? "bundled" : s.type === "local" ? `local:${s.name}` : `remote:${s.name}`;
     const synced = s.last_synced_at ? `synced: ${s.last_synced_at}` : "never synced";
-    const cacheDir = join7(sourceRoot, ".ai", "registry-cache", s.name);
-    const hasCache = s.type !== "local" && existsSync7(cacheDir);
+    const cacheDir = join8(sourceRoot, ".ai", "registry-cache", s.name);
+    const hasCache = s.type !== "local" && existsSync8(cacheDir);
     console.log(`  ${s.name}  ${status}  [${label}]  (${s.type}, ${s.trust_level})`);
     if (s.type !== "local") {
       console.log(`    URL:    ${s.url}`);
@@ -6077,134 +6323,322 @@ function handleRegistryVerify(name, options) {
   console.log(`
 \u{1F50D} \x1B[36mVerifying Registry: ${name}\x1B[0m`);
   console.log("==================================================");
-  if (name === "bundled") {
-    const catalogPath = join7(sourceRoot, ".ai", "plugins", "catalog.yaml");
-    if (!existsSync7(catalogPath)) {
-      console.error("\x1B[31mError: Bundled catalog.yaml not found.\x1B[0m");
-      process.exit(1);
-    }
-    const content = readFileSync8(catalogPath, "utf8");
-    const hash = computeSHA256(content);
-    console.log(`  Verification Type: Local verification (no network required)`);
-    console.log(`  File:              .ai/plugins/catalog.yaml`);
-    console.log(`  SHA256 Checksum:   ${hash}`);
-    console.log(`  Status:            \x1B[32m\u2713 Present and readable (Integrity Verified)\x1B[0m`);
-    try {
-      const parsed = parseYaml(content);
-      const pluginCount = ((parsed.catalog || {}).plugins || []).length;
-      console.log(`  Plugins:           ${pluginCount} entries parsed successfully`);
-      console.log(`
-\x1B[32m\u2714 Bundled registry verification passed. (Offline & Secure)\x1B[0m
-`);
-    } catch (e) {
-      console.error(`
-\x1B[31m\u2717 Bundled registry verification failed: ${e.message}\x1B[0m
-`);
-      process.exit(1);
-    }
-    return;
-  }
   const projectDir = options.target || process.cwd();
   const policy = loadRegistryPolicy(projectDir);
   const sources = loadRegistrySources();
   const source = sources.find((s) => s.name === name);
-  if (source && source.type !== "local") {
-    try {
-      validateRegistryUrl(source.url, policy);
-    } catch (err) {
-      console.error(`\x1B[31mError: Registry '${name}' has an invalid URL: ${err.message}\x1B[0m`);
-      process.exit(1);
-    }
+  let isBundled = name === "bundled";
+  let isLocal = source ? source.type === "local" : false;
+  let isRemote = source ? source.type === "remote" : false;
+  let url = source ? source.url : isBundled ? ".ai/plugins/catalog.yaml" : null;
+  if (!source && !isBundled) {
+    console.error(`\x1B[31mError: Registry '${name}' is not configured.\x1B[0m`);
+    process.exit(1);
   }
-  const cacheDir = join7(sourceRoot, ".ai", "registry-cache", name);
-  if (!existsSync7(cacheDir)) {
+  let urlValidationStatus = "N/A";
+  if (isRemote) {
+    try {
+      validateRegistryUrl(url, policy);
+      urlValidationStatus = "\x1B[32m\u2713 Valid HTTPS\x1B[0m";
+    } catch (err) {
+      urlValidationStatus = `\x1B[31m\u2717 Invalid: ${err.message}\x1B[0m`;
+    }
+  } else {
+    urlValidationStatus = "\x1B[32m\u2713 Valid Local Path\x1B[0m";
+  }
+  let cacheDir;
+  if (isBundled) {
+    cacheDir = join8(sourceRoot, ".ai", "plugins");
+  } else {
+    cacheDir = join8(sourceRoot, ".ai", "registry-cache", name);
+  }
+  const catalogDest = join8(cacheDir, "catalog.yaml");
+  const manifestDest = join8(cacheDir, "manifest.json");
+  const checksumPath = join8(cacheDir, "checksums.json");
+  if (!isBundled && !existsSync8(cacheDir)) {
     console.error(`\x1B[31mError: No cache found for registry '${name}'. Run registry sync first.\x1B[0m`);
     process.exit(1);
   }
-  const checksumPath = join7(cacheDir, "checksums.json");
-  if (!existsSync7(checksumPath)) {
-    console.error(`\x1B[31mError: No checksums.json found in cache for '${name}'.\x1B[0m`);
+  if (isBundled && !existsSync8(catalogDest)) {
+    console.error(`\x1B[31mError: Bundled catalog.yaml not found.\x1B[0m`);
     process.exit(1);
   }
-  let allPassed = true;
-  try {
-    const checksums = JSON.parse(readFileSync8(checksumPath, "utf8"));
-    Object.entries(checksums).forEach(([file, expectedHash]) => {
-      const filePath = join7(cacheDir, file);
-      if (!existsSync7(filePath)) {
-        console.log(`  \x1B[31m\u2717 ${file}: MISSING\x1B[0m`);
-        allPassed = false;
-        return;
+  let catalogContent = "";
+  let catalogHash = "N/A";
+  if (existsSync8(catalogDest)) {
+    catalogContent = readFileSync9(catalogDest, "utf8");
+    catalogHash = computeSHA256(catalogContent);
+  }
+  let manifestObj = null;
+  let manifestHash = "N/A";
+  if (existsSync8(manifestDest)) {
+    const manifestData = readFileSync9(manifestDest, "utf8");
+    manifestHash = computeSHA256(manifestData);
+    try {
+      manifestObj = JSON.parse(manifestData);
+    } catch (e) {
+      console.warn(`\x1B[33mWarning: Failed to parse manifest.json: ${e.message}\x1B[0m`);
+    }
+  }
+  let integrityVerified = true;
+  if (!isBundled) {
+    if (!existsSync8(checksumPath)) {
+      console.log(`  \x1B[33m\u26A0 Checksums: Missing checksums.json in cache\x1B[0m`);
+      integrityVerified = false;
+    } else {
+      try {
+        const checksums = JSON.parse(readFileSync9(checksumPath, "utf8"));
+        Object.entries(checksums).forEach(([file, expectedHash]) => {
+          const filePath = join8(cacheDir, file);
+          if (!existsSync8(filePath)) {
+            console.log(`  \x1B[31m\u2717 File missing in cache: ${file}\x1B[0m`);
+            integrityVerified = false;
+            return;
+          }
+          const content = readFileSync9(filePath, "utf8");
+          const actualHash = `sha256:${computeSHA256(content)}`;
+          if (actualHash === expectedHash) {
+            console.log(`  \x1B[32m\u2713 ${file}: VERIFIED (Integrity check matched via SHA-256)\x1B[0m`);
+          } else {
+            console.log(`  \x1B[31m\u2717 ${file}: MISMATCH\x1B[0m`);
+            console.log(`    Expected: ${expectedHash}`);
+            console.log(`    Actual:   ${actualHash}`);
+            integrityVerified = false;
+          }
+        });
+      } catch (e) {
+        console.log(`  \x1B[31m\u2717 Integrity: Failed to verify checksums: ${e.message}\x1B[0m`);
+        integrityVerified = false;
       }
-      const content = readFileSync8(filePath, "utf8");
-      const actualHash = `sha256:${computeSHA256(content)}`;
-      if (actualHash === expectedHash) {
-        console.log(`  \x1B[32m\u2713 ${file}: VERIFIED (Integrity check matched via SHA-256)\x1B[0m`);
-      } else {
-        console.log(`  \x1B[31m\u2717 ${file}: MISMATCH\x1B[0m`);
-        console.log(`    Expected: ${expectedHash}`);
-        console.log(`    Actual:   ${actualHash}`);
-        allPassed = false;
-      }
-    });
-  } catch (e) {
-    console.error(`\x1B[31mError: Failed to read checksums: ${e.message}\x1B[0m`);
-    process.exit(1);
+    }
   }
   const lockfile = loadRegistryLockfile(projectDir);
   const lockEntry = lockfile.entries[name];
-  if (!lockEntry) {
-    if (policy.require_lockfile_on_verify) {
-      console.error(`  \x1B[31m\u2717 Lockfile: No entry found for registry '${name}' (require_lockfile_on_verify is true)\x1B[0m`);
-      allPassed = false;
+  let lockfileStatus = "N/A";
+  let provenanceStatus = "N/A";
+  let lockfileVerdict = "N/A";
+  if (!isBundled) {
+    const lockfilePath = getLockfilePath(projectDir);
+    lockfileStatus = existsSync8(lockfilePath) ? `\x1B[32mpresent\x1B[0m` : `\x1B[33mmissing\x1B[0m`;
+    if (!lockEntry) {
+      if (policy.require_lockfile_on_verify) {
+        provenanceStatus = `\x1B[31m\u2717 Failed (require_lockfile_on_verify is true but entry missing)\x1B[0m`;
+        lockfileVerdict = "Failed";
+      } else {
+        provenanceStatus = `\x1B[33m\u26A0 Missing provenance entry (no sync lock)\x1B[0m`;
+        lockfileVerdict = "Missing";
+      }
     } else {
-      console.log(`  \x1B[33m\u26A0 Lockfile: No provenance entry found for '${name}' (run registry sync to populate)\x1B[0m`);
+      let isProvMatch = true;
+      if (catalogHash !== lockEntry.catalog_sha256) {
+        isProvMatch = false;
+        console.log(`  \x1B[31m\u2717 Lockfile catalog hash mismatch: Expected ${lockEntry.catalog_sha256}, got ${catalogHash}\x1B[0m`);
+      }
+      if (manifestHash !== "N/A" && lockEntry.manifest_sha256 && manifestHash !== lockEntry.manifest_sha256) {
+        isProvMatch = false;
+        console.log(`  \x1B[31m\u2717 Lockfile manifest hash mismatch: Expected ${lockEntry.manifest_sha256}, got ${manifestHash}\x1B[0m`);
+      }
+      if (isProvMatch) {
+        provenanceStatus = `\x1B[32m\u2713 Matched lockfile entry\x1B[0m`;
+        lockfileVerdict = "Verified";
+      } else {
+        provenanceStatus = `\x1B[31m\u2717 Tampering detected: hashes do not match lockfile\x1B[0m`;
+        lockfileVerdict = "Tampered";
+      }
     }
   } else {
-    const catalogCachePath = join7(cacheDir, "catalog.yaml");
-    if (existsSync7(catalogCachePath)) {
-      const catalogContent = readFileSync8(catalogCachePath, "utf8");
-      const actualCatalogHash = computeSHA256(catalogContent);
-      if (actualCatalogHash === lockEntry.catalog_sha256) {
-        console.log(`  \x1B[32m\u2713 Lockfile catalog hash: MATCHED (${actualCatalogHash.slice(0, 16)}...)\x1B[0m`);
+    lockfileStatus = "N/A (Bundled)";
+    provenanceStatus = "\x1B[32m\u2713 Implicit Trust\x1B[0m";
+    lockfileVerdict = "Verified";
+  }
+  const trustedKeys = loadTrustedKeys(projectDir, policy);
+  let hmacKey = null;
+  try {
+    hmacKey = loadSigningKey(projectDir);
+  } catch (_e) {
+  }
+  let signatureAlgorithm = "None";
+  let signatureKeyId = "None";
+  let trustedPublisherStatus = "N/A";
+  let signatureValidity = "N/A";
+  let signatureResult = { verified: true, status: "unsigned" };
+  if (manifestObj) {
+    signatureResult = verifySignatureBlock({
+      manifest: manifestObj,
+      trustedKeys,
+      policy,
+      hmacKey,
+      source: source || { name: "bundled", type: "local" }
+    });
+    const signatureBlocks = [];
+    if (manifestObj.signature && typeof manifestObj.signature === "object") {
+      signatureBlocks.push(manifestObj.signature);
+    }
+    if (Array.isArray(manifestObj.signatures)) {
+      signatureBlocks.push(...manifestObj.signatures);
+    }
+    if (signatureBlocks.length > 0) {
+      const firstSig = signatureBlocks[0];
+      signatureAlgorithm = firstSig.algorithm || "unknown";
+      signatureKeyId = firstSig.key_id || "unknown";
+      const tk = trustedKeys.find((k) => k.key_id === signatureKeyId);
+      if (tk) {
+        trustedPublisherStatus = tk.status === "active" ? `\x1B[32m\u2713 Trusted (${tk.name})\x1B[0m` : `\x1B[31m\u2717 ${tk.status} (${tk.name})\x1B[0m`;
       } else {
-        console.log(`  \x1B[31m\u2717 Lockfile catalog hash: MISMATCH \u2014 possible tampering detected\x1B[0m`);
-        console.log(`    Lockfile expected: ${lockEntry.catalog_sha256}`);
-        console.log(`    Actual cached:     ${actualCatalogHash}`);
-        allPassed = false;
+        trustedPublisherStatus = `\x1B[33m\u26A0 Unknown key_id (Not in trust store)\x1B[0m`;
       }
-      let signingKey = null;
-      try {
-        signingKey = loadSigningKey(projectDir);
-      } catch (keyErr) {
-        console.log(`  \x1B[33mWarning: Signing key error \u2014 ${keyErr.message}\x1B[0m`);
-      }
-      if (signingKey && lockEntry.signature) {
-        const sigValid = verifySignature(signingKey, lockEntry.catalog_sha256, lockEntry.signature);
-        if (sigValid) {
-          console.log(`  \x1B[32m\u2713 Signature: VALID (HMAC-SHA256)\x1B[0m`);
-        } else {
-          console.log(`  \x1B[31m\u2717 Signature: INVALID \u2014 signing key or signature may be compromised\x1B[0m`);
-          allPassed = false;
-        }
-      } else if (signingKey && !lockEntry.signature) {
-        console.log(`  \x1B[33m\u26A0 Signature: No signature in lockfile (re-sync to sign)\x1B[0m`);
-      } else if (!signingKey && lockEntry.signature) {
-        console.log(`  \x1B[33m\u26A0 Signature: Stored but no signing key found (cannot verify)\x1B[0m`);
+      if (signatureResult.verified) {
+        signatureValidity = `\x1B[32m\u2713 Valid Signature\x1B[0m`;
       } else {
-        console.log(`  \x1B[90m  Signature: Not configured (no key + no signature)\x1B[0m`);
+        const errorMsg = signatureResult.errors ? signatureResult.errors.join(", ") : signatureResult.error || "signature verification failed";
+        signatureValidity = `\x1B[31m\u2717 Invalid Signature (${errorMsg})\x1B[0m`;
+      }
+    } else {
+      if (policy.require_signature || isRemote && policy.allow_unsigned_remote === false) {
+        signatureValidity = `\x1B[31m\u2717 Missing Signature (Enforced by policy)\x1B[0m`;
+      } else {
+        signatureValidity = `\x1B[90mUnsigned\x1B[0m`;
       }
     }
-    console.log(`  Lockfile synced:   ${lockEntry.synced_at}`);
-    console.log(`  Lockfile URL:      ${lockEntry.url}`);
+  } else {
+    if (!isBundled && (policy.require_signature || isRemote && policy.allow_unsigned_remote === false)) {
+      signatureResult = { verified: false, error: "Manifest missing but signature is required by policy." };
+      signatureValidity = `\x1B[31m\u2717 Manifest missing (Enforced by policy)\x1B[0m`;
+    } else {
+      signatureValidity = `\x1B[90mUnsigned (No manifest)\x1B[0m`;
+    }
   }
-  if (allPassed) {
+  console.log(`  Source Type:        ${isBundled ? "bundled" : source.type}`);
+  console.log(`  Source URL/Path:    ${url}`);
+  console.log(`  URL Validation:     ${urlValidationStatus}`);
+  console.log(`  Manifest SHA256:    ${manifestHash}`);
+  console.log(`  Catalog SHA256:     ${catalogHash}`);
+  console.log(`  Lockfile Status:    ${lockfileStatus}`);
+  console.log(`  Provenance Status:  ${provenanceStatus}`);
+  console.log(`  Signature Alg:      ${signatureAlgorithm}`);
+  console.log(`  Signature Key ID:   ${signatureKeyId}`);
+  console.log(`  Trusted Publisher:  ${trustedPublisherStatus}`);
+  console.log(`  Signature Validity: ${signatureValidity}`);
+  let finalVerdict = "\u2717 Failed";
+  let passed = true;
+  if (!integrityVerified)
+    passed = false;
+  if (!isBundled && lockfileVerdict === "Failed")
+    passed = false;
+  if (!isBundled && lockfileVerdict === "Tampered")
+    passed = false;
+  if (!signatureResult.verified)
+    passed = false;
+  if (passed) {
+    if (signatureResult.status === "verified") {
+      finalVerdict = `\x1B[32m\u2713 Verified (Signature matches trusted key)\x1B[0m`;
+    } else if (isBundled || isLocal) {
+      finalVerdict = `\x1B[32m\u2713 Verified (Implicit local trust)\x1B[0m`;
+    } else {
+      finalVerdict = `\x1B[33m\u26A0 Unsigned (Allowed by policy)\x1B[0m`;
+    }
+  } else {
+    const reason = !integrityVerified ? "Integrity check failed" : lockfileVerdict === "Tampered" ? "Lockfile tampering detected" : signatureResult.error || signatureResult.errors && signatureResult.errors.join(", ") || "Signature verification failed";
+    finalVerdict = `\x1B[31m\u2717 Failed (${reason})\x1B[0m`;
+  }
+  console.log(`  Final Trust:        ${finalVerdict}`);
+  console.log("==================================================");
+  try {
+    const parsed = parseYaml(catalogContent);
+    const pluginCount = ((parsed.catalog || {}).plugins || []).length;
+    console.log(`  Plugins Parsed:     ${pluginCount} entries`);
+  } catch (e) {
+    console.error(`\x1B[31m\u2717 Catalog parsing failed: ${e.message}\x1B[0m`);
+    process.exit(1);
+  }
+  if (!isBundled && lockEntry) {
+    const verificationErrors = signatureResult.errors || (signatureResult.error ? [signatureResult.error] : []);
+    const verificationWarnings = signatureResult.warning ? [signatureResult.warning] : [];
+    lockEntry.trust_verdict = passed ? signatureResult.status === "verified" ? "verified" : "unsigned_allowed" : "failed";
+    lockEntry.lockfile_verdict = lockfileVerdict.toLowerCase();
+    lockEntry.verification_errors = verificationErrors;
+    lockEntry.verification_warnings = verificationWarnings;
+    saveRegistryLockfile(projectDir, lockfile);
+  }
+  if (passed) {
     console.log(`
 \x1B[32m\u2714 Registry '${name}' verification passed.\x1B[0m
 `);
   } else {
     console.error(`
-\x1B[31m\u2717 Registry '${name}' verification failed. Re-sync recommended.\x1B[0m
+\x1B[31m\u2717 Registry '${name}' verification failed.\x1B[0m
+`);
+    process.exit(1);
+  }
+}
+function handleRegistryTrustList(options) {
+  const projectDir = options.target || process.cwd();
+  const policy = loadRegistryPolicy(projectDir);
+  const keys = loadTrustedKeys(projectDir, policy);
+  console.log(`
+\u{1F511} \x1B[36mRegistry Trust Store \u2014 Trusted Keys\x1B[0m`);
+  console.log("==================================================");
+  console.log(`Trust Store Path: \x1B[36m${policy.trusted_keys_file || ".ai/registries/trusted-keys.yaml"}\x1B[0m`);
+  console.log(`Total Keys:       ${keys.length}
+`);
+  if (keys.length === 0) {
+    console.log("  No trusted keys configured.");
+  } else {
+    keys.forEach((k) => {
+      const statusBadge = k.status === "active" ? "\x1B[32m\u25CF active\x1B[0m" : `\x1B[31m\u25CB ${k.status}\x1B[0m`;
+      console.log(`  * \x1B[33m${k.key_id}\x1B[0m  [${statusBadge}]`);
+      console.log(`    Publisher: ${k.name}`);
+      console.log(`    Algorithm: ${k.algorithm}`);
+      console.log(`    Scopes:    ${(k.scopes || []).join(", ")}`);
+    });
+  }
+  console.log("");
+}
+function handleRegistryTrustShow(keyId, options) {
+  const projectDir = options.target || process.cwd();
+  const policy = loadRegistryPolicy(projectDir);
+  const keys = loadTrustedKeys(projectDir, policy);
+  const k = keys.find((key) => key.key_id === keyId);
+  if (!k) {
+    console.error(`\x1B[31mError: Trusted key '${keyId}' not found in the trust store.\x1B[0m`);
+    process.exit(1);
+  }
+  console.log(`
+\u{1F511} \x1B[36mTrusted Key: ${keyId}\x1B[0m`);
+  console.log("==================================================");
+  console.log(`\x1B[33mKey ID:\x1B[0m         ${k.key_id}`);
+  console.log(`\x1B[33mPublisher:\x1B[0m      ${k.name}`);
+  console.log(`\x1B[33mAlgorithm:\x1B[0m      ${k.algorithm}`);
+  console.log(`\x1B[33mStatus:\x1B[0m         ${k.status === "active" ? "\x1B[32mactive\x1B[0m" : `\x1B[31m${k.status}\x1B[0m`}`);
+  console.log(`\x1B[33mScopes:\x1B[0m         ${(k.scopes || []).join(", ")}`);
+  console.log(`\x1B[33mPublic Key:\x1B[0m
+${k.public_key.trim()}`);
+  console.log("");
+}
+function handleRegistryTrustVerify(options) {
+  const projectDir = options.target || process.cwd();
+  const policy = loadRegistryPolicy(projectDir);
+  const keys = loadTrustedKeys(projectDir, policy);
+  console.log(`
+\u{1F511} \x1B[36mVerifying Trust Store Integrity...\x1B[0m`);
+  console.log("==================================================");
+  let passed = true;
+  keys.forEach((k) => {
+    try {
+      normalizePublicKey(k.public_key);
+      console.log(`  \x1B[32m\u2713\x1B[0m Key '${k.key_id}' public key format is valid.`);
+    } catch (e) {
+      console.log(`  \x1B[31m\u2717\x1B[0m Key '${k.key_id}' public key format error: ${e.message}`);
+      passed = false;
+    }
+  });
+  if (passed) {
+    console.log(`
+\x1B[32m\u2714 Trust store verification passed.\x1B[0m
+`);
+  } else {
+    console.error(`
+\x1B[31m\u2717 Trust store verification failed.\x1B[0m
 `);
     process.exit(1);
   }
@@ -6253,12 +6687,12 @@ function handleRegistryShow(name, options) {
     console.log(`\x1B[33mPinned Hash:\x1B[0m    ${source.pinned_commit_or_hash}`);
   }
   if (source.type !== "local") {
-    const cacheDir = join7(sourceRoot, ".ai", "registry-cache", name);
-    if (existsSync7(cacheDir)) {
-      const catalogPath = join7(cacheDir, "catalog.yaml");
-      if (existsSync7(catalogPath)) {
+    const cacheDir = join8(sourceRoot, ".ai", "registry-cache", name);
+    if (existsSync8(cacheDir)) {
+      const catalogPath = join8(cacheDir, "catalog.yaml");
+      if (existsSync8(catalogPath)) {
         try {
-          const parsed = parseYaml(readFileSync8(catalogPath, "utf8"));
+          const parsed = parseYaml(readFileSync9(catalogPath, "utf8"));
           const count = ((parsed.catalog || {}).plugins || []).length;
           console.log(`\x1B[33mCached Plugins:\x1B[0m ${count} entries`);
         } catch (e) {
@@ -6284,8 +6718,8 @@ function handleRegistryShow(name, options) {
 function handleRegistryCacheClear(options) {
   if (!options.approved) {
     console.error("\x1B[31mError: Cache cannot be cleared without explicit approval. Pass the --approved flag.\x1B[0m");
-    const cacheRoot2 = join7(sourceRoot, ".ai", "registry-cache");
-    if (existsSync7(cacheRoot2)) {
+    const cacheRoot2 = join8(sourceRoot, ".ai", "registry-cache");
+    if (existsSync8(cacheRoot2)) {
       const dirs = readdirSync(cacheRoot2).filter((d) => d !== "README.md");
       console.log(`
 \x1B[33mPlanned Action:\x1B[0m Clear ${dirs.length} cached registry directories:`);
@@ -6299,20 +6733,20 @@ Run with --approved to apply:
 `);
     process.exit(1);
   }
-  const cacheRoot = join7(sourceRoot, ".ai", "registry-cache");
-  if (!existsSync7(cacheRoot)) {
+  const cacheRoot = join8(sourceRoot, ".ai", "registry-cache");
+  if (!existsSync8(cacheRoot)) {
     console.log("\n\x1B[33mNo registry cache directory found. Nothing to clear.\x1B[0m\n");
     return;
   }
   const entries = readdirSync(cacheRoot).filter((d) => d !== "README.md");
   let cleared = 0;
   entries.forEach((d) => {
-    const dirPath = join7(cacheRoot, d);
+    const dirPath = join8(cacheRoot, d);
     try {
       if (statSync(dirPath).isDirectory()) {
         const files = readdirSync(dirPath);
         files.forEach((f) => {
-          const fp = join7(dirPath, f);
+          const fp = join8(dirPath, f);
           if (statSync(fp).isFile()) {
             writeFileSync4(fp, "");
           }
@@ -6387,7 +6821,7 @@ function handleRegistryLock(options) {
   console.log(`
 \u{1F512} \x1B[36mRegistry Provenance Lockfile\x1B[0m`);
   console.log("==================================================");
-  if (!existsSync7(lockfilePath)) {
+  if (!existsSync8(lockfilePath)) {
     console.log(`  \x1B[90mNo lockfile found at: ${lockfilePath}\x1B[0m`);
     console.log(`  Sync a remote registry to create it:`);
     console.log(`    npx multimodel-dev-os registry sync <name> --approved

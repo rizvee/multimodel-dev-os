@@ -1,6 +1,6 @@
 # Runbook
 
-> Operational procedures for deployment, rollback, and incident response.
+> Operational procedures for development setup, testing, packaging, and rollback.
 > AI agents reference this before executing critical operations.
 
 ## Environment Setup
@@ -10,64 +10,55 @@
 ```bash
 # 1. Clone the repo
 git clone <repo-url>
-cd <project-name>
+cd multimodel-dev-os
 
-# 2. Install dependencies
-null
+# 2. Install dev dependencies
+npm install
 
-# 3. Set up environment variables
-cp .env.example .env
-# Edit .env with your values
+# 3. Build the CLI binary
+npm run build
 
-# 4. Start development server
-null
+# 4. Run tests
+npm test
 ```
 
-## Deploy
+## Deploy / Release
 
-<!-- Step-by-step deployment procedure -->
+As this is a local CLI utility distributed via npm, deployment is done by compiling the binary and publishing to npm.
 
 | Step | Command | Notes |
 |------|---------|-------|
-| 1 | null | null |
-| 2 | null | null |
-
-**Deploy URL:** null
-**Deploy branch:** null
+| 1 | `npm run verify` | Runs unit tests, generated CLI freshness check, and strict code validations |
+| 2 | `$env:MMDO_ALLOW_PUBLISH="true"; npm publish` | Set environment variable to bypass prepublish-guard |
 
 ## Rollback
 
-<!-- How to revert a bad deployment -->
+To roll back a released npm package or local commit:
 
 ```bash
-# Quick rollback to previous version
-null
+# Deprecate the broken package version on npm
+npm deprecate multimodel-dev-os@<version> "Deprecation message detailing reason"
+
+# Revert local repository main branch to last stable tag
+git reset --hard v3.2.0
 ```
 
-**Last known good commit:** null
-
-## Incident Response
-
-<!-- What to do when things break -->
-
-1. **Identify:** Check error logs at `null`
-2. **Communicate:** Notify team at `null`
-3. **Mitigate:** Rollback if necessary (see above)
-4. **Resolve:** Fix the root cause
-5. **Document:** Add post-mortem to `MEMORY.md`
+**Last known good release tag:** `v3.2.0`
 
 ## Health Checks
 
-<!-- Endpoints or commands to verify the system is working -->
+Run diagnostics to verify CLI health:
 
-| Check | Command/URL | Expected |
+| Check | Command | Expected |
 |-------|-------------|----------|
-| null | null | null |
+| CLI Help / Version | `node bin/multimodel-dev-os.js --help` | Prints help text displaying current version |
+| Registry Policy Engine | `node bin/multimodel-dev-os.js registry status` | Shows correct policy state and configuration values |
+| Strict Audit Check | `npm run verify` | Completes successfully with 0 failures |
 
 ## Secrets & Config
 
-<!-- Where secrets are stored (never put actual secrets here) -->
-
 | Secret | Location | Rotation |
 |--------|----------|----------|
-| null | null | null |
+| Project Registry Sync Key | `.ai/registry-signing-key` | Run `registry keygen --approved --force` |
+| npm Publish Token | `~/.npmrc` or user environment | Managed in npmjs.com account settings |
+

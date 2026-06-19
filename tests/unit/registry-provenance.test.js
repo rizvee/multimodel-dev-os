@@ -103,6 +103,15 @@ describe('Registry Provenance — updateLockfileEntry', () => {
     expect(lockfile.entries['test'].manifest_sha256).toBeNull();
     expect(lockfile.entries['test'].signature).toBeNull();
     expect(lockfile.entries['test'].signature_alg).toBe('hmac-sha256');
+    expect(lockfile.entries['test'].public_signature_status).toBeNull();
+    expect(lockfile.entries['test'].public_signature_algorithm).toBeNull();
+    expect(lockfile.entries['test'].public_signature_key_id).toBeNull();
+    expect(lockfile.entries['test'].trusted_publisher_status).toBeNull();
+    expect(lockfile.entries['test'].trust_store_path).toBeNull();
+    expect(lockfile.entries['test'].trust_verdict).toBeNull();
+    expect(lockfile.entries['test'].lockfile_verdict).toBeNull();
+    expect(lockfile.entries['test'].verification_errors).toEqual([]);
+    expect(lockfile.entries['test'].verification_warnings).toEqual([]);
   });
 
   it('initialises entries object if missing from lockfile', () => {

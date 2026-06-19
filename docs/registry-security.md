@@ -123,17 +123,24 @@ MultiModel Dev OS supports optional **HMAC-SHA256 signing** of synced registry c
 
 ### Policy Controls
 
-The following fields in `.ai/policies/registry-policy.yaml` control signing enforcement:
+The following fields in `.ai/policies/registry-policy.yaml` control signing and trust enforcement:
 
 | Field | Default | Effect |
 |---|---|---|
-| `require_signature` | `false` | When `true`, sync fails if no signing key is present |
-| `require_lockfile_on_verify` | `false` | When `true`, verify fails if no lockfile entry exists |
+| `require_signature` | `false` | When `true`, verify/sync fails if the manifest is unsigned or has an invalid signature. |
+| `require_lockfile_on_verify` | `false` | When `true`, verify fails if no lockfile entry exists for the registry. |
+| `allow_unsigned_local` | `true` | Permits unsigned local registries. |
+| `allow_unsigned_bundled` | `true` | Permits unsigned bundled registries. |
+| `allow_unsigned_remote` | `false` | Restricts unsigned remote registries (enforces signatures). |
+| `require_trusted_publisher` | `false` | Fails verification if signature key_id is not in the trust store. |
+| `allowed_signature_algorithms` | `['ed25519', 'hmac-sha256']` | Restricts allowed cryptographic signature algorithms. |
+| `trusted_keys_file` | `".ai/registries/trusted-keys.yaml"` | Configured location of the trusted key store. |
 
 ### Security Notes
 
-- The signing key is **project-scoped**, not global. Each project maintains its own key.
-- The lockfile (`.ai/registry-lock.json`) **should be committed to VCS** — it provides tamper evidence for the team.
-- The signing key (`.ai/registry-signing-key`) **must NOT be committed** — it is automatically gitignored.
-- If the signing key is rotated (`registry keygen --approved --force`), all existing signatures in the lockfile are invalidated. Re-sync to re-sign.
-- Signature verification uses `crypto.timingSafeEqual` to prevent timing-based side-channel attacks.
+- **HMAC Keys** are project-scoped and local. They are stored in `.ai/registry-signing-key` and must never be committed (automatically gitignored).
+- **Ed25519 Public Keys** are registered in `.ai/registries/trusted-keys.yaml` to authorize public publishers.
+- The **lockfile** (`.ai/registry-lock.json`) should be committed to VCS to provide verifiable tamper-evidence for the team.
+- **HTTPS transport security** secures the delivery, but **signatures and trust store** secure publisher identity, protecting against server-side compromises.
+- **Zero-Dependency Cryptography**: All operations rely strictly on Node's built-in `crypto` library.
+

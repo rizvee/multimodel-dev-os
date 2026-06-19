@@ -54,3 +54,26 @@ allowed_file_extensions:
   - ".yaml"
   - ".yml"
   - ".json"
+
+# Allow unsigned local registries.
+allow_unsigned_local: true
+
+# Allow unsigned bundled registries.
+allow_unsigned_bundled: true
+
+# Allow unsigned remote registries.
+allow_unsigned_remote: false
+
+# Path to the trusted keys configuration file.
+trusted_keys_file: ".ai/registries/trusted-keys.yaml"
+
+# Allowed signature algorithms.
+allowed_signature_algorithms:
+  - "ed25519"
+  - "hmac-sha256"
+
+# Require signature to be from a trusted publisher in the trust store.
+require_trusted_publisher: false
+
+# Require provenance lockfile verification.
+provenance_required: true

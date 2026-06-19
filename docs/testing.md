@@ -64,6 +64,19 @@ npm test
    - Asserts that publishing blocks without `MMDO_ALLOW_PUBLISH=true`.
    - Permits stable major versions >= 2.
 
+7. **Registry Public-Key Signing (`tests/unit/registry-public-signing.test.js`)**
+   - Ed25519 keypair generation and format verification.
+   - Public-key signature creation, encoding, and verification checks.
+   - Canonical payload generation determinism and nested object sorting.
+
+8. **Registry Trust Store (`tests/unit/registry-trust-store.test.js`)**
+   - Loading trusted publisher key records from YAML.
+   - Strict verification of publisher active status, algorithm, and allowed scopes.
+
+9. **Registry Signature Policy (`tests/unit/registry-signature-policy.test.js`)**
+   - Enforcement of unsigned registry permissions (local, bundled, remote).
+   - Enforcing allowed signature algorithms and trusted publisher requirements.
+
 ---
 
 ## 3. Tier 2: Release Verification Audit

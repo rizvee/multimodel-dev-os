@@ -11,7 +11,14 @@
     "allow_untrusted_install",
     "allowed_write_roots",
     "blocked_paths",
-    "allowed_file_extensions"
+    "allowed_file_extensions",
+    "allow_unsigned_local",
+    "allow_unsigned_bundled",
+    "allow_unsigned_remote",
+    "trusted_keys_file",
+    "allowed_signature_algorithms",
+    "require_trusted_publisher",
+    "provenance_required"
   ],
   "properties": {
     "allow_remote_registries": {
@@ -60,6 +67,35 @@
       "type": "array",
       "items": { "type": "string" },
       "description": "File extensions permitted for plugin asset files."
+    },
+    "allow_unsigned_local": {
+      "type": "boolean",
+      "description": "Whether unsigned local registries are permitted."
+    },
+    "allow_unsigned_bundled": {
+      "type": "boolean",
+      "description": "Whether unsigned bundled registries are permitted."
+    },
+    "allow_unsigned_remote": {
+      "type": "boolean",
+      "description": "Whether unsigned remote registries are permitted."
+    },
+    "trusted_keys_file": {
+      "type": "string",
+      "description": "Path to the trusted keys yaml configuration file."
+    },
+    "allowed_signature_algorithms": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Cryptographic signature algorithms allowed for manifest verification."
+    },
+    "require_trusted_publisher": {
+      "type": "boolean",
+      "description": "Whether signatures must come from a trusted publisher in the trust store."
+    },
+    "provenance_required": {
+      "type": "boolean",
+      "description": "Whether a provenance record (lockfile entry) is required."
     }
   },
   "additionalProperties": false

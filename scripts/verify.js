@@ -203,6 +203,7 @@ checkFile('src/registry/validation.js');
 checkFile('src/registry/sources.js');
 checkFile('src/registry/provenance.js');
 checkFile('src/registry/signing.js');
+checkFile('src/registry/trust-store.js');
 checkFile('src/catalog/loader.js');
 checkFile('src/plugin/manifest.js');
 
@@ -248,6 +249,8 @@ checkFile('docs/registry-contribution.md');
 checkFile('docs/v2-migration.md');
 checkFile('docs/v2-release-checklist.md');
 checkFile('docs/package-safety.md');
+checkFile('docs/registry-signing.md');
+checkFile('docs/registry-trust-store.md');
 
 // --- v2.1.0 Intelligence Layer Documentation ---
 console.log('\nIntelligence Layer Documentation:');
@@ -282,6 +285,7 @@ console.log('\nJSON Schemas:');
 checkFile('.ai/schema/config.schema.json');
 checkFile('.ai/schema/template.schema.json');
 checkFile('.ai/schema/adapter.schema.json');
+checkFile('.ai/schema/trusted-keys.schema.json');
 
 // --- v2.1.0 Intelligence Layer (Schemas, Policies, Registries) ---
 console.log('\nIntelligence Layer Schemas:');
@@ -304,6 +308,7 @@ console.log('\nIntelligence Layer Registries:');
 checkFile('.ai/registries/capabilities.yaml');
 checkFile('.ai/registries/tools.yaml');
 checkFile('.ai/registries/workflows.yaml');
+checkFile('.ai/registries/trusted-keys.yaml');
 
 // --- Unit Tests ---
 console.log('\nUnit Tests:');
@@ -312,6 +317,9 @@ checkFile('tests/unit/registry-url-validation.test.js');
 checkFile('tests/unit/registry-policy.test.js');
 checkFile('tests/unit/registry-provenance.test.js');
 checkFile('tests/unit/registry-signing.test.js');
+checkFile('tests/unit/registry-public-signing.test.js');
+checkFile('tests/unit/registry-trust-store.test.js');
+checkFile('tests/unit/registry-signature-policy.test.js');
 checkFile('tests/unit/path-safety.test.js');
 checkFile('tests/unit/plugin-manifest.test.js');
 checkFile('tests/unit/catalog-loader.test.js');
@@ -1448,15 +1456,36 @@ try {
   const hasSign = signingSrc.includes('export function signPayload');
   const hasVerify = signingSrc.includes('export function verifySignature');
   const hasTimingSafe = signingSrc.includes('timingSafeEqual');
-  if (hasLoadKey && hasGenKey && hasSaveKey && hasSign && hasVerify && hasTimingSafe) {
-    console.log(`  ${GREEN}✓${NC} src/registry/signing.js exports complete API and uses timingSafeEqual`);
+  const hasEdKeygen = signingSrc.includes('export function generateEd25519KeyPair');
+  const hasEdSign = signingSrc.includes('export function signEd25519Payload');
+  const hasEdVerify = signingSrc.includes('export function verifyEd25519Payload');
+  const hasSigBlockVerify = signingSrc.includes('export function verifySignatureBlock');
+  
+  if (hasLoadKey && hasGenKey && hasSaveKey && hasSign && hasVerify && hasTimingSafe && hasEdKeygen && hasEdSign && hasEdVerify && hasSigBlockVerify) {
+    console.log(`  ${GREEN}✓${NC} src/registry/signing.js exports complete API (HMAC + Ed25519)`);
     pass++;
   } else {
-    console.error(`  ${RED}✗${NC} src/registry/signing.js is missing expected exports or timing-safe comparison`);
+    console.error(`  ${RED}✗${NC} src/registry/signing.js is missing expected exports`);
     fail++;
   }
 } catch (e) {
   console.error(`  ${RED}✗${NC} Failed to check signing.js: ${e.message}`);
+  fail++;
+}
+
+// Check trust-store.js exports expected API surface
+try {
+  const trustSrc = readFileSync(join(projectRoot, 'src', 'registry', 'trust-store.js'), 'utf8');
+  const hasLoadTrustedKeys = trustSrc.includes('export function loadTrustedKeys');
+  if (hasLoadTrustedKeys) {
+    console.log(`  ${GREEN}✓${NC} src/registry/trust-store.js exports loadTrustedKeys`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} src/registry/trust-store.js is missing expected exports`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} Failed to check trust-store.js: ${e.message}`);
   fail++;
 }
 
@@ -1465,28 +1494,39 @@ try {
   const mainSrc = readFileSync(join(projectRoot, 'src', 'cli', 'main.js'), 'utf8');
   const hasProvenanceImport = mainSrc.includes("from '../registry/provenance.js'");
   const hasSigningImport = mainSrc.includes("from '../registry/signing.js'");
+  const hasTrustImport = mainSrc.includes("from '../registry/trust-store.js'");
   const hasKeygenHandler = mainSrc.includes('handleRegistryKeygen');
   const hasLockHandler = mainSrc.includes('handleRegistryLock');
-  if (hasProvenanceImport && hasSigningImport && hasKeygenHandler && hasLockHandler) {
-    console.log(`  ${GREEN}✓${NC} src/cli/main.js imports provenance/signing and registers keygen+lock handlers`);
+  const hasTrustHandler = mainSrc.includes('handleRegistryTrustList');
+  if (hasProvenanceImport && hasSigningImport && hasTrustImport && hasKeygenHandler && hasLockHandler && hasTrustHandler) {
+    console.log(`  ${GREEN}✓${NC} src/cli/main.js imports provenance/signing/trust-store and registers handlers`);
     pass++;
   } else {
-    console.error(`  ${RED}✗${NC} src/cli/main.js is missing provenance/signing imports or keygen/lock handlers`);
+    console.error(`  ${RED}✗${NC} src/cli/main.js is missing required imports or handlers`);
     fail++;
   }
 } catch (e) {
-  console.error(`  ${RED}✗${NC} Failed to check main.js signing integration: ${e.message}`);
+  console.error(`  ${RED}✗${NC} Failed to check main.js integrations: ${e.message}`);
   fail++;
 }
 
-// Check that policy.js has the new lockfile field in defaults
+// Check that policy.js has the new fields in defaults
 try {
   const policySrc = readFileSync(join(projectRoot, 'src', 'core', 'policy.js'), 'utf8');
-  if (policySrc.includes('require_lockfile_on_verify')) {
-    console.log(`  ${GREEN}✓${NC} src/core/policy.js includes require_lockfile_on_verify default`);
+  const hasLockfileField = policySrc.includes('require_lockfile_on_verify');
+  const hasUnsignedLocal = policySrc.includes('allow_unsigned_local');
+  const hasUnsignedBundled = policySrc.includes('allow_unsigned_bundled');
+  const hasUnsignedRemote = policySrc.includes('allow_unsigned_remote');
+  const hasTrustedKeysFile = policySrc.includes('trusted_keys_file');
+  const hasAllowedAlgs = policySrc.includes('allowed_signature_algorithms');
+  const hasRequireTrustedPublisher = policySrc.includes('require_trusted_publisher');
+  const hasProvenanceRequired = policySrc.includes('provenance_required');
+  
+  if (hasLockfileField && hasUnsignedLocal && hasUnsignedBundled && hasUnsignedRemote && hasTrustedKeysFile && hasAllowedAlgs && hasRequireTrustedPublisher && hasProvenanceRequired) {
+    console.log(`  ${GREEN}✓${NC} src/core/policy.js includes all Sprint 2 policy defaults`);
     pass++;
   } else {
-    console.error(`  ${RED}✗${NC} src/core/policy.js is missing require_lockfile_on_verify default`);
+    console.error(`  ${RED}✗${NC} src/core/policy.js is missing required policy defaults`);
     fail++;
   }
 } catch (e) {

@@ -80,11 +80,11 @@ All releases follow this strict publishing checklist:
 
 ---
 
-## 4. Upcoming: v3.3.0 stable candidate — Asymmetric Key Signatures
-
-*   **Asymmetric Key Signatures**: Cryptographic signature validation for remote registries using public/private key pairs.
-*   **Decentralized Trust Anchors**: Trust anchors configuration allowing teams to pin public keys of verified catalog authors.
-*   **Tamper-Proof Audit Chain**: Signed change logs and history verification.
+## 4. In Progress: v3.5.0-prep — Public-Key Registry Signatures + Trust Store (Sprint 1 & 2)
+- **Local HMAC-SHA256 Signing**: Project-scoped signing key generated via `registry keygen` and verified against `registry-lock.json` lockfile for local workspace integrity.
+- **Ed25519 Public-Key Signatures**: Asymmetric signature verification of remote registry manifests using Node's built-in cryptographic functions.
+- **Trusted Key Store**: Centralized trust anchors configuration `.ai/registries/trusted-keys.yaml` to register public keys, check statuses (active/disabled/revoked), and validate scopes.
+- **Enhanced Verification UI**: Full registry trust verdicts printed during verification (`registry verify`), explaining integrity, lockfile, signature, and publisher trust.
 
 ---
 

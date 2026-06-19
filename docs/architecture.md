@@ -38,7 +38,8 @@
 │    Layer 4: Intelligence Layer       │
 │  .ai/intelligence/  (memory, handoff)│
 │  .ai/registries/    (workflows,     │
-│    capabilities, tools, sources)     │
+│    capabilities, tools, sources,    │
+│    trusted-keys)                     │
 │  .ai/registry-cache/ (cached remote) │
 │  .ai/proposals/     (improvements)  │
 │  .ai/policies/      (safety, registry│
@@ -49,6 +50,7 @@
 │  plugin list/show/validate/install   │
 │  catalog list/show/recommend/install │
 │  registry list/add/sync/status/verify│
+│    /keygen/lock/trust                │
 │  onboard / adapter sync              │
 └──────────────────────────────────────┘
 ```
