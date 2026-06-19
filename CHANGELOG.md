@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.1.0] - 2026-06-19
+
+### Added
+- **Modular Source Layout**: Refactored the monolithic CLI structure into clean, isolated modules under `src/` (core, registry, catalog, plugin, cli, etc.).
+- **Esbuild Build Process**: Programmed a zero-runtime-dependency programmatic compiler script `scripts/build-cli.js` using esbuild to bundle modules into `bin/multimodel-dev-os.js` with shebang preservation and deterministic outputs.
+- **Formal Unit Testing**: Integrated `vitest` unit test suites covering isolated YAML parsing, registry URL validation, policy checks, path safety boundaries, plugin manifest validations, and prepublish guard checks.
+- **Improved Integration Verification**: Hooked the unit test runner and build step directly into the release audit `npm run verify` verification gate.
+
+### Changed
+- **Safety Sandboxing**: Extended `validatePluginManifest` to permit `adapters/` (project-root adapter paths) in addition to `.ai/` subdirectories to align with actual installer behavior.
+- **Release Documentation**: Updated documentation references and installer scripts to support v3.1.0 parity.
+
 ## [3.0.2] - 2026-06-19
 
 ### Fixed

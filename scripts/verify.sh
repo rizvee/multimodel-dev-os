@@ -190,7 +190,7 @@ check_file "docs/adapters.md"
 check_file "docs/installers.md"
 check_file "docs/cli-roadmap.md"
 check_file "docs/faq.md"
-check_file "docs/testing-v0.2.md"
+check_file "docs/testing.md"
 check_file "docs/npm-publishing.md"
 
 # --- CLI & Packaging Pre-Flight Tests ---

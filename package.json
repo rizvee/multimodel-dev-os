@@ -1,6 +1,6 @@
 {
   "name": "multimodel-dev-os",
-  "version": "3.0.2",
+  "version": "3.1.0",
   "bin": {
     "multimodel-dev-os": "bin/multimodel-dev-os.js"
   },
@@ -38,7 +38,9 @@
     "assets/"
   ],
   "scripts": {
-    "verify": "node scripts/verify.js",
+    "build": "node scripts/build-cli.js",
+    "test": "vitest run",
+    "verify": "npm run build && npm test && node scripts/verify.js",
     "verify:bash": "bash scripts/verify.sh",
     "test:cli": "node bin/multimodel-dev-os.js verify",
     "pack:template": "bash scripts/pack-template.sh",
@@ -49,6 +51,8 @@
     "prepublishOnly": "node scripts/prepublish-guard.js"
   },
   "devDependencies": {
-    "vitepress": "^1.6.4"
+    "esbuild": "^0.20.2",
+    "vitepress": "^1.6.4",
+    "vitest": "^1.4.0"
   }
 }

@@ -203,7 +203,7 @@ checkFile('docs/adapters.md');
 checkFile('docs/installers.md');
 checkFile('docs/cli-roadmap.md');
 checkFile('docs/faq.md');
-checkFile('docs/testing-v0.2.md');
+checkFile('docs/testing.md');
 checkFile('docs/npm-publishing.md');
 checkFile('docs/templates-guide.md');
 checkFile('docs/protocol.md');
@@ -549,7 +549,7 @@ try {
     }
   }
 
-  // Test 2: Allows version 3.0.2 with MMDO_ALLOW_PUBLISH=true
+  // Test 2: Allows version 3.1.0 with MMDO_ALLOW_PUBLISH=true
   try {
     const output = execSync('node scripts/prepublish-guard.js', { 
       cwd: projectRoot, 
@@ -557,7 +557,7 @@ try {
       encoding: 'utf8' 
     });
     if (output.includes('Prepublish guard passed')) {
-      console.log(`  ${GREEN}✓${NC} prepublish guard allows version 3.0.2 when MMDO_ALLOW_PUBLISH=true`);
+      console.log(`  ${GREEN}✓${NC} prepublish guard allows version 3.1.0 when MMDO_ALLOW_PUBLISH=true`);
       pass++;
     } else {
       console.error(`  ${RED}✗${NC} prepublish guard passed but stdout missing success indicator`);
@@ -565,7 +565,7 @@ try {
     }
   } catch (err) {
     const errText = err.stderr ? err.stderr.toString() : '';
-    console.error(`  ${RED}✗${NC} prepublish guard blocked version 3.0.2: ${errText || err.message}`);
+    console.error(`  ${RED}✗${NC} prepublish guard blocked version 3.1.0: ${errText || err.message}`);
     fail++;
   }
 
@@ -579,12 +579,12 @@ try {
     pass++;
   }
 
-  // Test 4: Package.json version is exactly 3.0.2
-  if (expectedVersion === '3.0.2') {
-    console.log(`  ${GREEN}✓${NC} package.json version is exactly 3.0.2`);
+  // Test 4: Package.json version is exactly 3.1.0
+  if (expectedVersion === '3.1.0') {
+    console.log(`  ${GREEN}✓${NC} package.json version is exactly 3.1.0`);
     pass++;
   } else {
-    console.error(`  ${RED}✗${NC} package.json version is not 3.0.2 (found ${expectedVersion})`);
+    console.error(`  ${RED}✗${NC} package.json version is not 3.1.0 (found ${expectedVersion})`);
     fail++;
   }
 } catch (e) {

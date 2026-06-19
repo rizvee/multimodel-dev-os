@@ -160,6 +160,7 @@ npx multimodel-dev-os@latest handoff build
 | **v3.0.0** | Trusted Remote Catalog & Registry Governance Layer | ✅ Released |
 | **v3.0.1** | Registry UX & Policy Safety Patch | ✅ Released |
 | **v3.0.2** | Registry Sync Security Hotfix | ✅ Released |
+| **v3.1.0** | Modular Source Layout + Formal Unit Tests | ✅ Released |
 
 
 **[Full Roadmap →](https://rizvee.github.io/multimodel-dev-os/v3-roadmap)**

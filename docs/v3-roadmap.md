@@ -7,11 +7,17 @@ This document outlines the development path, completed milestones, and future pl
 ## 1. Current Status
 
 > [!IMPORTANT]
-> **v3.0.2 is the active stable release** on the public npm registry. All features below marked ✅ are shipped and production-ready.
+> **v3.1.0 is the active stable release** on the public npm registry. All features below marked ✅ are shipped and production-ready.
 
 ---
 
 ## 2. Completed Milestones
+
+### v3.1.0 — Modular Source Layout + Formal Unit Tests ✅
+- **Modular Source Layout**: Refactored the monolithic CLI structure into isolated, clean modules under `src/` (core, registry, catalog, plugin, cli).
+- **Programmatic Compiler**: Programmed `scripts/build-cli.js` using `esbuild` to compile modules into a single zero-dependency executable (`bin/multimodel-dev-os.js`) with shebang preservation.
+- **Formal Unit Testing**: Integrated `vitest` unit test suites covering isolated YAML parsing, registry URL validation, policy checks, path safety boundaries, plugin manifest validations, and prepublish guard checks.
+- **Improved Integration Verification**: Hooked the unit test runner and build step directly into the release audit `npm run verify` verification gate.
 
 ### v3.0.2 — Registry Sync Security Hotfix ✅
 - **Registry Sync Command Injection Remediation**: Replaced shell-based URL interpolation in fetch helper with safe process arguments passed via `execFileSync`.
@@ -68,7 +74,7 @@ All releases follow this strict publishing checklist:
 
 ---
 
-## 4. Upcoming: v3.1.0 — Cryptographic Catalog Signing
+## 4. Upcoming: v3.2.0 — Cryptographic Catalog Signing
 
 *   **Asymmetric Key Signatures**: Cryptographic signature validation for remote registries using public/private key pairs.
 *   **Decentralized Trust Anchors**: Trust anchors configuration allowing teams to pin public keys of verified catalog authors.
