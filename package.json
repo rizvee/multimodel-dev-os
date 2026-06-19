@@ -35,6 +35,8 @@
     "!docs/.vitepress/cache/",
     "examples/",
     "bin/",
+    "src/",
+    "tests/",
     "assets/"
   ],
   "scripts": {

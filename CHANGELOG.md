@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **Source and Test Packaging Inclusions**: Configured the npm package manifest (`package.json`) to include the modular source folder (`src/`) and unit test suites (`tests/unit/`) for developer auditability.
+- **Build Output Unit Tests**: Implemented `tests/unit/build-output.test.js` validating shebang counts, warning headers, and URL safety.
+
+### Fixed
+- **Hardened Build Execution**: Configured `scripts/build-cli.js` to programmatically assert the entrypoint presence, set Unix executable permissions after compile, and enforce output header validations.
+- **Hardened Release Auditing**: Expanded `scripts/verify.js` with shebang, header, path whitelisting, and dry-run file inclusion constraints.
+
 ## [3.1.0] - 2026-06-19
 
 ### Added

@@ -189,6 +189,21 @@ checkFile('scripts/pack-template.sh');
 checkFile('scripts/prepublish-guard.js');
 checkFile('bin/multimodel-dev-os.js');
 
+// --- Modular Source Files ---
+console.log('\nModular Source Files:');
+checkFile('src/cli/main.js');
+checkFile('src/cli/args.js');
+checkFile('src/cli/help.js');
+checkFile('src/core/yaml.js');
+checkFile('src/core/hashes.js');
+checkFile('src/core/policy.js');
+checkFile('src/core/security.js');
+checkFile('src/core/globals.js');
+checkFile('src/registry/validation.js');
+checkFile('src/registry/sources.js');
+checkFile('src/catalog/loader.js');
+checkFile('src/plugin/manifest.js');
+
 // --- GitHub Integration ---
 console.log('\nGitHub Workflows:');
 checkFile('.github/workflows/verify.yml');
@@ -592,6 +607,42 @@ try {
   fail++;
 }
 
+// --- Post-build Generated CLI Checks ---
+console.log('\nPost-build Generated CLI Checks:');
+try {
+  const buildPath = join(projectRoot, 'bin', 'multimodel-dev-os.js');
+  const binContent = readFileSync(buildPath, 'utf8');
+  
+  const totalShebangs = (binContent.match(/#!/g) || []).length;
+  if (binContent.startsWith('#!/usr/bin/env node') && totalShebangs === 1) {
+    console.log(`  ${GREEN}✓${NC} generated bin has exactly one shebang at the top`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} generated bin has invalid shebang layout (count: ${totalShebangs})`);
+    fail++;
+  }
+  
+  if (binContent.includes('// Generated from src/. Do not edit directly.')) {
+    console.log(`  ${GREEN}✓${NC} generated bin has warning header`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} generated bin is missing the warning header`);
+    fail++;
+  }
+  
+  const hasUnsafeSync = binContent.includes("mod.get('${targetUrl}'") || (binContent.includes('execSync(`node -e "') && binContent.includes('${targetUrl}'));
+  if (!hasUnsafeSync && binContent.includes('execFileSync(process.execPath')) {
+    console.log(`  ${GREEN}✓${NC} generated bin is free of unsafe URL interpolation and uses execFileSync`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} generated bin fails safety scan (unsafe interpolation found)`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} post-build generated CLI checks failed: ${e.message}`);
+  fail++;
+}
+
 // --- v2.8.0 / v2.8.1 Dashboard & Plugin Tests ---
 console.log('\nRunning TUI Dashboard & Plugin Pre-Flight Tests...');
 
@@ -921,22 +972,77 @@ try {
   fail++;
 }
 
-// Verify npm pack dry-run shows current version dynamically
+// Verify npm pack dry-run shows current version dynamically and has clean hygiene
 try {
-  const packOutput = execSync('npm pack --dry-run', { cwd: projectRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
-  if (packOutput.includes(`multimodel-dev-os@${expectedVersion}`) || packOutput.includes(`multimodel-dev-os-${expectedVersion}.tgz`) || packOutput.includes(`version: ${expectedVersion}`)) {
+  const packOutput = execSync('npm pack --dry-run 2>&1', { cwd: projectRoot, encoding: 'utf8' });
+  const combinedOutput = packOutput;
+  
+  const hasVersion = combinedOutput.includes(`multimodel-dev-os@${expectedVersion}`) || combinedOutput.includes(`multimodel-dev-os-${expectedVersion}.tgz`) || combinedOutput.includes(`version: ${expectedVersion}`);
+  if (hasVersion) {
     console.log(`  ${GREEN}✓${NC} npm pack --dry-run reports version ${expectedVersion}`);
     pass++;
   } else {
-    console.error(`  ${RED}✗${NC} npm pack --dry-run did not report ${expectedVersion} in stdout`);
+    console.error(`  ${RED}✗${NC} npm pack --dry-run did not report ${expectedVersion} in output`);
+    fail++;
+  }
+
+  // Hygiene checks
+  const lines = combinedOutput.split('\n');
+  const files = lines
+    .filter(l => l.includes('npm notice') && !l.includes('Tarball Details') && !l.includes('Tarball Filename') && !l.includes('package size:') && !l.includes('unpacked size:') && !l.includes('shasum:') && !l.includes('integrity:') && !l.includes('total files:'))
+    .map(l => {
+      const match = l.match(/npm notice\s+\d+(\.\d+)?[a-zA-Z]+\s+(.+)$/);
+      return match ? match[2].trim() : '';
+    })
+    .filter(f => f !== '');
+
+  const hasSrc = files.some(f => f.startsWith('src/'));
+  const hasTests = files.some(f => f.startsWith('tests/'));
+  
+  if (hasSrc && hasTests) {
+    console.log(`  ${GREEN}✓${NC} npm pack includes 'src/' and 'tests/' directories`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} npm pack is missing 'src/' or 'tests/' directory`);
+    fail++;
+  }
+
+  const hasBlacklisted = files.some(f => f.includes('.npmrc') || f.includes('.env') || f.includes('node_modules') || f.endsWith('.tgz') || f.includes('coverage/'));
+  if (!hasBlacklisted) {
+    console.log(`  ${GREEN}✓${NC} npm pack excludes sensitive and temporary files (.npmrc, .env, node_modules, .tgz, coverage)`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} npm pack contains blacklisted files!`);
     fail++;
   }
 } catch (e) {
   const stdErrOut = e.stderr ? e.stderr.toString() : '';
   const stdOutOut = e.stdout ? e.stdout.toString() : '';
-  if (stdErrOut.includes(`multimodel-dev-os@${expectedVersion}`) || stdErrOut.includes(`multimodel-dev-os-${expectedVersion}.tgz`) || stdOutOut.includes(`multimodel-dev-os-${expectedVersion}.tgz`)) {
+  const combined = stdErrOut + '\n' + stdOutOut;
+  
+  const hasVersion = combined.includes(`multimodel-dev-os@${expectedVersion}`) || combined.includes(`multimodel-dev-os-${expectedVersion}.tgz`) || combined.includes(`version: ${expectedVersion}`);
+  if (hasVersion) {
     console.log(`  ${GREEN}✓${NC} npm pack --dry-run reports version ${expectedVersion}`);
     pass++;
+    
+    const hasSrc = combined.includes('src/') || combined.includes('src\\');
+    const hasTests = combined.includes('tests/') || combined.includes('tests\\');
+    if (hasSrc && hasTests) {
+      console.log(`  ${GREEN}✓${NC} npm pack includes 'src/' and 'tests/' directories`);
+      pass++;
+    } else {
+      console.error(`  ${RED}✗${NC} npm pack is missing 'src/' or 'tests/' directory`);
+      fail++;
+    }
+
+    const hasBlacklisted = combined.includes('.npmrc') || combined.includes('.env') || combined.includes('node_modules') || combined.includes('.tgz') || combined.includes('coverage/');
+    if (!hasBlacklisted) {
+      console.log(`  ${GREEN}✓${NC} npm pack excludes sensitive and temporary files`);
+      pass++;
+    } else {
+      console.error(`  ${RED}✗${NC} npm pack contains blacklisted files!`);
+      fail++;
+    }
   } else {
     console.error(`  ${RED}✗${NC} npm pack --dry-run failed or did not report ${expectedVersion}: ${e.message}`);
     fail++;

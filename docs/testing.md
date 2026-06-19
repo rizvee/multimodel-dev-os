@@ -121,3 +121,13 @@ To ensure the npm package functions flawlessly after installation, we run a loca
    npx multimodel-dev-os --help
    npx multimodel-dev-os doctor
    ```
+
+---
+
+## 6. Maintainer Guidelines
+
+For contributors and maintainers modifying the codebase:
+1. **Always edit source modules** located under `src/`. Do NOT make manual edits to `bin/multimodel-dev-os.js` directly, as it will be overwritten during compilation.
+2. **Execute the build script** via `npm run build` after completing modifications to compile the single-file binary.
+3. **Execute Vitest unit tests** (`npm test`) to ensure all core modules pass verification gates in isolation.
+4. **Execute release verification** (`npm run verify`) to run the strict verification pipeline (250+ assertions check compiled binary, folder layouts, sitemaps, etc.).

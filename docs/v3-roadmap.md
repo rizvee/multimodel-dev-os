@@ -74,8 +74,9 @@ All releases follow this strict publishing checklist:
 
 ---
 
-## 4. Upcoming: v3.2.0 — Cryptographic Catalog Signing
+## 4. Upcoming: v3.2.0 stable candidate — Cryptographic Signing & Stabilization
 
+*   **Build & Packaging Stability**: Hardened esbuild programmatic compiler and expanded release audits ensuring shebang uniqueness, generated warning header, and package file inclusions (`src/`, `tests/`).
 *   **Asymmetric Key Signatures**: Cryptographic signature validation for remote registries using public/private key pairs.
 *   **Decentralized Trust Anchors**: Trust anchors configuration allowing teams to pin public keys of verified catalog authors.
 *   **Tamper-Proof Audit Chain**: Signed change logs and history verification.

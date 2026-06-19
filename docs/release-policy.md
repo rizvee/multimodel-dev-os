@@ -34,9 +34,10 @@ No package shall be merged or released without:
 
 ---
 
-## 4. Release Channel & Staging Controls
+## 4. Release Strategy & Staging Controls
 
-MultiModel Dev OS releases new versions directly to the public NPM registry:
-*   **Stable Releases (`npx multimodel-dev-os`)**: Published to the public registry under semantic version categories (e.g. `2.0.0`, `2.0.1`).
-*   **Release Candidates**: Built and validated locally via the automated verification script (`scripts/verify.js`) before tags or packaging runs.
-*   **Staging Verification**: To test new configurations prior to publishing, package the bundle locally (`npm pack`) and run CLI checkups in clean test directories.
+To ensure developer stability and avoid package version fatigue, MultiModel Dev OS enforces the following distribution strategy:
+- **Internal Stabilization Sprints**: Patch-level work (e.g. bug fixes, refactoring, test stability, documentation formatting) is treated as internal by default and committed directly to `main` without bumping versions or publishing to npm.
+- **Batched Milestone Releases**: Public npm and GitHub releases are batched into stable milestone releases (e.g., `v3.2.0`, `v3.3.0`, `v4.0.0`).
+- **Security Hotfix Exceptions**: Critical security hotfixes (e.g., remote execution, command injection remediations) bypass the batching policy and are published immediately as public patch releases.
+- **Staging Verification**: To test new configurations prior to publishing, package the bundle locally (`npm pack`) and run CLI checkups in clean test directories (`C:\mmdo-smoke`).
