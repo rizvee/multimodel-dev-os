@@ -21,18 +21,40 @@ if (process.env.MMDO_ALLOW_PUBLISH !== 'true') {
   process.exit(1);
 }
 
-// 2. Enforce package version begins with '2.'
+// 2. Read and validate package version
 try {
   const packageJsonPath = join(projectRoot, 'package.json');
   if (existsSync(packageJsonPath)) {
     const pkgData = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
     const version = pkgData.version || '';
-    if (!version.startsWith('2.')) {
-      console.error(`\n\x1b[31m[ABORT] Blocked publishing version ${version}.\x1b[0m`);
-      console.error('Only major v2 version package releases (version starting with "2.") are permitted.');
-      console.log('Update the version in package.json to v2.0.0 or higher.\n');
+
+    // Semver regex pattern
+    const semverRegex = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
+    const match = version.match(semverRegex);
+
+    if (!match) {
+      console.error(`\n\x1b[31m[ABORT] Blocked publishing version "${version}". Invalid semver format.\x1b[0m\n`);
       process.exit(1);
     }
+
+    const major = parseInt(match[1], 10);
+    const prerelease = match[4];
+
+    // Block versions below 2.0.0
+    if (major < 2) {
+      console.error(`\n\x1b[31m[ABORT] Blocked publishing version "${version}". Only stable major versions >=2 are permitted.\x1b[0m\n`);
+      process.exit(1);
+    }
+
+    // Block prerelease versions unless MMDO_ALLOW_PRERELEASE_PUBLISH=true
+    if (prerelease && process.env.MMDO_ALLOW_PRERELEASE_PUBLISH !== 'true') {
+      console.error(`\n\x1b[31m[ABORT] Blocked publishing prerelease version "${version}".\x1b[0m`);
+      console.error('To publish prereleases, you must set: MMDO_ALLOW_PRERELEASE_PUBLISH=true\n');
+      process.exit(1);
+    }
+  } else {
+    console.error('\n\x1b[31m[ERROR] package.json not found.\x1b[0m\n');
+    process.exit(1);
   }
 } catch (e) {
   console.error(`\n\x1b[31m[ERROR] Failed to read package.json version: ${e.message}\x1b[0m\n`);

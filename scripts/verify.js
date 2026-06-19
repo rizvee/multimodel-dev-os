@@ -527,6 +527,71 @@ try {
   fail++;
 }
 
+// Verify prepublish guard behavior
+try {
+  // Test 1: Blocks without MMDO_ALLOW_PUBLISH
+  try {
+    execSync('node scripts/prepublish-guard.js', { 
+      cwd: projectRoot, 
+      env: { ...process.env, MMDO_ALLOW_PUBLISH: 'false' }, 
+      stdio: 'pipe' 
+    });
+    console.error(`  ${RED}✗${NC} prepublish-guard should have failed without MMDO_ALLOW_PUBLISH=true`);
+    fail++;
+  } catch (err) {
+    const output = err.stderr ? err.stderr.toString() : '';
+    if (output.includes('Publishing requires explicit release approval')) {
+      console.log(`  ${GREEN}✓${NC} prepublish guard blocks without MMDO_ALLOW_PUBLISH`);
+      pass++;
+    } else {
+      console.error(`  ${RED}✗${NC} prepublish guard failed with unexpected error: ${output}`);
+      fail++;
+    }
+  }
+
+  // Test 2: Allows version 3.0.0 with MMDO_ALLOW_PUBLISH=true
+  try {
+    const output = execSync('node scripts/prepublish-guard.js', { 
+      cwd: projectRoot, 
+      env: { ...process.env, MMDO_ALLOW_PUBLISH: 'true' }, 
+      encoding: 'utf8' 
+    });
+    if (output.includes('Prepublish guard passed')) {
+      console.log(`  ${GREEN}✓${NC} prepublish guard allows version 3.0.0 when MMDO_ALLOW_PUBLISH=true`);
+      pass++;
+    } else {
+      console.error(`  ${RED}✗${NC} prepublish guard passed but stdout missing success indicator`);
+      fail++;
+    }
+  } catch (err) {
+    const errText = err.stderr ? err.stderr.toString() : '';
+    console.error(`  ${RED}✗${NC} prepublish guard blocked version 3.0.0: ${errText || err.message}`);
+    fail++;
+  }
+
+  // Test 3: Guard output no longer has "Only major v2" wording
+  const guardCode = readFileSync(join(projectRoot, 'scripts', 'prepublish-guard.js'), 'utf8');
+  if (guardCode.includes('Only major v2')) {
+    console.error(`  ${RED}✗${NC} prepublish-guard still contains "Only major v2" wording`);
+    fail++;
+  } else {
+    console.log(`  ${GREEN}✓${NC} prepublish guard no longer has "Only major v2" wording`);
+    pass++;
+  }
+
+  // Test 4: Package.json version is exactly 3.0.0
+  if (expectedVersion === '3.0.0') {
+    console.log(`  ${GREEN}✓${NC} package.json version is exactly 3.0.0`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} package.json version is not 3.0.0 (found ${expectedVersion})`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} prepublish guard checks failed: ${e.message}`);
+  fail++;
+}
+
 // --- v2.8.0 / v2.8.1 Dashboard & Plugin Tests ---
 console.log('\nRunning TUI Dashboard & Plugin Pre-Flight Tests...');
 
