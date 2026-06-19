@@ -1,8 +1,27 @@
 # Changelog
 
-## [Unreleased]
+## [Unreleased] — v3.5.0-prep: Trusted Registry Signing + Provenance Foundation
 
-## [3.2.0] - 2026-06-20
+### Added
+- **Registry Provenance Lockfile** (`src/registry/provenance.js`): New module implementing a tamper-evident `.ai/registry-lock.json` lockfile. Each registry sync now writes a provenance entry recording the URL, catalog/manifest SHA-256 hashes, sync timestamp, and optional HMAC-SHA256 signature.
+- **Registry Signing Module** (`src/registry/signing.js`): New module implementing HMAC-SHA256 signing and timing-safe verification using Node.js built-in `crypto` only (zero new runtime deps). Exports `generateSigningKey`, `loadSigningKey`, `saveSigningKey`, `signPayload`, and `verifySignature` (using `crypto.timingSafeEqual`).
+- **`registry keygen` subcommand**: Generates a 32-byte random signing key at `.ai/registry-signing-key` with mode `0o600`. Refuses to overwrite without `--force`. Includes safety notes about gitignore.
+- **`registry lock` subcommand**: Displays the current `.ai/registry-lock.json` lockfile state — all registry entries, their SHA-256 hashes, signature status, and sync timestamps. Supports `--json` output.
+- **Signing integration in `registry sync`**: After a successful sync, the CLI attempts to load the project signing key and signs `catalog_sha256`. If `require_signature: true` and no key is present, sync fails with a clear error. Lockfile is always written (unsigned if no key).
+- **Provenance checks in `registry verify`**: Now performs three validation layers — SHA-256 file integrity (existing), lockfile hash match (re-hash vs. lockfile entry), and HMAC signature verification (if key + signature present). Uses `timingSafeEqual`.
+- **Signing/lockfile status in `registry status`**: Now reports signing key configured state and lockfile presence + per-registry signature badges.
+- **Signing badge in `registry list`**: Each source now shows `[signed]`, `[unsigned]`, or `[no lockfile entry]` badge inline.
+- **`require_lockfile_on_verify` policy field**: New policy gate (default `false`). When `true`, `registry verify` fails if no lockfile entry exists for the registry.
+- **10 new unit tests**: `tests/unit/registry-provenance.test.js` (10 tests) and `tests/unit/registry-signing.test.js` (23 tests) cover all new provenance I/O, signing, verification, and timing-safe comparison logic.
+- **`scripts/verify.js` expanded**: Added 5 new structural assertions for provenance/signing modules, `.gitignore` signing-key check, policy.js default check, and main.js import/handler check. Also added 10 unit test file assertions.
+
+### Security
+- **Gitignore enforcement**: `.ai/registry-signing-key` is now automatically gitignored in the project-level `.gitignore`.
+- **Timing-safe comparison**: All signature verification uses `crypto.timingSafeEqual` to prevent timing-based side-channel attacks.
+- **Signing key file permissions**: Key files are written with `0o600` (owner-only) permissions.
+- **`require_signature` enforcement**: When enabled in policy, `registry sync` hard-fails if no signing key is configured, preventing unsigned syncs.
+
+
 
 ### Added
 - **Build Freshness Auditing**: Integrated `check-build-fresh.js` to ensure the generated single-file CLI binary matches standard ES modules under `src/` dynamically.

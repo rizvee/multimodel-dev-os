@@ -58,3 +58,6 @@ docs/.vitepress/dist/
 .npmrc
 *.tgz
 npm-debug.log*
+
+# === Registry Signing Key (secret — never commit) ===
+.ai/registry-signing-key

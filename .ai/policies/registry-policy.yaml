@@ -12,8 +12,13 @@ require_approval_for_remote_sync: true
 # Require SHA256 checksum verification for synced catalog files.
 require_checksum: true
 
-# Require cryptographic signature verification (placeholder for future release).
+# Require cryptographic signature verification (HMAC-SHA256).
+# Requires a signing key at .ai/registry-signing-key (generate with: registry keygen --approved).
 require_signature: false
+
+# Require that registry verify checks the local lockfile (.ai/registry-lock.json).
+# When true, verify will fail if no lockfile entry exists for the registry.
+require_lockfile_on_verify: false
 
 # Allow installing plugins from registries with trust_level: untrusted.
 allow_untrusted_install: false

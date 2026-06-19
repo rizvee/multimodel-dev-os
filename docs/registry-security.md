@@ -72,3 +72,68 @@ For teams deploying MultiModel Dev OS in sensitive environments, we recommend:
 1. Keeping `allow_remote_registries: false` (the default) if no third-party plugins are needed.
 2. If remote plugins are required, set `allow_untrusted_install: false` to only permit plugins from official, signed corporate registries.
 3. Commit `.ai/policies/registry-policy.yaml` to version control to enforce uniform governance across all developer machines.
+
+---
+
+## Trusted Registry Signing & Provenance (v3.5.0-prep)
+
+MultiModel Dev OS supports optional **HMAC-SHA256 signing** of synced registry catalogs, providing tamper-evident provenance records.
+
+### How it works
+
+1. **Key generation** — Generate a project-scoped signing key (32 random bytes):
+   ```sh
+   npx multimodel-dev-os registry keygen --approved
+   ```
+   This writes a 64-char hex key to `.ai/registry-signing-key` with `0o600` permissions. **Add this file to `.gitignore`** — it should never be committed.
+
+2. **Sync with signing** — When you sync a remote registry, the CLI:
+   - Downloads `catalog.yaml` and verifies its SHA-256 checksum
+   - Computes `HMAC-SHA256(key, catalog_sha256)` → `signature`
+   - Writes a lockfile entry to `.ai/registry-lock.json`:
+     ```json
+     {
+       "url": "https://...",
+       "synced_at": "<ISO timestamp>",
+       "catalog_sha256": "<hex>",
+       "manifest_sha256": "<hex or null>",
+       "signature": "<hmac-sha256 hex>",
+       "signature_alg": "hmac-sha256"
+     }
+     ```
+
+3. **Verification** — `registry verify <name>` performs three checks:
+   - SHA-256 file integrity (existing behavior)
+   - Lockfile hash match — re-hashes cached `catalog.yaml` and compares against the lockfile entry
+   - HMAC signature verification — if a signing key and stored signature are present, verifies using `timingSafeEqual` (timing-attack safe)
+
+4. **Lockfile inspection** — `registry lock` shows the current lockfile state and per-registry signature status.
+
+### Signing Algorithm Details
+
+| Property | Value |
+|---|---|
+| Algorithm | HMAC-SHA256 |
+| Key material | 32 random bytes via `crypto.randomBytes` |
+| Signed payload | `catalog_sha256` (hex string) |
+| Comparison | `crypto.timingSafeEqual` |
+| Storage | `.ai/registry-signing-key` (mode 0o600) |
+| Lockfile | `.ai/registry-lock.json` (committed to VCS) |
+| Runtime deps | None — Node.js `crypto` built-in only |
+
+### Policy Controls
+
+The following fields in `.ai/policies/registry-policy.yaml` control signing enforcement:
+
+| Field | Default | Effect |
+|---|---|---|
+| `require_signature` | `false` | When `true`, sync fails if no signing key is present |
+| `require_lockfile_on_verify` | `false` | When `true`, verify fails if no lockfile entry exists |
+
+### Security Notes
+
+- The signing key is **project-scoped**, not global. Each project maintains its own key.
+- The lockfile (`.ai/registry-lock.json`) **should be committed to VCS** — it provides tamper evidence for the team.
+- The signing key (`.ai/registry-signing-key`) **must NOT be committed** — it is automatically gitignored.
+- If the signing key is rotated (`registry keygen --approved --force`), all existing signatures in the lockfile are invalidated. Re-sync to re-sign.
+- Signature verification uses `crypto.timingSafeEqual` to prevent timing-based side-channel attacks.

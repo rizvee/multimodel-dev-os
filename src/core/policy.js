@@ -10,6 +10,7 @@ export function loadRegistryPolicy(targetDir) {
     require_approval_for_remote_sync: true,
     require_checksum: true,
     require_signature: false,
+    require_lockfile_on_verify: false,
     allow_untrusted_install: false,
     allowed_write_roots: ['.ai/', 'adapters/'],
     blocked_paths: ['.env', '.npmrc', '.git/', 'node_modules/', 'package.json', 'package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'],

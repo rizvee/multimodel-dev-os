@@ -201,6 +201,8 @@ checkFile('src/core/security.js');
 checkFile('src/core/globals.js');
 checkFile('src/registry/validation.js');
 checkFile('src/registry/sources.js');
+checkFile('src/registry/provenance.js');
+checkFile('src/registry/signing.js');
 checkFile('src/catalog/loader.js');
 checkFile('src/plugin/manifest.js');
 
@@ -303,7 +305,20 @@ checkFile('.ai/registries/capabilities.yaml');
 checkFile('.ai/registries/tools.yaml');
 checkFile('.ai/registries/workflows.yaml');
 
-// --- Test Blueprints ---
+// --- Unit Tests ---
+console.log('\nUnit Tests:');
+checkFile('tests/unit/yaml.test.js');
+checkFile('tests/unit/registry-url-validation.test.js');
+checkFile('tests/unit/registry-policy.test.js');
+checkFile('tests/unit/registry-provenance.test.js');
+checkFile('tests/unit/registry-signing.test.js');
+checkFile('tests/unit/path-safety.test.js');
+checkFile('tests/unit/plugin-manifest.test.js');
+checkFile('tests/unit/catalog-loader.test.js');
+checkFile('tests/unit/build-output.test.js');
+checkFile('tests/unit/prepublish-guard.test.js');
+
+// --- Test Manuals & Fixtures ---
 console.log('\nTest Manuals:');
 checkFile('tests/README.md');
 checkFile('tests/fixtures/README.md');
@@ -1386,6 +1401,98 @@ const checkExamplesHygiene = (dir) => {
   }
 };
 checkExamplesHygiene(join(projectRoot, 'examples'));
+
+// --- Registry Signing & Provenance Checks ---
+console.log('\nRegistry Signing & Provenance Checks:');
+
+// Check .gitignore contains registry-signing-key
+try {
+  const gitignoreContent = readFileSync(join(projectRoot, '.gitignore'), 'utf8');
+  if (gitignoreContent.includes('registry-signing-key')) {
+    console.log(`  ${GREEN}✓${NC} .gitignore includes registry-signing-key pattern`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} .gitignore is missing the registry-signing-key entry (secrets must be gitignored)`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} Failed to read .gitignore: ${e.message}`);
+  fail++;
+}
+
+// Check provenance.js exports the expected API surface
+try {
+  const provenanceSrc = readFileSync(join(projectRoot, 'src', 'registry', 'provenance.js'), 'utf8');
+  const hasLoadLockfile = provenanceSrc.includes('export function loadRegistryLockfile');
+  const hasSaveLockfile = provenanceSrc.includes('export function saveRegistryLockfile');
+  const hasUpdateEntry = provenanceSrc.includes('export function updateLockfileEntry');
+  const hasGetPath = provenanceSrc.includes('export function getLockfilePath');
+  if (hasLoadLockfile && hasSaveLockfile && hasUpdateEntry && hasGetPath) {
+    console.log(`  ${GREEN}✓${NC} src/registry/provenance.js exports complete API (load/save/update/getPath)`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} src/registry/provenance.js is missing expected exports`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} Failed to check provenance.js: ${e.message}`);
+  fail++;
+}
+
+// Check signing.js exports the expected API surface
+try {
+  const signingSrc = readFileSync(join(projectRoot, 'src', 'registry', 'signing.js'), 'utf8');
+  const hasLoadKey = signingSrc.includes('export function loadSigningKey');
+  const hasGenKey = signingSrc.includes('export function generateSigningKey');
+  const hasSaveKey = signingSrc.includes('export function saveSigningKey');
+  const hasSign = signingSrc.includes('export function signPayload');
+  const hasVerify = signingSrc.includes('export function verifySignature');
+  const hasTimingSafe = signingSrc.includes('timingSafeEqual');
+  if (hasLoadKey && hasGenKey && hasSaveKey && hasSign && hasVerify && hasTimingSafe) {
+    console.log(`  ${GREEN}✓${NC} src/registry/signing.js exports complete API and uses timingSafeEqual`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} src/registry/signing.js is missing expected exports or timing-safe comparison`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} Failed to check signing.js: ${e.message}`);
+  fail++;
+}
+
+// Check main.js imports the new modules
+try {
+  const mainSrc = readFileSync(join(projectRoot, 'src', 'cli', 'main.js'), 'utf8');
+  const hasProvenanceImport = mainSrc.includes("from '../registry/provenance.js'");
+  const hasSigningImport = mainSrc.includes("from '../registry/signing.js'");
+  const hasKeygenHandler = mainSrc.includes('handleRegistryKeygen');
+  const hasLockHandler = mainSrc.includes('handleRegistryLock');
+  if (hasProvenanceImport && hasSigningImport && hasKeygenHandler && hasLockHandler) {
+    console.log(`  ${GREEN}✓${NC} src/cli/main.js imports provenance/signing and registers keygen+lock handlers`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} src/cli/main.js is missing provenance/signing imports or keygen/lock handlers`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} Failed to check main.js signing integration: ${e.message}`);
+  fail++;
+}
+
+// Check that policy.js has the new lockfile field in defaults
+try {
+  const policySrc = readFileSync(join(projectRoot, 'src', 'core', 'policy.js'), 'utf8');
+  if (policySrc.includes('require_lockfile_on_verify')) {
+    console.log(`  ${GREEN}✓${NC} src/core/policy.js includes require_lockfile_on_verify default`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} src/core/policy.js is missing require_lockfile_on_verify default`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} Failed to check policy.js: ${e.message}`);
+  fail++;
+}
 
 console.log('\n=====================================================');
 const total = pass + fail + warn;

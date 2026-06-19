@@ -20,6 +20,8 @@ import { loadRegistryPolicy } from '../core/policy.js';
 import { shouldIgnorePath, isSafePath } from '../core/security.js';
 import { validateRegistryUrl } from '../registry/validation.js';
 import { loadRegistrySources, saveRegistrySources } from '../registry/sources.js';
+import { loadRegistryLockfile, saveRegistryLockfile, updateLockfileEntry, getLockfilePath } from '../registry/provenance.js';
+import { loadSigningKey, generateSigningKey, saveSigningKey, signPayload, verifySignature, getSigningKeyPath } from '../registry/signing.js';
 import { loadCatalog, loadCatalogFromSource, loadAllCatalogs } from '../catalog/loader.js';
 import { validatePluginManifest } from '../plugin/manifest.js';
 import { sourceRoot, version, loadTemplates, loadAdapters } from '../core/globals.js';
@@ -393,8 +395,12 @@ if (COMMAND === 'init') {
       console.error('\x1b[31mError: Please specify a cache subcommand: clear.\x1b[0m');
       process.exit(1);
     }
+  } else if (sub === 'keygen') {
+    handleRegistryKeygen(params);
+  } else if (sub === 'lock') {
+    handleRegistryLock(params);
   } else {
-    console.error('\x1b[31mError: Please specify a registry subcommand: list, add, remove, sync, status, verify, show, or cache.\x1b[0m');
+    console.error('\x1b[31mError: Please specify a registry subcommand: list, add, remove, sync, status, verify, show, cache, keygen, or lock.\x1b[0m');
     console.log('Example: node bin/multimodel-dev-os.js registry list');
     process.exit(1);
   }
@@ -5106,22 +5112,30 @@ function handleRegistryList(options) {
   console.log('==================================================');
   console.log(`Policy Status: allow_remote_registries = \x1b[${policy.allow_remote_registries ? '32mtrue' : '33mfalse'}\x1b[0m (Remote registries are disabled by default for safety)\n`);
 
+  const lockfile = loadRegistryLockfile(options.target || process.cwd());
+
   sources.forEach(s => {
     const status = s.enabled ? '\x1b[32m● enabled\x1b[0m' : '\x1b[90m○ disabled\x1b[0m';
     const label = s.name === 'bundled' ? 'bundled' : s.type === 'local' ? `local:${s.name}` : `remote:${s.name}`;
-    console.log(`  \x1b[32m${s.name}\x1b[0m [${label}]  ${status}`);
+    const lockEntry = lockfile.entries[s.name];
+    const lockBadge = lockEntry
+      ? (lockEntry.signature ? ' \x1b[32m[signed]\x1b[0m' : ' \x1b[33m[unsigned]\x1b[0m')
+      : ' \x1b[90m[no lockfile entry]\x1b[0m';
+    console.log(`  \x1b[32m${s.name}\x1b[0m [${label}]  ${status}${lockBadge}`);
     console.log(`    type:           ${s.type}`);
     console.log(`    url:            ${s.url}`);
     console.log(`    trust_level:    ${s.trust_level}`);
     console.log(`    safety_policy:  ${s.safety_policy}`);
     console.log(`    checksum:       ${s.checksum_required ? 'required (SHA-256 integrity)' : 'not required'}`);
-    console.log(`    signature:      ${s.signature_required ? 'required' : 'not required (v3.0.1)'}`);
+    console.log(`    signature:      ${s.signature_required ? 'required (HMAC-SHA256)' : 'not required'}`);
     if (s.last_synced_at) console.log(`    last_synced:    ${s.last_synced_at}`);
+    if (lockEntry) console.log(`    lockfile:       synced ${lockEntry.synced_at}, hash ${lockEntry.catalog_sha256.slice(0, 16)}...`);
   });
 
   console.log('\nUse \x1b[36mregistry show <name>\x1b[0m to view detailed source configuration.');
   console.log('Use \x1b[36mregistry status\x1b[0m to see policy states and cache health.');
-  console.log('Use \x1b[36mregistry verify <name>\x1b[0m to perform integrity checks.\n');
+  console.log('Use \x1b[36mregistry verify <name>\x1b[0m to perform integrity checks.');
+  console.log('Use \x1b[36mregistry lock\x1b[0m to inspect the provenance lockfile.\n');
 }
 
 function handleRegistryAdd(name, url, options) {
@@ -5431,9 +5445,52 @@ function handleRegistrySync(name, options) {
     }
 
     // Update last_synced_at
-    source.last_synced_at = new Date().toISOString();
+    const syncedAt = new Date().toISOString();
+    source.last_synced_at = syncedAt;
     source.pinned_commit_or_hash = computeSHA256(catalogData);
     saveRegistrySources(sources);
+
+    // --- Provenance lockfile ---
+    const catalogHash = computeSHA256(catalogData);
+    const manifestHash = manifestData ? computeSHA256(manifestData) : null;
+    const projectDir = options.target || process.cwd();
+
+    let signingKey = null;
+    let signature = null;
+    try {
+      signingKey = loadSigningKey(projectDir);
+    } catch (sigKeyErr) {
+      console.log(`  \x1b[33mWarning: Signing key error — ${sigKeyErr.message}\x1b[0m`);
+    }
+
+    if (signingKey) {
+      try {
+        signature = signPayload(signingKey, catalogHash);
+        console.log('  \x1b[32m✓ Catalog signed with project signing key (HMAC-SHA256)\x1b[0m');
+      } catch (signErr) {
+        console.log(`  \x1b[33mWarning: Signing failed — ${signErr.message}\x1b[0m`);
+      }
+    } else {
+      if (policy.require_signature) {
+        console.error(`\x1b[31mError: policy require_signature is true but no signing key found.\x1b[0m`);
+        console.error(`  Generate a key with: npx multimodel-dev-os registry keygen --approved`);
+        process.exit(1);
+      }
+      console.log('  \x1b[33m⚠ No signing key — provenance recorded without signature.\x1b[0m');
+      console.log('    Generate a key with: npx multimodel-dev-os registry keygen --approved');
+    }
+
+    const lockfile = loadRegistryLockfile(projectDir);
+    updateLockfileEntry(lockfile, name, {
+      url: source.url,
+      synced_at: syncedAt,
+      catalog_sha256: catalogHash,
+      manifest_sha256: manifestHash,
+      signature,
+      signature_alg: 'hmac-sha256'
+    });
+    saveRegistryLockfile(projectDir, lockfile);
+    console.log(`  \x1b[32m✓ Provenance lockfile updated: .ai/registry-lock.json\x1b[0m`);
 
     // Count plugins
     let pluginCount = 0;
@@ -5446,10 +5503,12 @@ function handleRegistrySync(name, options) {
     console.log(`  Cache location:  .ai/registry-cache/${name}/`);
     console.log(`  Plugins cached:  ${pluginCount} entries`);
     console.log(`  Checksum status: VERIFIED (SHA256)`);
-    console.log(`  Last synced:     ${source.last_synced_at}`);
+    console.log(`  Provenance:      ${signature ? 'SIGNED (HMAC-SHA256)' : 'Unsigned (no signing key)'}`);
+    console.log(`  Last synced:     ${syncedAt}`);
     console.log(`\nNext steps:`);
     console.log(`  • Browse:  npx multimodel-dev-os catalog list --source remote:${name}`);
     console.log(`  • Verify:  npx multimodel-dev-os registry verify ${name}`);
+    console.log(`  • Lock:    npx multimodel-dev-os registry lock`);
     console.log(`  • Install: npx multimodel-dev-os catalog install <slug> --approved\n`);
   } catch (e) {
     console.error(`\n\x1b[31mSync failed: ${e.message}\x1b[0m`);
@@ -5470,16 +5529,42 @@ function handleRegistryStatus(options) {
     return;
   }
 
+  const projectDir = options.target || process.cwd();
+  let signingKeyStatus = '\x1b[90mnot configured\x1b[0m';
+  try {
+    const sk = loadSigningKey(projectDir);
+    signingKeyStatus = sk ? `\x1b[32mconfigured\x1b[0m (${getSigningKeyPath(projectDir)})` : '\x1b[90mnot configured\x1b[0m';
+  } catch (e) {
+    signingKeyStatus = `\x1b[31merror: ${e.message}\x1b[0m`;
+  }
+
+  const lockfile = loadRegistryLockfile(projectDir);
+  const lockfileEntryCount = Object.keys(lockfile.entries).length;
+  const lockfilePath = getLockfilePath(projectDir);
+  const lockfileStatus = existsSync(lockfilePath)
+    ? `\x1b[32mpresent\x1b[0m (${lockfileEntryCount} entr${lockfileEntryCount === 1 ? 'y' : 'ies'})`
+    : '\x1b[90mnot present\x1b[0m';
+
   console.log(`\n📊 \x1b[36mRegistry Status [v${version}]\x1b[0m`);
   console.log('==================================================');
   console.log(`\x1b[33mPolicy State:\x1b[0m`);
-  console.log(`  allow_remote_registries:  \x1b[${policy.allow_remote_registries ? '32mtrue' : '33mfalse'}\x1b[0m (Disabled by default)`);
-  console.log(`  require_checksum:         ${policy.require_checksum ? '\x1b[32mtrue\x1b[0m (SHA256 integrity enforced)' : '\x1b[33mfalse\x1b[0m'}`);
-  console.log(`  require_signature:        ${policy.require_signature ? '\x1b[32mtrue\x1b[0m' : '\x1b[90mfalse (not enforced in v3.0)\x1b[0m'}`);
-  console.log(`  allow_untrusted_install:  ${policy.allow_untrusted_install ? '\x1b[33mtrue\x1b[0m' : '\x1b[32mfalse\x1b[0m (secured)'}`);
-  console.log(`  max_plugin_files:         ${policy.max_plugin_files}`);
-  console.log(`  max_plugin_size_kb:       ${policy.max_plugin_size_kb}KB`);
-  console.log(`  max_registry_cache_size:  ${policy.max_registry_cache_size_kb}KB`);
+  console.log(`  allow_remote_registries:    \x1b[${policy.allow_remote_registries ? '32mtrue' : '33mfalse'}\x1b[0m (Disabled by default)`);
+  console.log(`  require_checksum:           ${policy.require_checksum ? '\x1b[32mtrue\x1b[0m (SHA256 integrity enforced)' : '\x1b[33mfalse\x1b[0m'}`);
+  console.log(`  require_signature:          ${policy.require_signature ? '\x1b[32mtrue\x1b[0m (HMAC-SHA256 enforced)' : '\x1b[90mfalse\x1b[0m'}`);
+  console.log(`  require_lockfile_on_verify: ${policy.require_lockfile_on_verify ? '\x1b[32mtrue\x1b[0m' : '\x1b[90mfalse\x1b[0m'}`);
+  console.log(`  allow_untrusted_install:    ${policy.allow_untrusted_install ? '\x1b[33mtrue\x1b[0m' : '\x1b[32mfalse\x1b[0m (secured)'}`);
+  console.log(`  max_plugin_files:           ${policy.max_plugin_files}`);
+  console.log(`  max_plugin_size_kb:         ${policy.max_plugin_size_kb}KB`);
+  console.log(`  max_registry_cache_size:    ${policy.max_registry_cache_size_kb}KB`);
+  console.log(`\n\x1b[33mSigning & Provenance:\x1b[0m`);
+  console.log(`  Signing key:    ${signingKeyStatus}`);
+  console.log(`  Lockfile:       ${lockfileStatus}`);
+  if (lockfileEntryCount > 0) {
+    Object.entries(lockfile.entries).forEach(([rName, entry]) => {
+      const sigBadge = entry.signature ? '\x1b[32m[signed]\x1b[0m' : '\x1b[33m[unsigned]\x1b[0m';
+      console.log(`    ${rName}: ${sigBadge} synced ${entry.synced_at || 'unknown'}`);
+    });
+  }
 
   console.log(`\n\x1b[33mSources:\x1b[0m`);
   sources.forEach(s => {
@@ -5533,10 +5618,11 @@ function handleRegistryVerify(name, options) {
   }
 
   // Verify remote cache
+  const projectDir = options.target || process.cwd();
+  const policy = loadRegistryPolicy(projectDir);
   const sources = loadRegistrySources();
   const source = sources.find(s => s.name === name);
   if (source && source.type !== 'local') {
-    const policy = loadRegistryPolicy(options.target || process.cwd());
     try {
       validateRegistryUrl(source.url, policy);
     } catch (err) {
@@ -5557,9 +5643,10 @@ function handleRegistryVerify(name, options) {
     process.exit(1);
   }
 
+  let allPassed = true;
+
   try {
     const checksums = JSON.parse(readFileSync(checksumPath, 'utf8'));
-    let allPassed = true;
 
     Object.entries(checksums).forEach(([file, expectedHash]) => {
       const filePath = join(cacheDir, file);
@@ -5579,15 +5666,70 @@ function handleRegistryVerify(name, options) {
         allPassed = false;
       }
     });
-
-    if (allPassed) {
-      console.log(`\n\x1b[32m✔ Registry '${name}' verification passed.\x1b[0m\n`);
-    } else {
-      console.error(`\n\x1b[31m✗ Registry '${name}' verification failed. Re-sync recommended.\x1b[0m\n`);
-      process.exit(1);
-    }
   } catch (e) {
     console.error(`\x1b[31mError: Failed to read checksums: ${e.message}\x1b[0m`);
+    process.exit(1);
+  }
+
+  // --- Lockfile + signature verification ---
+  const lockfile = loadRegistryLockfile(projectDir);
+  const lockEntry = lockfile.entries[name];
+
+  if (!lockEntry) {
+    if (policy.require_lockfile_on_verify) {
+      console.error(`  \x1b[31m✗ Lockfile: No entry found for registry '${name}' (require_lockfile_on_verify is true)\x1b[0m`);
+      allPassed = false;
+    } else {
+      console.log(`  \x1b[33m⚠ Lockfile: No provenance entry found for '${name}' (run registry sync to populate)\x1b[0m`);
+    }
+  } else {
+    // Check that the cached catalog hash matches the lockfile entry
+    const catalogCachePath = join(cacheDir, 'catalog.yaml');
+    if (existsSync(catalogCachePath)) {
+      const catalogContent = readFileSync(catalogCachePath, 'utf8');
+      const actualCatalogHash = computeSHA256(catalogContent);
+      if (actualCatalogHash === lockEntry.catalog_sha256) {
+        console.log(`  \x1b[32m✓ Lockfile catalog hash: MATCHED (${actualCatalogHash.slice(0, 16)}...)\x1b[0m`);
+      } else {
+        console.log(`  \x1b[31m✗ Lockfile catalog hash: MISMATCH — possible tampering detected\x1b[0m`);
+        console.log(`    Lockfile expected: ${lockEntry.catalog_sha256}`);
+        console.log(`    Actual cached:     ${actualCatalogHash}`);
+        allPassed = false;
+      }
+
+      // Attempt signature verification if a signing key exists
+      let signingKey = null;
+      try {
+        signingKey = loadSigningKey(projectDir);
+      } catch (keyErr) {
+        console.log(`  \x1b[33mWarning: Signing key error — ${keyErr.message}\x1b[0m`);
+      }
+
+      if (signingKey && lockEntry.signature) {
+        const sigValid = verifySignature(signingKey, lockEntry.catalog_sha256, lockEntry.signature);
+        if (sigValid) {
+          console.log(`  \x1b[32m✓ Signature: VALID (HMAC-SHA256)\x1b[0m`);
+        } else {
+          console.log(`  \x1b[31m✗ Signature: INVALID — signing key or signature may be compromised\x1b[0m`);
+          allPassed = false;
+        }
+      } else if (signingKey && !lockEntry.signature) {
+        console.log(`  \x1b[33m⚠ Signature: No signature in lockfile (re-sync to sign)\x1b[0m`);
+      } else if (!signingKey && lockEntry.signature) {
+        console.log(`  \x1b[33m⚠ Signature: Stored but no signing key found (cannot verify)\x1b[0m`);
+      } else {
+        console.log(`  \x1b[90m  Signature: Not configured (no key + no signature)\x1b[0m`);
+      }
+    }
+
+    console.log(`  Lockfile synced:   ${lockEntry.synced_at}`);
+    console.log(`  Lockfile URL:      ${lockEntry.url}`);
+  }
+
+  if (allPassed) {
+    console.log(`\n\x1b[32m✔ Registry '${name}' verification passed.\x1b[0m\n`);
+  } else {
+    console.error(`\n\x1b[31m✗ Registry '${name}' verification failed. Re-sync recommended.\x1b[0m\n`);
     process.exit(1);
   }
 }
@@ -5715,4 +5857,110 @@ function handleRegistryCacheClear(options) {
   console.log(`\n\x1b[32m✔ Registry cache cleared.\x1b[0m`);
   console.log(`  Directories processed: ${cleared}`);
   console.log(`  Cache root: .ai/registry-cache/\n`);
+}
+
+// --- Registry Signing Handlers ---
+
+function handleRegistryKeygen(options) {
+  const projectDir = options.target || process.cwd();
+  const keyPath = getSigningKeyPath(projectDir);
+
+  console.log(`\n🔑 \x1b[36mRegistry Signing Key Generator\x1b[0m`);
+  console.log('==================================================');
+
+  if (!options.approved) {
+    console.error('\x1b[31mError: Signing key generation requires explicit approval. Pass the --approved flag.\x1b[0m');
+    console.log(`\n\x1b[33mPlanned Action:\x1b[0m Generate a 32-byte random HMAC-SHA256 signing key.`);
+    console.log(`  Destination: ${keyPath}`);
+    console.log(`  Mode:        0o600 (owner read/write only)`);
+    console.log(`\n\x1b[33mSecurity Notes:\x1b[0m`);
+    console.log(`  • Add .ai/registry-signing-key to your .gitignore`);
+    console.log(`  • Share the key securely with trusted team members for co-verification`);
+    console.log(`  • The key is used for HMAC-SHA256 signing of catalog checksums only`);
+    console.log(`\nTo generate, run:`);
+    console.log(`  \x1b[36mnpx multimodel-dev-os registry keygen --approved\x1b[0m\n`);
+    process.exit(1);
+  }
+
+  // Check existing key
+  let existingKey = null;
+  try {
+    existingKey = loadSigningKey(projectDir);
+  } catch (_e) {}
+
+  if (existingKey && !options.force) {
+    console.error(`\x1b[31mError: A signing key already exists at: ${keyPath}\x1b[0m`);
+    console.log(`\nTo overwrite, run with --force:`);
+    console.log(`  \x1b[36mnpx multimodel-dev-os registry keygen --approved --force\x1b[0m`);
+    console.log(`\n\x1b[33mWarning:\x1b[0m Overwriting will invalidate all existing signatures in the lockfile.\n`);
+    process.exit(1);
+  }
+
+  const newKey = generateSigningKey();
+  saveSigningKey(projectDir, newKey);
+
+  console.log(`\n\x1b[32m✔ Signing key generated successfully!\x1b[0m`);
+  console.log(`  Location: ${keyPath}`);
+  console.log(`  Mode:     0o600 (restricted permissions)`);
+  console.log(`\n\x1b[33mNext steps:\x1b[0m`);
+  console.log(`  1. Add to .gitignore: echo '.ai/registry-signing-key' >> .gitignore`);
+  console.log(`  2. Re-sync registries to generate signed lockfile entries:`);
+  console.log(`       npx multimodel-dev-os registry sync <name> --approved`);
+  console.log(`  3. Verify signed provenance:`);
+  console.log(`       npx multimodel-dev-os registry verify <name>\n`);
+}
+
+function handleRegistryLock(options) {
+  const projectDir = options.target || process.cwd();
+  const lockfilePath = getLockfilePath(projectDir);
+
+  console.log(`\n🔒 \x1b[36mRegistry Provenance Lockfile\x1b[0m`);
+  console.log('==================================================');
+
+  if (!existsSync(lockfilePath)) {
+    console.log(`  \x1b[90mNo lockfile found at: ${lockfilePath}\x1b[0m`);
+    console.log(`  Sync a remote registry to create it:`);
+    console.log(`    npx multimodel-dev-os registry sync <name> --approved\n`);
+    return;
+  }
+
+  const lockfile = loadRegistryLockfile(projectDir);
+  const entries = Object.entries(lockfile.entries);
+
+  if (options.json) {
+    console.log(JSON.stringify(lockfile, null, 2));
+    return;
+  }
+
+  console.log(`  Lockfile version: ${lockfile.lockfile_version}`);
+  console.log(`  Generated at:     ${lockfile.generated_at}`);
+  console.log(`  Path:             ${lockfilePath}`);
+  console.log(`  Entries:          ${entries.length}\n`);
+
+  if (entries.length === 0) {
+    console.log(`  \x1b[90mNo registry entries recorded yet.\x1b[0m`);
+    console.log(`  Sync a remote registry to populate:\n    npx multimodel-dev-os registry sync <name> --approved\n`);
+    return;
+  }
+
+  entries.forEach(([name, entry]) => {
+    const sigBadge = entry.signature
+      ? `\x1b[32m[SIGNED — HMAC-SHA256]\x1b[0m`
+      : `\x1b[33m[UNSIGNED]\x1b[0m`;
+    console.log(`  \x1b[32m${name}\x1b[0m  ${sigBadge}`);
+    console.log(`    URL:             ${entry.url}`);
+    console.log(`    Synced at:       ${entry.synced_at}`);
+    console.log(`    Catalog SHA-256: ${entry.catalog_sha256}`);
+    if (entry.manifest_sha256) {
+      console.log(`    Manifest SHA256: ${entry.manifest_sha256}`);
+    }
+    if (entry.signature) {
+      console.log(`    Signature:       ${entry.signature.slice(0, 24)}...`);
+      console.log(`    Sig algorithm:   ${entry.signature_alg}`);
+    }
+    console.log('');
+  });
+
+  console.log('Use \x1b[36mregistry verify <name>\x1b[0m to re-verify cached files against the lockfile.');
+  console.log('Use \x1b[36mregistry keygen --approved\x1b[0m to generate a signing key for HMAC signatures.\n');
 }
