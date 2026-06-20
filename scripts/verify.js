@@ -1534,6 +1534,56 @@ try {
   fail++;
 }
 
+// --- v3.5.0 Sprint 3 E2E Fixtures & Threat Model Checks ---
+console.log('\nSprint 3 Signed Registry E2E & Readiness Checks:');
+checkFile('src/registry/verdict.js');
+checkFile('tests/unit/registry-e2e-signature-fixtures.test.js');
+checkFile('docs/security-threat-model.md');
+checkFile('docs/v3.5.0-readiness.md');
+
+// Verify that the trusted-keys.yaml in the E2E fixtures directory exists
+const e2eKeysPath = 'tests/fixtures/signed-registries/trusted-keys.yaml';
+if (checkFile(e2eKeysPath)) {
+  const e2eKeysContent = readFileSync(join(projectRoot, e2eKeysPath), 'utf8');
+  if (e2eKeysContent.includes('test-key-valid') && e2eKeysContent.includes('test-key-revoked')) {
+    console.log(`  ${GREEN}✓${NC} ${e2eKeysPath} is populated with test fixtures and marked for testing`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} ${e2eKeysPath} is missing expected test keys`);
+    fail++;
+  }
+}
+
+// Verify that the threat model document has a standard threat modeling structure
+try {
+  const threatModelContent = readFileSync(join(projectRoot, 'docs/security-threat-model.md'), 'utf8');
+  if (threatModelContent.includes('Threat Model') && (threatModelContent.includes('STRIDE') || threatModelContent.includes('stride'))) {
+    console.log(`  ${GREEN}✓${NC} docs/security-threat-model.md structure verified`);
+    pass++;
+  } else {
+    console.error(`  ${RED}✗${NC} docs/security-threat-model.md is missing standard threat modeling structure`);
+    fail++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} Failed to verify threat model document: ${e.message}`);
+  fail++;
+}
+
+// Verify that no private keys are committed in main directories (like .ai/)
+try {
+  const rootKeyFile = '.ai/registry-signing-key';
+  if (existsSync(join(projectRoot, rootKeyFile))) {
+    console.error(`  ${RED}✗${NC} Private signing key ${rootKeyFile} should not be committed!`);
+    fail++;
+  } else {
+    console.log(`  ${GREEN}✓${NC} No private registry-signing-key found in codebase root`);
+    pass++;
+  }
+} catch (e) {
+  console.error(`  ${RED}✗${NC} Failed to check private key existence: ${e.message}`);
+  fail++;
+}
+
 console.log('\n=====================================================');
 const total = pass + fail + warn;
 console.log(`  Pass: ${GREEN}${pass}${NC}  Fail: ${RED}${fail}${NC}  Warn: ${YELLOW}${warn}${NC}  Total: ${total}`);

@@ -1,0 +1,7 @@
+{
+  "final_status": "untrusted",
+  "signature_status": "failed",
+  "errors": [
+    "Key ID 'test-key-revoked' is revoked (must be active)."
+  ]
+}

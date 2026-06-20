@@ -1,0 +1,7 @@
+{
+  "final_status": "untrusted",
+  "signature_status": "failed",
+  "errors": [
+    "Invalid Ed25519 signature for key_id 'test-key-valid'."
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "final_status": "untrusted",
+  "signature_status": "failed",
+  "errors": [
+    "Unsigned remote registries are not allowed by policy."
+  ]
+}

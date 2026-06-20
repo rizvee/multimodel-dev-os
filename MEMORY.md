@@ -17,6 +17,8 @@
 | 2026-06-20 | Ed25519 Asymmetric Signatures (v3.5.0-prep Sprint 2) | Provides public-key trust boundary, avoiding private key disclosures. |
 | 2026-06-20 | Trust Store Configuration (v3.5.0-prep Sprint 2) | Local key-based mapping of trusted keys and publishers with scope filters. |
 | 2026-06-20 | Canonical payload via recursive sorting (v3.5.0-prep) | Guarantees stable JSON representations independent of property order. |
+| 2026-06-20 | Structured Verdict Reporting (v3.5.0-prep Sprint 3) | Standardizes verification status output across CLI, lockfile, and audit logs. |
+| 2026-06-20 | Offline E2E Signed Fixtures (v3.5.0-prep Sprint 3) | Validates edge cases without hitting live remote servers. |
 
 ## Key Patterns
 
@@ -49,15 +51,15 @@
 
 <!-- Recent session summaries — newest first, keep last 5 -->
 
+### Session: v3.5.0-prep Sprint 3 — Signed Registry E2E Fixtures + Release Readiness
+**Date:** 2026-06-20
+**Agent:** Antigravity
+**Summary:** Implemented `src/registry/verdict.js` module for structured trust verdicts. Created offline E2E signed registry fixtures covering valid, tampered, wrong key, revoked key, unsigned remote, and unsupported algorithm states. Deployed comprehensive E2E tests in `tests/unit/registry-e2e-signature-fixtures.test.js` validating signature blocks, trust store loading, policies, and CLI subprocess outputs. Added threat model `docs/security-threat-model.md` and release readiness checklist `docs/v3.5.0-readiness.md`. Fully updated all verification scripts and sitemaps. All 113 unit tests and 305 verification audit checks pass cleanly.
+**Files changed:** src/registry/verdict.js (new), tests/fixtures/signed-registries/* (new), tests/unit/registry-e2e-signature-fixtures.test.js (new), docs/security-threat-model.md (new), docs/v3.5.0-readiness.md (new), src/cli/main.js, scripts/verify.js, docs/.vitepress/config.js, docs/public/sitemap.xml, docs/public/llms.txt, docs/public/llms-full.txt, docs/registry-security.md, docs/registry-signing.md, CHANGELOG.md
+
 ### Session: v3.5.0-prep Sprint 2 — Public-Key Registry Signatures + Trust Store
 **Date:** 2026-06-20
 **Agent:** Antigravity
 **Summary:** Implemented Ed25519 signing support, trusted-keys schema, trust store validator/loader, policy configuration updates, lockfile entries with detailed trust/signature verdicts, `registry trust list/show` subcommands, 3 new unit test suites (public-signing, trust-store, signature-policy), and release audit assertions. Verified that all 98 unit tests and 297 release verification checks pass cleanly.
 **Files changed:** src/registry/signing.js, src/registry/trust-store.js (new), .ai/registries/trusted-keys.yaml (new), .ai/schema/trusted-keys.schema.json (new), .ai/schema/registry-manifest.schema.json, src/core/policy.js, .ai/policies/registry-policy.yaml, .ai/schema/registry-policy.schema.json, src/registry/provenance.js, src/cli/main.js, src/cli/help.js, scripts/verify.js, tests/unit/registry-public-signing.test.js (new), tests/unit/registry-trust-store.test.js (new), tests/unit/registry-signature-policy.test.js (new), docs/registry-signing.md (new), docs/registry-trust-store.md (new), docs/registry-security.md, docs/trusted-registries.md, docs/registry-policy.md, docs/architecture.md, docs/registry-sync.md, docs/package-safety.md, docs/v3-roadmap.md, docs/testing.md, CHANGELOG.md
-
-### Session: v3.5.0-prep — Registry Signing + Provenance
-**Date:** 2026-06-19
-**Agent:** Antigravity
-**Summary:** Implemented HMAC-SHA256 registry signing foundation. Deployed provenance.js + signing.js modules, registry keygen + lock subcommands, lockfile writes in sync, provenance checks in verify, 33 new unit tests, 15+ new verify.js assertions, docs/registry-security.md signing section. 287 verify assertions pass, 78 unit tests pass.
-**Files changed:** src/registry/provenance.js (new), src/registry/signing.js (new), src/cli/main.js, src/core/policy.js, .ai/policies/registry-policy.yaml, .gitignore, scripts/verify.js, docs/registry-security.md, CHANGELOG.md, tests/unit/registry-provenance.test.js (new), tests/unit/registry-signing.test.js (new)
 

@@ -1,0 +1,7 @@
+{
+  "final_status": "untrusted",
+  "signature_status": "failed",
+  "errors": [
+    "Signature algorithm 'rsa-sha256' is not allowed by policy (allowed: ed25519, hmac-sha256)."
+  ]
+}

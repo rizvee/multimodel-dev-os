@@ -184,6 +184,7 @@ export default {
           { text: 'Trusted Registries', link: '/trusted-registries' },
           { text: 'Registry Policy Engine', link: '/registry-policy' },
           { text: 'Registry Security Model', link: '/registry-security' },
+          { text: 'Registry Security Threat Model', link: '/security-threat-model' },
           { text: 'Remote Catalog Authoring', link: '/remote-catalog-authoring' }
         ]
       },
@@ -197,6 +198,7 @@ export default {
           { text: 'Launch & Sharing Kit', link: '/launch-kit' },
           { text: 'CLI Roadmap', link: '/cli-roadmap' },
           { text: 'v3 Roadmap', link: '/v3-roadmap' },
+          { text: 'v3.5.0 Release Readiness', link: '/v3.5.0-readiness' },
           { text: 'Release Policy', link: '/release-policy' },
           { text: 'Support Policy', link: '/support-policy' },
           { text: 'Pre-flight Release Testing', link: '/testing' },

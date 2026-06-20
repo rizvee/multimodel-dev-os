@@ -1,0 +1,8 @@
+
+# Catalog fixture
+catalog:
+  plugins:
+    - slug: test-plugin
+      version: 1.0.0
+      name: Test Plugin
+      description: A mock plugin for testing

@@ -8,12 +8,7 @@ This document describes the threat model, safety boundaries, and mitigation stra
 
 ## Threat Model & Mitigations
 
-```
-Threat: Malicious Remote Registry
-   |--> Arbitrary Code Execution (Mitigated: Declarative-only YAML)
-   |--> Path Traversal / Overwrite (Mitigated: Resolve path bounds + Blacklist)
-   |--> Dependency Poisoning (Mitigated: No automated package installation)
-```
+For a comprehensive analysis of threat vectors (including transport compromise, command injection, path traversal, and malicious manifests) along with their corresponding architectural mitigations, please refer to the [Registry Security Threat Model](file:///F:/multimodel-dev-os/docs/security-threat-model.md).
 
 ### 1. Arbitrary Code Execution
 * **Threat:** A remote registry delivers a plugin containing malicious scripts (`shell`, `javascript`, etc.) that execute on the developer's machine.

@@ -3,6 +3,11 @@
 ## [Unreleased] — v3.5.0-prep: Trusted Registry Signing + Provenance Foundation
 
 ### Added
+- **Verdict Module** (`src/registry/verdict.js`): Implemented `createTrustVerdict` to generate structured, machine-readable trust status reports for local lockfiles and audit logs.
+- **Offline E2E Signed Registry Fixtures** (`tests/fixtures/signed-registries/`): Generated offline test fixtures covering valid-signed, tampered-manifest, wrong-key, revoked-key, unsigned-remote-required, and unsupported-algorithm states.
+- **E2E verification tests** (`tests/unit/registry-e2e-signature-fixtures.test.js`): Added E2E verification test suite validating signature blocks, keys, policy defaults, and CLI command outputs.
+- **Core Security & Readiness Docs**: Published `docs/security-threat-model.md` and `docs/v3.5.0-readiness.md` to establish threat modeling mitigation layers (STRIDE) and checklist targets.
+- **Updated Sitemaps and Discovery Links**: Integrated new security pages and commands into `docs/.vitepress/config.js`, sitemaps, and LLM text indices (`llms.txt`, `llms-full.txt`).
 - **Public-Key Registry Signatures** (`src/registry/signing.js`): Extended the signing module to support Ed25519 asymmetric keypairs, deterministic canonical JSON payload serialization, normalizing PEM/SPKI formatted public keys, and multi-signer signature block verification (zero runtime dependencies).
 - **Trusted Key Store** (`src/registry/trust-store.js`): New module to parse, validate, and load trusted keys from `.ai/registries/trusted-keys.yaml` under strict status, active date, and scope constraint checks.
 - **`registry trust` subcommands**: Added `registry trust list` and `registry trust show <key_id>` to inspect the trust store contents directly from the CLI.

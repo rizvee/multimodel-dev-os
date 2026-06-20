@@ -670,7 +670,7 @@ function createCanonicalPayload(data, fields) {
     return value;
   });
 }
-function normalizePublicKey2(input) {
+function normalizePublicKey(input) {
   if (typeof input !== "string") {
     throw new Error("Public key must be a string.");
   }
@@ -695,7 +695,7 @@ function verifyEd25519Payload(publicKey, payload, signature) {
     return false;
   }
   try {
-    const pubKey = normalizePublicKey2(publicKey);
+    const pubKey = normalizePublicKey(publicKey);
     const sigBuffer = Buffer.from(signature, "base64");
     return verify(null, Buffer.from(payload, "utf8"), pubKey, sigBuffer);
   } catch (_e) {
@@ -823,6 +823,35 @@ function loadTrustedKeys(targetDir, policy) {
   } catch (_e) {
     return [];
   }
+}
+
+// src/registry/verdict.js
+function createTrustVerdict({
+  source,
+  source_type,
+  manifest_hash_status = "N/A",
+  catalog_hash_status = "N/A",
+  lockfile_status = "N/A",
+  provenance_status = "N/A",
+  signature_status = "N/A",
+  trusted_publisher_status = "N/A",
+  errors = [],
+  warnings = [],
+  final_status = "unknown"
+}) {
+  return {
+    source,
+    source_type,
+    manifest_hash_status,
+    catalog_hash_status,
+    lockfile_status,
+    provenance_status,
+    signature_status,
+    trusted_publisher_status,
+    errors: Array.isArray(errors) ? errors : [],
+    warnings: Array.isArray(warnings) ? warnings : [],
+    final_status
+  };
 }
 
 // src/catalog/loader.js
@@ -6551,13 +6580,25 @@ function handleRegistryVerify(name, options) {
     console.error(`\x1B[31m\u2717 Catalog parsing failed: ${e.message}\x1B[0m`);
     process.exit(1);
   }
+  const verdict = createTrustVerdict({
+    source: name,
+    source_type: isBundled ? "bundled" : source ? source.type : "remote",
+    manifest_hash_status: manifestHash !== "N/A" ? lockEntry && manifestHash === lockEntry.manifest_sha256 ? "verified" : manifestObj ? "unverified" : "missing" : "N/A",
+    catalog_hash_status: catalogHash !== "N/A" ? lockEntry && catalogHash === lockEntry.catalog_sha256 ? "verified" : "unverified" : "N/A",
+    lockfile_status: isBundled ? "N/A" : lockEntry ? "present" : "missing",
+    provenance_status: isBundled ? "N/A" : lockEntry ? lockfileVerdict === "Verified" ? "matched" : lockfileVerdict === "Tampered" ? "mismatch" : "missing" : "N/A",
+    signature_status: signatureResult.status || "unsigned",
+    trusted_publisher_status: signatureResult.status === "verified" ? "trusted" : "N/A",
+    errors: signatureResult.errors || (signatureResult.error ? [signatureResult.error] : []),
+    warnings: signatureResult.warning ? [signatureResult.warning] : [],
+    final_status: passed ? signatureResult.status === "verified" ? "trusted" : isBundled || isLocal ? "trusted" : "warning" : "untrusted"
+  });
   if (!isBundled && lockEntry) {
-    const verificationErrors = signatureResult.errors || (signatureResult.error ? [signatureResult.error] : []);
-    const verificationWarnings = signatureResult.warning ? [signatureResult.warning] : [];
     lockEntry.trust_verdict = passed ? signatureResult.status === "verified" ? "verified" : "unsigned_allowed" : "failed";
     lockEntry.lockfile_verdict = lockfileVerdict.toLowerCase();
-    lockEntry.verification_errors = verificationErrors;
-    lockEntry.verification_warnings = verificationWarnings;
+    lockEntry.verification_errors = verdict.errors;
+    lockEntry.verification_warnings = verdict.warnings;
+    lockEntry.verdict = verdict;
     saveRegistryLockfile(projectDir, lockfile);
   }
   if (passed) {

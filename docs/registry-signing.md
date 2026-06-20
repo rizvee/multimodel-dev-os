@@ -58,3 +58,13 @@ This generates a random 32-byte key (64 hex characters) and saves it to `.ai/reg
 ### Ed25519 Publisher Keys
 For public registries, the publisher generates an Ed25519 keypair. The public key is published in the trust store, while the private key is kept strictly confidential and offline.
 To verify signatures, the corresponding public key must be registered in `.ai/registries/trusted-keys.yaml`.
+
+---
+
+## Verification & Trust Readiness
+
+As of the current internal development sprint, the registry signature verification pipeline is fully tested end-to-end using dedicated offline E2E fixtures:
+- **Valid signatures** pass verification.
+- **Tampered manifests, wrong keys, and revoked keys** are blocked, reporting precise errors and warning verdicts recorded inside the local provenance lockfile (`registry-lock.json`).
+
+For current status and verification audits, see the [v3.5.0 Release Readiness Checklist](file:///F:/multimodel-dev-os/docs/v3.5.0-readiness.md).

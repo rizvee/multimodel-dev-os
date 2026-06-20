@@ -1,0 +1,14 @@
+registry_name: "test-fixture-registry"
+publisher: "Mock Valid Publisher"
+version: "1.0.0"
+generated_at: "2026-06-20T12:00:00Z"
+minimum_mmdo_version: "3.2.0"
+safety_policy_version: "1.0.0"
+catalog_hash: "sha256:289e7ff82e8037b27471990d4106f76e7f8e44e26aeb049787c185a30249420e"
+files_hashes:
+    catalog.yaml: "sha256:289e7ff82e8037b27471990d4106f76e7f8e44e26aeb049787c185a30249420e"
+signature:
+    algorithm: "rsa-sha256"
+    key_id: "test-key-valid"
+    signature: "mock-sig"
+    signed_fields: ["registry_name", "publisher", "version", "generated_at", "catalog_hash", "minimum_mmdo_version", "safety_policy_version"]

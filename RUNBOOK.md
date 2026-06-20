@@ -53,6 +53,7 @@ Run diagnostics to verify CLI health:
 |-------|-------------|----------|
 | CLI Help / Version | `node bin/multimodel-dev-os.js --help` | Prints help text displaying current version |
 | Registry Policy Engine | `node bin/multimodel-dev-os.js registry status` | Shows correct policy state and configuration values |
+| Trust Store Integrity | `node bin/multimodel-dev-os.js registry trust verify` | Validates all trusted public key formats in the store |
 | Strict Audit Check | `npm run verify` | Completes successfully with 0 failures |
 
 ## Secrets & Config

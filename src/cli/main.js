@@ -29,9 +29,11 @@ import {
   verifySignature,
   getSigningKeyPath,
   verifySignatureBlock,
-  createCanonicalPayload
+  createCanonicalPayload,
+  normalizePublicKey
 } from '../registry/signing.js';
 import { loadTrustedKeys } from '../registry/trust-store.js';
+import { createTrustVerdict } from '../registry/verdict.js';
 import { loadCatalog, loadCatalogFromSource, loadAllCatalogs } from '../catalog/loader.js';
 import { validatePluginManifest } from '../plugin/manifest.js';
 import { sourceRoot, version, loadTemplates, loadAdapters } from '../core/globals.js';
@@ -5925,14 +5927,26 @@ function handleRegistryVerify(name, options) {
     process.exit(1);
   }
 
+  const verdict = createTrustVerdict({
+    source: name,
+    source_type: isBundled ? 'bundled' : (source ? source.type : 'remote'),
+    manifest_hash_status: manifestHash !== 'N/A' ? (lockEntry && manifestHash === lockEntry.manifest_sha256 ? 'verified' : (manifestObj ? 'unverified' : 'missing')) : 'N/A',
+    catalog_hash_status: catalogHash !== 'N/A' ? (lockEntry && catalogHash === lockEntry.catalog_sha256 ? 'verified' : 'unverified') : 'N/A',
+    lockfile_status: isBundled ? 'N/A' : (lockEntry ? 'present' : 'missing'),
+    provenance_status: isBundled ? 'N/A' : (lockEntry ? (lockfileVerdict === 'Verified' ? 'matched' : (lockfileVerdict === 'Tampered' ? 'mismatch' : 'missing')) : 'N/A'),
+    signature_status: signatureResult.status || 'unsigned',
+    trusted_publisher_status: signatureResult.status === 'verified' ? 'trusted' : 'N/A',
+    errors: signatureResult.errors || (signatureResult.error ? [signatureResult.error] : []),
+    warnings: signatureResult.warning ? [signatureResult.warning] : [],
+    final_status: passed ? (signatureResult.status === 'verified' ? 'trusted' : (isBundled || isLocal ? 'trusted' : 'warning')) : 'untrusted'
+  });
+
   if (!isBundled && lockEntry) {
-    const verificationErrors = signatureResult.errors || (signatureResult.error ? [signatureResult.error] : []);
-    const verificationWarnings = signatureResult.warning ? [signatureResult.warning] : [];
-    
     lockEntry.trust_verdict = passed ? (signatureResult.status === 'verified' ? 'verified' : 'unsigned_allowed') : 'failed';
     lockEntry.lockfile_verdict = lockfileVerdict.toLowerCase();
-    lockEntry.verification_errors = verificationErrors;
-    lockEntry.verification_warnings = verificationWarnings;
+    lockEntry.verification_errors = verdict.errors;
+    lockEntry.verification_warnings = verdict.warnings;
+    lockEntry.verdict = verdict;
     saveRegistryLockfile(projectDir, lockfile);
   }
 

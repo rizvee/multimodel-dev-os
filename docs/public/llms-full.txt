@@ -97,6 +97,8 @@ All compliant MultiModel Dev OS CLIs strictly enforce the following command cont
   - `verify <name>`: Verifies SHA256 checksums of cached files against `checksums.json`.
   - `show <name>`: Shows detailed metadata and policies of a specific registry source.
   - `cache clear`: Deletes all files in `.ai/registry-cache/` (requires `--approved`).
+  - `trust list`: Lists trusted publisher keys.
+  - `trust show <key_id>`: Shows details of a specific trusted key.
 - **`verify`**: Automated release script that checks structure integrity.
 - **`templates`**: Lists built-in template profiles (supports overrides via `--registry <path>`).
 - **`validate`**: Strict Quality Gate checking the layout rules on disk (supports `--all-registries`).
@@ -140,3 +142,5 @@ npx multimodel-dev-os@latest init --caveman
 - **Release Policies**: https://rizvee.github.io/multimodel-dev-os/release-policy
 - **Upgrade Playbook**: https://rizvee.github.io/multimodel-dev-os/migration-guide
 - **Model Compatibility**: https://rizvee.github.io/multimodel-dev-os/model-compatibility
+- **Security Threat Model**: https://rizvee.github.io/multimodel-dev-os/security-threat-model
+- **v3.5.0 Release Readiness**: https://rizvee.github.io/multimodel-dev-os/v3.5.0-readiness

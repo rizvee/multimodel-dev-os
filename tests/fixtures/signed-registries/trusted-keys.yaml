@@ -1,0 +1,23 @@
+
+# MultiModel Dev OS Test-Only Trusted Keys Fixture
+# WARNING: These keys are for unit testing and E2E verification validation only.
+# DO NOT USE IN PRODUCTION.
+trusted_publishers:
+  - key_id: test-key-valid
+    name: "Mock Valid Publisher"
+    algorithm: ed25519
+    public_key: "MCowBQYDK2VwAyEAU1uu8t1/5aXZRvNDNkKpBRJ2SgkKJtlX6pMmuF90tx8="
+    scopes: ["registry"]
+    status: "active"
+  - key_id: test-key-revoked
+    name: "Mock Revoked Publisher"
+    algorithm: ed25519
+    public_key: "MCowBQYDK2VwAyEAvcxhJeWu5VSDxdAva1GwtzgWspYFJ9U1TRJ1a7bUyRA="
+    scopes: ["registry"]
+    status: "revoked"
+  - key_id: test-key-disabled
+    name: "Mock Disabled Publisher"
+    algorithm: ed25519
+    public_key: "MCowBQYDK2VwAyEA9uWCD3w/zkUoQ9RTpQUZ52sib3ctl3fre1PZZowVmvg="
+    scopes: ["registry"]
+    status: "disabled"
