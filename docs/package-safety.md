@@ -50,5 +50,5 @@ A security hotfix has been applied in `v3.0.2` to secure the registry synchroniz
    * Automated publishing via CI is disabled. NPM publish is performed manually by maintainers using verification guards.
 
 4. **Milestone-Based Releases:**
-   * Patch-level releases are kept internal by default for stabilization sprints (such as `v3.2.0-prep`).
-   * Public updates are batched into stable, fully-audited milestone releases (e.g., `v3.2.0`). Critical security hotfixes are the only exception.
+   * Patch-level releases are kept internal by default for stabilization sprints (such as `v3.5.0-prep`).
+   * Public updates are batched into stable, fully-audited milestone releases (e.g., `v3.5.0`). Critical security hotfixes are the only exception.

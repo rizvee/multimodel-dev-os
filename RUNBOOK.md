@@ -40,10 +40,10 @@ To roll back a released npm package or local commit:
 npm deprecate multimodel-dev-os@<version> "Deprecation message detailing reason"
 
 # Revert local repository main branch to last stable tag
-git reset --hard v3.2.0
+git reset --hard v3.5.0
 ```
 
-**Last known good release tag:** `v3.2.0`
+**Last known good release tag:** `v3.5.0`
 
 ## Health Checks
 

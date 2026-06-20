@@ -1,6 +1,8 @@
 # Changelog
 
-## [Unreleased] — v3.5.0-prep: Trusted Registry Signing + Provenance Foundation
+## [Unreleased]
+
+## [3.5.0] - 2026-06-21
 
 ### Added
 - **Verdict Module** (`src/registry/verdict.js`): Implemented `createTrustVerdict` to generate structured, machine-readable trust status reports for local lockfiles and audit logs.

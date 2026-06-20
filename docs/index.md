@@ -214,12 +214,12 @@ You use **Cursor** for autocomplete, **Claude Code** for terminal ops, **Gemini*
 
 <div class="highlight-box">
 
-### 🆕 What's New in v3.2
+### 🆕 What's New in v3.5
 
-- 🏗️ **Modular Source Layout** — Pure ES modules under `src/` cleanly isolate core, CLI routing, catalog engines, and security systems.
-- 🧪 **Formal Unit Testing** — Integrated a Vitest-powered test suite executing 45 unit tests covering path safety, sandbox boundaries, and policy validation.
-- ⚙️ **Build Freshness Guard** — Automated build auditing checks to ensure the generated CLI binary is always synchronized with the source modules.
-- 🛡️ **Hardened Registry Sync** — Strict HTTPS-only URL syntax parsing and argument-isolated sub-process executors prevent shell injection vulnerabilities.
+- 🛡️ **Trusted Registry Signatures** — Asymmetric Ed25519 signatures verify remote publisher identity, preventing man-in-the-middle manifest modifications.
+- 🔑 **Trusted Key Store** — Local keys configuration at `.ai/registries/trusted-keys.yaml` manages active publisher public keys, statuses, and scope permissions.
+- 📝 **Registry Provenance Lockfile** — Records synced catalog/manifest SHA-256 hashes, sync times, and verdicts to detect post-sync local tampering.
+- 📊 **Structured Verdicts** — Generates machine-readable trust verdicts covering registry manifests, catalogs, keys, and signatures for auditability.
 
 </div>
 

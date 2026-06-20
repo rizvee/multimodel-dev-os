@@ -12,13 +12,13 @@ Before publishing, always test the built package locally by compiling a compress
    ```bash
    npm pack
    ```
-   This creates a file named like `multimodel-dev-os-3.2.0.tgz` in your directory root.
+   This creates a file named like `multimodel-dev-os-3.5.0.tgz` in your directory root.
 
 2. **Verify bundle contents:**
    Create an empty temporary workspace, extract the tarball, and confirm that only required scaffold folders are included (no `.github/`, test configurations, or local system files):
    ```bash
    mkdir -p /tmp/package-test && cd /tmp/package-test
-   tar -xzf /path/to/multimodel-dev-os-3.2.0.tgz
+   tar -xzf /path/to/multimodel-dev-os-3.5.0.tgz
    ls -la package/
    ```
 
@@ -78,17 +78,17 @@ Execute these validation actions strictly in sequence before triggering a releas
 ## 4. Prepublish Safety Guard
 
 > [!IMPORTANT]
-> **v3.2.0 is the active stable release.** NPM publishing is live.
+> **v3.5.0 is the active stable release.** NPM publishing is live.
 
 ### Source vs. Registry Strategy
-* **GitHub main branch (Source)**: Contains the current stable `v3.2.0` codebase.
+* **GitHub main branch (Source)**: Contains the current stable `v3.5.0` codebase.
 * **npm latest (Registry)**: Pulled and installed globally or via npx.
 
 ### Prepublish Safety Guard
 To prevent accidental `npm publish` executions on developer environments, a local validation script has been added to package hooks. If you run `npm publish`, it is blocked by default.
 
 To bypass this check during approved release windows:
-1. Ensure the version in `package.json` is a valid stable major version >= 2 (e.g., v3.2.0).
+1. Ensure the version in `package.json` is a valid stable major version >= 2 (e.g., v3.5.0).
 2. Run publication with the override env variable:
    ```powershell
    # PowerShell

@@ -1,4 +1,4 @@
-# MultiModel Dev OS — Testing Guide (v3.2.0+)
+# MultiModel Dev OS — Testing Guide (v3.5.0+)
 
 This document outlines the testing strategy, tools, and execution processes for MultiModel Dev OS.
 
@@ -127,7 +127,7 @@ To ensure the npm package functions flawlessly after installation, we run a loca
    ```
 3. **Install the generated tarball locally**:
    ```bash
-   npm install F:\multimodel-dev-os\multimodel-dev-os-3.2.0.tgz --no-audit --no-fund
+   npm install F:\multimodel-dev-os\multimodel-dev-os-3.5.0.tgz --no-audit --no-fund
    ```
 4. **Validate npx invocation**:
    ```bash

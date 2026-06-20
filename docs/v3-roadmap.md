@@ -7,11 +7,18 @@ This document outlines the development path, completed milestones, and future pl
 ## 1. Current Status
 
 > [!IMPORTANT]
-> **v3.2.0 is the active stable release** on the public npm registry. All features below marked ✅ are shipped and production-ready.
+> **v3.5.0 is the active stable release** on the public npm registry. All features below marked ✅ are shipped and production-ready.
 
 ---
 
 ## 2. Completed Milestones
+
+### v3.5.0 — Trusted Registry Signing + Provenance ✅
+- **Asymmetric Ed25519 Signatures**: Cryptographic verification of remote registry manifests using publisher public keys to secure remote sync.
+- **Trusted Key Store**: Manages active public keys, publishers, and scopes via `.ai/registries/trusted-keys.yaml` configuration.
+- **Registry Provenance Lockfile**: Keeps a committed `.ai/registry-lock.json` containing synced hashes, timestamps, and verdicts to detect local cache tampering.
+- **Structured Verdicts**: Deployed `createTrustVerdict` to generate uniform verification reporting for CLI audits, lockfiles, and diagnostics.
+- **Signed Registry E2E Fixtures**: Comprehensive offline test suite validating valid, tampered, wrong key, revoked key, unsigned, and unsupported algorithm states.
 
 ### v3.2.0 — Stable Modular Build + Package Governance ✅
 - **Build Freshness Auditing**: Integrated `check-build-fresh.js` to ensure the generated single-file CLI binary matches standard ES modules under `src/` dynamically.
@@ -80,11 +87,9 @@ All releases follow this strict publishing checklist:
 
 ---
 
-## 4. In Progress: v3.5.0-prep — Public-Key Registry Signatures + Trust Store (Sprint 1 & 2)
-- **Local HMAC-SHA256 Signing**: Project-scoped signing key generated via `registry keygen` and verified against `registry-lock.json` lockfile for local workspace integrity.
-- **Ed25519 Public-Key Signatures**: Asymmetric signature verification of remote registry manifests using Node's built-in cryptographic functions.
-- **Trusted Key Store**: Centralized trust anchors configuration `.ai/registries/trusted-keys.yaml` to register public keys, check statuses (active/disabled/revoked), and validate scopes.
-- **Enhanced Verification UI**: Full registry trust verdicts printed during verification (`registry verify`), explaining integrity, lockfile, signature, and publisher trust.
+## 4. In Progress: v3.6.0-prep / Sprint 4 — Remote Key Sync & GPG Signatures
+- **Remote Key Sync**: Enable syncing public keys directly from approved remote registries.
+- **GPG Compatibility**: Support GPG signatures for enterprise-controlled repositories.
 
 ---
 

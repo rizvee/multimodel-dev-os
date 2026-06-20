@@ -162,7 +162,7 @@ npx multimodel-dev-os@latest handoff build
 | **v3.0.2** | Registry Sync Security Hotfix | ✅ Released |
 | **v3.1.0** | Modular Source Layout + Formal Unit Tests | ✅ Released |
 | **v3.2.0** | Stable Modular Build + Package Governance | ✅ Released |
-
+| **v3.5.0** | Trusted Registry Signing + Provenance Foundation | ✅ Released |
 
 **[Full Roadmap →](https://rizvee.github.io/multimodel-dev-os/v3-roadmap)**
 
