@@ -25,6 +25,24 @@ const GREEN = '\x1b[32m';
 const YELLOW = '\x1b[33m';
 const NC = '\x1b[0m';
 
+const originalConsoleError = console.error;
+console.error = function(...args) {
+  originalConsoleError.apply(console, args);
+  if (process.env.GITHUB_ACTIONS === 'true') {
+    const cleanMsg = args.join(' ').replace(/\x1b\[[0-9;]*m/g, '');
+    console.log(`::error::${cleanMsg}`);
+  }
+};
+
+const originalConsoleWarn = console.warn;
+console.warn = function(...args) {
+  originalConsoleWarn.apply(console, args);
+  if (process.env.GITHUB_ACTIONS === 'true') {
+    const cleanMsg = args.join(' ').replace(/\x1b\[[0-9;]*m/g, '');
+    console.log(`::warning::${cleanMsg}`);
+  }
+};
+
 function checkFile(relPath, required = true) {
   const fullPath = join(projectRoot, relPath);
   if (existsSync(fullPath) && statSync(fullPath).isFile()) {
