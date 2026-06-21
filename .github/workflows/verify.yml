@@ -40,7 +40,7 @@ jobs:
       - name: Run Release Verification Gate
         run: npm run verify
         env:
-          MMDO_ALLOW_PUBLISH: "true"
+          MMDO_CI_VERIFICATION: "true"
 
       - name: Run Package Dry Run Check
         run: npm pack --dry-run
