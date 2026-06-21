@@ -1031,8 +1031,9 @@ try {
     encoding: 'utf8' 
   });
   const combinedOutput = packOutput;
+  const cleanCombinedOutput = combinedOutput.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
   
-  const hasVersion = combinedOutput.includes(`multimodel-dev-os@${expectedVersion}`) || combinedOutput.includes(`multimodel-dev-os-${expectedVersion}.tgz`) || combinedOutput.includes(`version: ${expectedVersion}`);
+  const hasVersion = cleanCombinedOutput.includes(`multimodel-dev-os@${expectedVersion}`) || cleanCombinedOutput.includes(`multimodel-dev-os-${expectedVersion}.tgz`) || cleanCombinedOutput.includes(`version: ${expectedVersion}`);
   if (hasVersion) {
     console.log(`  ${GREEN}✓${NC} npm pack --dry-run reports version ${expectedVersion}`);
     pass++;
@@ -1041,8 +1042,8 @@ try {
     fail++;
   }
 
-  console.log('DEBUG combinedOutput JSON:', JSON.stringify(combinedOutput));
-  const lines = combinedOutput.split(/\r?\n|\r/);
+  console.log('DEBUG cleanCombinedOutput JSON:', JSON.stringify(cleanCombinedOutput));
+  const lines = cleanCombinedOutput.split(/\r?\n|\r/);
   const files = lines
     .filter(l => l.includes('npm notice') && !l.includes('Tarball Details') && !l.includes('Tarball Filename') && !l.includes('package size:') && !l.includes('unpacked size:') && !l.includes('shasum:') && !l.includes('integrity:') && !l.includes('total files:'))
     .map(l => {
