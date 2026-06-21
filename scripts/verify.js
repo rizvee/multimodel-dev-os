@@ -1062,12 +1062,12 @@ try {
     fail++;
   }
 
-  const hasBlacklisted = files.some(f => f.includes('.npmrc') || f.includes('.env') || f.includes('node_modules') || f.endsWith('.tgz') || f.includes('coverage/'));
-  if (!hasBlacklisted) {
+  const blacklistedFiles = files.filter(f => f.includes('.npmrc') || f.includes('.env') || f.includes('node_modules') || f.endsWith('.tgz') || f.includes('coverage/'));
+  if (blacklistedFiles.length === 0) {
     console.log(`  ${GREEN}✓${NC} npm pack excludes sensitive and temporary files (.npmrc, .env, node_modules, .tgz, coverage)`);
     pass++;
   } else {
-    console.error(`  ${RED}✗${NC} npm pack contains blacklisted files!`);
+    console.error(`  ${RED}✗${NC} npm pack contains blacklisted files: ${blacklistedFiles.join(', ')}`);
     fail++;
   }
 } catch (e) {
@@ -1090,7 +1090,8 @@ try {
       fail++;
     }
 
-    const hasBlacklisted = combined.includes('.npmrc') || combined.includes('.env') || combined.includes('node_modules') || combined.includes('.tgz') || combined.includes('coverage/');
+    const cleanCombined = combined.replace(new RegExp(`multimodel-dev-os-${expectedVersion}\\.tgz`, 'g'), '');
+    const hasBlacklisted = cleanCombined.includes('.npmrc') || cleanCombined.includes('.env') || cleanCombined.includes('node_modules') || cleanCombined.includes('.tgz') || cleanCombined.includes('coverage/');
     if (!hasBlacklisted) {
       console.log(`  ${GREEN}✓${NC} npm pack excludes sensitive and temporary files`);
       pass++;

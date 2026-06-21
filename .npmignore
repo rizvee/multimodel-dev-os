@@ -6,3 +6,5 @@ docs/.vitepress/cache/
 *.tgz
 package-lock.json
 node_modules/
+.npmrc
+.env
