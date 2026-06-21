@@ -9,7 +9,7 @@
 import { existsSync, readFileSync, statSync, readdirSync, mkdirSync, writeFileSync, rmSync } from 'fs';
 import { join, resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
+import { execSync, spawnSync } from 'child_process';
 import { createHash } from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1025,54 +1025,54 @@ try {
 
 // Verify npm pack dry-run shows current version dynamically and has clean hygiene
 try {
-  const packOutput = execSync('npm pack --dry-run --no-progress 2>&1', { 
-    cwd: projectRoot, 
+  // Use spawnSync with separate stdout/stderr pipes so JSON stdout is never mixed with
+  // npm's progress spinner output (which appears on stderr and uses backspace/carriage
+  // return characters that corrupt text-mode parsing on macOS with older npm versions).
+  const packResult_spawn = spawnSync('npm', ['pack', '--dry-run', '--json'], {
+    cwd: projectRoot,
     env: { ...process.env, MMDO_ALLOW_PUBLISH: 'true' },
-    encoding: 'utf8' 
+    encoding: 'utf8',
   });
-  const combinedOutput = packOutput;
-  const cleanCombinedOutput = combinedOutput.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
-  
-  const hasVersion = cleanCombinedOutput.includes(`multimodel-dev-os@${expectedVersion}`) || cleanCombinedOutput.includes(`multimodel-dev-os-${expectedVersion}.tgz`) || cleanCombinedOutput.includes(`version: ${expectedVersion}`);
-  if (hasVersion) {
+  if (packResult_spawn.status !== 0 && !packResult_spawn.stdout) {
+    throw new Error(`npm pack --dry-run --json exited ${packResult_spawn.status}: ${packResult_spawn.stderr}`);
+  }
+  const packJsonOutput = packResult_spawn.stdout || '';
+
+  let packData;
+  try {
+    packData = JSON.parse(packJsonOutput);
+  } catch (jsonErr) {
+    // JSON parse failed — fall through to text-based fallback below
+    throw new Error(`JSON parse failed: ${jsonErr.message}\nRaw output: ${packJsonOutput.slice(0, 500)}`);
+  }
+
+  // npm pack --json returns an array of pack result objects; take the first
+  const packResult = Array.isArray(packData) ? packData[0] : packData;
+  const packedVersion = packResult && packResult.version;
+  const files = (packResult && Array.isArray(packResult.files)) ? packResult.files.map(f => f.path || f) : [];
+
+  if (packedVersion === expectedVersion) {
     console.log(`  ${GREEN}✓${NC} npm pack --dry-run reports version ${expectedVersion}`);
     pass++;
   } else {
-    console.error(`  ${RED}✗${NC} npm pack --dry-run did not report ${expectedVersion} in output`);
+    console.error(`  ${RED}✗${NC} npm pack --dry-run reported version ${packedVersion}, expected ${expectedVersion}`);
     fail++;
   }
 
-  console.log('DEBUG cleanCombinedOutput JSON:', JSON.stringify(cleanCombinedOutput));
-  const lines = cleanCombinedOutput.split(/\r?\n|\r/);
-  const files = lines
-    .filter(l => l.includes('npm notice') && !l.includes('Tarball Details') && !l.includes('Tarball Filename') && !l.includes('package size:') && !l.includes('unpacked size:') && !l.includes('shasum:') && !l.includes('integrity:') && !l.includes('total files:'))
-    .map(l => {
-      // Simulate terminal backspace rendering: process \b characters
-      let rendered = '';
-      for (const ch of l) {
-        if (ch === '\b') {
-          if (rendered.length > 0) rendered = rendered.slice(0, -1);
-        } else {
-          rendered += ch;
-        }
-      }
-      const match = rendered.match(/npm notice\s+\d+(\.\d+)?[a-zA-Z]+\s+(.+)$/);
-      return match ? match[2].trim() : '';
-    })
-    .filter(f => f !== '');
-
-  const hasSrc = files.some(f => f.startsWith('src/'));
-  const hasTests = files.some(f => f.startsWith('tests/'));
-  
+  const hasSrc = files.some(f => String(f).startsWith('src/') || String(f).startsWith('src\\'));
+  const hasTests = files.some(f => String(f).startsWith('tests/') || String(f).startsWith('tests\\'));
   if (hasSrc && hasTests) {
     console.log(`  ${GREEN}✓${NC} npm pack includes 'src/' and 'tests/' directories`);
     pass++;
   } else {
-    console.error(`  ${RED}✗${NC} npm pack is missing 'src/' or 'tests/' directory`);
+    console.error(`  ${RED}✗${NC} npm pack is missing 'src/' or 'tests/' directory (found: ${files.slice(0,5).join(', ')})`);
     fail++;
   }
 
-  const blacklistedFiles = files.filter(f => f.includes('.npmrc') || f.includes('.env') || f.includes('node_modules') || f.endsWith('.tgz') || f.includes('coverage/'));
+  const blacklistedFiles = files.filter(f => {
+    const p = String(f);
+    return p.includes('.npmrc') || p.includes('.env') || p.includes('node_modules') || p.endsWith('.tgz') || p.includes('coverage/');
+  });
   if (blacklistedFiles.length === 0) {
     console.log(`  ${GREEN}✓${NC} npm pack excludes sensitive and temporary files (.npmrc, .env, node_modules, .tgz, coverage)`);
     pass++;
@@ -1081,37 +1081,44 @@ try {
     fail++;
   }
 } catch (e) {
-  const stdErrOut = e.stderr ? e.stderr.toString() : '';
-  const stdOutOut = e.stdout ? e.stdout.toString() : '';
-  const combined = stdErrOut + '\n' + stdOutOut;
-  
-  const hasVersion = combined.includes(`multimodel-dev-os@${expectedVersion}`) || combined.includes(`multimodel-dev-os-${expectedVersion}.tgz`) || combined.includes(`version: ${expectedVersion}`);
-  if (hasVersion) {
-    console.log(`  ${GREEN}✓${NC} npm pack --dry-run reports version ${expectedVersion}`);
-    pass++;
-    
-    const hasSrc = combined.includes('src/') || combined.includes('src\\');
-    const hasTests = combined.includes('tests/') || combined.includes('tests\\');
-    if (hasSrc && hasTests) {
+  // Fallback: re-run with --no-progress text mode and do best-effort string checks
+  try {
+    const packOutput = execSync('npm pack --dry-run --no-progress 2>&1', {
+      cwd: projectRoot,
+      env: { ...process.env, MMDO_ALLOW_PUBLISH: 'true' },
+      encoding: 'utf8',
+    });
+    // Strip ANSI then strip progress lines (lines that don't start with 'npm notice' file entries)
+    const clean = packOutput.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+    const hasVersion = clean.includes(`multimodel-dev-os@${expectedVersion}`) || clean.includes(`multimodel-dev-os-${expectedVersion}.tgz`) || clean.includes(`version:          ${expectedVersion}`);
+    if (hasVersion) {
+      console.log(`  ${GREEN}✓${NC} npm pack --dry-run reports version ${expectedVersion}`);
+      pass++;
+    } else {
+      console.error(`  ${RED}✗${NC} npm pack --dry-run did not report ${expectedVersion}`);
+      fail++;
+    }
+    // For src/tests check: use simple string presence (no file list parsing needed)
+    if (clean.includes('src/') && clean.includes('tests/')) {
       console.log(`  ${GREEN}✓${NC} npm pack includes 'src/' and 'tests/' directories`);
       pass++;
     } else {
       console.error(`  ${RED}✗${NC} npm pack is missing 'src/' or 'tests/' directory`);
       fail++;
     }
-
-    const cleanCombined = combined.replace(new RegExp(`multimodel-dev-os-${expectedVersion}\\.tgz`, 'g'), '');
-    const hasBlacklisted = cleanCombined.includes('.npmrc') || cleanCombined.includes('.env') || cleanCombined.includes('node_modules') || cleanCombined.includes('.tgz') || cleanCombined.includes('coverage/');
+    // For blacklist check: remove the tarball filename itself, then check for banned patterns
+    const cleanNoTgz = clean.replace(new RegExp(`multimodel-dev-os-${expectedVersion}\\.tgz`, 'g'), '');
+    const hasBlacklisted = cleanNoTgz.includes('.npmrc') || cleanNoTgz.includes('.env') || cleanNoTgz.includes('node_modules') || cleanNoTgz.includes('.tgz') || cleanNoTgz.includes('coverage/');
     if (!hasBlacklisted) {
-      console.log(`  ${GREEN}✓${NC} npm pack excludes sensitive and temporary files`);
+      console.log(`  ${GREEN}✓${NC} npm pack excludes sensitive and temporary files (.npmrc, .env, node_modules, .tgz, coverage)`);
       pass++;
     } else {
-      console.error(`  ${RED}✗${NC} npm pack contains blacklisted files!`);
+      console.error(`  ${RED}✗${NC} npm pack text output contains blacklisted patterns (fallback check)`);
       fail++;
     }
-  } else {
-    console.error(`  ${RED}✗${NC} npm pack --dry-run failed or did not report ${expectedVersion}: ${e.message}`);
-    fail++;
+  } catch (e2) {
+    console.error(`  ${RED}✗${NC} npm pack --dry-run failed: ${e2.message}`);
+    fail += 3;
   }
 }
 
