@@ -1025,7 +1025,7 @@ try {
 
 // Verify npm pack dry-run shows current version dynamically and has clean hygiene
 try {
-  const packOutput = execSync('npm pack --dry-run 2>&1', { 
+  const packOutput = execSync('npm pack --dry-run --no-progress 2>&1', { 
     cwd: projectRoot, 
     env: { ...process.env, MMDO_ALLOW_PUBLISH: 'true' },
     encoding: 'utf8' 

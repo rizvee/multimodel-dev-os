@@ -221,7 +221,7 @@ else
 fi
 
 # Verify npm pack dry-run shows correct version dynamically
-if ! npm pack --dry-run 2>&1 | grep -q "multimodel-dev-os@$VERSION\|multimodel-dev-os-$VERSION.tgz"; then
+if ! npm pack --dry-run --no-progress 2>&1 | grep -q "multimodel-dev-os@$VERSION\|multimodel-dev-os-$VERSION.tgz"; then
   echo -e "  ${RED}✗${NC} npm pack --dry-run does not report version $VERSION"
   FAIL=$((FAIL + 1))
 else
@@ -261,7 +261,7 @@ else
   PASS=$((PASS + 1))
 fi
 
-if ! npm pack --dry-run >/dev/null 2>&1; then
+if ! npm pack --dry-run --no-progress >/dev/null 2>&1; then
   echo -e "  ${RED}✗${NC} npm pack --dry-run failed"
   FAIL=$((FAIL + 1))
 else
