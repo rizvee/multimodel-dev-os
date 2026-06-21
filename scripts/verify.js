@@ -1043,11 +1043,20 @@ try {
   }
 
   console.log('DEBUG cleanCombinedOutput JSON:', JSON.stringify(cleanCombinedOutput));
-  const lines = cleanCombinedOutput.split(/\r?\n|\r|\x08+/);
+  const lines = cleanCombinedOutput.split(/\r?\n|\r/);
   const files = lines
     .filter(l => l.includes('npm notice') && !l.includes('Tarball Details') && !l.includes('Tarball Filename') && !l.includes('package size:') && !l.includes('unpacked size:') && !l.includes('shasum:') && !l.includes('integrity:') && !l.includes('total files:'))
     .map(l => {
-      const match = l.match(/npm notice\s+\d+(\.\d+)?[a-zA-Z]+\s+(.+)$/);
+      // Simulate terminal backspace rendering: process \b characters
+      let rendered = '';
+      for (const ch of l) {
+        if (ch === '\b') {
+          if (rendered.length > 0) rendered = rendered.slice(0, -1);
+        } else {
+          rendered += ch;
+        }
+      }
+      const match = rendered.match(/npm notice\s+\d+(\.\d+)?[a-zA-Z]+\s+(.+)$/);
       return match ? match[2].trim() : '';
     })
     .filter(f => f !== '');
