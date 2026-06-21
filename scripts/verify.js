@@ -1042,7 +1042,7 @@ try {
   }
 
   // Hygiene checks
-  const lines = combinedOutput.split('\n');
+  const lines = combinedOutput.split(/\r?\n|\r/);
   const files = lines
     .filter(l => l.includes('npm notice') && !l.includes('Tarball Details') && !l.includes('Tarball Filename') && !l.includes('package size:') && !l.includes('unpacked size:') && !l.includes('shasum:') && !l.includes('integrity:') && !l.includes('total files:'))
     .map(l => {
