@@ -1518,8 +1518,14 @@ try {
 try {
   const trustSrc = readFileSync(join(projectRoot, 'src', 'registry', 'trust-store.js'), 'utf8');
   const hasLoadTrustedKeys = trustSrc.includes('export function loadTrustedKeys');
-  if (hasLoadTrustedKeys) {
-    console.log(`  ${GREEN}✓${NC} src/registry/trust-store.js exports loadTrustedKeys`);
+  const hasGetPath = trustSrc.includes('export function getTrustStorePath');
+  const hasSerialize = trustSrc.includes('export function serializeTrustedKeys');
+  const hasAdd = trustSrc.includes('export function addTrustedKey');
+  const hasRemove = trustSrc.includes('export function removeTrustedKey');
+  const hasFetch = trustSrc.includes('export function fetchRemotePublicKey');
+  
+  if (hasLoadTrustedKeys && hasGetPath && hasSerialize && hasAdd && hasRemove && hasFetch) {
+    console.log(`  ${GREEN}✓${NC} src/registry/trust-store.js exports complete API (load/get/serialize/add/remove/fetch)`);
     pass++;
   } else {
     console.error(`  ${RED}✗${NC} src/registry/trust-store.js is missing expected exports`);

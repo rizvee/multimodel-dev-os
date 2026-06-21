@@ -64,3 +64,19 @@ You can manage and inspect the trust store using the `registry trust` subcommand
   ```bash
   node bin/multimodel-dev-os.js registry trust verify
   ```
+- **Add a trusted key (from a remote HTTPS URL)**:
+  ```bash
+  node bin/multimodel-dev-os.js registry trust add https://example.com/pub.key --name "Partner Publisher" --approved
+  ```
+- **Add a trusted key (manually, via key string/PEM)**:
+  ```bash
+  node bin/multimodel-dev-os.js registry trust add --key-id my-custom-key --name "Manual Publisher" --public-key "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----" --scopes registry,catalog --approved
+  ```
+- **Remove a trusted key**:
+  ```bash
+  node bin/multimodel-dev-os.js registry trust remove <key_id> --approved
+  ```
+
+> [!IMPORTANT]
+> The `add` and `remove` subcommands require the `--approved` flag to acknowledge modifying the trust store.
+

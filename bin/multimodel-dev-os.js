@@ -3,7 +3,7 @@
 
 
 // src/cli/main.js
-import { existsSync as existsSync8, mkdirSync as mkdirSync3, readFileSync as readFileSync9, writeFileSync as writeFileSync4, readdirSync, statSync } from "fs";
+import { existsSync as existsSync8, mkdirSync as mkdirSync3, readFileSync as readFileSync9, writeFileSync as writeFileSync5, readdirSync, statSync } from "fs";
 import { join as join8, dirname as dirname4, resolve as resolve3, relative, isAbsolute as isAbsolute2, basename } from "path";
 import { createHash as createHash2 } from "crypto";
 import readline from "readline";
@@ -333,7 +333,7 @@ function showHelp() {
   console.log("  adapter <subcmd>  Manage and sync rule/settings files for IDE adapters (subcmd: status, diff, sync)");
   console.log("  plugin <subcmd>   Manage declarative plugins (subcmd: list, show, validate, install, status)");
   console.log("  catalog <subcmd>  Manage Workflow Marketplace & Plugin Catalog (subcmd: list, search, show, categories, recommend, install, status)");
-  console.log("  registry <subcmd> Manage trusted remote catalog registries (subcmd: list, add, remove, sync, status, verify, show, cache, keygen, lock, trust)");
+  console.log("  registry <subcmd> Manage trusted remote catalog registries (subcmd: list, add, remove, sync, status, verify, show, cache, keygen, lock, trust list/show/verify/add/remove)");
   console.log("  verify            Validate structural integrity of an existing project");
   console.log("  templates         List all built-in template profiles with details");
   console.log("  list-templates    Alias for templates command");
@@ -804,8 +804,10 @@ function verifySignatureBlock({ manifest, trustedKeys, policy = {}, hmacKey = nu
 }
 
 // src/registry/trust-store.js
-import { existsSync as existsSync6, readFileSync as readFileSync7 } from "fs";
+import { existsSync as existsSync6, readFileSync as readFileSync7, writeFileSync as writeFileSync4 } from "fs";
 import { join as join6, isAbsolute } from "path";
+import { request as httpsRequest } from "https";
+import { request as httpRequest } from "http";
 function loadTrustedKeys(targetDir, policy) {
   const pol = policy || loadRegistryPolicy(targetDir);
   const keyFile = pol.trusted_keys_file || ".ai/registries/trusted-keys.yaml";
@@ -823,6 +825,164 @@ function loadTrustedKeys(targetDir, policy) {
   } catch (_e) {
     return [];
   }
+}
+function getTrustStorePath(targetDir, policy) {
+  const pol = policy || loadRegistryPolicy(targetDir);
+  const keyFile = pol.trusted_keys_file || ".ai/registries/trusted-keys.yaml";
+  return isAbsolute(keyFile) ? keyFile : join6(targetDir, keyFile);
+}
+function serializeTrustedKeys(filePath, publishers) {
+  const lines = [
+    "# MultiModel Dev OS Trusted Keys",
+    "# Stores trusted public keys for registry publisher verification.",
+    "# Only active keys with matching scopes ('registry' or 'catalog') can verify signatures.",
+    "# Never store private keys in this file or in this repository.",
+    "",
+    "trusted_publishers:"
+  ];
+  for (const p of publishers) {
+    const scopes = (p.scopes || []).map((s) => `"${s}"`).join(", ");
+    lines.push(`  - key_id: ${p.key_id}`);
+    lines.push(`    name: "${p.name}"`);
+    lines.push(`    algorithm: ${p.algorithm}`);
+    const pk = (p.public_key || "").trim();
+    if (pk.includes("\n")) {
+      lines.push("    public_key: |");
+      pk.split("\n").forEach((l) => lines.push(`      ${l}`));
+    } else {
+      lines.push(`    public_key: "${pk}"`);
+    }
+    lines.push(`    scopes: [${scopes}]`);
+    lines.push(`    status: "${p.status}"`);
+    if (p.added_at)
+      lines.push(`    added_at: "${p.added_at}"`);
+    if (p.remote_source_url)
+      lines.push(`    remote_source_url: "${p.remote_source_url}"`);
+    lines.push("");
+  }
+  writeFileSync4(filePath, lines.join("\n"), "utf8");
+}
+function addTrustedKey(targetDir, keyEntry, policy) {
+  const required = ["key_id", "name", "algorithm", "public_key", "scopes", "status"];
+  for (const field of required) {
+    if (!keyEntry[field]) {
+      return { added: false, error: `Missing required field: '${field}'.` };
+    }
+  }
+  const validAlgorithms = ["ed25519", "hmac-sha256"];
+  if (!validAlgorithms.includes(keyEntry.algorithm)) {
+    return { added: false, error: `Unsupported algorithm '${keyEntry.algorithm}'. Allowed: ${validAlgorithms.join(", ")}.` };
+  }
+  const validStatuses = ["active", "revoked", "disabled"];
+  if (!validStatuses.includes(keyEntry.status)) {
+    return { added: false, error: `Invalid status '${keyEntry.status}'. Allowed: ${validStatuses.join(", ")}.` };
+  }
+  if (!Array.isArray(keyEntry.scopes) || keyEntry.scopes.length === 0) {
+    return { added: false, error: `'scopes' must be a non-empty array (e.g. ["registry"]).` };
+  }
+  if (!/^[a-z0-9_-]+$/i.test(keyEntry.key_id)) {
+    return { added: false, error: `key_id '${keyEntry.key_id}' contains invalid characters. Use only [a-z0-9_-].` };
+  }
+  const pol = policy || loadRegistryPolicy(targetDir);
+  const filePath = getTrustStorePath(targetDir, pol);
+  const existing = loadTrustedKeys(targetDir, pol);
+  if (existing.some((k) => k.key_id === keyEntry.key_id)) {
+    return { added: false, error: `Key ID '${keyEntry.key_id}' already exists in the trust store. Use a unique key_id.` };
+  }
+  const record = {
+    key_id: keyEntry.key_id,
+    name: keyEntry.name,
+    algorithm: keyEntry.algorithm,
+    public_key: keyEntry.public_key,
+    scopes: keyEntry.scopes,
+    status: keyEntry.status,
+    added_at: keyEntry.added_at || (/* @__PURE__ */ new Date()).toISOString()
+  };
+  if (keyEntry.remote_source_url)
+    record.remote_source_url = keyEntry.remote_source_url;
+  serializeTrustedKeys(filePath, [...existing, record]);
+  return { added: true };
+}
+function removeTrustedKey(targetDir, keyId, policy) {
+  if (!keyId || typeof keyId !== "string") {
+    return { removed: false, error: "key_id must be a non-empty string." };
+  }
+  const pol = policy || loadRegistryPolicy(targetDir);
+  const filePath = getTrustStorePath(targetDir, pol);
+  const existing = loadTrustedKeys(targetDir, pol);
+  const idx = existing.findIndex((k) => k.key_id === keyId);
+  if (idx === -1) {
+    return { removed: false, error: `Key ID '${keyId}' not found in the trust store.` };
+  }
+  const updated = existing.filter((k) => k.key_id !== keyId);
+  serializeTrustedKeys(filePath, updated);
+  return { removed: true };
+}
+function fetchRemotePublicKey(url, options = {}) {
+  return new Promise((resolve4, reject) => {
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(url);
+    } catch (_e) {
+      return reject(new Error(`Invalid URL: '${url}'.`));
+    }
+    const isLocalhost = parsedUrl.hostname === "localhost" || parsedUrl.hostname === "127.0.0.1";
+    const isHttps = parsedUrl.protocol === "https:";
+    const isHttp = parsedUrl.protocol === "http:";
+    if (!isHttps) {
+      if (isHttp && isLocalhost && options.allowHttp) {
+      } else {
+        return reject(new Error(`Remote key URLs must use HTTPS. Got: '${parsedUrl.protocol}'.`));
+      }
+    }
+    if (/['"`;<>&|$*(){}[\]\\]/.test(url)) {
+      return reject(new Error(`URL contains unsafe characters: '${url}'.`));
+    }
+    const MAX_BYTES = 100 * 1024;
+    let received = 0;
+    let body = "";
+    const reqModule = isHttps ? httpsRequest : httpRequest;
+    const reqOptions = {
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port || (isHttps ? 443 : 80),
+      path: parsedUrl.pathname + parsedUrl.search,
+      method: "GET",
+      headers: {
+        "User-Agent": "multimodel-dev-os/trust-store",
+        "Accept": "text/plain,application/octet-stream"
+      },
+      timeout: 1e4
+    };
+    const req = reqModule(reqOptions, (res) => {
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        res.resume();
+        return reject(new Error(`Remote key fetch failed: HTTP ${res.statusCode} from '${url}'.`));
+      }
+      res.setEncoding("utf8");
+      res.on("data", (chunk) => {
+        received += Buffer.byteLength(chunk, "utf8");
+        if (received > MAX_BYTES) {
+          req.destroy();
+          return reject(new Error(`Remote key response exceeded 100KB limit from '${url}'.`));
+        }
+        body += chunk;
+      });
+      res.on("end", () => {
+        const trimmed = body.trim();
+        if (!trimmed) {
+          return reject(new Error(`Remote key fetch returned empty response from '${url}'.`));
+        }
+        resolve4(trimmed);
+      });
+      res.on("error", (err) => reject(new Error(`Response error from '${url}': ${err.message}`)));
+    });
+    req.on("timeout", () => {
+      req.destroy();
+      reject(new Error(`Remote key fetch timed out (10s) from '${url}'.`));
+    });
+    req.on("error", (err) => reject(new Error(`Request error for '${url}': ${err.message}`)));
+    req.end();
+  });
 }
 
 // src/registry/verdict.js
@@ -1355,13 +1515,23 @@ if (COMMAND === "init") {
       handleRegistryTrustShow(keyId, params);
     } else if (trustSub === "verify") {
       handleRegistryTrustVerify(params);
+    } else if (trustSub === "add") {
+      handleRegistryTrustAdd(params);
+    } else if (trustSub === "remove") {
+      const keyId = positional[3];
+      if (!keyId) {
+        console.error("\x1B[31mError: Please specify a key ID to remove.\x1B[0m");
+        console.log("Example: node bin/multimodel-dev-os.js registry trust remove my-key-id --approved");
+        process.exit(1);
+      }
+      handleRegistryTrustRemove(keyId, params);
     } else {
-      console.error("\x1B[31mError: Please specify a trust subcommand: list, show, or verify.\x1B[0m");
+      console.error("\x1B[31mError: Please specify a trust subcommand: list, show, verify, add, or remove.\x1B[0m");
       console.log("Example: node bin/multimodel-dev-os.js registry trust list");
       process.exit(1);
     }
   } else {
-    console.error("\x1B[31mError: Please specify a registry subcommand: list, add, remove, sync, status, verify, show, cache, keygen, lock, or trust.\x1B[0m");
+    console.error("\x1B[31mError: Please specify a registry subcommand: list, add, remove, sync, status, verify, show, cache, keygen, lock, or trust (list, show, verify, add, remove).\x1B[0m");
     console.log("Example: node bin/multimodel-dev-os.js registry list");
     process.exit(1);
   }
@@ -1376,7 +1546,7 @@ function handleListTemplates(options) {
     return;
   }
   console.log(`
-\u{1F9E0} \x1B[36mBuilt-in Template Profiles [v${version}]\x1B[0m`);
+\xF0\u0178\xA7\xA0 \x1B[36mBuilt-in Template Profiles [v${version}]\x1B[0m`);
   console.log("==================================================");
   Object.keys(TEMPLATES).forEach((key) => {
     const t = TEMPLATES[key];
@@ -1399,31 +1569,31 @@ function handleShowTemplate(name) {
   }
   const statusStr = t.status === "planned" ? " (Planned)" : t.status === "experimental" ? " (Experimental)" : " (Stable)";
   console.log(`
-\u{1F50D} \x1B[36mTemplate Profile: ${t.name}${statusStr}\x1B[0m`);
+\xF0\u0178\u201D\x8D \x1B[36mTemplate Profile: ${t.name}${statusStr}\x1B[0m`);
   console.log("==================================================");
   console.log(`\x1B[33mStack Blueprint:\x1B[0m ${t.stack}`);
   console.log(`\x1B[33mOverview:\x1B[0m ${t.description}`);
   if (t.skill) {
     console.log(`\x1B[33mHighlighted Skill:\x1B[0m .ai/skills/${t.skill}`);
-    console.log(`  \u2514\u2500> ${t.skillDesc}`);
+    console.log(`  \xE2\u201D\u201D\xE2\u201D\u20AC> ${t.skillDesc}`);
   }
   console.log("\n\x1B[33mScaffolding Directory Layout:\x1B[0m");
-  console.log("  \u251C\u2500\u2500 AGENTS.md                   (Stack building conventions)");
-  console.log("  \u251C\u2500\u2500 MEMORY.md                   (Architectural constraints record)");
-  console.log("  \u251C\u2500\u2500 TASKS.md                    (Pre-populated first project tasks)");
-  console.log("  \u251C\u2500\u2500 RUNBOOK.md                  (Default operations guide)");
-  console.log("  \u2514\u2500\u2500 .ai/");
-  console.log("      \u251C\u2500\u2500 config.yaml             (Enabled adapter options)");
-  console.log("      \u251C\u2500\u2500 context/");
-  console.log("      \u2502   \u251C\u2500\u2500 project-brief.md    (Scaffolding baseline brief)");
-  console.log("      \u2502   \u251C\u2500\u2500 architecture.md     (Stack specific architecture map)");
-  console.log("      \u2502   \u251C\u2500\u2500 model-map.md        (AI routing specifications)");
-  console.log("      \u2502   \u2514\u2500\u2500 context-budget.md   (Token allocation guidelines)");
-  console.log(`      \u2514\u2500\u2500 skills/`);
+  console.log("  \xE2\u201D\u0153\xE2\u201D\u20AC\xE2\u201D\u20AC AGENTS.md                   (Stack building conventions)");
+  console.log("  \xE2\u201D\u0153\xE2\u201D\u20AC\xE2\u201D\u20AC MEMORY.md                   (Architectural constraints record)");
+  console.log("  \xE2\u201D\u0153\xE2\u201D\u20AC\xE2\u201D\u20AC TASKS.md                    (Pre-populated first project tasks)");
+  console.log("  \xE2\u201D\u0153\xE2\u201D\u20AC\xE2\u201D\u20AC RUNBOOK.md                  (Default operations guide)");
+  console.log("  \xE2\u201D\u201D\xE2\u201D\u20AC\xE2\u201D\u20AC .ai/");
+  console.log("      \xE2\u201D\u0153\xE2\u201D\u20AC\xE2\u201D\u20AC config.yaml             (Enabled adapter options)");
+  console.log("      \xE2\u201D\u0153\xE2\u201D\u20AC\xE2\u201D\u20AC context/");
+  console.log("      \xE2\u201D\u201A   \xE2\u201D\u0153\xE2\u201D\u20AC\xE2\u201D\u20AC project-brief.md    (Scaffolding baseline brief)");
+  console.log("      \xE2\u201D\u201A   \xE2\u201D\u0153\xE2\u201D\u20AC\xE2\u201D\u20AC architecture.md     (Stack specific architecture map)");
+  console.log("      \xE2\u201D\u201A   \xE2\u201D\u0153\xE2\u201D\u20AC\xE2\u201D\u20AC model-map.md        (AI routing specifications)");
+  console.log("      \xE2\u201D\u201A   \xE2\u201D\u201D\xE2\u201D\u20AC\xE2\u201D\u20AC context-budget.md   (Token allocation guidelines)");
+  console.log(`      \xE2\u201D\u201D\xE2\u201D\u20AC\xE2\u201D\u20AC skills/`);
   if (t.skill) {
-    console.log(`          \u2514\u2500\u2500 ${t.skill}     (Custom template skills code boiler)`);
+    console.log(`          \xE2\u201D\u201D\xE2\u201D\u20AC\xE2\u201D\u20AC ${t.skill}     (Custom template skills code boiler)`);
   } else {
-    console.log(`          \u2514\u2500\u2500 [custom-skill].md   (Custom template skills code boiler)`);
+    console.log(`          \xE2\u201D\u201D\xE2\u201D\u20AC\xE2\u201D\u20AC [custom-skill].md   (Custom template skills code boiler)`);
   }
   console.log("\nUse \x1B[32minit --template " + t.name + "\x1B[0m to bootstrap this profile.\n");
 }
@@ -1549,7 +1719,7 @@ function handleInit(options) {
         mkdirSync3(targetDir, { recursive: true });
       }
       const data = readFileSync9(op.src);
-      writeFileSync4(targetFile, data);
+      writeFileSync5(targetFile, data);
       console.log(`  \x1B[32mCREATE:\x1B[0m ${op.dest}`);
     }
   });
@@ -1571,7 +1741,7 @@ function handleInit(options) {
         if (existsSync8(srcFile)) {
           if (!existsSync8(destDir))
             mkdirSync3(destDir, { recursive: true });
-          writeFileSync4(destFile, readFileSync9(srcFile));
+          writeFileSync5(destFile, readFileSync9(srcFile));
           console.log(`  \x1B[32mCREATE ROOT ADAPTER FILE:\x1B[0m ${a.rules_file}`);
         }
       }
@@ -1583,7 +1753,7 @@ function handleInit(options) {
         const regex = new RegExp(`${adapter}:\\s*false`, "g");
         configContent = configContent.replace(regex, `${adapter}: true`);
       });
-      writeFileSync4(targetConfigPath, configContent, "utf8");
+      writeFileSync5(targetConfigPath, configContent, "utf8");
       console.log(`  \x1B[32mUPDATE CONFIG:\x1B[0m Enabled selected adapters [${options.adapters.join(", ")}] in .ai/config.yaml`);
     }
   } else {
@@ -1595,7 +1765,7 @@ function handleInit(options) {
     });
   }
   console.log(`
-\x1B[32m\u2714 Project initialized successfully! [Total Operations: ${operations.length}]\x1B[0m
+\x1B[32m\xE2\u0153\u201D Project initialized successfully! [Total Operations: ${operations.length}]\x1B[0m
 `);
   console.log(`\x1B[36mNext Steps to Complete Integration:\x1B[0m`);
   console.log(`  1. \x1B[1mEdit AGENTS.md\x1B[0m in your project root to document your stack context.`);
@@ -1629,10 +1799,10 @@ function handleVerify(options) {
   const assertFile = (relPath) => {
     const fullPath = join8(options.target, relPath);
     if (existsSync8(fullPath) && statSync(fullPath).isFile()) {
-      console.log(`  \x1B[32m\u2713\x1B[0m ${relPath}`);
+      console.log(`  \x1B[32m\xE2\u0153\u201C\x1B[0m ${relPath}`);
       passed++;
     } else {
-      console.error(`  \x1B[31m\u2717 ${relPath} (missing)\x1B[0m`);
+      console.error(`  \x1B[31m\xE2\u0153\u2014 ${relPath} (missing)\x1B[0m`);
       failed++;
     }
   };
@@ -1692,7 +1862,7 @@ function handleDoctor(options) {
     return;
   }
   console.log(`
-\u{1FA7A} \x1B[36mRunning advisory doctor checkup in: ${options.target}\x1B[0m
+\xF0\u0178\xA9\xBA \x1B[36mRunning advisory doctor checkup in: ${options.target}\x1B[0m
 `);
   let warnings = 0;
   const warn = (msg) => {
@@ -1778,7 +1948,7 @@ function handleDoctor(options) {
     console.log(`\x1B[33mDoctor checkup complete. Found ${warnings} advisory warnings.\x1B[0m
 `);
   } else {
-    console.log("\x1B[32m\u2714 Doctor checkup complete. Your project context layout is pristine!\x1B[0m\n");
+    console.log("\x1B[32m\xE2\u0153\u201D Doctor checkup complete. Your project context layout is pristine!\x1B[0m\n");
   }
 }
 function handleValidate(options) {
@@ -1787,7 +1957,7 @@ function handleValidate(options) {
     return;
   }
   console.log(`
-\u{1F6E1} \x1B[34mRunning strict schema validation in: ${options.target}\x1B[0m
+\xF0\u0178\u203A\xA1 \x1B[34mRunning strict schema validation in: ${options.target}\x1B[0m
 `);
   let errors = 0;
   const assertPath = (relPath, type) => {
@@ -1796,13 +1966,13 @@ function handleValidate(options) {
       const stat = statSync(fullPath);
       const isOk = type === "file" ? stat.isFile() : stat.isDirectory();
       if (isOk) {
-        console.log(`  \x1B[32m\u2713\x1B[0m ${relPath} (${type})`);
+        console.log(`  \x1B[32m\xE2\u0153\u201C\x1B[0m ${relPath} (${type})`);
       } else {
-        console.error(`  \x1B[31m\u2717 ${relPath} (expected to be a ${type})\x1B[0m`);
+        console.error(`  \x1B[31m\xE2\u0153\u2014 ${relPath} (expected to be a ${type})\x1B[0m`);
         errors++;
       }
     } else {
-      console.error(`  \x1B[31m\u2717 ${relPath} (missing)\x1B[0m`);
+      console.error(`  \x1B[31m\xE2\u0153\u2014 ${relPath} (missing)\x1B[0m`);
       errors++;
     }
   };
@@ -1813,7 +1983,7 @@ function handleValidate(options) {
   const agentsPath = join8(options.target, ".ai/agents");
   const agentsExist = existsSync8(agentsPath) && statSync(agentsPath).isDirectory();
   if (agentsExist) {
-    console.log(`  \x1B[32m\u2713\x1B[0m .ai/agents (dir)`);
+    console.log(`  \x1B[32m\xE2\u0153\u201C\x1B[0m .ai/agents (dir)`);
   } else {
     const agentsMdPath = join8(options.target, "AGENTS.md");
     let explained = false;
@@ -1824,9 +1994,9 @@ function handleValidate(options) {
       }
     }
     if (explained) {
-      console.log(`  \x1B[32m\u2713\x1B[0m .ai/agents (missing, but global agent/orchestrator usage explained in AGENTS.md)`);
+      console.log(`  \x1B[32m\xE2\u0153\u201C\x1B[0m .ai/agents (missing, but global agent/orchestrator usage explained in AGENTS.md)`);
     } else {
-      console.error(`  \x1B[31m\u2717 .ai/agents (missing and global agent use is not explained in AGENTS.md)\x1B[0m`);
+      console.error(`  \x1B[31m\xE2\u0153\u2014 .ai/agents (missing and global agent use is not explained in AGENTS.md)\x1B[0m`);
       errors++;
     }
   }
@@ -1838,9 +2008,9 @@ function handleValidate(options) {
       if (regex.test(content)) {
         const fullPath = join8(options.target, filename);
         if (existsSync8(fullPath)) {
-          console.log(`  \x1B[32m\u2713\x1B[0m ${filename} (enabled adapter rules file verified)`);
+          console.log(`  \x1B[32m\xE2\u0153\u201C\x1B[0m ${filename} (enabled adapter rules file verified)`);
         } else {
-          console.error(`  \x1B[31m\u2717 ${filename} (adapter '${adapterName}' is enabled in .ai/config.yaml, but rule file is missing!)\x1B[0m`);
+          console.error(`  \x1B[31m\xE2\u0153\u2014 ${filename} (adapter '${adapterName}' is enabled in .ai/config.yaml, but rule file is missing!)\x1B[0m`);
           errors++;
         }
       }
@@ -1855,7 +2025,7 @@ function handleValidate(options) {
     const tInfo = TEMPLATES[options.template];
     if (tInfo && Array.isArray(tInfo.required_files)) {
       console.log(`
-\u{1F4CB} Validating required files for template '${options.template}':`);
+\xF0\u0178\u201C\u2039 Validating required files for template '${options.template}':`);
       tInfo.required_files.forEach((f) => assertPath(f, "file"));
     } else if (options.template === "expo-react-native-android") {
       const mobileFiles = [
@@ -1876,7 +2046,7 @@ function handleValidate(options) {
 `);
     process.exit(1);
   } else {
-    console.log("  \x1B[32m\u2714 Validation PASSED. Your project context structure is strictly compliant!\x1B[0m\n");
+    console.log("  \x1B[32m\xE2\u0153\u201D Validation PASSED. Your project context structure is strictly compliant!\x1B[0m\n");
     process.exit(0);
   }
 }
@@ -1893,7 +2063,7 @@ function handleListModels(options) {
     return;
   }
   console.log(`
-\u{1F916} \x1B[36mModel Registry [v${version}]\x1B[0m`);
+\xF0\u0178\xA4\u2013 \x1B[36mModel Registry [v${version}]\x1B[0m`);
   console.log("==================================================");
   Object.keys(models).forEach((name) => {
     const m = models[name];
@@ -1920,20 +2090,20 @@ function handleShowModel(name) {
     process.exit(1);
   }
   console.log(`
-\u{1F50D} \x1B[36mModel: ${name}\x1B[0m`);
+\xF0\u0178\u201D\x8D \x1B[36mModel: ${name}\x1B[0m`);
   console.log("==================================================");
   console.log(`\x1B[33mProvider:\x1B[0m ${m.provider}`);
   console.log(`\x1B[33mAlias:\x1B[0m ${m.alias}`);
   console.log(`\x1B[33mOfficial ID:\x1B[0m ${m.official_id}`);
   console.log(`\x1B[33mContext Window:\x1B[0m ${m.context_window} tokens`);
   console.log(`\x1B[33mCapabilities:\x1B[0m`);
-  console.log(`  \u251C\u2500 Vision: ${m.capabilities?.vision ? "Yes" : "No"}`);
-  console.log(`  \u2514\u2500 Tool Use: ${m.capabilities?.tool_use ? "Yes" : "No"}`);
+  console.log(`  \xE2\u201D\u0153\xE2\u201D\u20AC Vision: ${m.capabilities?.vision ? "Yes" : "No"}`);
+  console.log(`  \xE2\u201D\u201D\xE2\u201D\u20AC Tool Use: ${m.capabilities?.tool_use ? "Yes" : "No"}`);
   console.log(`\x1B[33mTiers:\x1B[0m`);
-  console.log(`  \u251C\u2500 Cost: ${m.tiers?.cost}`);
-  console.log(`  \u251C\u2500 Speed: ${m.tiers?.speed}`);
-  console.log(`  \u251C\u2500 Reasoning: ${m.tiers?.reasoning}`);
-  console.log(`  \u2514\u2500 Coding: ${m.tiers?.coding}`);
+  console.log(`  \xE2\u201D\u0153\xE2\u201D\u20AC Cost: ${m.tiers?.cost}`);
+  console.log(`  \xE2\u201D\u0153\xE2\u201D\u20AC Speed: ${m.tiers?.speed}`);
+  console.log(`  \xE2\u201D\u0153\xE2\u201D\u20AC Reasoning: ${m.tiers?.reasoning}`);
+  console.log(`  \xE2\u201D\u201D\xE2\u201D\u20AC Coding: ${m.tiers?.coding}`);
   console.log();
 }
 function handleListProviders() {
@@ -1945,7 +2115,7 @@ function handleListProviders() {
   const reg = parseYaml(readFileSync9(providersPath, "utf8"));
   const providers = reg.providers || {};
   console.log(`
-\u{1F50C} \x1B[36mAI Providers [v${version}]\x1B[0m`);
+\xF0\u0178\u201D\u0152 \x1B[36mAI Providers [v${version}]\x1B[0m`);
   console.log("==================================================");
   Object.keys(providers).forEach((name) => {
     const p = providers[name];
@@ -1970,7 +2140,7 @@ function handleRouteModel(task) {
     process.exit(1);
   }
   console.log(`
-\u{1F3AF} \x1B[36mRouting Suggestion for: ${task}\x1B[0m`);
+\xF0\u0178\u017D\xAF \x1B[36mRouting Suggestion for: ${task}\x1B[0m`);
   console.log("==================================================");
   console.log(`\x1B[33mPrimary Model:\x1B[0m \x1B[32m${preset.primary}\x1B[0m`);
   console.log(`\x1B[33mFallback Model:\x1B[0m \x1B[33m${preset.fallback}\x1B[0m`);
@@ -1989,7 +2159,7 @@ function handleListAdapters(options) {
     return;
   }
   console.log(`
-\u{1F50C} \x1B[36mIDE & Agent Adapters [v${version}]\x1B[0m`);
+\xF0\u0178\u201D\u0152 \x1B[36mIDE & Agent Adapters [v${version}]\x1B[0m`);
   console.log("==================================================");
   Object.keys(adapters).forEach((name) => {
     const a = adapters[name];
@@ -2015,7 +2185,7 @@ function handleShowAdapter(name) {
     process.exit(1);
   }
   console.log(`
-\u{1F50D} \x1B[36mAdapter: ${a.name || name}\x1B[0m`);
+\xF0\u0178\u201D\x8D \x1B[36mAdapter: ${a.name || name}\x1B[0m`);
   console.log("==================================================");
   console.log(`\x1B[33mRules File:\x1B[0m ${a.rules_file}`);
   console.log(`\x1B[33mType:\x1B[0m ${a.type}`);
@@ -2030,7 +2200,7 @@ function handleListSkills(options) {
   }
   const files = readdirSync(skillsDir).filter((f) => f.endsWith(".md"));
   console.log(`
-\u{1F9E0} \x1B[36mAvailable Skills in Target [v${version}]\x1B[0m`);
+\xF0\u0178\xA7\xA0 \x1B[36mAvailable Skills in Target [v${version}]\x1B[0m`);
   console.log("==================================================");
   files.forEach((f) => {
     console.log(`  \x1B[32m- ${f.replace(".md", "")}\x1B[0m (file: .ai/skills/${f})`);
@@ -2045,7 +2215,7 @@ function handleShowSkill(name, options) {
     process.exit(1);
   }
   console.log(`
-\u{1F4D6} \x1B[36mSkill Prompt: ${name}\x1B[0m`);
+\xF0\u0178\u201C\u2013 \x1B[36mSkill Prompt: ${name}\x1B[0m`);
   console.log("==================================================");
   console.log(readFileSync9(skillFile, "utf8"));
   console.log();
@@ -2066,7 +2236,7 @@ function parseThresholdToBytes(val) {
 }
 function handleDoctorTokens(options) {
   console.log(`
-\u{1FA99} \x1B[36mRunning Token Budget & Sink Audit in: ${options.target}\x1B[0m
+\xF0\u0178\xAA\u2122 \x1B[36mRunning Token Budget & Sink Audit in: ${options.target}\x1B[0m
 `);
   const filesFound = [];
   const ignoredDirs = [".git", "node_modules", "dist", "build", ".next", ".expo", "bin", "assets", "docs", "web-build", "out", "coverage", ".nuxt", ".svelte-kit", "bower_components", "vendor"];
@@ -2128,33 +2298,33 @@ function handleValidateTemplate(name) {
     process.exit(1);
   }
   console.log(`
-\u{1F4CB} \x1B[34mValidating Template: ${name}\x1B[0m`);
+\xF0\u0178\u201C\u2039 \x1B[34mValidating Template: ${name}\x1B[0m`);
   let errors = 0;
   const reqKeys = ["name", "description", "stack", "category", "status", "maturity", "required_files"];
   reqKeys.forEach((k) => {
     if (t[k] === void 0 || t[k] === null) {
-      console.error(`  \x1B[31m\u2717 Missing registry key: ${k}\x1B[0m`);
+      console.error(`  \x1B[31m\xE2\u0153\u2014 Missing registry key: ${k}\x1B[0m`);
       errors++;
     } else {
-      console.log(`  \x1B[32m\u2713\x1B[0m Registry key: ${k}`);
+      console.log(`  \x1B[32m\xE2\u0153\u201C\x1B[0m Registry key: ${k}`);
     }
   });
   const templateDir = join8(sourceRoot, "examples", name);
   if (!existsSync8(templateDir)) {
-    console.error(`  \x1B[31m\u2717 Source folder missing: examples/${name}\x1B[0m`);
+    console.error(`  \x1B[31m\xE2\u0153\u2014 Source folder missing: examples/${name}\x1B[0m`);
     errors++;
   } else {
-    console.log(`  \x1B[32m\u2713\x1B[0m Source folder: examples/${name}`);
+    console.log(`  \x1B[32m\xE2\u0153\u201C\x1B[0m Source folder: examples/${name}`);
     if (Array.isArray(t.required_files)) {
       t.required_files.forEach((f) => {
         const filePath = join8(templateDir, f);
         const globalPath = join8(sourceRoot, f);
         if (existsSync8(filePath)) {
-          console.log(`  \x1B[32m\u2713\x1B[0m Required file (template override): ${f}`);
+          console.log(`  \x1B[32m\xE2\u0153\u201C\x1B[0m Required file (template override): ${f}`);
         } else if (existsSync8(globalPath)) {
-          console.log(`  \x1B[32m\u2713\x1B[0m Required file (global fallback): ${f}`);
+          console.log(`  \x1B[32m\xE2\u0153\u201C\x1B[0m Required file (global fallback): ${f}`);
         } else {
-          console.error(`  \x1B[31m\u2717 Required file missing: ${f}\x1B[0m`);
+          console.error(`  \x1B[31m\xE2\u0153\u2014 Required file missing: ${f}\x1B[0m`);
           errors++;
         }
       });
@@ -2167,7 +2337,7 @@ function handleValidateTemplate(name) {
     process.exit(1);
   } else {
     console.log(`
-\x1B[32m\u2714 Template '${name}' is fully valid and compliant!\x1B[0m
+\x1B[32m\xE2\u0153\u201D Template '${name}' is fully valid and compliant!\x1B[0m
 `);
     process.exit(0);
   }
@@ -2179,36 +2349,36 @@ function handleValidateAdapter(name) {
     process.exit(1);
   }
   console.log(`
-\u{1F4CB} \x1B[34mValidating Adapter: ${name}\x1B[0m`);
+\xF0\u0178\u201C\u2039 \x1B[34mValidating Adapter: ${name}\x1B[0m`);
   let errors = 0;
   const reqKeys = ["name", "rules_file", "format", "type"];
   reqKeys.forEach((k) => {
     if (!a[k]) {
-      console.error(`  \x1B[31m\u2717 Missing registry key: ${k}\x1B[0m`);
+      console.error(`  \x1B[31m\xE2\u0153\u2014 Missing registry key: ${k}\x1B[0m`);
       errors++;
     } else {
-      console.log(`  \x1B[32m\u2713\x1B[0m Registry key: ${k}`);
+      console.log(`  \x1B[32m\xE2\u0153\u201C\x1B[0m Registry key: ${k}`);
     }
   });
   const adapterDir = join8(sourceRoot, "adapters", name);
   if (!existsSync8(adapterDir)) {
-    console.error(`  \x1B[31m\u2717 Source folder missing: adapters/${name}\x1B[0m`);
+    console.error(`  \x1B[31m\xE2\u0153\u2014 Source folder missing: adapters/${name}\x1B[0m`);
     errors++;
   } else {
-    console.log(`  \x1B[32m\u2713\x1B[0m Source folder: adapters/${name}`);
+    console.log(`  \x1B[32m\xE2\u0153\u201C\x1B[0m Source folder: adapters/${name}`);
     const setupFile = join8(adapterDir, "setup.md");
     if (existsSync8(setupFile)) {
-      console.log(`  \x1B[32m\u2713\x1B[0m Required file: setup.md`);
+      console.log(`  \x1B[32m\xE2\u0153\u201C\x1B[0m Required file: setup.md`);
     } else {
-      console.error(`  \x1B[31m\u2717 Required file missing: adapters/${name}/setup.md\x1B[0m`);
+      console.error(`  \x1B[31m\xE2\u0153\u2014 Required file missing: adapters/${name}/setup.md\x1B[0m`);
       errors++;
     }
     if (a.rules_file) {
       const rulesFile = join8(adapterDir, a.rules_file);
       if (existsSync8(rulesFile)) {
-        console.log(`  \x1B[32m\u2713\x1B[0m Rules file: ${a.rules_file}`);
+        console.log(`  \x1B[32m\xE2\u0153\u201C\x1B[0m Rules file: ${a.rules_file}`);
       } else {
-        console.error(`  \x1B[31m\u2717 Rules file missing: adapters/${name}/${a.rules_file}\x1B[0m`);
+        console.error(`  \x1B[31m\xE2\u0153\u2014 Rules file missing: adapters/${name}/${a.rules_file}\x1B[0m`);
         errors++;
       }
     }
@@ -2220,7 +2390,7 @@ function handleValidateAdapter(name) {
     process.exit(1);
   } else {
     console.log(`
-\x1B[32m\u2714 Adapter '${name}' is fully valid and compliant!\x1B[0m
+\x1B[32m\xE2\u0153\u201D Adapter '${name}' is fully valid and compliant!\x1B[0m
 `);
     process.exit(0);
   }
@@ -2236,7 +2406,7 @@ function handleValidateSkill(name, options) {
     process.exit(1);
   }
   console.log(`
-\u{1F4CB} \x1B[34mValidating Skill: ${name}\x1B[0m`);
+\xF0\u0178\u201C\u2039 \x1B[34mValidating Skill: ${name}\x1B[0m`);
   const content = readFileSync9(skillFile, "utf8");
   let errors = 0;
   const reqHeaders = [
@@ -2248,9 +2418,9 @@ function handleValidateSkill(name, options) {
   ];
   reqHeaders.forEach((req) => {
     if (req.regex.test(content)) {
-      console.log(`  \x1B[32m\u2713\x1B[0m Found required header: ${req.header}`);
+      console.log(`  \x1B[32m\xE2\u0153\u201C\x1B[0m Found required header: ${req.header}`);
     } else {
-      console.error(`  \x1B[31m\u2717 Missing required header: ${req.header}\x1B[0m`);
+      console.error(`  \x1B[31m\xE2\u0153\u2014 Missing required header: ${req.header}\x1B[0m`);
       errors++;
     }
   });
@@ -2261,14 +2431,14 @@ function handleValidateSkill(name, options) {
     process.exit(1);
   } else {
     console.log(`
-\x1B[32m\u2714 Skill '${name}' is fully valid and compliant!\x1B[0m
+\x1B[32m\xE2\u0153\u201D Skill '${name}' is fully valid and compliant!\x1B[0m
 `);
     process.exit(0);
   }
 }
 function handleValidateAllRegistries() {
   console.log(`
-\u{1F6E1} \x1B[34mValidating All Registry Entries\x1B[0m
+\xF0\u0178\u203A\xA1 \x1B[34mValidating All Registry Entries\x1B[0m
 `);
   let errors = 0;
   console.log("--- Templates Registry Validation ---");
@@ -2282,13 +2452,13 @@ Validating Template: ${name}`);
     }
     reqKeys.forEach((k) => {
       if (t[k] === void 0 || t[k] === null) {
-        console.error(`  \x1B[31m\u2717 Missing registry key: ${k}\x1B[0m`);
+        console.error(`  \x1B[31m\xE2\u0153\u2014 Missing registry key: ${k}\x1B[0m`);
         errors++;
       }
     });
     const templateDir = join8(sourceRoot, "examples", name);
     if (t.status === "stable" && !existsSync8(templateDir)) {
-      console.error(`  \x1B[31m\u2717 Stable template source folder missing: examples/${name}\x1B[0m`);
+      console.error(`  \x1B[31m\xE2\u0153\u2014 Stable template source folder missing: examples/${name}\x1B[0m`);
       errors++;
     }
   });
@@ -2299,7 +2469,7 @@ Validating Template: ${name}`);
     const reqKeys = ["name", "rules_file", "format", "type"];
     reqKeys.forEach((k) => {
       if (!a[k]) {
-        console.error(`  \x1B[31m\u2717 Missing registry key: ${k}\x1B[0m`);
+        console.error(`  \x1B[31m\xE2\u0153\u2014 Missing registry key: ${k}\x1B[0m`);
         errors++;
       }
     });
@@ -2310,22 +2480,22 @@ Validating Template: ${name}`);
 `);
     process.exit(1);
   } else {
-    console.log("  \x1B[32m\u2714 All Registries validation PASSED. All templates and adapters are valid.\x1B[0m\n");
+    console.log("  \x1B[32m\xE2\u0153\u201D All Registries validation PASSED. All templates and adapters are valid.\x1B[0m\n");
     process.exit(0);
   }
 }
 function handleDoctorRelease(options) {
   console.log(`
-\u{1FA7A} \x1B[36mRunning release audit doctor in: ${sourceRoot}\x1B[0m
+\xF0\u0178\xA9\xBA \x1B[36mRunning release audit doctor in: ${sourceRoot}\x1B[0m
 `);
   let warnings = 0;
   let packageVersion = "unknown";
   try {
     const pkg = JSON.parse(readFileSync9(join8(sourceRoot, "package.json"), "utf8"));
     packageVersion = pkg.version;
-    console.log(`  \x1B[32m\u2713\x1B[0m package.json version: ${packageVersion}`);
+    console.log(`  \x1B[32m\xE2\u0153\u201C\x1B[0m package.json version: ${packageVersion}`);
   } catch (e) {
-    console.warn("  \x1B[31m\u2717\x1B[0m Failed to parse package.json");
+    console.warn("  \x1B[31m\xE2\u0153\u2014\x1B[0m Failed to parse package.json");
     warnings++;
   }
   const checkInstallScript = (filename, regex) => {
@@ -2334,7 +2504,7 @@ function handleDoctorRelease(options) {
       const content = readFileSync9(filePath, "utf8");
       const match = content.match(regex);
       if (match && match[1] === packageVersion) {
-        console.log(`  \x1B[32m\u2713\x1B[0m ${filename} version aligns: ${match[1]}`);
+        console.log(`  \x1B[32m\xE2\u0153\u201C\x1B[0m ${filename} version aligns: ${match[1]}`);
       } else {
         console.warn(`  \x1B[33m[WARNING]\x1B[0m ${filename} version mismatch (found ${match ? match[1] : "none"}, expected ${packageVersion})`);
         warnings++;
@@ -2350,7 +2520,7 @@ function handleDoctorRelease(options) {
       console.warn(`  \x1B[33m[WARNING]\x1B[0m Blacklisted file found in release root: ${file}`);
       warnings++;
     } else {
-      console.log(`  \x1B[32m\u2713\x1B[0m No root blacklisted file: ${file}`);
+      console.log(`  \x1B[32m\xE2\u0153\u201C\x1B[0m No root blacklisted file: ${file}`);
     }
   });
   const scanSafety = (dir) => {
@@ -2379,7 +2549,7 @@ function handleDoctorRelease(options) {
     console.warn(`  \x1B[33mRelease doctor complete with ${warnings} warnings.\x1B[0m
 `);
   } else {
-    console.log("  \x1B[32m\u2714 Release hygiene checks PASSED successfully!\x1B[0m\n");
+    console.log("  \x1B[32m\xE2\u0153\u201D Release hygiene checks PASSED successfully!\x1B[0m\n");
   }
 }
 function scanTarget(targetDir) {
@@ -2574,7 +2744,7 @@ function writeMemoryFiles(targetDir, index) {
     mkdirSync3(intelDir, { recursive: true });
   }
   const hashJsonPath = join8(intelDir, "memory.hash.json");
-  writeFileSync4(hashJsonPath, JSON.stringify(index, null, 2), "utf8");
+  writeFileSync5(hashJsonPath, JSON.stringify(index, null, 2), "utf8");
   const summaryMdPath = join8(intelDir, "memory.summary.md");
   let md = `# MultiModel Dev OS Repository Memory Summary
 
@@ -2624,7 +2794,7 @@ function writeMemoryFiles(targetDir, index) {
     md += `- ${step}
 `;
   });
-  writeFileSync4(summaryMdPath, md, "utf8");
+  writeFileSync5(summaryMdPath, md, "utf8");
 }
 function diffMemory(targetDir) {
   const hashJsonPath = join8(targetDir, ".ai", "intelligence", "memory.hash.json");
@@ -2662,7 +2832,7 @@ function diffMemory(targetDir) {
 }
 function handleScan(options) {
   console.log(`
-\u{1F50D} \x1B[36mCodebase Scan target: ${options.target}\x1B[0m`);
+\xF0\u0178\u201D\x8D \x1B[36mCodebase Scan target: ${options.target}\x1B[0m`);
   console.log("==================================================");
   const { files, ignoredCount } = scanTarget(options.target);
   const frameworkSignals = detectFrameworkSignals(files, options.target);
@@ -2692,20 +2862,20 @@ function handleScan(options) {
     risks.forEach((r) => console.log(`  - [${r.severity.toUpperCase()}] ${r.file_pattern}: ${r.risk_description}`));
   } else {
     console.log(`
-\x1B[32m\u2714 No high/medium risks detected in repository structure.\x1B[0m`);
+\x1B[32m\xE2\u0153\u201D No high/medium risks detected in repository structure.\x1B[0m`);
   }
   console.log();
 }
 function handleMemoryBuild(options) {
   console.log(`
-\u{1F9E0} \x1B[36mBuilding Codebase Memory in: ${options.target}\x1B[0m`);
+\xF0\u0178\xA7\xA0 \x1B[36mBuilding Codebase Memory in: ${options.target}\x1B[0m`);
   console.log("==================================================");
   const index = buildMemoryIndex(options.target);
   writeMemoryFiles(options.target, index);
   console.log(`  \x1B[32mCREATE:\x1B[0m .ai/intelligence/memory.hash.json`);
   console.log(`  \x1B[32mCREATE:\x1B[0m .ai/intelligence/memory.summary.md`);
   console.log(`
-\u2714 Memory index built successfully! [Files indexed: ${index.file_count}]`);
+\xE2\u0153\u201D Memory index built successfully! [Files indexed: ${index.file_count}]`);
   console.log(`
 \x1B[33mRecommended Next Steps:\x1B[0m`);
   index.recommended_next_steps.forEach((step) => console.log(`  - ${step}`));
@@ -2713,7 +2883,7 @@ function handleMemoryBuild(options) {
 }
 function handleMemoryRefresh(options) {
   console.log(`
-\u{1F9E0} \x1B[36mRefreshing Codebase Memory in: ${options.target}\x1B[0m`);
+\xF0\u0178\xA7\xA0 \x1B[36mRefreshing Codebase Memory in: ${options.target}\x1B[0m`);
   console.log("==================================================");
   const diff = diffMemory(options.target);
   if (!diff) {
@@ -2725,7 +2895,7 @@ function handleMemoryRefresh(options) {
   console.log(`  \x1B[32mUPDATE:\x1B[0m .ai/intelligence/memory.hash.json`);
   console.log(`  \x1B[32mUPDATE:\x1B[0m .ai/intelligence/memory.summary.md`);
   console.log(`
-\u2714 Memory index refreshed successfully!`);
+\xE2\u0153\u201D Memory index refreshed successfully!`);
   console.log(`  Added:     ${diff.added.length}`);
   console.log(`  Removed:   ${diff.removed.length}`);
   console.log(`  Changed:   ${diff.changed.length}`);
@@ -2734,7 +2904,7 @@ function handleMemoryRefresh(options) {
 }
 function handleMemoryDiff(options) {
   console.log(`
-\u{1F9E0} \x1B[36mDiffing Codebase State against Memory in: ${options.target}\x1B[0m`);
+\xF0\u0178\xA7\xA0 \x1B[36mDiffing Codebase State against Memory in: ${options.target}\x1B[0m`);
   console.log("==================================================");
   const diff = diffMemory(options.target);
   if (!diff) {
@@ -2821,8 +2991,8 @@ function handleFeedbackAdd(options) {
         console.log(`\x1B[33mFeedback already exists. Skipping duplicate entry.\x1B[0m`);
         return;
       }
-      writeFileSync4(feedbackLogPath, recordLine, { flag: "a", encoding: "utf8" });
-      console.log(`\u2714 Feedback successfully added (ID: ${rawRecord.id})`);
+      writeFileSync5(feedbackLogPath, recordLine, { flag: "a", encoding: "utf8" });
+      console.log(`\xE2\u0153\u201D Feedback successfully added (ID: ${rawRecord.id})`);
     } catch (e) {
       console.error(`\x1B[31mError: Failed to write to feedback-log.jsonl: ${e.message}\x1B[0m`);
       process.exit(1);
@@ -2843,7 +3013,7 @@ function handleFeedbackList(options) {
       return;
     }
     console.log(`
-\u{1F9E0} \x1B[36mLogged Feedback Entries\x1B[0m`);
+\xF0\u0178\xA7\xA0 \x1B[36mLogged Feedback Entries\x1B[0m`);
     console.log("==================================================");
     lines.forEach((line) => {
       try {
@@ -2925,8 +3095,8 @@ function handleFeedbackSummarize(options) {
       console.log(`\x1B[36m[DRY-RUN] WOULD WRITE TO ${targetRulesPath}:\x1B[0m`);
       console.log(md);
     } else {
-      writeFileSync4(targetRulesPath, md, "utf8");
-      console.log(`\u2714 Compiled ${lines.length} feedback items into learning rules in .ai/intelligence/learning-rules.md`);
+      writeFileSync5(targetRulesPath, md, "utf8");
+      console.log(`\xE2\u0153\u201D Compiled ${lines.length} feedback items into learning rules in .ai/intelligence/learning-rules.md`);
     }
   } catch (e) {
     console.error(`\x1B[31mError: Failed to compile learning rules: ${e.message}\x1B[0m`);
@@ -3019,8 +3189,8 @@ ${suggestedChange}
     console.log(`\x1B[36m[DRY-RUN] WOULD WRITE PROPOSAL TO ${proposalFile}:\x1B[0m`);
     console.log(md);
   } else {
-    writeFileSync4(proposalFile, md, "utf8");
-    console.log(`\u2714 Created codebase improvement proposal: .ai/proposals/${id}.md`);
+    writeFileSync5(proposalFile, md, "utf8");
+    console.log(`\xE2\u0153\u201D Created codebase improvement proposal: .ai/proposals/${id}.md`);
   }
 }
 function handleImproveReview(options) {
@@ -3036,7 +3206,7 @@ function handleImproveReview(options) {
       return;
     }
     console.log(`
-\u{1F4CB} \x1B[36mCodebase Improvement Proposals\x1B[0m`);
+\xF0\u0178\u201C\u2039 \x1B[36mCodebase Improvement Proposals\x1B[0m`);
     console.log("==================================================");
     files.forEach((file) => {
       const fullPath = join8(proposalsDir, file);
@@ -3090,7 +3260,7 @@ function handleImproveStatus(options) {
       }
     });
     console.log(`
-\u2699 \x1B[36mImprovement Proposals Engine Status\x1B[0m`);
+\xE2\u0161\u2122 \x1B[36mImprovement Proposals Engine Status\x1B[0m`);
     console.log("==================================================");
     console.log(`  Total Proposals:  ${files.length}`);
     console.log(`  Pending Approval: \x1B[33m${pending}\x1B[0m`);
@@ -3341,7 +3511,7 @@ function validateProposal(proposalFile, targetRoot) {
   };
 }
 function handleImproveValidate(proposalFile, options) {
-  console.log(`\u{1F6E1}  \x1B[34mValidating improvement proposal: ${proposalFile}\x1B[0m
+  console.log(`\xF0\u0178\u203A\xA1  \x1B[34mValidating improvement proposal: ${proposalFile}\x1B[0m
 `);
   const validation = validateProposal(proposalFile, options.target);
   if (validation.proposalId) {
@@ -3365,9 +3535,9 @@ function handleImproveValidate(proposalFile, options) {
     const gate = validation.gates[g];
     const label = gateLabels[g];
     if (gate.status === "pass") {
-      console.log(`  \x1B[32m[\u2713]\x1B[0m ${label}`);
+      console.log(`  \x1B[32m[\xE2\u0153\u201C]\x1B[0m ${label}`);
     } else if (gate.status === "fail") {
-      console.log(`  \x1B[31m[\u2717]\x1B[0m ${label} - \x1B[31m${gate.reason}\x1B[0m`);
+      console.log(`  \x1B[31m[\xE2\u0153\u2014]\x1B[0m ${label} - \x1B[31m${gate.reason}\x1B[0m`);
     } else {
       console.log(`  \x1B[37m[-]\x1B[0m ${label}`);
     }
@@ -3402,12 +3572,12 @@ function handleImproveValidate(proposalFile, options) {
     console.error();
     process.exit(1);
   }
-  console.log(`\x1B[32m\u2714 Proposal is VALID and ready to be applied. ${validation.operations.length} operations parsed successfully.\x1B[0m
+  console.log(`\x1B[32m\xE2\u0153\u201D Proposal is VALID and ready to be applied. ${validation.operations.length} operations parsed successfully.\x1B[0m
 `);
   process.exit(0);
 }
 function handleImproveDiff(proposalFile, options) {
-  console.log(`\u{1F50D} \x1B[36mGenerating diff for proposal: ${proposalFile}\x1B[0m
+  console.log(`\xF0\u0178\u201D\x8D \x1B[36mGenerating diff for proposal: ${proposalFile}\x1B[0m
 `);
   const validation = validateProposal(proposalFile, options.target);
   if (!validation.valid) {
@@ -3463,7 +3633,7 @@ function handleImproveDiff(proposalFile, options) {
       if (type === "create_file") {
         const exists = existsSync8(op.resolvedPath);
         if (exists) {
-          console.log(`  \x1B[31m\u26A0\uFE0F  [Overwriting existing file]\x1B[0m`);
+          console.log(`  \x1B[31m\xE2\u0161\xA0\xEF\xB8\x8F  [Overwriting existing file]\x1B[0m`);
         } else {
           console.log(`  \x1B[32m+ [Creating new file]\x1B[0m`);
         }
@@ -3502,7 +3672,7 @@ function handleImproveApply(proposalFile, options) {
     console.error(`Example: node bin/multimodel-dev-os.js improve apply ${proposalFile} --approved`);
     process.exit(1);
   }
-  console.log(`\u{1F680} \x1B[34mApplying proposal: ${proposalFile}\x1B[0m`);
+  console.log(`\xF0\u0178\u0161\u20AC \x1B[34mApplying proposal: ${proposalFile}\x1B[0m`);
   const validation = validateProposal(proposalFile, options.target);
   if (!validation.valid) {
     console.error(`\x1B[31mValidation FAILED: ${validation.reason}\x1B[0m`);
@@ -3529,7 +3699,7 @@ function handleImproveApply(proposalFile, options) {
       notes: `Validation failed: ${validation.reason}`
     };
     try {
-      writeFileSync4(logFile2, JSON.stringify(record2) + "\n", { flag: "a", encoding: "utf8" });
+      writeFileSync5(logFile2, JSON.stringify(record2) + "\n", { flag: "a", encoding: "utf8" });
     } catch (err) {
     }
     process.exit(1);
@@ -3573,7 +3743,7 @@ Applying changes...`);
           mkdirSync3(dir, { recursive: true });
         }
         const exists = existsSync8(op.resolvedPath);
-        writeFileSync4(op.resolvedPath, op.content, "utf8");
+        writeFileSync5(op.resolvedPath, op.content, "utf8");
         if (exists) {
           console.log(`    [OVERWRITTEN] Overwrote existing file '${relPath}'.`);
         } else {
@@ -3596,7 +3766,7 @@ Applying changes...`);
           if (!existsSync8(dir)) {
             mkdirSync3(dir, { recursive: true });
           }
-          writeFileSync4(op.resolvedPath, newContent, "utf8");
+          writeFileSync5(op.resolvedPath, newContent, "utf8");
           console.log(`    [APPENDED] Appended 1 line to '${relPath}'.`);
         } else {
           console.log(`    [IDEMPOTENT] Line already exists in '${relPath}'. Skipping append.`);
@@ -3617,7 +3787,7 @@ Applying changes...`);
           if (count > 0)
             count = 1;
         }
-        writeFileSync4(op.resolvedPath, newContent, "utf8");
+        writeFileSync5(op.resolvedPath, newContent, "utf8");
         console.log(`    [REPLACED] Replaced ${count} occurrence(s) of find text in '${relPath}'.`);
       }
     });
@@ -3655,13 +3825,13 @@ Applying changes...`);
     notes
   };
   try {
-    writeFileSync4(logFile, JSON.stringify(record) + "\n", { flag: "a", encoding: "utf8" });
+    writeFileSync5(logFile, JSON.stringify(record) + "\n", { flag: "a", encoding: "utf8" });
   } catch (err) {
     console.error(`\x1B[31mFailed to write to audit log: ${err.message}\x1B[0m`);
   }
   if (status === "success") {
     console.log(`
-\x1B[32m\u2714 Proposal applied successfully!\x1B[0m`);
+\x1B[32m\xE2\u0153\u201D Proposal applied successfully!\x1B[0m`);
     console.log(`Files changed:`);
     filesChanged.forEach((f) => console.log(`  - ${f}`));
     console.log(`Audit log recorded to: ${logFile}`);
@@ -3678,7 +3848,7 @@ function handleImproveLog(options) {
   try {
     const lines = readFileSync9(logFile, "utf8").trim().split(/\r?\n/);
     console.log(`
-\u{1F4DC} \x1B[36mApplied Proposals Audit Log\x1B[0m`);
+\xF0\u0178\u201C\u0153 \x1B[36mApplied Proposals Audit Log\x1B[0m`);
     console.log("==================================================");
     lines.forEach((line) => {
       if (!line.trim())
@@ -3701,7 +3871,7 @@ function handleImproveLog(options) {
 }
 function handleStatus(options) {
   console.log(`
-\u{1F4CA} \x1B[36mRepository Intelligence Status: ${options.target}\x1B[0m`);
+\xF0\u0178\u201C\u0160 \x1B[36mRepository Intelligence Status: ${options.target}\x1B[0m`);
   console.log("==================================================");
   let pkgName = "unknown";
   let pkgVersion2 = "unknown";
@@ -3846,7 +4016,7 @@ function handleWorkflowList(options) {
     const registry = parseYaml(readFileSync9(workflowsPath, "utf8")) || {};
     const workflows = registry.workflows || {};
     console.log(`
-\u2699 \x1B[36mRegistered Workflows\x1B[0m`);
+\xE2\u0161\u2122 \x1B[36mRegistered Workflows\x1B[0m`);
     console.log("==================================================");
     Object.keys(workflows).forEach((key) => {
       const wf = workflows[key];
@@ -3884,7 +4054,7 @@ function handleWorkflowShow(wName, options) {
     const risk = wf.risk_level || "unknown";
     const riskColor = risk === "low" ? "\x1B[32m" : risk === "medium" ? "\x1B[33m" : "\x1B[31m";
     console.log(`
-\u2699 \x1B[36mWorkflow Spec: ${name}\x1B[0m`);
+\xE2\u0161\u2122 \x1B[36mWorkflow Spec: ${name}\x1B[0m`);
     console.log("==================================================");
     console.log(`  Description:             ${wf.description || "No description"}`);
     console.log(`  Risk Level:              ${riskColor}${risk.toUpperCase()}\x1B[0m`);
@@ -3923,7 +4093,7 @@ function handleWorkflowPlan(wName, options) {
     }
     const name = wf.name || wName;
     console.log(`
-\u{1F4DD} \x1B[36mExecution Plan for Workflow: ${name}\x1B[0m`);
+\xF0\u0178\u201C\x9D \x1B[36mExecution Plan for Workflow: ${name}\x1B[0m`);
     console.log("==================================================");
     console.log(`\x1B[33m[DRY-RUN/PLAN ONLY] No commands will be run.\x1B[0m
 `);
@@ -3958,7 +4128,7 @@ function handleWorkflowRun(wName, options) {
     }
     const name = wf.name || wName;
     console.log(`
-\u{1F680} \x1B[36mRunning Workflow: ${name}\x1B[0m`);
+\xF0\u0178\u0161\u20AC \x1B[36mRunning Workflow: ${name}\x1B[0m`);
     console.log("==================================================");
     const steps = wf.steps || [];
     const safeCommands = {
@@ -3994,7 +4164,7 @@ function handleWorkflowRun(wName, options) {
       }
     });
     console.log(`
-\u2714 Workflow '${name}' complete.
+\xE2\u0153\u201D Workflow '${name}' complete.
 `);
   } catch (e) {
     console.error(`\x1B[31mError running workflow '${wName}': ${e.message}\x1B[0m`);
@@ -4141,9 +4311,9 @@ ${rulesSummary}
 ${recs}
 `;
   try {
-    writeFileSync4(handoffPath, handoffContent, "utf8");
+    writeFileSync5(handoffPath, handoffContent, "utf8");
     console.log(`
-\u2714 Handoff context built successfully in: .ai/intelligence/handoff.md`);
+\xE2\u0153\u201D Handoff context built successfully in: .ai/intelligence/handoff.md`);
   } catch (e) {
     console.error(`\x1B[31mError writing handoff: ${e.message}\x1B[0m`);
   }
@@ -4163,7 +4333,7 @@ function handleHandoffShow(options) {
 }
 function handleDoctorIntelligence(options) {
   console.log(`
-\u{1FA7A} \x1B[36mRunning advisory intelligence doctor checkup in: ${options.target}\x1B[0m
+\xF0\u0178\xA9\xBA \x1B[36mRunning advisory intelligence doctor checkup in: ${options.target}\x1B[0m
 `);
   let warnings = 0;
   const warn = (msg) => {
@@ -4254,7 +4424,7 @@ function handleDoctorIntelligence(options) {
     console.log(`\x1B[33mDoctor intelligence check complete. Found ${warnings} warnings.\x1B[0m
 `);
   } else {
-    console.log("\x1B[32m\u2714 Doctor intelligence check complete. Your intelligence setup is pristine!\x1B[0m\n");
+    console.log("\x1B[32m\xE2\u0153\u201D Doctor intelligence check complete. Your intelligence setup is pristine!\x1B[0m\n");
   }
 }
 function getAnalysis(target) {
@@ -4401,7 +4571,7 @@ function getRecommendation(analysis) {
 }
 function handleOnboardAnalyze(options) {
   console.log(`
-\u{1F50D} \x1B[36mAnalyzing Workspace for Onboarding: ${options.target}\x1B[0m`);
+\xF0\u0178\u201D\x8D \x1B[36mAnalyzing Workspace for Onboarding: ${options.target}\x1B[0m`);
   console.log("==================================================");
   const analysis = getAnalysis(options.target);
   console.log(`  Package Manager:       ${analysis.packageManagers.join(", ") || "None"}`);
@@ -4412,7 +4582,7 @@ function handleOnboardAnalyze(options) {
   console.log(`  GitHub Workflows:      ${analysis.githubWorkflows.join(", ") || "None"}`);
   console.log(`  Security Risk Markers: ${analysis.envRiskMarkers.length} files found`);
   if (analysis.envRiskMarkers.length > 0) {
-    analysis.envRiskMarkers.forEach((m) => console.log(`    \u2514\u2500> ${m} (potential secrets exposure risk)`));
+    analysis.envRiskMarkers.forEach((m) => console.log(`    \xE2\u201D\u201D\xE2\u201D\u20AC> ${m} (potential secrets exposure risk)`));
   }
   console.log();
 }
@@ -4420,7 +4590,7 @@ function handleOnboardRecommend(options) {
   const analysis = getAnalysis(options.target);
   const rec = getRecommendation(analysis);
   console.log(`
-\u{1F4A1} \x1B[36mOnboarding Recommendation for: ${options.target}\x1B[0m`);
+\xF0\u0178\u2019\xA1 \x1B[36mOnboarding Recommendation for: ${options.target}\x1B[0m`);
   console.log("==================================================");
   console.log(`  Recommended Template:  \x1B[32m${rec.template}\x1B[0m`);
   console.log(`  Confidence Score:      ${(rec.confidence * 100).toFixed(0)}%`);
@@ -4432,7 +4602,7 @@ function handleOnboardRecommend(options) {
 }
 function handleOnboardPlan(options) {
   console.log(`
-\u{1F4CB} \x1B[36mGenerating Onboarding Plan: ${options.target}\x1B[0m`);
+\xF0\u0178\u201C\u2039 \x1B[36mGenerating Onboarding Plan: ${options.target}\x1B[0m`);
   console.log("==================================================");
   const analysis = getAnalysis(options.target);
   const rec = getRecommendation(analysis);
@@ -4518,8 +4688,8 @@ function handleOnboardPlan(options) {
       mkdirSync3(intelDir, { recursive: true });
     }
     if (!options.dryRun) {
-      writeFileSync4(planPath, JSON.stringify(planData, null, 2), "utf8");
-      writeFileSync4(reportPath, reportMd, "utf8");
+      writeFileSync5(planPath, JSON.stringify(planData, null, 2), "utf8");
+      writeFileSync5(reportPath, reportMd, "utf8");
     }
     console.log(`  [SUCCESS] Onboarding plan generated:`);
     console.log(`    - Plan JSON:   .ai/intelligence/onboarding.plan.json`);
@@ -4550,7 +4720,7 @@ function handleOnboardApply(options) {
     process.exit(1);
   }
   console.log(`
-\u{1F680} \x1B[36mApplying Onboarding Scaffolding: ${options.target}\x1B[0m`);
+\xF0\u0178\u0161\u20AC \x1B[36mApplying Onboarding Scaffolding: ${options.target}\x1B[0m`);
   console.log("==================================================");
   const template = plan.recommendation.template;
   options.template = template;
@@ -4608,10 +4778,10 @@ function handleOnboardApply(options) {
       if (options.force) {
         if (!options.dryRun) {
           const backupPath = destPath + ".bak";
-          writeFileSync4(backupPath, readFileSync9(destPath));
+          writeFileSync5(backupPath, readFileSync9(destPath));
           if (!existsSync8(destDir))
             mkdirSync3(destDir, { recursive: true });
-          writeFileSync4(destPath, readFileSync9(op.src));
+          writeFileSync5(destPath, readFileSync9(op.src));
           console.log(`  \x1B[33mOVERWRITE (BACKUP CREATED):\x1B[0m ${op.dest} -> ${op.dest}.bak`);
         } else {
           console.log(`  \x1B[36m[DRY-RUN] WOULD OVERWRITE & BACKUP:\x1B[0m ${op.dest}`);
@@ -4625,7 +4795,7 @@ function handleOnboardApply(options) {
       if (!options.dryRun) {
         if (!existsSync8(destDir))
           mkdirSync3(destDir, { recursive: true });
-        writeFileSync4(destPath, readFileSync9(op.src));
+        writeFileSync5(destPath, readFileSync9(op.src));
         console.log(`  \x1B[32mCREATE:\x1B[0m ${op.dest}`);
       } else {
         console.log(`  \x1B[36m[DRY-RUN] WOULD CREATE:\x1B[0m ${op.dest}`);
@@ -4634,12 +4804,12 @@ function handleOnboardApply(options) {
     }
   });
   console.log(`
-\u2714 Onboarding apply complete! Created: ${createdCount}, Skipped: ${skippedCount}, Overwritten (with backup): ${updatedCount}
+\xE2\u0153\u201D Onboarding apply complete! Created: ${createdCount}, Skipped: ${skippedCount}, Overwritten (with backup): ${updatedCount}
 `);
 }
 function handleOnboardStatus(options) {
   console.log(`
-\u{1F4CA} \x1B[36mOnboarding Status Dashboard: ${options.target}\x1B[0m`);
+\xF0\u0178\u201C\u0160 \x1B[36mOnboarding Status Dashboard: ${options.target}\x1B[0m`);
   console.log("==================================================");
   const crucialFiles = [
     "AGENTS.md",
@@ -4654,7 +4824,7 @@ function handleOnboardStatus(options) {
     const exists = existsSync8(fullPath);
     if (exists)
       presentCount++;
-    console.log(`  [${exists ? "\u2714" : " "}] ${f}`);
+    console.log(`  [${exists ? "\xE2\u0153\u201D" : " "}] ${f}`);
   });
   const percentage = presentCount / crucialFiles.length * 100;
   console.log(`
@@ -4680,7 +4850,7 @@ function getEnabledAdapters(target) {
 }
 function handleAdapterStatus(options) {
   console.log(`
-\u{1F50C} \x1B[36mIDE & Agent Adapters Status: ${options.target}\x1B[0m`);
+\xF0\u0178\u201D\u0152 \x1B[36mIDE & Agent Adapters Status: ${options.target}\x1B[0m`);
   console.log("==================================================");
   const enabled = getEnabledAdapters(options.target);
   Object.keys(ADAPTERS).forEach((name) => {
@@ -4789,7 +4959,7 @@ function handleAdapterSync(aName, options) {
     return;
   }
   console.log(`
-\u{1F504} \x1B[36mSynchronizing IDE Adapters in: ${options.target}\x1B[0m`);
+\xF0\u0178\u201D\u201E \x1B[36mSynchronizing IDE Adapters in: ${options.target}\x1B[0m`);
   console.log("==================================================");
   adaptersToSync.forEach((name) => {
     const a = ADAPTERS[name];
@@ -4804,10 +4974,10 @@ function handleAdapterSync(aName, options) {
       if (options.force) {
         if (!options.dryRun) {
           const backupPath = destFile + ".bak";
-          writeFileSync4(backupPath, readFileSync9(destFile));
+          writeFileSync5(backupPath, readFileSync9(destFile));
           if (!existsSync8(destDir))
             mkdirSync3(destDir, { recursive: true });
-          writeFileSync4(destFile, readFileSync9(srcFile));
+          writeFileSync5(destFile, readFileSync9(srcFile));
           console.log(`  \x1B[33mOVERWRITE (BACKUP CREATED):\x1B[0m ${a.rules_file} -> ${a.rules_file}.bak`);
         } else {
           console.log(`  \x1B[36m[DRY-RUN] WOULD OVERWRITE & BACKUP:\x1B[0m ${a.rules_file}`);
@@ -4819,7 +4989,7 @@ function handleAdapterSync(aName, options) {
       if (!options.dryRun) {
         if (!existsSync8(destDir))
           mkdirSync3(destDir, { recursive: true });
-        writeFileSync4(destFile, readFileSync9(srcFile));
+        writeFileSync5(destFile, readFileSync9(srcFile));
         console.log(`  \x1B[32mCREATE:\x1B[0m ${a.rules_file}`);
       } else {
         console.log(`  \x1B[36m[DRY-RUN] WOULD CREATE:\x1B[0m ${a.rules_file}`);
@@ -4830,7 +5000,7 @@ function handleAdapterSync(aName, options) {
 }
 function handleDoctorOnboarding(options) {
   console.log(`
-\u{1FA7A} \x1B[36mRunning advisory onboarding doctor checkup in: ${options.target}\x1B[0m
+\xF0\u0178\xA9\xBA \x1B[36mRunning advisory onboarding doctor checkup in: ${options.target}\x1B[0m
 `);
   let warnings = 0;
   const warn = (msg) => {
@@ -4885,7 +5055,7 @@ function handleDoctorOnboarding(options) {
     console.log(`\x1B[33mDoctor onboarding check complete. Found ${warnings} warnings.\x1B[0m
 `);
   } else {
-    console.log("\x1B[32m\u2714 Doctor onboarding check complete. Your workspace onboarding setup is pristine!\x1B[0m\n");
+    console.log("\x1B[32m\xE2\u0153\u201D Doctor onboarding check complete. Your workspace onboarding setup is pristine!\x1B[0m\n");
   }
 }
 function selectMenu(title, items, callback) {
@@ -4893,11 +5063,11 @@ function selectMenu(title, items, callback) {
   const draw = () => {
     console.clear();
     console.log(`
-\u{1F9E0} \x1B[36m${title}\x1B[0m`);
+\xF0\u0178\xA7\xA0 \x1B[36m${title}\x1B[0m`);
     console.log("==================================================");
     items.forEach((item, index) => {
       if (index === cursor) {
-        console.log(`  \x1B[32m\u276F ${item.name}\x1B[0m`);
+        console.log(`  \x1B[32m\xE2\x9D\xAF ${item.name}\x1B[0m`);
       } else {
         console.log(`    ${item.name}`);
       }
@@ -4952,7 +5122,7 @@ function handleDashboard(options) {
   ];
   const submenus = {
     onboard: [
-      { name: "\u2190 Back to Main Menu", action: "back" },
+      { name: "\xE2\u2020\x90 Back to Main Menu", action: "back" },
       { name: "Onboard: Analyze Repository", action: "command", command: "onboard analyze" },
       { name: "Onboard: Recommendation Summary", action: "command", command: "onboard recommend" },
       { name: "Onboard: Generate Integration Plan", action: "command", command: "onboard plan" },
@@ -4960,14 +5130,14 @@ function handleDashboard(options) {
       { name: "Onboard: View Status Heuristics", action: "command", command: "onboard status" }
     ],
     adapter: [
-      { name: "\u2190 Back to Main Menu", action: "back" },
+      { name: "\xE2\u2020\x90 Back to Main Menu", action: "back" },
       { name: "Adapters: Check Sync Status", action: "command", command: "adapter status" },
       { name: "Adapters: Sync All rule files (Dry Run)", action: "command", command: "adapter sync all --dry-run" },
       { name: "Adapters: Diff Cursor rules", action: "command", command: "adapter diff cursor" },
       { name: "Adapters: Diff Claude rules", action: "command", command: "adapter diff claude" }
     ],
     memory: [
-      { name: "\u2190 Back to Main Menu", action: "back" },
+      { name: "\xE2\u2020\x90 Back to Main Menu", action: "back" },
       { name: "Memory: Build index", action: "command", command: "memory build" },
       { name: "Memory: Refresh changes", action: "command", command: "memory refresh" },
       { name: "Memory: Diff index status", action: "command", command: "memory diff" },
@@ -4975,26 +5145,26 @@ function handleDashboard(options) {
       { name: "Handoff: Print summary to terminal", action: "command", command: "handoff show" }
     ],
     feedback: [
-      { name: "\u2190 Back to Main Menu", action: "back" },
+      { name: "\xE2\u2020\x90 Back to Main Menu", action: "back" },
       { name: "Feedback: List developer corrections", action: "command", command: "feedback list" },
       { name: "Feedback: Summarize to learning rules", action: "command", command: "feedback summarize" },
       { name: "Proposals: Propose improvement proposal", action: "command", command: "improve propose" },
       { name: "Proposals: Review active proposals list", action: "command", command: "improve review" }
     ],
     catalog: [
-      { name: "\u2190 Back to Main Menu", action: "back" },
+      { name: "\xE2\u2020\x90 Back to Main Menu", action: "back" },
       { name: "Catalog: List bundled plugins", action: "command", command: "catalog list" },
       { name: "Catalog: Recommend for current repo", action: "command", command: "catalog recommend" },
       { name: "Catalog: Show installed catalog status", action: "command", command: "catalog status" }
     ],
     quality: [
-      { name: "\u2190 Back to Main Menu", action: "back" },
+      { name: "\xE2\u2020\x90 Back to Main Menu", action: "back" },
       { name: "Doctor: Run Advisory Diagnostics", action: "command", command: "doctor" },
       { name: "Validate: Strict Schema Compliance", action: "command", command: "validate" },
       { name: "Verify: Run Release verification tests", action: "command", command: "verify" }
     ],
     registry: [
-      { name: "\u2190 Back to Main Menu", action: "back" },
+      { name: "\xE2\u2020\x90 Back to Main Menu", action: "back" },
       { name: "Registry: List configured sources", action: "command", command: "registry list" },
       { name: "Registry: Show sync status", action: "command", command: "registry status" },
       { name: "Registry: Verify cache integrity", action: "command", command: "registry verify bundled" },
@@ -5003,19 +5173,19 @@ function handleDashboard(options) {
   };
   if (!process.stdout.isTTY || !process.stdin.isTTY || options.dryRun || options.listActions) {
     console.log(`
-\u{1F4CA} \x1B[36mMultiModel Dev OS Command Center (Headless/CI Preview)\x1B[0m`);
+\xF0\u0178\u201C\u0160 \x1B[36mMultiModel Dev OS Command Center (Headless/CI Preview)\x1B[0m`);
     console.log(`Target Workspace: \x1B[32m${options.target}\x1B[0m`);
     console.log("==================================================");
     const targetFlag = options.target === process.cwd() ? "" : ` --target "${options.target}"`;
     mainMenu.forEach((item) => {
       if (item.action === "command") {
-        console.log(`  \x1B[33m\u2022\x1B[0m ${item.name.padEnd(30)} \u2192 \x1B[36mnpx multimodel-dev-os ${item.command}${targetFlag}\x1B[0m`);
+        console.log(`  \x1B[33m\xE2\u20AC\xA2\x1B[0m ${item.name.padEnd(30)} \xE2\u2020\u2019 \x1B[36mnpx multimodel-dev-os ${item.command}${targetFlag}\x1B[0m`);
       } else if (item.action === "submenu") {
         console.log(`
   \x1B[35m[${item.name.replace("...", "")}]\x1B[0m`);
         submenus[item.menu].forEach((sub) => {
           if (sub.action === "command") {
-            console.log(`    \u2514\u2500 ${sub.name.padEnd(35)} \u2192 \x1B[36mnpx multimodel-dev-os ${sub.command}${targetFlag}\x1B[0m`);
+            console.log(`    \xE2\u201D\u201D\xE2\u201D\u20AC ${sub.name.padEnd(35)} \xE2\u2020\u2019 \x1B[36mnpx multimodel-dev-os ${sub.command}${targetFlag}\x1B[0m`);
           }
         });
       }
@@ -5077,7 +5247,7 @@ function handlePluginList(options) {
       return;
     }
     console.log(`
-\u{1F50C} \x1B[36mInstalled Plugins in: ${options.target}\x1B[0m`);
+\xF0\u0178\u201D\u0152 \x1B[36mInstalled Plugins in: ${options.target}\x1B[0m`);
     console.log("==================================================");
     console.log("  No plugins installed. Try:");
     console.log(`  npx multimodel-dev-os plugin install ${examplePath} --approved`);
@@ -5104,7 +5274,7 @@ function handlePluginList(options) {
     return;
   }
   console.log(`
-\u{1F50C} \x1B[36mInstalled Plugins in: ${options.target} (${plugins.length})\x1B[0m`);
+\xF0\u0178\u201D\u0152 \x1B[36mInstalled Plugins in: ${options.target} (${plugins.length})\x1B[0m`);
   console.log("==================================================");
   if (plugins.length === 0) {
     console.log("  No plugins installed. Try:");
@@ -5145,7 +5315,7 @@ function handlePluginShow(slug, options) {
     process.exit(1);
   }
   console.log(`
-\u{1F50D} \x1B[36mPlugin Specifications: ${p.name} (v${p.version})\x1B[0m`);
+\xF0\u0178\u201D\x8D \x1B[36mPlugin Specifications: ${p.name} (v${p.version})\x1B[0m`);
   console.log("==================================================");
   console.log(`\x1B[33mSlug:\x1B[0m        ${p.slug}`);
   console.log(`\x1B[33mAuthor:\x1B[0m      ${p.author}`);
@@ -5184,44 +5354,44 @@ function handlePluginValidate(pluginPath, options) {
     process.exit(1);
   }
   console.log(`
-\u{1F4CB} \x1B[34mValidating Plugin: ${pluginPath}\x1B[0m`);
+\xF0\u0178\u201C\u2039 \x1B[34mValidating Plugin: ${pluginPath}\x1B[0m`);
   console.log("==================================================");
   let errors = 0;
   let plugin = null;
   try {
     plugin = parseYaml(readFileSync9(fullPath, "utf8"));
   } catch (e) {
-    console.error(`  \x1B[31m\u2717 [SYNTAX] Failed to parse YAML: ${e.message}\x1B[0m`);
+    console.error(`  \x1B[31m\xE2\u0153\u2014 [SYNTAX] Failed to parse YAML: ${e.message}\x1B[0m`);
     errors++;
   }
   if (plugin) {
     const reqKeys = ["name", "slug", "version", "description", "author"];
     reqKeys.forEach((k) => {
       if (plugin[k] === void 0 || plugin[k] === null) {
-        console.error(`  \x1B[31m\u2717 [METADATA] Missing required key: ${k}\x1B[0m`);
+        console.error(`  \x1B[31m\xE2\u0153\u2014 [METADATA] Missing required key: ${k}\x1B[0m`);
         errors++;
       } else if (typeof plugin[k] !== "string") {
-        console.error(`  \x1B[31m\u2717 [METADATA] Key '${k}' must be a string (found: ${typeof plugin[k]})\x1B[0m`);
+        console.error(`  \x1B[31m\xE2\u0153\u2014 [METADATA] Key '${k}' must be a string (found: ${typeof plugin[k]})\x1B[0m`);
         errors++;
       } else if (k === "slug") {
         if (!/^[a-z0-9-_]+$/i.test(plugin[k])) {
-          console.error(`  \x1B[31m\u2717 [METADATA] Key 'slug' must be alphanumeric with dashes or underscores only (found: "${plugin[k]}")\x1B[0m`);
+          console.error(`  \x1B[31m\xE2\u0153\u2014 [METADATA] Key 'slug' must be alphanumeric with dashes or underscores only (found: "${plugin[k]}")\x1B[0m`);
           errors++;
         } else {
-          console.log(`  \x1B[32m\u2713 [METADATA] Key: slug ("${plugin[k]}")`);
+          console.log(`  \x1B[32m\xE2\u0153\u201C [METADATA] Key: slug ("${plugin[k]}")`);
         }
       } else {
-        console.log(`  \x1B[32m\u2713 [METADATA] Key: ${k} ("${plugin[k]}")`);
+        console.log(`  \x1B[32m\xE2\u0153\u201C [METADATA] Key: ${k} ("${plugin[k]}")`);
       }
     });
     if (plugin.allowed_file_patterns !== void 0) {
       if (!Array.isArray(plugin.allowed_file_patterns)) {
-        console.error(`  \x1B[31m\u2717 [SAFETY] allowed_file_patterns must be an array\x1B[0m`);
+        console.error(`  \x1B[31m\xE2\u0153\u2014 [SAFETY] allowed_file_patterns must be an array\x1B[0m`);
         errors++;
       } else {
         plugin.allowed_file_patterns.forEach((pat) => {
           if (typeof pat !== "string") {
-            console.error(`  \x1B[31m\u2717 [SAFETY] allowed_file_patterns item must be a string: ${pat}\x1B[0m`);
+            console.error(`  \x1B[31m\xE2\u0153\u2014 [SAFETY] allowed_file_patterns item must be a string: ${pat}\x1B[0m`);
             errors++;
             return;
           }
@@ -5245,59 +5415,59 @@ function handlePluginValidate(pluginPath, options) {
             "package-lock.json"
           ].some((black) => normPattern.includes(black));
           if (!isSafeSubdir || hasTraversal || isBlacklisted) {
-            console.error(`  \x1B[31m\u2717 [SAFETY] File pattern '${pat}' violates safety boundaries (must reside under .ai/ or adapters/, contain no '..', and exclude blacklisted files)\x1B[0m`);
+            console.error(`  \x1B[31m\xE2\u0153\u2014 [SAFETY] File pattern '${pat}' violates safety boundaries (must reside under .ai/ or adapters/, contain no '..', and exclude blacklisted files)\x1B[0m`);
             errors++;
           }
         });
         if (errors === 0) {
-          console.log(`  \x1B[32m\u2713 [SAFETY] allowed_file_patterns verified: ${plugin.allowed_file_patterns.length} items`);
+          console.log(`  \x1B[32m\xE2\u0153\u201C [SAFETY] allowed_file_patterns verified: ${plugin.allowed_file_patterns.length} items`);
         }
       }
     }
     if (plugin.denied_file_patterns !== void 0) {
       if (!Array.isArray(plugin.denied_file_patterns)) {
-        console.error(`  \x1B[31m\u2717 [SAFETY] denied_file_patterns must be an array\x1B[0m`);
+        console.error(`  \x1B[31m\xE2\u0153\u2014 [SAFETY] denied_file_patterns must be an array\x1B[0m`);
         errors++;
       } else {
         plugin.denied_file_patterns.forEach((pat) => {
           if (typeof pat !== "string") {
-            console.error(`  \x1B[31m\u2717 [SAFETY] denied_file_patterns item must be a string: ${pat}\x1B[0m`);
+            console.error(`  \x1B[31m\xE2\u0153\u2014 [SAFETY] denied_file_patterns item must be a string: ${pat}\x1B[0m`);
             errors++;
           }
         });
-        console.log(`  \x1B[32m\u2713 [SAFETY] denied_file_patterns verified: ${plugin.denied_file_patterns.length} items`);
+        console.log(`  \x1B[32m\xE2\u0153\u201C [SAFETY] denied_file_patterns verified: ${plugin.denied_file_patterns.length} items`);
       }
     }
     if (plugin.workflows !== void 0) {
       if (typeof plugin.workflows !== "object" || Array.isArray(plugin.workflows)) {
-        console.error(`  \x1B[31m\u2717 [CAPABILITIES] workflows must be an object\x1B[0m`);
+        console.error(`  \x1B[31m\xE2\u0153\u2014 [CAPABILITIES] workflows must be an object\x1B[0m`);
         errors++;
       } else {
-        console.log(`  \x1B[32m\u2713 [CAPABILITIES] workflows verified`);
+        console.log(`  \x1B[32m\xE2\u0153\u201C [CAPABILITIES] workflows verified`);
       }
     }
     if (plugin.templates !== void 0) {
       if (typeof plugin.templates !== "object" || Array.isArray(plugin.templates)) {
-        console.error(`  \x1B[31m\u2717 [CAPABILITIES] templates must be an object\x1B[0m`);
+        console.error(`  \x1B[31m\xE2\u0153\u2014 [CAPABILITIES] templates must be an object\x1B[0m`);
         errors++;
       } else {
-        console.log(`  \x1B[32m\u2713 [CAPABILITIES] templates verified`);
+        console.log(`  \x1B[32m\xE2\u0153\u201C [CAPABILITIES] templates verified`);
       }
     }
     if (plugin.adapters !== void 0) {
       if (typeof plugin.adapters !== "object" || Array.isArray(plugin.adapters)) {
-        console.error(`  \x1B[31m\u2717 [CAPABILITIES] adapters must be an object\x1B[0m`);
+        console.error(`  \x1B[31m\xE2\u0153\u2014 [CAPABILITIES] adapters must be an object\x1B[0m`);
         errors++;
       } else {
-        console.log(`  \x1B[32m\u2713 [CAPABILITIES] adapters verified`);
+        console.log(`  \x1B[32m\xE2\u0153\u201C [CAPABILITIES] adapters verified`);
       }
     }
     if (plugin.safety_notes !== void 0) {
       if (typeof plugin.safety_notes !== "string") {
-        console.error(`  \x1B[31m\u2717 [SAFETY] safety_notes must be a string\x1B[0m`);
+        console.error(`  \x1B[31m\xE2\u0153\u2014 [SAFETY] safety_notes must be a string\x1B[0m`);
         errors++;
       } else {
-        console.log(`  \x1B[32m\u2713 [SAFETY] safety_notes verified`);
+        console.log(`  \x1B[32m\xE2\u0153\u201C [SAFETY] safety_notes verified`);
       }
     }
   }
@@ -5310,7 +5480,7 @@ function handlePluginValidate(pluginPath, options) {
     process.exit(1);
   } else {
     console.log(`
-\x1B[32m\u2714 Plugin '${plugin.slug || plugin.name}' is fully valid and compliant!\x1B[0m`);
+\x1B[32m\xE2\u0153\u201D Plugin '${plugin.slug || plugin.name}' is fully valid and compliant!\x1B[0m`);
     console.log(`
 \x1B[35mRecommended Next Command:\x1B[0m`);
     console.log(`    npx multimodel-dev-os plugin install ${pluginPath} --approved
@@ -5337,7 +5507,7 @@ function handlePluginInstall(pluginPath, options) {
   const slug = plugin.slug;
   const sourceDir = dirname4(fullPath);
   console.log(`
-\u{1F4E5} \x1B[34mInstalling Plugin: ${plugin.name} [slug: ${slug}]\x1B[0m`);
+\xF0\u0178\u201C\xA5 \x1B[34mInstalling Plugin: ${plugin.name} [slug: ${slug}]\x1B[0m`);
   const filesToCopy = [];
   filesToCopy.push({
     src: fullPath,
@@ -5423,14 +5593,14 @@ function handlePluginInstall(pluginPath, options) {
     }
     if (existsSync8(destPath)) {
       const bakPath = `${destPath}.bak`;
-      writeFileSync4(bakPath, readFileSync9(destPath));
+      writeFileSync5(bakPath, readFileSync9(destPath));
       console.log(`  \x1B[33mBACKUP:\x1B[0m Created backup: ${item.dest}.bak`);
     }
-    writeFileSync4(destPath, readFileSync9(item.src));
+    writeFileSync5(destPath, readFileSync9(item.src));
     console.log(`  \x1B[32mCOPY:\x1B[0m ${item.dest}`);
   });
   console.log(`
-\x1B[32m\u2714 Plugin '${plugin.name}' installed successfully!\x1B[0m`);
+\x1B[32m\xE2\u0153\u201D Plugin '${plugin.name}' installed successfully!\x1B[0m`);
   console.log(`
 \x1B[32mSafety Status:\x1B[0m Sandboxed isolation: VERIFIED (All files written inside whitelisted .ai/ & adapters/ folders)`);
   console.log(`
@@ -5440,12 +5610,12 @@ Summary of actions:`);
   console.log(`  - Synced assets:       ${assetCount} file(s)`);
   console.log(`
 \x1B[35mRecommended Next Commands:\x1B[0m`);
-  console.log(`    \u2022 View plugin details: npx multimodel-dev-os plugin show ${slug}`);
-  console.log(`    \u2022 Audit plugin health:  npx multimodel-dev-os plugin status --target .`);
+  console.log(`    \xE2\u20AC\xA2 View plugin details: npx multimodel-dev-os plugin show ${slug}`);
+  console.log(`    \xE2\u20AC\xA2 Audit plugin health:  npx multimodel-dev-os plugin status --target .`);
   if (plugin.workflows) {
     const wfKeys = Object.keys(plugin.workflows);
     if (wfKeys.length > 0) {
-      console.log(`    \u2022 Run custom workflow:  npx multimodel-dev-os workflow run ${wfKeys[0]}`);
+      console.log(`    \xE2\u20AC\xA2 Run custom workflow:  npx multimodel-dev-os workflow run ${wfKeys[0]}`);
     }
   }
   console.log("");
@@ -5453,7 +5623,7 @@ Summary of actions:`);
 function handlePluginStatus(options) {
   const pluginsDir = getPluginsDir(options.target);
   console.log(`
-\u{1F50C} \x1B[36mAuditing Plugins Status in: ${options.target}\x1B[0m`);
+\xF0\u0178\u201D\u0152 \x1B[36mAuditing Plugins Status in: ${options.target}\x1B[0m`);
   console.log("==================================================");
   if (!existsSync8(pluginsDir)) {
     console.log("  No plugins directory found. 0 plugins installed.\n");
@@ -5498,7 +5668,7 @@ function handlePluginStatus(options) {
           p.allowed_file_patterns.forEach((pat) => {
             const destPath = join8(options.target, pat);
             if (!existsSync8(destPath) || !statSync(destPath).isFile()) {
-              console.log(`    \x1B[31m\u2717\x1B[0m ${pat}`);
+              console.log(`    \x1B[31m\xE2\u0153\u2014\x1B[0m ${pat}`);
             }
           });
           console.log(`  To fix: Reinstall the plugin or validate the configuration:`);
@@ -5520,7 +5690,7 @@ function handleCatalogList(options) {
     return;
   }
   console.log(`
-\u{1F4DA} \x1B[36mWorkflow Marketplace & Plugin Catalog [v${version}]\x1B[0m`);
+\xF0\u0178\u201C\u0161 \x1B[36mWorkflow Marketplace & Plugin Catalog [v${version}]\x1B[0m`);
   console.log("==================================================");
   if (options.category) {
     console.log(`Filtering by category: \x1B[33m${options.category}\x1B[0m`);
@@ -5543,7 +5713,7 @@ function handleCatalogList(options) {
     }
   }
   filtered.forEach((p) => {
-    const isInst = installedSlugs.has(p.slug) ? " \x1B[90m(\u2713 Installed)\x1B[0m" : "";
+    const isInst = installedSlugs.has(p.slug) ? " \x1B[90m(\xE2\u0153\u201C Installed)\x1B[0m" : "";
     console.log(`
 \x1B[32m* ${p.name}\x1B[0m (v${p.version})${isInst}`);
     console.log(`  slug:         \x1B[33m${p.slug}\x1B[0m`);
@@ -5568,7 +5738,7 @@ function handleCatalogSearch(query, options) {
     return;
   }
   console.log(`
-\u{1F50D} \x1B[36mSearch Catalog Results for query: "${query}" (${matches.length} matches)\x1B[0m`);
+\xF0\u0178\u201D\x8D \x1B[36mSearch Catalog Results for query: "${query}" (${matches.length} matches)\x1B[0m`);
   console.log("==================================================");
   if (matches.length === 0) {
     console.log(`  \x1B[33mWarning: No plugins found matching '${query}'. Try running 'catalog list' to view all entries.\x1B[0m`);
@@ -5595,7 +5765,7 @@ function handleCatalogShow(slug, options) {
     return;
   }
   console.log(`
-\u{1F50D} \x1B[36mCatalog Plugin: ${p.name} (v${p.version})\x1B[0m`);
+\xF0\u0178\u201D\x8D \x1B[36mCatalog Plugin: ${p.name} (v${p.version})\x1B[0m`);
   console.log("==================================================");
   console.log(`\x1B[33mSlug:\x1B[0m         ${p.slug}`);
   console.log(`\x1B[33mSource:\x1B[0m       ${p._source || "bundled"}`);
@@ -5630,7 +5800,7 @@ function handleCatalogCategories(options) {
     return;
   }
   console.log(`
-\u{1F4DA} \x1B[36mMarketplace Categories (${categories.length})\x1B[0m`);
+\xF0\u0178\u201C\u0161 \x1B[36mMarketplace Categories (${categories.length})\x1B[0m`);
   console.log("==================================================");
   categories.forEach((c) => console.log(`  - ${c}`));
   console.log("\nUse \x1B[36mcatalog list --category <category>\x1B[0m to list plugins in a category.\n");
@@ -5676,7 +5846,7 @@ function handleCatalogStatus(options) {
   const plugins = catalog.plugins || [];
   const pluginsDir = getPluginsDir(options.target);
   console.log(`
-\u{1F4CA} \x1B[36mAuditing Catalog Plugins in: ${options.target}\x1B[0m`);
+\xF0\u0178\u201C\u0160 \x1B[36mAuditing Catalog Plugins in: ${options.target}\x1B[0m`);
   console.log("==================================================");
   if (plugins.length === 0) {
     console.log("  No catalog entries found.");
@@ -5705,7 +5875,7 @@ function handleCatalogStatus(options) {
         }
         const total = presentCount + missingCount;
         if (total === 0 || missingCount === 0) {
-          console.log(`  - \x1B[32m${p.name}\x1B[0m (v${p.version}): \x1B[32m\u2713 Installed (Up-to-date)\x1B[0m`);
+          console.log(`  - \x1B[32m${p.name}\x1B[0m (v${p.version}): \x1B[32m\xE2\u0153\u201C Installed (Up-to-date)\x1B[0m`);
         } else {
           console.log(`  - \x1B[33m${p.name}\x1B[0m (v${p.version}): \x1B[33m! Incomplete (Missing assets)\x1B[0m (${presentCount}/${total} files present)`);
         }
@@ -5824,7 +5994,7 @@ function handleCatalogRecommend(options) {
     return;
   }
   console.log(`
-\u{1F4A1} \x1B[36mMarketplace Recommendations for: ${options.target}\x1B[0m`);
+\xF0\u0178\u2019\xA1 \x1B[36mMarketplace Recommendations for: ${options.target}\x1B[0m`);
   console.log("==================================================");
   if (recs.length === 0) {
     console.log("  No matching recommendations found.");
@@ -5849,13 +6019,13 @@ function handleRegistryList(options) {
     return;
   }
   console.log(`
-\u{1F5C2}\uFE0F  \x1B[36mRegistry Sources [v${version}]\x1B[0m`);
+\xF0\u0178\u2014\u201A\xEF\xB8\x8F  \x1B[36mRegistry Sources [v${version}]\x1B[0m`);
   console.log("==================================================");
   console.log(`Policy Status: allow_remote_registries = \x1B[${policy.allow_remote_registries ? "32mtrue" : "33mfalse"}\x1B[0m (Remote registries are disabled by default for safety)
 `);
   const lockfile = loadRegistryLockfile(options.target || process.cwd());
   sources.forEach((s) => {
-    const status = s.enabled ? "\x1B[32m\u25CF enabled\x1B[0m" : "\x1B[90m\u25CB disabled\x1B[0m";
+    const status = s.enabled ? "\x1B[32m\xE2\u2014\x8F enabled\x1B[0m" : "\x1B[90m\xE2\u2014\u2039 disabled\x1B[0m";
     const label = s.name === "bundled" ? "bundled" : s.type === "local" ? `local:${s.name}` : `remote:${s.name}`;
     const lockEntry = lockfile.entries[s.name];
     const lockBadge = lockEntry ? lockEntry.signature ? " \x1B[32m[signed]\x1B[0m" : " \x1B[33m[unsigned]\x1B[0m" : " \x1B[90m[no lockfile entry]\x1B[0m";
@@ -5926,7 +6096,7 @@ Run with --approved to apply:
   });
   saveRegistrySources(sources);
   console.log(`
-\x1B[32m\u2714 Registry '${name}' added successfully!\x1B[0m`);
+\x1B[32m\xE2\u0153\u201D Registry '${name}' added successfully!\x1B[0m`);
   console.log(`  Type:        ${type}`);
   console.log(`  URL:         ${url}`);
   console.log(`  Trust Level: community`);
@@ -5966,14 +6136,14 @@ Run with --approved to apply:
       files.forEach((f) => {
         const fp = join8(cacheDir, f);
         if (statSync(fp).isFile()) {
-          writeFileSync4(fp, "");
+          writeFileSync5(fp, "");
         }
       });
     } catch (e) {
     }
   }
   console.log(`
-\x1B[32m\u2714 Registry '${name}' removed successfully.\x1B[0m`);
+\x1B[32m\xE2\u0153\u201D Registry '${name}' removed successfully.\x1B[0m`);
   console.log(`  Source entry removed from .ai/registries/sources.yaml`);
   if (existsSync8(cacheDir)) {
     console.log(`  Cache directory cleared: .ai/registry-cache/${name}/`);
@@ -6011,7 +6181,7 @@ function handleRegistrySync(name, options) {
   }
   if (!options.approved) {
     console.log(`
-\u26A0\uFE0F  \x1B[33mRegistry Sync Refused \u2014 Explicit Approval Required\x1B[0m`);
+\xE2\u0161\xA0\xEF\xB8\x8F  \x1B[33mRegistry Sync Refused \xE2\u20AC\u201D Explicit Approval Required\x1B[0m`);
     console.log("==================================================");
     console.log(`Syncing remote registries requires the explicit \x1B[33m--approved\x1B[0m flag to download metadata and files.`);
     console.log(`Registry:       \x1B[32m${name}\x1B[0m`);
@@ -6021,15 +6191,15 @@ function handleRegistrySync(name, options) {
     console.log(`Signatures:     ${source.signature_required ? "Required" : "Disabled (SHA-256 fallback)"}`);
     console.log(`
 \x1B[33mPlanned Actions:\x1B[0m`);
-    console.log(`  [DOWNLOAD] catalog.yaml    \u2192 .ai/registry-cache/${name}/catalog.yaml`);
-    console.log(`  [DOWNLOAD] manifest.json   \u2192 .ai/registry-cache/${name}/manifest.json`);
-    console.log(`  [COMPUTE]  checksums.json  \u2192 .ai/registry-cache/${name}/checksums.json`);
+    console.log(`  [DOWNLOAD] catalog.yaml    \xE2\u2020\u2019 .ai/registry-cache/${name}/catalog.yaml`);
+    console.log(`  [DOWNLOAD] manifest.json   \xE2\u2020\u2019 .ai/registry-cache/${name}/manifest.json`);
+    console.log(`  [COMPUTE]  checksums.json  \xE2\u2020\u2019 .ai/registry-cache/${name}/checksums.json`);
     console.log(`
 \x1B[33mSecurity & Safety Boundaries:\x1B[0m`);
-    console.log(`  \u2022 \x1B[32mNo automated installs:\x1B[0m Syncing only updates the local cache. No plugins are installed or run.`);
-    console.log(`  \u2022 \x1B[32mNo arbitrary code execution:\x1B[0m Registries cannot run shell scripts, commands, or packages.`);
-    console.log(`  \u2022 \x1B[32mSandboxed write paths:\x1B[0m Cache files are written strictly to .ai/registry-cache/${name}/.`);
-    console.log(`  \u2022 \x1B[32mTo install afterwards:\x1B[0m Use 'catalog install <slug> --approved' to deploy a plugin.`);
+    console.log(`  \xE2\u20AC\xA2 \x1B[32mNo automated installs:\x1B[0m Syncing only updates the local cache. No plugins are installed or run.`);
+    console.log(`  \xE2\u20AC\xA2 \x1B[32mNo arbitrary code execution:\x1B[0m Registries cannot run shell scripts, commands, or packages.`);
+    console.log(`  \xE2\u20AC\xA2 \x1B[32mSandboxed write paths:\x1B[0m Cache files are written strictly to .ai/registry-cache/${name}/.`);
+    console.log(`  \xE2\u20AC\xA2 \x1B[32mTo install afterwards:\x1B[0m Use 'catalog install <slug> --approved' to deploy a plugin.`);
     console.log(`
 To execute this sync operation, run:`);
     console.log(`  \x1B[36mnpx multimodel-dev-os registry sync ${name} --approved\x1B[0m
@@ -6041,7 +6211,7 @@ To execute this sync operation, run:`);
     mkdirSync3(cacheDir, { recursive: true });
   }
   console.log(`
-\u{1F504} \x1B[36mSyncing Registry: ${name}\x1B[0m`);
+\xF0\u0178\u201D\u201E \x1B[36mSyncing Registry: ${name}\x1B[0m`);
   console.log("==================================================");
   const url = source.url;
   const catalogUrl = url.endsWith("/") ? `${url}catalog.yaml` : url;
@@ -6068,21 +6238,21 @@ To execute this sync operation, run:`);
       return execFileSync(process.execPath, ["-e", script, "--", targetUrl], { encoding: "utf8", timeout: 3e4 });
     };
     console.log(`Downloading: ${catalogUrl}`);
-    console.log(`  \u2192 .ai/registry-cache/${name}/catalog.yaml ...`);
+    console.log(`  \xE2\u2020\u2019 .ai/registry-cache/${name}/catalog.yaml ...`);
     const catalogData = fetchUrlSync(catalogUrl);
-    writeFileSync4(catalogDest, catalogData, "utf8");
+    writeFileSync5(catalogDest, catalogData, "utf8");
     const catalogSize = (Buffer.byteLength(catalogData) / 1024).toFixed(1);
-    console.log(`  \u2192 OK (${catalogSize}KB)`);
+    console.log(`  \xE2\u2020\u2019 OK (${catalogSize}KB)`);
     let manifestData = null;
     try {
       console.log(`Downloading: ${manifestUrl}`);
-      console.log(`  \u2192 .ai/registry-cache/${name}/manifest.json ...`);
+      console.log(`  \xE2\u2020\u2019 .ai/registry-cache/${name}/manifest.json ...`);
       manifestData = fetchUrlSync(manifestUrl);
-      writeFileSync4(manifestDest, manifestData, "utf8");
+      writeFileSync5(manifestDest, manifestData, "utf8");
       const manifestSize = (Buffer.byteLength(manifestData) / 1024).toFixed(1);
-      console.log(`  \u2192 OK (${manifestSize}KB)`);
+      console.log(`  \xE2\u2020\u2019 OK (${manifestSize}KB)`);
     } catch (e) {
-      console.log(`  \u2192 \x1B[33mNot found (optional)\x1B[0m`);
+      console.log(`  \xE2\u2020\u2019 \x1B[33mNot found (optional)\x1B[0m`);
     }
     console.log("Computing checksums...");
     const checksums = {
@@ -6107,7 +6277,7 @@ To execute this sync operation, run:`);
               process.exit(1);
             }
             console.log(`Downloading: ${baseUrl}${file}`);
-            console.log(`  \u2192 .ai/registry-cache/${name}/${file} ...`);
+            console.log(`  \xE2\u2020\u2019 .ai/registry-cache/${name}/${file} ...`);
             const fileData = fetchUrlSync(`${baseUrl}${file}`);
             totalSize += Buffer.byteLength(fileData);
             if (totalSize > policy.max_registry_cache_size_kb * 1024) {
@@ -6118,9 +6288,9 @@ To execute this sync operation, run:`);
             if (!existsSync8(fileDir)) {
               mkdirSync3(fileDir, { recursive: true });
             }
-            writeFileSync4(fileDest, fileData, "utf8");
+            writeFileSync5(fileDest, fileData, "utf8");
             const fileSize = (Buffer.byteLength(fileData) / 1024).toFixed(1);
-            console.log(`  \u2192 OK (${fileSize}KB)`);
+            console.log(`  \xE2\u2020\u2019 OK (${fileSize}KB)`);
             const actualHash = computeSHA256(fileData);
             const expectedHash = hash.replace("sha256:", "");
             if (policy.require_checksum && actualHash !== expectedHash) {
@@ -6138,8 +6308,8 @@ To execute this sync operation, run:`);
       }
     }
     const checksumsJson = JSON.stringify(checksums, null, 2);
-    writeFileSync4(join8(cacheDir, "checksums.json"), checksumsJson, "utf8");
-    console.log(`  \u2192 .ai/registry-cache/${name}/checksums.json ... OK`);
+    writeFileSync5(join8(cacheDir, "checksums.json"), checksumsJson, "utf8");
+    console.log(`  \xE2\u2020\u2019 .ai/registry-cache/${name}/checksums.json ... OK`);
     if (policy.require_checksum && manifestData) {
       try {
         const manifest = JSON.parse(manifestData);
@@ -6172,14 +6342,14 @@ To execute this sync operation, run:`);
     try {
       signingKey = loadSigningKey(projectDir);
     } catch (sigKeyErr) {
-      console.log(`  \x1B[33mWarning: Signing key error \u2014 ${sigKeyErr.message}\x1B[0m`);
+      console.log(`  \x1B[33mWarning: Signing key error \xE2\u20AC\u201D ${sigKeyErr.message}\x1B[0m`);
     }
     if (signingKey) {
       try {
         signature = signPayload(signingKey, catalogHash);
-        console.log("  \x1B[32m\u2713 Catalog signed with project signing key (HMAC-SHA256)\x1B[0m");
+        console.log("  \x1B[32m\xE2\u0153\u201C Catalog signed with project signing key (HMAC-SHA256)\x1B[0m");
       } catch (signErr) {
-        console.log(`  \x1B[33mWarning: Signing failed \u2014 ${signErr.message}\x1B[0m`);
+        console.log(`  \x1B[33mWarning: Signing failed \xE2\u20AC\u201D ${signErr.message}\x1B[0m`);
       }
     } else {
       if (policy.require_signature) {
@@ -6187,7 +6357,7 @@ To execute this sync operation, run:`);
         console.error(`  Generate a key with: npx multimodel-dev-os registry keygen --approved`);
         process.exit(1);
       }
-      console.log("  \x1B[33m\u26A0 No signing key \u2014 provenance recorded without signature.\x1B[0m");
+      console.log("  \x1B[33m\xE2\u0161\xA0 No signing key \xE2\u20AC\u201D provenance recorded without signature.\x1B[0m");
       console.log("    Generate a key with: npx multimodel-dev-os registry keygen --approved");
     }
     const trustedKeys = loadTrustedKeys(projectDir, policy);
@@ -6249,7 +6419,7 @@ To execute this sync operation, run:`);
       verification_warnings: verificationWarnings
     });
     saveRegistryLockfile(projectDir, lockfile);
-    console.log(`  \x1B[32m\u2713 Provenance lockfile updated: .ai/registry-lock.json\x1B[0m`);
+    console.log(`  \x1B[32m\xE2\u0153\u201C Provenance lockfile updated: .ai/registry-lock.json\x1B[0m`);
     let pluginCount = 0;
     try {
       const catParsed = parseYaml(catalogData);
@@ -6257,7 +6427,7 @@ To execute this sync operation, run:`);
     } catch (e) {
     }
     console.log(`
-\x1B[32m\u2714 Registry '${name}' synced successfully!\x1B[0m`);
+\x1B[32m\xE2\u0153\u201D Registry '${name}' synced successfully!\x1B[0m`);
     console.log(`  Cache location:  .ai/registry-cache/${name}/`);
     console.log(`  Plugins cached:  ${pluginCount} entries`);
     console.log(`  Checksum status: VERIFIED (SHA256)`);
@@ -6265,18 +6435,18 @@ To execute this sync operation, run:`);
     console.log(`  Last synced:     ${syncedAt}`);
     console.log(`
 Next steps:`);
-    console.log(`  \u2022 Browse:  npx multimodel-dev-os catalog list --source remote:${name}`);
-    console.log(`  \u2022 Verify:  npx multimodel-dev-os registry verify ${name}`);
-    console.log(`  \u2022 Lock:    npx multimodel-dev-os registry lock`);
-    console.log(`  \u2022 Install: npx multimodel-dev-os catalog install <slug> --approved
+    console.log(`  \xE2\u20AC\xA2 Browse:  npx multimodel-dev-os catalog list --source remote:${name}`);
+    console.log(`  \xE2\u20AC\xA2 Verify:  npx multimodel-dev-os registry verify ${name}`);
+    console.log(`  \xE2\u20AC\xA2 Lock:    npx multimodel-dev-os registry lock`);
+    console.log(`  \xE2\u20AC\xA2 Install: npx multimodel-dev-os catalog install <slug> --approved
 `);
   } catch (e) {
     console.error(`
 \x1B[31mSync failed: ${e.message}\x1B[0m`);
     console.log("\nPossible causes:");
-    console.log("  \u2022 Network unreachable or URL invalid");
-    console.log("  \u2022 Remote server returned an error");
-    console.log(`  \u2022 Check URL: ${catalogUrl}
+    console.log("  \xE2\u20AC\xA2 Network unreachable or URL invalid");
+    console.log("  \xE2\u20AC\xA2 Remote server returned an error");
+    console.log(`  \xE2\u20AC\xA2 Check URL: ${catalogUrl}
 `);
     process.exit(1);
   }
@@ -6301,7 +6471,7 @@ function handleRegistryStatus(options) {
   const lockfilePath = getLockfilePath(projectDir);
   const lockfileStatus = existsSync8(lockfilePath) ? `\x1B[32mpresent\x1B[0m (${lockfileEntryCount} entr${lockfileEntryCount === 1 ? "y" : "ies"})` : "\x1B[90mnot present\x1B[0m";
   console.log(`
-\u{1F4CA} \x1B[36mRegistry Status [v${version}]\x1B[0m`);
+\xF0\u0178\u201C\u0160 \x1B[36mRegistry Status [v${version}]\x1B[0m`);
   console.log("==================================================");
   console.log(`\x1B[33mPolicy State:\x1B[0m`);
   console.log(`  allow_remote_registries:    \x1B[${policy.allow_remote_registries ? "32mtrue" : "33mfalse"}\x1B[0m (Disabled by default)`);
@@ -6332,7 +6502,7 @@ function handleRegistryStatus(options) {
   console.log(`
 \x1B[33mSources:\x1B[0m`);
   sources.forEach((s) => {
-    const status = s.enabled ? "\x1B[32m\u25CF enabled\x1B[0m" : "\x1B[90m\u25CB disabled\x1B[0m";
+    const status = s.enabled ? "\x1B[32m\xE2\u2014\x8F enabled\x1B[0m" : "\x1B[90m\xE2\u2014\u2039 disabled\x1B[0m";
     const label = s.name === "bundled" ? "bundled" : s.type === "local" ? `local:${s.name}` : `remote:${s.name}`;
     const synced = s.last_synced_at ? `synced: ${s.last_synced_at}` : "never synced";
     const cacheDir = join8(sourceRoot, ".ai", "registry-cache", s.name);
@@ -6350,7 +6520,7 @@ function handleRegistryStatus(options) {
 }
 function handleRegistryVerify(name, options) {
   console.log(`
-\u{1F50D} \x1B[36mVerifying Registry: ${name}\x1B[0m`);
+\xF0\u0178\u201D\x8D \x1B[36mVerifying Registry: ${name}\x1B[0m`);
   console.log("==================================================");
   const projectDir = options.target || process.cwd();
   const policy = loadRegistryPolicy(projectDir);
@@ -6368,12 +6538,12 @@ function handleRegistryVerify(name, options) {
   if (isRemote) {
     try {
       validateRegistryUrl(url, policy);
-      urlValidationStatus = "\x1B[32m\u2713 Valid HTTPS\x1B[0m";
+      urlValidationStatus = "\x1B[32m\xE2\u0153\u201C Valid HTTPS\x1B[0m";
     } catch (err) {
-      urlValidationStatus = `\x1B[31m\u2717 Invalid: ${err.message}\x1B[0m`;
+      urlValidationStatus = `\x1B[31m\xE2\u0153\u2014 Invalid: ${err.message}\x1B[0m`;
     }
   } else {
-    urlValidationStatus = "\x1B[32m\u2713 Valid Local Path\x1B[0m";
+    urlValidationStatus = "\x1B[32m\xE2\u0153\u201C Valid Local Path\x1B[0m";
   }
   let cacheDir;
   if (isBundled) {
@@ -6412,7 +6582,7 @@ function handleRegistryVerify(name, options) {
   let integrityVerified = true;
   if (!isBundled) {
     if (!existsSync8(checksumPath)) {
-      console.log(`  \x1B[33m\u26A0 Checksums: Missing checksums.json in cache\x1B[0m`);
+      console.log(`  \x1B[33m\xE2\u0161\xA0 Checksums: Missing checksums.json in cache\x1B[0m`);
       integrityVerified = false;
     } else {
       try {
@@ -6420,23 +6590,23 @@ function handleRegistryVerify(name, options) {
         Object.entries(checksums).forEach(([file, expectedHash]) => {
           const filePath = join8(cacheDir, file);
           if (!existsSync8(filePath)) {
-            console.log(`  \x1B[31m\u2717 File missing in cache: ${file}\x1B[0m`);
+            console.log(`  \x1B[31m\xE2\u0153\u2014 File missing in cache: ${file}\x1B[0m`);
             integrityVerified = false;
             return;
           }
           const content = readFileSync9(filePath, "utf8");
           const actualHash = `sha256:${computeSHA256(content)}`;
           if (actualHash === expectedHash) {
-            console.log(`  \x1B[32m\u2713 ${file}: VERIFIED (Integrity check matched via SHA-256)\x1B[0m`);
+            console.log(`  \x1B[32m\xE2\u0153\u201C ${file}: VERIFIED (Integrity check matched via SHA-256)\x1B[0m`);
           } else {
-            console.log(`  \x1B[31m\u2717 ${file}: MISMATCH\x1B[0m`);
+            console.log(`  \x1B[31m\xE2\u0153\u2014 ${file}: MISMATCH\x1B[0m`);
             console.log(`    Expected: ${expectedHash}`);
             console.log(`    Actual:   ${actualHash}`);
             integrityVerified = false;
           }
         });
       } catch (e) {
-        console.log(`  \x1B[31m\u2717 Integrity: Failed to verify checksums: ${e.message}\x1B[0m`);
+        console.log(`  \x1B[31m\xE2\u0153\u2014 Integrity: Failed to verify checksums: ${e.message}\x1B[0m`);
         integrityVerified = false;
       }
     }
@@ -6451,33 +6621,33 @@ function handleRegistryVerify(name, options) {
     lockfileStatus = existsSync8(lockfilePath) ? `\x1B[32mpresent\x1B[0m` : `\x1B[33mmissing\x1B[0m`;
     if (!lockEntry) {
       if (policy.require_lockfile_on_verify) {
-        provenanceStatus = `\x1B[31m\u2717 Failed (require_lockfile_on_verify is true but entry missing)\x1B[0m`;
+        provenanceStatus = `\x1B[31m\xE2\u0153\u2014 Failed (require_lockfile_on_verify is true but entry missing)\x1B[0m`;
         lockfileVerdict = "Failed";
       } else {
-        provenanceStatus = `\x1B[33m\u26A0 Missing provenance entry (no sync lock)\x1B[0m`;
+        provenanceStatus = `\x1B[33m\xE2\u0161\xA0 Missing provenance entry (no sync lock)\x1B[0m`;
         lockfileVerdict = "Missing";
       }
     } else {
       let isProvMatch = true;
       if (catalogHash !== lockEntry.catalog_sha256) {
         isProvMatch = false;
-        console.log(`  \x1B[31m\u2717 Lockfile catalog hash mismatch: Expected ${lockEntry.catalog_sha256}, got ${catalogHash}\x1B[0m`);
+        console.log(`  \x1B[31m\xE2\u0153\u2014 Lockfile catalog hash mismatch: Expected ${lockEntry.catalog_sha256}, got ${catalogHash}\x1B[0m`);
       }
       if (manifestHash !== "N/A" && lockEntry.manifest_sha256 && manifestHash !== lockEntry.manifest_sha256) {
         isProvMatch = false;
-        console.log(`  \x1B[31m\u2717 Lockfile manifest hash mismatch: Expected ${lockEntry.manifest_sha256}, got ${manifestHash}\x1B[0m`);
+        console.log(`  \x1B[31m\xE2\u0153\u2014 Lockfile manifest hash mismatch: Expected ${lockEntry.manifest_sha256}, got ${manifestHash}\x1B[0m`);
       }
       if (isProvMatch) {
-        provenanceStatus = `\x1B[32m\u2713 Matched lockfile entry\x1B[0m`;
+        provenanceStatus = `\x1B[32m\xE2\u0153\u201C Matched lockfile entry\x1B[0m`;
         lockfileVerdict = "Verified";
       } else {
-        provenanceStatus = `\x1B[31m\u2717 Tampering detected: hashes do not match lockfile\x1B[0m`;
+        provenanceStatus = `\x1B[31m\xE2\u0153\u2014 Tampering detected: hashes do not match lockfile\x1B[0m`;
         lockfileVerdict = "Tampered";
       }
     }
   } else {
     lockfileStatus = "N/A (Bundled)";
-    provenanceStatus = "\x1B[32m\u2713 Implicit Trust\x1B[0m";
+    provenanceStatus = "\x1B[32m\xE2\u0153\u201C Implicit Trust\x1B[0m";
     lockfileVerdict = "Verified";
   }
   const trustedKeys = loadTrustedKeys(projectDir, policy);
@@ -6512,19 +6682,19 @@ function handleRegistryVerify(name, options) {
       signatureKeyId = firstSig.key_id || "unknown";
       const tk = trustedKeys.find((k) => k.key_id === signatureKeyId);
       if (tk) {
-        trustedPublisherStatus = tk.status === "active" ? `\x1B[32m\u2713 Trusted (${tk.name})\x1B[0m` : `\x1B[31m\u2717 ${tk.status} (${tk.name})\x1B[0m`;
+        trustedPublisherStatus = tk.status === "active" ? `\x1B[32m\xE2\u0153\u201C Trusted (${tk.name})\x1B[0m` : `\x1B[31m\xE2\u0153\u2014 ${tk.status} (${tk.name})\x1B[0m`;
       } else {
-        trustedPublisherStatus = `\x1B[33m\u26A0 Unknown key_id (Not in trust store)\x1B[0m`;
+        trustedPublisherStatus = `\x1B[33m\xE2\u0161\xA0 Unknown key_id (Not in trust store)\x1B[0m`;
       }
       if (signatureResult.verified) {
-        signatureValidity = `\x1B[32m\u2713 Valid Signature\x1B[0m`;
+        signatureValidity = `\x1B[32m\xE2\u0153\u201C Valid Signature\x1B[0m`;
       } else {
         const errorMsg = signatureResult.errors ? signatureResult.errors.join(", ") : signatureResult.error || "signature verification failed";
-        signatureValidity = `\x1B[31m\u2717 Invalid Signature (${errorMsg})\x1B[0m`;
+        signatureValidity = `\x1B[31m\xE2\u0153\u2014 Invalid Signature (${errorMsg})\x1B[0m`;
       }
     } else {
       if (policy.require_signature || isRemote && policy.allow_unsigned_remote === false) {
-        signatureValidity = `\x1B[31m\u2717 Missing Signature (Enforced by policy)\x1B[0m`;
+        signatureValidity = `\x1B[31m\xE2\u0153\u2014 Missing Signature (Enforced by policy)\x1B[0m`;
       } else {
         signatureValidity = `\x1B[90mUnsigned\x1B[0m`;
       }
@@ -6532,7 +6702,7 @@ function handleRegistryVerify(name, options) {
   } else {
     if (!isBundled && (policy.require_signature || isRemote && policy.allow_unsigned_remote === false)) {
       signatureResult = { verified: false, error: "Manifest missing but signature is required by policy." };
-      signatureValidity = `\x1B[31m\u2717 Manifest missing (Enforced by policy)\x1B[0m`;
+      signatureValidity = `\x1B[31m\xE2\u0153\u2014 Manifest missing (Enforced by policy)\x1B[0m`;
     } else {
       signatureValidity = `\x1B[90mUnsigned (No manifest)\x1B[0m`;
     }
@@ -6548,7 +6718,7 @@ function handleRegistryVerify(name, options) {
   console.log(`  Signature Key ID:   ${signatureKeyId}`);
   console.log(`  Trusted Publisher:  ${trustedPublisherStatus}`);
   console.log(`  Signature Validity: ${signatureValidity}`);
-  let finalVerdict = "\u2717 Failed";
+  let finalVerdict = "\xE2\u0153\u2014 Failed";
   let passed = true;
   if (!integrityVerified)
     passed = false;
@@ -6560,15 +6730,15 @@ function handleRegistryVerify(name, options) {
     passed = false;
   if (passed) {
     if (signatureResult.status === "verified") {
-      finalVerdict = `\x1B[32m\u2713 Verified (Signature matches trusted key)\x1B[0m`;
+      finalVerdict = `\x1B[32m\xE2\u0153\u201C Verified (Signature matches trusted key)\x1B[0m`;
     } else if (isBundled || isLocal) {
-      finalVerdict = `\x1B[32m\u2713 Verified (Implicit local trust)\x1B[0m`;
+      finalVerdict = `\x1B[32m\xE2\u0153\u201C Verified (Implicit local trust)\x1B[0m`;
     } else {
-      finalVerdict = `\x1B[33m\u26A0 Unsigned (Allowed by policy)\x1B[0m`;
+      finalVerdict = `\x1B[33m\xE2\u0161\xA0 Unsigned (Allowed by policy)\x1B[0m`;
     }
   } else {
     const reason = !integrityVerified ? "Integrity check failed" : lockfileVerdict === "Tampered" ? "Lockfile tampering detected" : signatureResult.error || signatureResult.errors && signatureResult.errors.join(", ") || "Signature verification failed";
-    finalVerdict = `\x1B[31m\u2717 Failed (${reason})\x1B[0m`;
+    finalVerdict = `\x1B[31m\xE2\u0153\u2014 Failed (${reason})\x1B[0m`;
   }
   console.log(`  Final Trust:        ${finalVerdict}`);
   console.log("==================================================");
@@ -6577,7 +6747,7 @@ function handleRegistryVerify(name, options) {
     const pluginCount = ((parsed.catalog || {}).plugins || []).length;
     console.log(`  Plugins Parsed:     ${pluginCount} entries`);
   } catch (e) {
-    console.error(`\x1B[31m\u2717 Catalog parsing failed: ${e.message}\x1B[0m`);
+    console.error(`\x1B[31m\xE2\u0153\u2014 Catalog parsing failed: ${e.message}\x1B[0m`);
     process.exit(1);
   }
   const verdict = createTrustVerdict({
@@ -6603,11 +6773,11 @@ function handleRegistryVerify(name, options) {
   }
   if (passed) {
     console.log(`
-\x1B[32m\u2714 Registry '${name}' verification passed.\x1B[0m
+\x1B[32m\xE2\u0153\u201D Registry '${name}' verification passed.\x1B[0m
 `);
   } else {
     console.error(`
-\x1B[31m\u2717 Registry '${name}' verification failed.\x1B[0m
+\x1B[31m\xE2\u0153\u2014 Registry '${name}' verification failed.\x1B[0m
 `);
     process.exit(1);
   }
@@ -6617,7 +6787,7 @@ function handleRegistryTrustList(options) {
   const policy = loadRegistryPolicy(projectDir);
   const keys = loadTrustedKeys(projectDir, policy);
   console.log(`
-\u{1F511} \x1B[36mRegistry Trust Store \u2014 Trusted Keys\x1B[0m`);
+\xF0\u0178\u201D\u2018 \x1B[36mRegistry Trust Store \xE2\u20AC\u201D Trusted Keys\x1B[0m`);
   console.log("==================================================");
   console.log(`Trust Store Path: \x1B[36m${policy.trusted_keys_file || ".ai/registries/trusted-keys.yaml"}\x1B[0m`);
   console.log(`Total Keys:       ${keys.length}
@@ -6626,7 +6796,7 @@ function handleRegistryTrustList(options) {
     console.log("  No trusted keys configured.");
   } else {
     keys.forEach((k) => {
-      const statusBadge = k.status === "active" ? "\x1B[32m\u25CF active\x1B[0m" : `\x1B[31m\u25CB ${k.status}\x1B[0m`;
+      const statusBadge = k.status === "active" ? "\x1B[32m\xE2\u2014\x8F active\x1B[0m" : `\x1B[31m\xE2\u2014\u2039 ${k.status}\x1B[0m`;
       console.log(`  * \x1B[33m${k.key_id}\x1B[0m  [${statusBadge}]`);
       console.log(`    Publisher: ${k.name}`);
       console.log(`    Algorithm: ${k.algorithm}`);
@@ -6645,7 +6815,7 @@ function handleRegistryTrustShow(keyId, options) {
     process.exit(1);
   }
   console.log(`
-\u{1F511} \x1B[36mTrusted Key: ${keyId}\x1B[0m`);
+\xF0\u0178\u201D\u2018 \x1B[36mTrusted Key: ${keyId}\x1B[0m`);
   console.log("==================================================");
   console.log(`\x1B[33mKey ID:\x1B[0m         ${k.key_id}`);
   console.log(`\x1B[33mPublisher:\x1B[0m      ${k.name}`);
@@ -6661,28 +6831,145 @@ function handleRegistryTrustVerify(options) {
   const policy = loadRegistryPolicy(projectDir);
   const keys = loadTrustedKeys(projectDir, policy);
   console.log(`
-\u{1F511} \x1B[36mVerifying Trust Store Integrity...\x1B[0m`);
+\xF0\u0178\u201D\u2018 \x1B[36mVerifying Trust Store Integrity...\x1B[0m`);
   console.log("==================================================");
   let passed = true;
   keys.forEach((k) => {
     try {
       normalizePublicKey(k.public_key);
-      console.log(`  \x1B[32m\u2713\x1B[0m Key '${k.key_id}' public key format is valid.`);
+      console.log(`  \x1B[32m\xE2\u0153\u201C\x1B[0m Key '${k.key_id}' public key format is valid.`);
     } catch (e) {
-      console.log(`  \x1B[31m\u2717\x1B[0m Key '${k.key_id}' public key format error: ${e.message}`);
+      console.log(`  \x1B[31m\xE2\u0153\u2014\x1B[0m Key '${k.key_id}' public key format error: ${e.message}`);
       passed = false;
     }
   });
   if (passed) {
     console.log(`
-\x1B[32m\u2714 Trust store verification passed.\x1B[0m
+\x1B[32m\xE2\u0153\u201D Trust store verification passed.\x1B[0m
 `);
   } else {
     console.error(`
-\x1B[31m\u2717 Trust store verification failed.\x1B[0m
+\x1B[31m\xE2\u0153\u2014 Trust store verification failed.\x1B[0m
 `);
     process.exit(1);
   }
+}
+async function handleRegistryTrustAdd(options) {
+  const projectDir = options.target || process.cwd();
+  if (!options.approved) {
+    console.error("\x1B[31mError: Adding a trusted key requires --approved.\x1B[0m");
+    console.log("Review the key details carefully before approving:");
+    console.log('  Remote:  node bin/multimodel-dev-os.js registry trust add https://example.com/pub.key --name "Publisher" --approved');
+    console.log('  Manual:  node bin/multimodel-dev-os.js registry trust add --key-id my-key --name "Publisher" --public-key "MCow..." --approved');
+    process.exit(1);
+  }
+  const positionalArgs = params.positional || [];
+  const urlOrKeyArg = positionalArgs[3];
+  const keyId = options["key-id"] || options.keyId;
+  const name = options.name;
+  const algorithm = options.algorithm || "ed25519";
+  const scopesRaw = options.scopes || "registry";
+  const scopes = scopesRaw.split(",").map((s) => s.trim()).filter(Boolean);
+  const status = options.status || "active";
+  let publicKey = options["public-key"] || options.publicKey;
+  let remoteSourceUrl;
+  if (urlOrKeyArg && (urlOrKeyArg.startsWith("https://") || urlOrKeyArg.startsWith("http://"))) {
+    remoteSourceUrl = urlOrKeyArg;
+    console.log(`
+\x1B[36mFetching public key from remote URL...\x1B[0m`);
+    console.log(`  URL: \x1B[33m${remoteSourceUrl}\x1B[0m`);
+    try {
+      const policy = loadRegistryPolicy(projectDir);
+      const allowHttp = policy.allow_http_localhost || false;
+      publicKey = await fetchRemotePublicKey(remoteSourceUrl, { allowHttp });
+      console.log(`
+  \x1B[32m[OK]\x1B[0m Key fetched (${Buffer.byteLength(publicKey, "utf8")} bytes)`);
+      console.log(`
+  Key preview:`);
+      console.log(`  ${publicKey.slice(0, 80)}${publicKey.length > 80 ? "..." : ""}`);
+    } catch (err) {
+      console.error(`\x1B[31mError: Failed to fetch remote public key: ${err.message}\x1B[0m`);
+      process.exit(1);
+    }
+  }
+  if (!publicKey) {
+    console.error("\x1B[31mError: No public key provided. Provide a URL or --public-key.\x1B[0m");
+    console.log("Examples:");
+    console.log('  Remote: node bin/multimodel-dev-os.js registry trust add https://example.com/pub.key --name "Publisher" --approved');
+    console.log('  Manual: node bin/multimodel-dev-os.js registry trust add --key-id my-key --name "Publisher" --public-key "MCow..." --approved');
+    process.exit(1);
+  }
+  if (!name) {
+    console.error("\x1B[31mError: --name is required when adding a trusted key.\x1B[0m");
+    console.log('Example: --name "Official Publisher"');
+    process.exit(1);
+  }
+  const resolvedKeyId = keyId || name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const entry = { key_id: resolvedKeyId, name, algorithm, public_key: publicKey, scopes, status };
+  if (remoteSourceUrl)
+    entry.remote_source_url = remoteSourceUrl;
+  console.log(`
+\x1B[36mAdding Trusted Key to Trust Store\x1B[0m`);
+  console.log("==================================================");
+  console.log(`  Key ID:    \x1B[33m${resolvedKeyId}\x1B[0m`);
+  console.log(`  Publisher: ${name}`);
+  console.log(`  Algorithm: ${algorithm}`);
+  console.log(`  Scopes:    ${scopes.join(", ")}`);
+  console.log(`  Status:    ${status}`);
+  if (remoteSourceUrl)
+    console.log(`  Source:    ${remoteSourceUrl}`);
+  const result = addTrustedKey(projectDir, entry);
+  if (!result.added) {
+    console.error(`\x1B[31mError: ${result.error}\x1B[0m`);
+    process.exit(1);
+  }
+  const filePath = getTrustStorePath(projectDir);
+  console.log(`
+\x1B[32mTrusted key '${resolvedKeyId}' added successfully.\x1B[0m`);
+  console.log(`  Written to: ${filePath}`);
+  console.log(`
+Next steps:`);
+  console.log(`  * Run 'registry trust list' to confirm the key is listed.`);
+  console.log(`  * Run 'registry trust verify' to validate all key formats.`);
+  console.log(`  * Commit .ai/registries/trusted-keys.yaml to version control.
+`);
+}
+function handleRegistryTrustRemove(keyId, options) {
+  const projectDir = options.target || process.cwd();
+  if (!options.approved) {
+    console.error("\x1B[31mError: Removing a trusted key requires --approved.\x1B[0m");
+    console.log(`Example: node bin/multimodel-dev-os.js registry trust remove ${keyId} --approved`);
+    process.exit(1);
+  }
+  const policy = loadRegistryPolicy(projectDir);
+  const keys = loadTrustedKeys(projectDir, policy);
+  const existing = keys.find((k) => k.key_id === keyId);
+  if (!existing) {
+    console.error(`\x1B[31mError: Key ID '${keyId}' not found in the trust store.\x1B[0m`);
+    console.log("Run registry trust list to see all configured keys.");
+    process.exit(1);
+  }
+  console.log(`
+\x1B[36mRemoving Trusted Key\x1B[0m`);
+  console.log("==================================================");
+  console.log(`  Key ID:    \x1B[33m${existing.key_id}\x1B[0m`);
+  console.log(`  Publisher: ${existing.name}`);
+  console.log(`  Algorithm: ${existing.algorithm}`);
+  console.log(`  Status:    ${existing.status}`);
+  const result = removeTrustedKey(projectDir, keyId, policy);
+  if (!result.removed) {
+    console.error(`\x1B[31mError: ${result.error}\x1B[0m`);
+    process.exit(1);
+  }
+  const filePath = getTrustStorePath(projectDir, policy);
+  console.log(`
+\x1B[32mTrusted key '${keyId}' removed from the trust store.\x1B[0m`);
+  console.log(`  Updated:   ${filePath}`);
+  console.log(`
+Warning: Registries signed by this key will no longer verify.`);
+  console.log(`  Run 'registry verify <name>' to check affected registries.`);
+  console.log(`  Commit .ai/registries/trusted-keys.yaml to propagate the change.
+`);
 }
 function handleRegistryShow(name, options) {
   const sources = loadRegistrySources();
@@ -6710,7 +6997,7 @@ function handleRegistryShow(name, options) {
   }
   const label = source.name === "bundled" ? "bundled" : source.type === "local" ? `local:${source.name}` : `remote:${source.name}`;
   console.log(`
-\u{1F50D} \x1B[36mRegistry Source: ${name}\x1B[0m`);
+\xF0\u0178\u201D\x8D \x1B[36mRegistry Source: ${name}\x1B[0m`);
   console.log("==================================================");
   console.log(`\x1B[33mName:\x1B[0m           ${source.name}`);
   console.log(`\x1B[33mSource Label:\x1B[0m   ${label}`);
@@ -6789,7 +7076,7 @@ Run with --approved to apply:
         files.forEach((f) => {
           const fp = join8(dirPath, f);
           if (statSync(fp).isFile()) {
-            writeFileSync4(fp, "");
+            writeFileSync5(fp, "");
           }
         });
         cleared++;
@@ -6798,7 +7085,7 @@ Run with --approved to apply:
     }
   });
   console.log(`
-\x1B[32m\u2714 Registry cache cleared.\x1B[0m`);
+\x1B[32m\xE2\u0153\u201D Registry cache cleared.\x1B[0m`);
   console.log(`  Directories processed: ${cleared}`);
   console.log(`  Cache root: .ai/registry-cache/
 `);
@@ -6807,7 +7094,7 @@ function handleRegistryKeygen(options) {
   const projectDir = options.target || process.cwd();
   const keyPath = getSigningKeyPath(projectDir);
   console.log(`
-\u{1F511} \x1B[36mRegistry Signing Key Generator\x1B[0m`);
+\xF0\u0178\u201D\u2018 \x1B[36mRegistry Signing Key Generator\x1B[0m`);
   console.log("==================================================");
   if (!options.approved) {
     console.error("\x1B[31mError: Signing key generation requires explicit approval. Pass the --approved flag.\x1B[0m");
@@ -6817,9 +7104,9 @@ function handleRegistryKeygen(options) {
     console.log(`  Mode:        0o600 (owner read/write only)`);
     console.log(`
 \x1B[33mSecurity Notes:\x1B[0m`);
-    console.log(`  \u2022 Add .ai/registry-signing-key to your .gitignore`);
-    console.log(`  \u2022 Share the key securely with trusted team members for co-verification`);
-    console.log(`  \u2022 The key is used for HMAC-SHA256 signing of catalog checksums only`);
+    console.log(`  \xE2\u20AC\xA2 Add .ai/registry-signing-key to your .gitignore`);
+    console.log(`  \xE2\u20AC\xA2 Share the key securely with trusted team members for co-verification`);
+    console.log(`  \xE2\u20AC\xA2 The key is used for HMAC-SHA256 signing of catalog checksums only`);
     console.log(`
 To generate, run:`);
     console.log(`  \x1B[36mnpx multimodel-dev-os registry keygen --approved\x1B[0m
@@ -6844,7 +7131,7 @@ To overwrite, run with --force:`);
   const newKey = generateSigningKey();
   saveSigningKey(projectDir, newKey);
   console.log(`
-\x1B[32m\u2714 Signing key generated successfully!\x1B[0m`);
+\x1B[32m\xE2\u0153\u201D Signing key generated successfully!\x1B[0m`);
   console.log(`  Location: ${keyPath}`);
   console.log(`  Mode:     0o600 (restricted permissions)`);
   console.log(`
@@ -6860,7 +7147,7 @@ function handleRegistryLock(options) {
   const projectDir = options.target || process.cwd();
   const lockfilePath = getLockfilePath(projectDir);
   console.log(`
-\u{1F512} \x1B[36mRegistry Provenance Lockfile\x1B[0m`);
+\xF0\u0178\u201D\u2019 \x1B[36mRegistry Provenance Lockfile\x1B[0m`);
   console.log("==================================================");
   if (!existsSync8(lockfilePath)) {
     console.log(`  \x1B[90mNo lockfile found at: ${lockfilePath}\x1B[0m`);
@@ -6888,7 +7175,7 @@ function handleRegistryLock(options) {
     return;
   }
   entries.forEach(([name, entry]) => {
-    const sigBadge = entry.signature ? `\x1B[32m[SIGNED \u2014 HMAC-SHA256]\x1B[0m` : `\x1B[33m[UNSIGNED]\x1B[0m`;
+    const sigBadge = entry.signature ? `\x1B[32m[SIGNED \xE2\u20AC\u201D HMAC-SHA256]\x1B[0m` : `\x1B[33m[UNSIGNED]\x1B[0m`;
     console.log(`  \x1B[32m${name}\x1B[0m  ${sigBadge}`);
     console.log(`    URL:             ${entry.url}`);
     console.log(`    Synced at:       ${entry.synced_at}`);

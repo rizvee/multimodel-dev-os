@@ -1,4 +1,4 @@
-
+﻿
 
 /**
  * multimodel-dev-os CLI
@@ -32,7 +32,7 @@ import {
   createCanonicalPayload,
   normalizePublicKey
 } from '../registry/signing.js';
-import { loadTrustedKeys } from '../registry/trust-store.js';
+import { loadTrustedKeys, addTrustedKey, removeTrustedKey, fetchRemotePublicKey, getTrustStorePath } from '../registry/trust-store.js';
 import { createTrustVerdict } from '../registry/verdict.js';
 import { loadCatalog, loadCatalogFromSource, loadAllCatalogs } from '../catalog/loader.js';
 import { validatePluginManifest } from '../plugin/manifest.js';
@@ -424,13 +424,23 @@ if (COMMAND === 'init') {
       handleRegistryTrustShow(keyId, params);
     } else if (trustSub === 'verify') {
       handleRegistryTrustVerify(params);
+    } else if (trustSub === 'add') {
+      handleRegistryTrustAdd(params);
+    } else if (trustSub === 'remove') {
+      const keyId = positional[3];
+      if (!keyId) {
+        console.error('\x1b[31mError: Please specify a key ID to remove.\x1b[0m');
+        console.log('Example: node bin/multimodel-dev-os.js registry trust remove my-key-id --approved');
+        process.exit(1);
+      }
+      handleRegistryTrustRemove(keyId, params);
     } else {
-      console.error('\x1b[31mError: Please specify a trust subcommand: list, show, or verify.\x1b[0m');
+      console.error('\x1b[31mError: Please specify a trust subcommand: list, show, verify, add, or remove.\x1b[0m');
       console.log('Example: node bin/multimodel-dev-os.js registry trust list');
       process.exit(1);
     }
   } else {
-    console.error('\x1b[31mError: Please specify a registry subcommand: list, add, remove, sync, status, verify, show, cache, keygen, lock, or trust.\x1b[0m');
+    console.error('\x1b[31mError: Please specify a registry subcommand: list, add, remove, sync, status, verify, show, cache, keygen, lock, or trust (list, show, verify, add, remove).\x1b[0m');
     console.log('Example: node bin/multimodel-dev-os.js registry list');
     process.exit(1);
   }
@@ -447,7 +457,7 @@ function handleListTemplates(options) {
     console.log(JSON.stringify(TEMPLATES, null, 2));
     return;
   }
-  console.log(`\n🧠 \x1b[36mBuilt-in Template Profiles [v${version}]\x1b[0m`);
+  console.log(`\nðŸ§  \x1b[36mBuilt-in Template Profiles [v${version}]\x1b[0m`);
   console.log('==================================================');
   Object.keys(TEMPLATES).forEach(key => {
     const t = TEMPLATES[key];
@@ -468,31 +478,31 @@ function handleShowTemplate(name) {
   }
 
   const statusStr = t.status === 'planned' ? ' (Planned)' : t.status === 'experimental' ? ' (Experimental)' : ' (Stable)';
-  console.log(`\n🔍 \x1b[36mTemplate Profile: ${t.name}${statusStr}\x1b[0m`);
+  console.log(`\nðŸ” \x1b[36mTemplate Profile: ${t.name}${statusStr}\x1b[0m`);
   console.log('==================================================');
   console.log(`\x1b[33mStack Blueprint:\x1b[0m ${t.stack}`);
   console.log(`\x1b[33mOverview:\x1b[0m ${t.description}`);
   if (t.skill) {
     console.log(`\x1b[33mHighlighted Skill:\x1b[0m .ai/skills/${t.skill}`);
-    console.log(`  └─> ${t.skillDesc}`);
+    console.log(`  â””â”€> ${t.skillDesc}`);
   }
   console.log('\n\x1b[33mScaffolding Directory Layout:\x1b[0m');
-  console.log('  ├── AGENTS.md                   (Stack building conventions)');
-  console.log('  ├── MEMORY.md                   (Architectural constraints record)');
-  console.log('  ├── TASKS.md                    (Pre-populated first project tasks)');
-  console.log('  ├── RUNBOOK.md                  (Default operations guide)');
-  console.log('  └── .ai/');
-  console.log('      ├── config.yaml             (Enabled adapter options)');
-  console.log('      ├── context/');
-  console.log('      │   ├── project-brief.md    (Scaffolding baseline brief)');
-  console.log('      │   ├── architecture.md     (Stack specific architecture map)');
-  console.log('      │   ├── model-map.md        (AI routing specifications)');
-  console.log('      │   └── context-budget.md   (Token allocation guidelines)');
-  console.log(`      └── skills/`);
+  console.log('  â”œâ”€â”€ AGENTS.md                   (Stack building conventions)');
+  console.log('  â”œâ”€â”€ MEMORY.md                   (Architectural constraints record)');
+  console.log('  â”œâ”€â”€ TASKS.md                    (Pre-populated first project tasks)');
+  console.log('  â”œâ”€â”€ RUNBOOK.md                  (Default operations guide)');
+  console.log('  â””â”€â”€ .ai/');
+  console.log('      â”œâ”€â”€ config.yaml             (Enabled adapter options)');
+  console.log('      â”œâ”€â”€ context/');
+  console.log('      â”‚   â”œâ”€â”€ project-brief.md    (Scaffolding baseline brief)');
+  console.log('      â”‚   â”œâ”€â”€ architecture.md     (Stack specific architecture map)');
+  console.log('      â”‚   â”œâ”€â”€ model-map.md        (AI routing specifications)');
+  console.log('      â”‚   â””â”€â”€ context-budget.md   (Token allocation guidelines)');
+  console.log(`      â””â”€â”€ skills/`);
   if (t.skill) {
-    console.log(`          └── ${t.skill}     (Custom template skills code boiler)`);
+    console.log(`          â””â”€â”€ ${t.skill}     (Custom template skills code boiler)`);
   } else {
-    console.log(`          └── [custom-skill].md   (Custom template skills code boiler)`);
+    console.log(`          â””â”€â”€ [custom-skill].md   (Custom template skills code boiler)`);
   }
   console.log('\nUse \x1b[32minit --template ' + t.name + '\x1b[0m to bootstrap this profile.\n');
 }
@@ -690,7 +700,7 @@ function handleInit(options) {
     });
   }
 
-  console.log(`\n\x1b[32m✔ Project initialized successfully! [Total Operations: ${operations.length}]\x1b[0m\n`);
+  console.log(`\n\x1b[32mâœ” Project initialized successfully! [Total Operations: ${operations.length}]\x1b[0m\n`);
   console.log(`\x1b[36mNext Steps to Complete Integration:\x1b[0m`);
   console.log(`  1. \x1b[1mEdit AGENTS.md\x1b[0m in your project root to document your stack context.`);
   console.log(`  2. \x1b[1mEdit .ai/config.yaml\x1b[0m to configure active model routing presets.`);
@@ -723,10 +733,10 @@ function handleVerify(options) {
   const assertFile = (relPath) => {
     const fullPath = join(options.target, relPath);
     if (existsSync(fullPath) && statSync(fullPath).isFile()) {
-      console.log(`  \x1b[32m✓\x1b[0m ${relPath}`);
+      console.log(`  \x1b[32mâœ“\x1b[0m ${relPath}`);
       passed++;
     } else {
-      console.error(`  \x1b[31m✗ ${relPath} (missing)\x1b[0m`);
+      console.error(`  \x1b[31mâœ— ${relPath} (missing)\x1b[0m`);
       failed++;
     }
   };
@@ -786,7 +796,7 @@ function handleDoctor(options) {
     handleDoctorOnboarding(options);
     return;
   }
-  console.log(`\n🩺 \x1b[36mRunning advisory doctor checkup in: ${options.target}\x1b[0m\n`);
+  console.log(`\nðŸ©º \x1b[36mRunning advisory doctor checkup in: ${options.target}\x1b[0m\n`);
 
   let warnings = 0;
 
@@ -885,7 +895,7 @@ function handleDoctor(options) {
   if (warnings > 0) {
     console.log(`\x1b[33mDoctor checkup complete. Found ${warnings} advisory warnings.\x1b[0m\n`);
   } else {
-    console.log('\x1b[32m✔ Doctor checkup complete. Your project context layout is pristine!\x1b[0m\n');
+    console.log('\x1b[32mâœ” Doctor checkup complete. Your project context layout is pristine!\x1b[0m\n');
   }
 }
 
@@ -894,7 +904,7 @@ function handleValidate(options) {
     handleValidateAllRegistries();
     return;
   }
-  console.log(`\n🛡 \x1b[34mRunning strict schema validation in: ${options.target}\x1b[0m\n`);
+  console.log(`\nðŸ›¡ \x1b[34mRunning strict schema validation in: ${options.target}\x1b[0m\n`);
 
   let errors = 0;
 
@@ -904,13 +914,13 @@ function handleValidate(options) {
       const stat = statSync(fullPath);
       const isOk = (type === 'file') ? stat.isFile() : stat.isDirectory();
       if (isOk) {
-        console.log(`  \x1b[32m✓\x1b[0m ${relPath} (${type})`);
+        console.log(`  \x1b[32mâœ“\x1b[0m ${relPath} (${type})`);
       } else {
-        console.error(`  \x1b[31m✗ ${relPath} (expected to be a ${type})\x1b[0m`);
+        console.error(`  \x1b[31mâœ— ${relPath} (expected to be a ${type})\x1b[0m`);
         errors++;
       }
     } else {
-      console.error(`  \x1b[31m✗ ${relPath} (missing)\x1b[0m`);
+      console.error(`  \x1b[31mâœ— ${relPath} (missing)\x1b[0m`);
       errors++;
     }
   };
@@ -927,7 +937,7 @@ function handleValidate(options) {
   const agentsPath = join(options.target, '.ai/agents');
   const agentsExist = existsSync(agentsPath) && statSync(agentsPath).isDirectory();
   if (agentsExist) {
-    console.log(`  \x1b[32m✓\x1b[0m .ai/agents (dir)`);
+    console.log(`  \x1b[32mâœ“\x1b[0m .ai/agents (dir)`);
   } else {
     const agentsMdPath = join(options.target, 'AGENTS.md');
     let explained = false;
@@ -944,9 +954,9 @@ function handleValidate(options) {
       }
     }
     if (explained) {
-      console.log(`  \x1b[32m✓\x1b[0m .ai/agents (missing, but global agent/orchestrator usage explained in AGENTS.md)`);
+      console.log(`  \x1b[32mâœ“\x1b[0m .ai/agents (missing, but global agent/orchestrator usage explained in AGENTS.md)`);
     } else {
-      console.error(`  \x1b[31m✗ .ai/agents (missing and global agent use is not explained in AGENTS.md)\x1b[0m`);
+      console.error(`  \x1b[31mâœ— .ai/agents (missing and global agent use is not explained in AGENTS.md)\x1b[0m`);
       errors++;
     }
   }
@@ -960,9 +970,9 @@ function handleValidate(options) {
       if (regex.test(content)) {
         const fullPath = join(options.target, filename);
         if (existsSync(fullPath)) {
-          console.log(`  \x1b[32m✓\x1b[0m ${filename} (enabled adapter rules file verified)`);
+          console.log(`  \x1b[32mâœ“\x1b[0m ${filename} (enabled adapter rules file verified)`);
         } else {
-          console.error(`  \x1b[31m✗ ${filename} (adapter '${adapterName}' is enabled in .ai/config.yaml, but rule file is missing!)\x1b[0m`);
+          console.error(`  \x1b[31mâœ— ${filename} (adapter '${adapterName}' is enabled in .ai/config.yaml, but rule file is missing!)\x1b[0m`);
           errors++;
         }
       }
@@ -978,7 +988,7 @@ function handleValidate(options) {
   if (options.template) {
     const tInfo = TEMPLATES[options.template];
     if (tInfo && Array.isArray(tInfo.required_files)) {
-      console.log(`\n📋 Validating required files for template '${options.template}':`);
+      console.log(`\nðŸ“‹ Validating required files for template '${options.template}':`);
       tInfo.required_files.forEach(f => assertPath(f, 'file'));
     } else if (options.template === 'expo-react-native-android') {
       const mobileFiles = [
@@ -999,7 +1009,7 @@ function handleValidate(options) {
     console.error(`  \x1b[31mValidation FAILED. Found ${errors} strict structural compliance errors.\x1b[0m\n`);
     process.exit(1);
   } else {
-    console.log('  \x1b[32m✔ Validation PASSED. Your project context structure is strictly compliant!\x1b[0m\n');
+    console.log('  \x1b[32mâœ” Validation PASSED. Your project context structure is strictly compliant!\x1b[0m\n');
     process.exit(0);
   }
 }
@@ -1019,7 +1029,7 @@ function handleListModels(options) {
     console.log(JSON.stringify(models, null, 2));
     return;
   }
-  console.log(`\n🤖 \x1b[36mModel Registry [v${version}]\x1b[0m`);
+  console.log(`\nðŸ¤– \x1b[36mModel Registry [v${version}]\x1b[0m`);
   console.log('==================================================');
   Object.keys(models).forEach(name => {
     const m = models[name];
@@ -1045,20 +1055,20 @@ function handleShowModel(name) {
     console.error(`\x1b[31mError: Model alias '${name}' not found in registry.\x1b[0m`);
     process.exit(1);
   }
-  console.log(`\n🔍 \x1b[36mModel: ${name}\x1b[0m`);
+  console.log(`\nðŸ” \x1b[36mModel: ${name}\x1b[0m`);
   console.log('==================================================');
   console.log(`\x1b[33mProvider:\x1b[0m ${m.provider}`);
   console.log(`\x1b[33mAlias:\x1b[0m ${m.alias}`);
   console.log(`\x1b[33mOfficial ID:\x1b[0m ${m.official_id}`);
   console.log(`\x1b[33mContext Window:\x1b[0m ${m.context_window} tokens`);
   console.log(`\x1b[33mCapabilities:\x1b[0m`);
-  console.log(`  ├─ Vision: ${m.capabilities?.vision ? 'Yes' : 'No'}`);
-  console.log(`  └─ Tool Use: ${m.capabilities?.tool_use ? 'Yes' : 'No'}`);
+  console.log(`  â”œâ”€ Vision: ${m.capabilities?.vision ? 'Yes' : 'No'}`);
+  console.log(`  â””â”€ Tool Use: ${m.capabilities?.tool_use ? 'Yes' : 'No'}`);
   console.log(`\x1b[33mTiers:\x1b[0m`);
-  console.log(`  ├─ Cost: ${m.tiers?.cost}`);
-  console.log(`  ├─ Speed: ${m.tiers?.speed}`);
-  console.log(`  ├─ Reasoning: ${m.tiers?.reasoning}`);
-  console.log(`  └─ Coding: ${m.tiers?.coding}`);
+  console.log(`  â”œâ”€ Cost: ${m.tiers?.cost}`);
+  console.log(`  â”œâ”€ Speed: ${m.tiers?.speed}`);
+  console.log(`  â”œâ”€ Reasoning: ${m.tiers?.reasoning}`);
+  console.log(`  â””â”€ Coding: ${m.tiers?.coding}`);
   console.log();
 }
 
@@ -1070,7 +1080,7 @@ function handleListProviders() {
   }
   const reg = parseYaml(readFileSync(providersPath, 'utf8'));
   const providers = reg.providers || {};
-  console.log(`\n🔌 \x1b[36mAI Providers [v${version}]\x1b[0m`);
+  console.log(`\nðŸ”Œ \x1b[36mAI Providers [v${version}]\x1b[0m`);
   console.log('==================================================');
   Object.keys(providers).forEach(name => {
     const p = providers[name];
@@ -1094,7 +1104,7 @@ function handleRouteModel(task) {
     console.error(`\x1b[31mError: Routing preset for task '${task}' not found. Available: ${Object.keys(presets).join(', ')}\x1b[0m`);
     process.exit(1);
   }
-  console.log(`\n🎯 \x1b[36mRouting Suggestion for: ${task}\x1b[0m`);
+  console.log(`\nðŸŽ¯ \x1b[36mRouting Suggestion for: ${task}\x1b[0m`);
   console.log('==================================================');
   console.log(`\x1b[33mPrimary Model:\x1b[0m \x1b[32m${preset.primary}\x1b[0m`);
   console.log(`\x1b[33mFallback Model:\x1b[0m \x1b[33m${preset.fallback}\x1b[0m`);
@@ -1113,7 +1123,7 @@ function handleListAdapters(options) {
     console.log(JSON.stringify(adapters, null, 2));
     return;
   }
-  console.log(`\n🔌 \x1b[36mIDE & Agent Adapters [v${version}]\x1b[0m`);
+  console.log(`\nðŸ”Œ \x1b[36mIDE & Agent Adapters [v${version}]\x1b[0m`);
   console.log('==================================================');
   Object.keys(adapters).forEach(name => {
     const a = adapters[name];
@@ -1138,7 +1148,7 @@ function handleShowAdapter(name) {
     console.error(`\x1b[31mError: Adapter '${name}' not found in registry.\x1b[0m`);
     process.exit(1);
   }
-  console.log(`\n🔍 \x1b[36mAdapter: ${a.name || name}\x1b[0m`);
+  console.log(`\nðŸ” \x1b[36mAdapter: ${a.name || name}\x1b[0m`);
   console.log('==================================================');
   console.log(`\x1b[33mRules File:\x1b[0m ${a.rules_file}`);
   console.log(`\x1b[33mType:\x1b[0m ${a.type}`);
@@ -1153,7 +1163,7 @@ function handleListSkills(options) {
     return;
   }
   const files = readdirSync(skillsDir).filter(f => f.endsWith('.md'));
-  console.log(`\n🧠 \x1b[36mAvailable Skills in Target [v${version}]\x1b[0m`);
+  console.log(`\nðŸ§  \x1b[36mAvailable Skills in Target [v${version}]\x1b[0m`);
   console.log('==================================================');
   files.forEach(f => {
     console.log(`  \x1b[32m- ${f.replace('.md', '')}\x1b[0m (file: .ai/skills/${f})`);
@@ -1168,7 +1178,7 @@ function handleShowSkill(name, options) {
     console.error(`\x1b[31mError: Skill '${name}' not found in target .ai/skills/.\x1b[0m`);
     process.exit(1);
   }
-  console.log(`\n📖 \x1b[36mSkill Prompt: ${name}\x1b[0m`);
+  console.log(`\nðŸ“– \x1b[36mSkill Prompt: ${name}\x1b[0m`);
   console.log('==================================================');
   console.log(readFileSync(skillFile, 'utf8'));
   console.log();
@@ -1186,7 +1196,7 @@ function parseThresholdToBytes(val) {
 }
 
 function handleDoctorTokens(options) {
-  console.log(`\n🪙 \x1b[36mRunning Token Budget & Sink Audit in: ${options.target}\x1b[0m\n`);
+  console.log(`\nðŸª™ \x1b[36mRunning Token Budget & Sink Audit in: ${options.target}\x1b[0m\n`);
   
   const filesFound = [];
   const ignoredDirs = ['.git', 'node_modules', 'dist', 'build', '.next', '.expo', 'bin', 'assets', 'docs', 'web-build', 'out', 'coverage', '.nuxt', '.svelte-kit', 'bower_components', 'vendor'];
@@ -1249,35 +1259,35 @@ function handleValidateTemplate(name) {
     console.error(`\x1b[31mError: Template '${name}' not found in registry.\x1b[0m`);
     process.exit(1);
   }
-  console.log(`\n📋 \x1b[34mValidating Template: ${name}\x1b[0m`);
+  console.log(`\nðŸ“‹ \x1b[34mValidating Template: ${name}\x1b[0m`);
   
   let errors = 0;
   const reqKeys = ['name', 'description', 'stack', 'category', 'status', 'maturity', 'required_files'];
   reqKeys.forEach(k => {
     if (t[k] === undefined || t[k] === null) {
-      console.error(`  \x1b[31m✗ Missing registry key: ${k}\x1b[0m`);
+      console.error(`  \x1b[31mâœ— Missing registry key: ${k}\x1b[0m`);
       errors++;
     } else {
-      console.log(`  \x1b[32m✓\x1b[0m Registry key: ${k}`);
+      console.log(`  \x1b[32mâœ“\x1b[0m Registry key: ${k}`);
     }
   });
 
   const templateDir = join(sourceRoot, 'examples', name);
   if (!existsSync(templateDir)) {
-    console.error(`  \x1b[31m✗ Source folder missing: examples/${name}\x1b[0m`);
+    console.error(`  \x1b[31mâœ— Source folder missing: examples/${name}\x1b[0m`);
     errors++;
   } else {
-    console.log(`  \x1b[32m✓\x1b[0m Source folder: examples/${name}`);
+    console.log(`  \x1b[32mâœ“\x1b[0m Source folder: examples/${name}`);
     if (Array.isArray(t.required_files)) {
       t.required_files.forEach(f => {
         const filePath = join(templateDir, f);
         const globalPath = join(sourceRoot, f);
         if (existsSync(filePath)) {
-          console.log(`  \x1b[32m✓\x1b[0m Required file (template override): ${f}`);
+          console.log(`  \x1b[32mâœ“\x1b[0m Required file (template override): ${f}`);
         } else if (existsSync(globalPath)) {
-          console.log(`  \x1b[32m✓\x1b[0m Required file (global fallback): ${f}`);
+          console.log(`  \x1b[32mâœ“\x1b[0m Required file (global fallback): ${f}`);
         } else {
-          console.error(`  \x1b[31m✗ Required file missing: ${f}\x1b[0m`);
+          console.error(`  \x1b[31mâœ— Required file missing: ${f}\x1b[0m`);
           errors++;
         }
       });
@@ -1288,7 +1298,7 @@ function handleValidateTemplate(name) {
     console.error(`\n\x1b[31mValidation FAILED with ${errors} errors.\x1b[0m\n`);
     process.exit(1);
   } else {
-    console.log(`\n\x1b[32m✔ Template '${name}' is fully valid and compliant!\x1b[0m\n`);
+    console.log(`\n\x1b[32mâœ” Template '${name}' is fully valid and compliant!\x1b[0m\n`);
     process.exit(0);
   }
 }
@@ -1299,39 +1309,39 @@ function handleValidateAdapter(name) {
     console.error(`\x1b[31mError: Adapter '${name}' not found in registry.\x1b[0m`);
     process.exit(1);
   }
-  console.log(`\n📋 \x1b[34mValidating Adapter: ${name}\x1b[0m`);
+  console.log(`\nðŸ“‹ \x1b[34mValidating Adapter: ${name}\x1b[0m`);
   
   let errors = 0;
   const reqKeys = ['name', 'rules_file', 'format', 'type'];
   reqKeys.forEach(k => {
     if (!a[k]) {
-      console.error(`  \x1b[31m✗ Missing registry key: ${k}\x1b[0m`);
+      console.error(`  \x1b[31mâœ— Missing registry key: ${k}\x1b[0m`);
       errors++;
     } else {
-      console.log(`  \x1b[32m✓\x1b[0m Registry key: ${k}`);
+      console.log(`  \x1b[32mâœ“\x1b[0m Registry key: ${k}`);
     }
   });
 
   const adapterDir = join(sourceRoot, 'adapters', name);
   if (!existsSync(adapterDir)) {
-    console.error(`  \x1b[31m✗ Source folder missing: adapters/${name}\x1b[0m`);
+    console.error(`  \x1b[31mâœ— Source folder missing: adapters/${name}\x1b[0m`);
     errors++;
   } else {
-    console.log(`  \x1b[32m✓\x1b[0m Source folder: adapters/${name}`);
+    console.log(`  \x1b[32mâœ“\x1b[0m Source folder: adapters/${name}`);
     const setupFile = join(adapterDir, 'setup.md');
     if (existsSync(setupFile)) {
-      console.log(`  \x1b[32m✓\x1b[0m Required file: setup.md`);
+      console.log(`  \x1b[32mâœ“\x1b[0m Required file: setup.md`);
     } else {
-      console.error(`  \x1b[31m✗ Required file missing: adapters/${name}/setup.md\x1b[0m`);
+      console.error(`  \x1b[31mâœ— Required file missing: adapters/${name}/setup.md\x1b[0m`);
       errors++;
     }
 
     if (a.rules_file) {
       const rulesFile = join(adapterDir, a.rules_file);
       if (existsSync(rulesFile)) {
-        console.log(`  \x1b[32m✓\x1b[0m Rules file: ${a.rules_file}`);
+        console.log(`  \x1b[32mâœ“\x1b[0m Rules file: ${a.rules_file}`);
       } else {
-        console.error(`  \x1b[31m✗ Rules file missing: adapters/${name}/${a.rules_file}\x1b[0m`);
+        console.error(`  \x1b[31mâœ— Rules file missing: adapters/${name}/${a.rules_file}\x1b[0m`);
         errors++;
       }
     }
@@ -1341,7 +1351,7 @@ function handleValidateAdapter(name) {
     console.error(`\n\x1b[31mValidation FAILED with ${errors} errors.\x1b[0m\n`);
     process.exit(1);
   } else {
-    console.log(`\n\x1b[32m✔ Adapter '${name}' is fully valid and compliant!\x1b[0m\n`);
+    console.log(`\n\x1b[32mâœ” Adapter '${name}' is fully valid and compliant!\x1b[0m\n`);
     process.exit(0);
   }
 }
@@ -1358,7 +1368,7 @@ function handleValidateSkill(name, options) {
     process.exit(1);
   }
 
-  console.log(`\n📋 \x1b[34mValidating Skill: ${name}\x1b[0m`);
+  console.log(`\nðŸ“‹ \x1b[34mValidating Skill: ${name}\x1b[0m`);
   const content = readFileSync(skillFile, 'utf8');
   let errors = 0;
 
@@ -1372,9 +1382,9 @@ function handleValidateSkill(name, options) {
 
   reqHeaders.forEach(req => {
     if (req.regex.test(content)) {
-      console.log(`  \x1b[32m✓\x1b[0m Found required header: ${req.header}`);
+      console.log(`  \x1b[32mâœ“\x1b[0m Found required header: ${req.header}`);
     } else {
-      console.error(`  \x1b[31m✗ Missing required header: ${req.header}\x1b[0m`);
+      console.error(`  \x1b[31mâœ— Missing required header: ${req.header}\x1b[0m`);
       errors++;
     }
   });
@@ -1383,13 +1393,13 @@ function handleValidateSkill(name, options) {
     console.error(`\n\x1b[31mValidation FAILED with ${errors} errors.\x1b[0m\n`);
     process.exit(1);
   } else {
-    console.log(`\n\x1b[32m✔ Skill '${name}' is fully valid and compliant!\x1b[0m\n`);
+    console.log(`\n\x1b[32mâœ” Skill '${name}' is fully valid and compliant!\x1b[0m\n`);
     process.exit(0);
   }
 }
 
 function handleValidateAllRegistries() {
-  console.log(`\n🛡 \x1b[34mValidating All Registry Entries\x1b[0m\n`);
+  console.log(`\nðŸ›¡ \x1b[34mValidating All Registry Entries\x1b[0m\n`);
   let errors = 0;
 
   // Validate all templates
@@ -1403,14 +1413,14 @@ function handleValidateAllRegistries() {
     }
     reqKeys.forEach(k => {
       if (t[k] === undefined || t[k] === null) {
-        console.error(`  \x1b[31m✗ Missing registry key: ${k}\x1b[0m`);
+        console.error(`  \x1b[31mâœ— Missing registry key: ${k}\x1b[0m`);
         errors++;
       }
     });
 
     const templateDir = join(sourceRoot, 'examples', name);
     if (t.status === 'stable' && !existsSync(templateDir)) {
-      console.error(`  \x1b[31m✗ Stable template source folder missing: examples/${name}\x1b[0m`);
+      console.error(`  \x1b[31mâœ— Stable template source folder missing: examples/${name}\x1b[0m`);
       errors++;
     }
   });
@@ -1423,7 +1433,7 @@ function handleValidateAllRegistries() {
     const reqKeys = ['name', 'rules_file', 'format', 'type'];
     reqKeys.forEach(k => {
       if (!a[k]) {
-        console.error(`  \x1b[31m✗ Missing registry key: ${k}\x1b[0m`);
+        console.error(`  \x1b[31mâœ— Missing registry key: ${k}\x1b[0m`);
         errors++;
       }
     });
@@ -1434,13 +1444,13 @@ function handleValidateAllRegistries() {
     console.error(`  \x1b[31mAll Registries validation FAILED. Found ${errors} schema errors.\x1b[0m\n`);
     process.exit(1);
   } else {
-    console.log('  \x1b[32m✔ All Registries validation PASSED. All templates and adapters are valid.\x1b[0m\n');
+    console.log('  \x1b[32mâœ” All Registries validation PASSED. All templates and adapters are valid.\x1b[0m\n');
     process.exit(0);
   }
 }
 
 function handleDoctorRelease(options) {
-  console.log(`\n🩺 \x1b[36mRunning release audit doctor in: ${sourceRoot}\x1b[0m\n`);
+  console.log(`\nðŸ©º \x1b[36mRunning release audit doctor in: ${sourceRoot}\x1b[0m\n`);
   let warnings = 0;
 
   // 1. Version checks
@@ -1448,9 +1458,9 @@ function handleDoctorRelease(options) {
   try {
     const pkg = JSON.parse(readFileSync(join(sourceRoot, 'package.json'), 'utf8'));
     packageVersion = pkg.version;
-    console.log(`  \x1b[32m✓\x1b[0m package.json version: ${packageVersion}`);
+    console.log(`  \x1b[32mâœ“\x1b[0m package.json version: ${packageVersion}`);
   } catch (e) {
-    console.warn('  \x1b[31m✗\x1b[0m Failed to parse package.json');
+    console.warn('  \x1b[31mâœ—\x1b[0m Failed to parse package.json');
     warnings++;
   }
 
@@ -1460,7 +1470,7 @@ function handleDoctorRelease(options) {
       const content = readFileSync(filePath, 'utf8');
       const match = content.match(regex);
       if (match && match[1] === packageVersion) {
-        console.log(`  \x1b[32m✓\x1b[0m ${filename} version aligns: ${match[1]}`);
+        console.log(`  \x1b[32mâœ“\x1b[0m ${filename} version aligns: ${match[1]}`);
       } else {
         console.warn(`  \x1b[33m[WARNING]\x1b[0m ${filename} version mismatch (found ${match ? match[1] : 'none'}, expected ${packageVersion})`);
         warnings++;
@@ -1479,7 +1489,7 @@ function handleDoctorRelease(options) {
       console.warn(`  \x1b[33m[WARNING]\x1b[0m Blacklisted file found in release root: ${file}`);
       warnings++;
     } else {
-      console.log(`  \x1b[32m✓\x1b[0m No root blacklisted file: ${file}`);
+      console.log(`  \x1b[32mâœ“\x1b[0m No root blacklisted file: ${file}`);
     }
   });
 
@@ -1508,7 +1518,7 @@ function handleDoctorRelease(options) {
   if (warnings > 0) {
     console.warn(`  \x1b[33mRelease doctor complete with ${warnings} warnings.\x1b[0m\n`);
   } else {
-    console.log('  \x1b[32m✔ Release hygiene checks PASSED successfully!\x1b[0m\n');
+    console.log('  \x1b[32mâœ” Release hygiene checks PASSED successfully!\x1b[0m\n');
   }
 }
 
@@ -1783,7 +1793,7 @@ function diffMemory(targetDir) {
 }
 
 function handleScan(options) {
-  console.log(`\n🔍 \x1b[36mCodebase Scan target: ${options.target}\x1b[0m`);
+  console.log(`\nðŸ” \x1b[36mCodebase Scan target: ${options.target}\x1b[0m`);
   console.log('==================================================');
   
   const { files, ignoredCount } = scanTarget(options.target);
@@ -1813,14 +1823,14 @@ function handleScan(options) {
     console.log(`\n\x1b[31mDetected Risks:\x1b[0m`);
     risks.forEach(r => console.log(`  - [${r.severity.toUpperCase()}] ${r.file_pattern}: ${r.risk_description}`));
   } else {
-    console.log(`\n\x1b[32m✔ No high/medium risks detected in repository structure.\x1b[0m`);
+    console.log(`\n\x1b[32mâœ” No high/medium risks detected in repository structure.\x1b[0m`);
   }
   
   console.log();
 }
 
 function handleMemoryBuild(options) {
-  console.log(`\n🧠 \x1b[36mBuilding Codebase Memory in: ${options.target}\x1b[0m`);
+  console.log(`\nðŸ§  \x1b[36mBuilding Codebase Memory in: ${options.target}\x1b[0m`);
   console.log('==================================================');
   
   const index = buildMemoryIndex(options.target);
@@ -1828,7 +1838,7 @@ function handleMemoryBuild(options) {
   
   console.log(`  \x1b[32mCREATE:\x1b[0m .ai/intelligence/memory.hash.json`);
   console.log(`  \x1b[32mCREATE:\x1b[0m .ai/intelligence/memory.summary.md`);
-  console.log(`\n✔ Memory index built successfully! [Files indexed: ${index.file_count}]`);
+  console.log(`\nâœ” Memory index built successfully! [Files indexed: ${index.file_count}]`);
   
   console.log(`\n\x1b[33mRecommended Next Steps:\x1b[0m`);
   index.recommended_next_steps.forEach(step => console.log(`  - ${step}`));
@@ -1836,7 +1846,7 @@ function handleMemoryBuild(options) {
 }
 
 function handleMemoryRefresh(options) {
-  console.log(`\n🧠 \x1b[36mRefreshing Codebase Memory in: ${options.target}\x1b[0m`);
+  console.log(`\nðŸ§  \x1b[36mRefreshing Codebase Memory in: ${options.target}\x1b[0m`);
   console.log('==================================================');
   
   const diff = diffMemory(options.target);
@@ -1851,7 +1861,7 @@ function handleMemoryRefresh(options) {
   console.log(`  \x1b[32mUPDATE:\x1b[0m .ai/intelligence/memory.hash.json`);
   console.log(`  \x1b[32mUPDATE:\x1b[0m .ai/intelligence/memory.summary.md`);
   
-  console.log(`\n✔ Memory index refreshed successfully!`);
+  console.log(`\nâœ” Memory index refreshed successfully!`);
   console.log(`  Added:     ${diff.added.length}`);
   console.log(`  Removed:   ${diff.removed.length}`);
   console.log(`  Changed:   ${diff.changed.length}`);
@@ -1860,7 +1870,7 @@ function handleMemoryRefresh(options) {
 }
 
 function handleMemoryDiff(options) {
-  console.log(`\n🧠 \x1b[36mDiffing Codebase State against Memory in: ${options.target}\x1b[0m`);
+  console.log(`\nðŸ§  \x1b[36mDiffing Codebase State against Memory in: ${options.target}\x1b[0m`);
   console.log('==================================================');
   
   const diff = diffMemory(options.target);
@@ -1953,7 +1963,7 @@ function handleFeedbackAdd(options) {
       }
 
       writeFileSync(feedbackLogPath, recordLine, { flag: 'a', encoding: 'utf8' });
-      console.log(`✔ Feedback successfully added (ID: ${rawRecord.id})`);
+      console.log(`âœ” Feedback successfully added (ID: ${rawRecord.id})`);
     } catch (e) {
       console.error(`\x1b[31mError: Failed to write to feedback-log.jsonl: ${e.message}\x1b[0m`);
       process.exit(1);
@@ -1976,7 +1986,7 @@ function handleFeedbackList(options) {
       return;
     }
 
-    console.log(`\n🧠 \x1b[36mLogged Feedback Entries\x1b[0m`);
+    console.log(`\nðŸ§  \x1b[36mLogged Feedback Entries\x1b[0m`);
     console.log('==================================================');
     lines.forEach(line => {
       try {
@@ -2047,7 +2057,7 @@ function handleFeedbackSummarize(options) {
       console.log(md);
     } else {
       writeFileSync(targetRulesPath, md, 'utf8');
-      console.log(`✔ Compiled ${lines.length} feedback items into learning rules in .ai/intelligence/learning-rules.md`);
+      console.log(`âœ” Compiled ${lines.length} feedback items into learning rules in .ai/intelligence/learning-rules.md`);
     }
   } catch (e) {
     console.error(`\x1b[31mError: Failed to compile learning rules: ${e.message}\x1b[0m`);
@@ -2147,7 +2157,7 @@ ${suggestedChange}
     console.log(md);
   } else {
     writeFileSync(proposalFile, md, 'utf8');
-    console.log(`✔ Created codebase improvement proposal: .ai/proposals/${id}.md`);
+    console.log(`âœ” Created codebase improvement proposal: .ai/proposals/${id}.md`);
   }
 }
 
@@ -2165,7 +2175,7 @@ function handleImproveReview(options) {
       return;
     }
 
-    console.log(`\n📋 \x1b[36mCodebase Improvement Proposals\x1b[0m`);
+    console.log(`\nðŸ“‹ \x1b[36mCodebase Improvement Proposals\x1b[0m`);
     console.log('==================================================');
     
     files.forEach(file => {
@@ -2221,7 +2231,7 @@ function handleImproveStatus(options) {
       }
     });
 
-    console.log(`\n⚙ \x1b[36mImprovement Proposals Engine Status\x1b[0m`);
+    console.log(`\nâš™ \x1b[36mImprovement Proposals Engine Status\x1b[0m`);
     console.log('==================================================');
     console.log(`  Total Proposals:  ${files.length}`);
     console.log(`  Pending Approval: \x1b[33m${pending}\x1b[0m`);
@@ -2503,7 +2513,7 @@ function validateProposal(proposalFile, targetRoot) {
 }
 
 function handleImproveValidate(proposalFile, options) {
-  console.log(`🛡  \x1b[34mValidating improvement proposal: ${proposalFile}\x1b[0m\n`);
+  console.log(`ðŸ›¡  \x1b[34mValidating improvement proposal: ${proposalFile}\x1b[0m\n`);
   const validation = validateProposal(proposalFile, options.target);
   
   if (validation.proposalId) {
@@ -2530,9 +2540,9 @@ function handleImproveValidate(proposalFile, options) {
     const gate = validation.gates[g];
     const label = gateLabels[g];
     if (gate.status === 'pass') {
-      console.log(`  \x1b[32m[✓]\x1b[0m ${label}`);
+      console.log(`  \x1b[32m[âœ“]\x1b[0m ${label}`);
     } else if (gate.status === 'fail') {
-      console.log(`  \x1b[31m[✗]\x1b[0m ${label} - \x1b[31m${gate.reason}\x1b[0m`);
+      console.log(`  \x1b[31m[âœ—]\x1b[0m ${label} - \x1b[31m${gate.reason}\x1b[0m`);
     } else {
       console.log(`  \x1b[37m[-]\x1b[0m ${label}`);
     }
@@ -2569,12 +2579,12 @@ function handleImproveValidate(proposalFile, options) {
     process.exit(1);
   }
 
-  console.log(`\x1b[32m✔ Proposal is VALID and ready to be applied. ${validation.operations.length} operations parsed successfully.\x1b[0m\n`);
+  console.log(`\x1b[32mâœ” Proposal is VALID and ready to be applied. ${validation.operations.length} operations parsed successfully.\x1b[0m\n`);
   process.exit(0);
 }
 
 function handleImproveDiff(proposalFile, options) {
-  console.log(`🔍 \x1b[36mGenerating diff for proposal: ${proposalFile}\x1b[0m\n`);
+  console.log(`ðŸ” \x1b[36mGenerating diff for proposal: ${proposalFile}\x1b[0m\n`);
   const validation = validateProposal(proposalFile, options.target);
   if (!validation.valid) {
     console.error(`\x1b[31mValidation FAILED: ${validation.reason}\x1b[0m`);
@@ -2633,7 +2643,7 @@ function handleImproveDiff(proposalFile, options) {
       if (type === 'create_file') {
         const exists = existsSync(op.resolvedPath);
         if (exists) {
-          console.log(`  \x1b[31m⚠️  [Overwriting existing file]\x1b[0m`);
+          console.log(`  \x1b[31mâš ï¸  [Overwriting existing file]\x1b[0m`);
         } else {
           console.log(`  \x1b[32m+ [Creating new file]\x1b[0m`);
         }
@@ -2674,7 +2684,7 @@ function handleImproveApply(proposalFile, options) {
     process.exit(1);
   }
 
-  console.log(`🚀 \x1b[34mApplying proposal: ${proposalFile}\x1b[0m`);
+  console.log(`ðŸš€ \x1b[34mApplying proposal: ${proposalFile}\x1b[0m`);
   const validation = validateProposal(proposalFile, options.target);
   if (!validation.valid) {
     console.error(`\x1b[31mValidation FAILED: ${validation.reason}\x1b[0m`);
@@ -2843,7 +2853,7 @@ function handleImproveApply(proposalFile, options) {
   }
 
   if (status === 'success') {
-    console.log(`\n\x1b[32m✔ Proposal applied successfully!\x1b[0m`);
+    console.log(`\n\x1b[32mâœ” Proposal applied successfully!\x1b[0m`);
     console.log(`Files changed:`);
     filesChanged.forEach(f => console.log(`  - ${f}`));
     console.log(`Audit log recorded to: ${logFile}`);
@@ -2861,7 +2871,7 @@ function handleImproveLog(options) {
 
   try {
     const lines = readFileSync(logFile, 'utf8').trim().split(/\r?\n/);
-    console.log(`\n📜 \x1b[36mApplied Proposals Audit Log\x1b[0m`);
+    console.log(`\nðŸ“œ \x1b[36mApplied Proposals Audit Log\x1b[0m`);
     console.log('==================================================');
     lines.forEach(line => {
       if (!line.trim()) return;
@@ -2886,7 +2896,7 @@ function handleImproveLog(options) {
 // ==================================================
 
 function handleStatus(options) {
-  console.log(`\n📊 \x1b[36mRepository Intelligence Status: ${options.target}\x1b[0m`);
+  console.log(`\nðŸ“Š \x1b[36mRepository Intelligence Status: ${options.target}\x1b[0m`);
   console.log('==================================================');
 
   // 1. Project Info
@@ -3037,7 +3047,7 @@ function handleWorkflowList(options) {
   try {
     const registry = parseYaml(readFileSync(workflowsPath, 'utf8')) || {};
     const workflows = registry.workflows || {};
-    console.log(`\n⚙ \x1b[36mRegistered Workflows\x1b[0m`);
+    console.log(`\nâš™ \x1b[36mRegistered Workflows\x1b[0m`);
     console.log('==================================================');
     Object.keys(workflows).forEach(key => {
       const wf = workflows[key];
@@ -3074,7 +3084,7 @@ function handleWorkflowShow(wName, options) {
     const name = wf.name || wName;
     const risk = wf.risk_level || 'unknown';
     const riskColor = risk === 'low' ? '\x1b[32m' : risk === 'medium' ? '\x1b[33m' : '\x1b[31m';
-    console.log(`\n⚙ \x1b[36mWorkflow Spec: ${name}\x1b[0m`);
+    console.log(`\nâš™ \x1b[36mWorkflow Spec: ${name}\x1b[0m`);
     console.log('==================================================');
     console.log(`  Description:             ${wf.description || 'No description'}`);
     console.log(`  Risk Level:              ${riskColor}${risk.toUpperCase()}\x1b[0m`);
@@ -3113,7 +3123,7 @@ function handleWorkflowPlan(wName, options) {
       process.exit(1);
     }
     const name = wf.name || wName;
-    console.log(`\n📝 \x1b[36mExecution Plan for Workflow: ${name}\x1b[0m`);
+    console.log(`\nðŸ“ \x1b[36mExecution Plan for Workflow: ${name}\x1b[0m`);
     console.log('==================================================');
     console.log(`\x1b[33m[DRY-RUN/PLAN ONLY] No commands will be run.\x1b[0m\n`);
     const steps = wf.steps || [];
@@ -3148,7 +3158,7 @@ function handleWorkflowRun(wName, options) {
     }
 
     const name = wf.name || wName;
-    console.log(`\n🚀 \x1b[36mRunning Workflow: ${name}\x1b[0m`);
+    console.log(`\nðŸš€ \x1b[36mRunning Workflow: ${name}\x1b[0m`);
     console.log('==================================================');
 
     const steps = wf.steps || [];
@@ -3184,7 +3194,7 @@ function handleWorkflowRun(wName, options) {
         }
       }
     });
-    console.log(`\n✔ Workflow '${name}' complete.\n`);
+    console.log(`\nâœ” Workflow '${name}' complete.\n`);
   } catch (e) {
     console.error(`\x1b[31mError running workflow '${wName}': ${e.message}\x1b[0m`);
   }
@@ -3340,7 +3350,7 @@ ${recs}
 
   try {
     writeFileSync(handoffPath, handoffContent, 'utf8');
-    console.log(`\n✔ Handoff context built successfully in: .ai/intelligence/handoff.md`);
+    console.log(`\nâœ” Handoff context built successfully in: .ai/intelligence/handoff.md`);
   } catch (e) {
     console.error(`\x1b[31mError writing handoff: ${e.message}\x1b[0m`);
   }
@@ -3361,7 +3371,7 @@ function handleHandoffShow(options) {
 }
 
 function handleDoctorIntelligence(options) {
-  console.log(`\n🩺 \x1b[36mRunning advisory intelligence doctor checkup in: ${options.target}\x1b[0m\n`);
+  console.log(`\nðŸ©º \x1b[36mRunning advisory intelligence doctor checkup in: ${options.target}\x1b[0m\n`);
 
   let warnings = 0;
   const warn = (msg) => {
@@ -3462,7 +3472,7 @@ function handleDoctorIntelligence(options) {
   if (warnings > 0) {
     console.log(`\x1b[33mDoctor intelligence check complete. Found ${warnings} warnings.\x1b[0m\n`);
   } else {
-    console.log('\x1b[32m✔ Doctor intelligence check complete. Your intelligence setup is pristine!\x1b[0m\n');
+    console.log('\x1b[32mâœ” Doctor intelligence check complete. Your intelligence setup is pristine!\x1b[0m\n');
   }
 }
 
@@ -3599,7 +3609,7 @@ function getRecommendation(analysis) {
 }
 
 function handleOnboardAnalyze(options) {
-  console.log(`\n🔍 \x1b[36mAnalyzing Workspace for Onboarding: ${options.target}\x1b[0m`);
+  console.log(`\nðŸ” \x1b[36mAnalyzing Workspace for Onboarding: ${options.target}\x1b[0m`);
   console.log('==================================================');
   const analysis = getAnalysis(options.target);
 
@@ -3611,7 +3621,7 @@ function handleOnboardAnalyze(options) {
   console.log(`  GitHub Workflows:      ${analysis.githubWorkflows.join(', ') || 'None'}`);
   console.log(`  Security Risk Markers: ${analysis.envRiskMarkers.length} files found`);
   if (analysis.envRiskMarkers.length > 0) {
-    analysis.envRiskMarkers.forEach(m => console.log(`    └─> ${m} (potential secrets exposure risk)`));
+    analysis.envRiskMarkers.forEach(m => console.log(`    â””â”€> ${m} (potential secrets exposure risk)`));
   }
   console.log();
 }
@@ -3620,7 +3630,7 @@ function handleOnboardRecommend(options) {
   const analysis = getAnalysis(options.target);
   const rec = getRecommendation(analysis);
 
-  console.log(`\n💡 \x1b[36mOnboarding Recommendation for: ${options.target}\x1b[0m`);
+  console.log(`\nðŸ’¡ \x1b[36mOnboarding Recommendation for: ${options.target}\x1b[0m`);
   console.log('==================================================');
   console.log(`  Recommended Template:  \x1b[32m${rec.template}\x1b[0m`);
   console.log(`  Confidence Score:      ${(rec.confidence * 100).toFixed(0)}%`);
@@ -3632,7 +3642,7 @@ function handleOnboardRecommend(options) {
 }
 
 function handleOnboardPlan(options) {
-  console.log(`\n📋 \x1b[36mGenerating Onboarding Plan: ${options.target}\x1b[0m`);
+  console.log(`\nðŸ“‹ \x1b[36mGenerating Onboarding Plan: ${options.target}\x1b[0m`);
   console.log('==================================================');
   const analysis = getAnalysis(options.target);
   const rec = getRecommendation(analysis);
@@ -3735,7 +3745,7 @@ function handleOnboardApply(options) {
     process.exit(1);
   }
 
-  console.log(`\n🚀 \x1b[36mApplying Onboarding Scaffolding: ${options.target}\x1b[0m`);
+  console.log(`\nðŸš€ \x1b[36mApplying Onboarding Scaffolding: ${options.target}\x1b[0m`);
   console.log('==================================================');
 
   const template = plan.recommendation.template;
@@ -3825,11 +3835,11 @@ function handleOnboardApply(options) {
     }
   });
 
-  console.log(`\n✔ Onboarding apply complete! Created: ${createdCount}, Skipped: ${skippedCount}, Overwritten (with backup): ${updatedCount}\n`);
+  console.log(`\nâœ” Onboarding apply complete! Created: ${createdCount}, Skipped: ${skippedCount}, Overwritten (with backup): ${updatedCount}\n`);
 }
 
 function handleOnboardStatus(options) {
-  console.log(`\n📊 \x1b[36mOnboarding Status Dashboard: ${options.target}\x1b[0m`);
+  console.log(`\nðŸ“Š \x1b[36mOnboarding Status Dashboard: ${options.target}\x1b[0m`);
   console.log('==================================================');
 
   const crucialFiles = [
@@ -3845,7 +3855,7 @@ function handleOnboardStatus(options) {
     const fullPath = join(options.target, f);
     const exists = existsSync(fullPath);
     if (exists) presentCount++;
-    console.log(`  [${exists ? '✔' : ' '}] ${f}`);
+    console.log(`  [${exists ? 'âœ”' : ' '}] ${f}`);
   });
 
   const percentage = (presentCount / crucialFiles.length) * 100;
@@ -3871,7 +3881,7 @@ function getEnabledAdapters(target) {
 }
 
 function handleAdapterStatus(options) {
-  console.log(`\n🔌 \x1b[36mIDE & Agent Adapters Status: ${options.target}\x1b[0m`);
+  console.log(`\nðŸ”Œ \x1b[36mIDE & Agent Adapters Status: ${options.target}\x1b[0m`);
   console.log('==================================================');
 
   const enabled = getEnabledAdapters(options.target);
@@ -3986,7 +3996,7 @@ function handleAdapterSync(aName, options) {
     return;
   }
 
-  console.log(`\n🔄 \x1b[36mSynchronizing IDE Adapters in: ${options.target}\x1b[0m`);
+  console.log(`\nðŸ”„ \x1b[36mSynchronizing IDE Adapters in: ${options.target}\x1b[0m`);
   console.log('==================================================');
 
   adaptersToSync.forEach(name => {
@@ -4029,7 +4039,7 @@ function handleAdapterSync(aName, options) {
 }
 
 function handleDoctorOnboarding(options) {
-  console.log(`\n🩺 \x1b[36mRunning advisory onboarding doctor checkup in: ${options.target}\x1b[0m\n`);
+  console.log(`\nðŸ©º \x1b[36mRunning advisory onboarding doctor checkup in: ${options.target}\x1b[0m\n`);
 
   let warnings = 0;
   const warn = (msg) => {
@@ -4092,7 +4102,7 @@ function handleDoctorOnboarding(options) {
   if (warnings > 0) {
     console.log(`\x1b[33mDoctor onboarding check complete. Found ${warnings} warnings.\x1b[0m\n`);
   } else {
-    console.log('\x1b[32m✔ Doctor onboarding check complete. Your workspace onboarding setup is pristine!\x1b[0m\n');
+    console.log('\x1b[32mâœ” Doctor onboarding check complete. Your workspace onboarding setup is pristine!\x1b[0m\n');
   }
 }
 
@@ -4103,11 +4113,11 @@ function selectMenu(title, items, callback) {
   
   const draw = () => {
     console.clear();
-    console.log(`\n🧠 \x1b[36m${title}\x1b[0m`);
+    console.log(`\nðŸ§  \x1b[36m${title}\x1b[0m`);
     console.log('==================================================');
     items.forEach((item, index) => {
       if (index === cursor) {
-        console.log(`  \x1b[32m❯ ${item.name}\x1b[0m`);
+        console.log(`  \x1b[32mâ¯ ${item.name}\x1b[0m`);
       } else {
         console.log(`    ${item.name}`);
       }
@@ -4167,7 +4177,7 @@ function handleDashboard(options) {
 
   const submenus = {
     onboard: [
-      { name: '← Back to Main Menu', action: 'back' },
+      { name: 'â† Back to Main Menu', action: 'back' },
       { name: 'Onboard: Analyze Repository', action: 'command', command: 'onboard analyze' },
       { name: 'Onboard: Recommendation Summary', action: 'command', command: 'onboard recommend' },
       { name: 'Onboard: Generate Integration Plan', action: 'command', command: 'onboard plan' },
@@ -4175,14 +4185,14 @@ function handleDashboard(options) {
       { name: 'Onboard: View Status Heuristics', action: 'command', command: 'onboard status' }
     ],
     adapter: [
-      { name: '← Back to Main Menu', action: 'back' },
+      { name: 'â† Back to Main Menu', action: 'back' },
       { name: 'Adapters: Check Sync Status', action: 'command', command: 'adapter status' },
       { name: 'Adapters: Sync All rule files (Dry Run)', action: 'command', command: 'adapter sync all --dry-run' },
       { name: 'Adapters: Diff Cursor rules', action: 'command', command: 'adapter diff cursor' },
       { name: 'Adapters: Diff Claude rules', action: 'command', command: 'adapter diff claude' }
     ],
     memory: [
-      { name: '← Back to Main Menu', action: 'back' },
+      { name: 'â† Back to Main Menu', action: 'back' },
       { name: 'Memory: Build index', action: 'command', command: 'memory build' },
       { name: 'Memory: Refresh changes', action: 'command', command: 'memory refresh' },
       { name: 'Memory: Diff index status', action: 'command', command: 'memory diff' },
@@ -4190,26 +4200,26 @@ function handleDashboard(options) {
       { name: 'Handoff: Print summary to terminal', action: 'command', command: 'handoff show' }
     ],
     feedback: [
-      { name: '← Back to Main Menu', action: 'back' },
+      { name: 'â† Back to Main Menu', action: 'back' },
       { name: 'Feedback: List developer corrections', action: 'command', command: 'feedback list' },
       { name: 'Feedback: Summarize to learning rules', action: 'command', command: 'feedback summarize' },
       { name: 'Proposals: Propose improvement proposal', action: 'command', command: 'improve propose' },
       { name: 'Proposals: Review active proposals list', action: 'command', command: 'improve review' }
     ],
     catalog: [
-      { name: '← Back to Main Menu', action: 'back' },
+      { name: 'â† Back to Main Menu', action: 'back' },
       { name: 'Catalog: List bundled plugins', action: 'command', command: 'catalog list' },
       { name: 'Catalog: Recommend for current repo', action: 'command', command: 'catalog recommend' },
       { name: 'Catalog: Show installed catalog status', action: 'command', command: 'catalog status' }
     ],
     quality: [
-      { name: '← Back to Main Menu', action: 'back' },
+      { name: 'â† Back to Main Menu', action: 'back' },
       { name: 'Doctor: Run Advisory Diagnostics', action: 'command', command: 'doctor' },
       { name: 'Validate: Strict Schema Compliance', action: 'command', command: 'validate' },
       { name: 'Verify: Run Release verification tests', action: 'command', command: 'verify' }
     ],
     registry: [
-      { name: '← Back to Main Menu', action: 'back' },
+      { name: 'â† Back to Main Menu', action: 'back' },
       { name: 'Registry: List configured sources', action: 'command', command: 'registry list' },
       { name: 'Registry: Show sync status', action: 'command', command: 'registry status' },
       { name: 'Registry: Verify cache integrity', action: 'command', command: 'registry verify bundled' },
@@ -4218,7 +4228,7 @@ function handleDashboard(options) {
   };
 
   if (!process.stdout.isTTY || !process.stdin.isTTY || options.dryRun || options.listActions) {
-    console.log(`\n📊 \x1b[36mMultiModel Dev OS Command Center (Headless/CI Preview)\x1b[0m`);
+    console.log(`\nðŸ“Š \x1b[36mMultiModel Dev OS Command Center (Headless/CI Preview)\x1b[0m`);
     console.log(`Target Workspace: \x1b[32m${options.target}\x1b[0m`);
     console.log('==================================================');
     
@@ -4226,12 +4236,12 @@ function handleDashboard(options) {
 
     mainMenu.forEach(item => {
       if (item.action === 'command') {
-        console.log(`  \x1b[33m•\x1b[0m ${item.name.padEnd(30)} → \x1b[36mnpx multimodel-dev-os ${item.command}${targetFlag}\x1b[0m`);
+        console.log(`  \x1b[33mâ€¢\x1b[0m ${item.name.padEnd(30)} â†’ \x1b[36mnpx multimodel-dev-os ${item.command}${targetFlag}\x1b[0m`);
       } else if (item.action === 'submenu') {
         console.log(`\n  \x1b[35m[${item.name.replace('...', '')}]\x1b[0m`);
         submenus[item.menu].forEach(sub => {
           if (sub.action === 'command') {
-            console.log(`    └─ ${sub.name.padEnd(35)} → \x1b[36mnpx multimodel-dev-os ${sub.command}${targetFlag}\x1b[0m`);
+            console.log(`    â””â”€ ${sub.name.padEnd(35)} â†’ \x1b[36mnpx multimodel-dev-os ${sub.command}${targetFlag}\x1b[0m`);
           }
         });
       }
@@ -4296,7 +4306,7 @@ function handlePluginList(options) {
       console.log('[]');
       return;
     }
-    console.log(`\n🔌 \x1b[36mInstalled Plugins in: ${options.target}\x1b[0m`);
+    console.log(`\nðŸ”Œ \x1b[36mInstalled Plugins in: ${options.target}\x1b[0m`);
     console.log('==================================================');
     console.log('  No plugins installed. Try:');
     console.log(`  npx multimodel-dev-os plugin install ${examplePath} --approved`);
@@ -4324,7 +4334,7 @@ function handlePluginList(options) {
     return;
   }
 
-  console.log(`\n🔌 \x1b[36mInstalled Plugins in: ${options.target} (${plugins.length})\x1b[0m`);
+  console.log(`\nðŸ”Œ \x1b[36mInstalled Plugins in: ${options.target} (${plugins.length})\x1b[0m`);
   console.log('==================================================');
   if (plugins.length === 0) {
     console.log('  No plugins installed. Try:');
@@ -4366,7 +4376,7 @@ function handlePluginShow(slug, options) {
     process.exit(1);
   }
 
-  console.log(`\n🔍 \x1b[36mPlugin Specifications: ${p.name} (v${p.version})\x1b[0m`);
+  console.log(`\nðŸ” \x1b[36mPlugin Specifications: ${p.name} (v${p.version})\x1b[0m`);
   console.log('==================================================');
   console.log(`\x1b[33mSlug:\x1b[0m        ${p.slug}`);
   console.log(`\x1b[33mAuthor:\x1b[0m      ${p.author}`);
@@ -4410,7 +4420,7 @@ function handlePluginValidate(pluginPath, options) {
     process.exit(1);
   }
   
-  console.log(`\n📋 \x1b[34mValidating Plugin: ${pluginPath}\x1b[0m`);
+  console.log(`\nðŸ“‹ \x1b[34mValidating Plugin: ${pluginPath}\x1b[0m`);
   console.log('==================================================');
   
   let errors = 0;
@@ -4418,7 +4428,7 @@ function handlePluginValidate(pluginPath, options) {
   try {
     plugin = parseYaml(readFileSync(fullPath, 'utf8'));
   } catch (e) {
-    console.error(`  \x1b[31m✗ [SYNTAX] Failed to parse YAML: ${e.message}\x1b[0m`);
+    console.error(`  \x1b[31mâœ— [SYNTAX] Failed to parse YAML: ${e.message}\x1b[0m`);
     errors++;
   }
 
@@ -4426,31 +4436,31 @@ function handlePluginValidate(pluginPath, options) {
     const reqKeys = ['name', 'slug', 'version', 'description', 'author'];
     reqKeys.forEach(k => {
       if (plugin[k] === undefined || plugin[k] === null) {
-        console.error(`  \x1b[31m✗ [METADATA] Missing required key: ${k}\x1b[0m`);
+        console.error(`  \x1b[31mâœ— [METADATA] Missing required key: ${k}\x1b[0m`);
         errors++;
       } else if (typeof plugin[k] !== 'string') {
-        console.error(`  \x1b[31m✗ [METADATA] Key '${k}' must be a string (found: ${typeof plugin[k]})\x1b[0m`);
+        console.error(`  \x1b[31mâœ— [METADATA] Key '${k}' must be a string (found: ${typeof plugin[k]})\x1b[0m`);
         errors++;
       } else if (k === 'slug') {
         if (!/^[a-z0-9-_]+$/i.test(plugin[k])) {
-          console.error(`  \x1b[31m✗ [METADATA] Key 'slug' must be alphanumeric with dashes or underscores only (found: "${plugin[k]}")\x1b[0m`);
+          console.error(`  \x1b[31mâœ— [METADATA] Key 'slug' must be alphanumeric with dashes or underscores only (found: "${plugin[k]}")\x1b[0m`);
           errors++;
         } else {
-          console.log(`  \x1b[32m✓ [METADATA] Key: slug ("${plugin[k]}")`);
+          console.log(`  \x1b[32mâœ“ [METADATA] Key: slug ("${plugin[k]}")`);
         }
       } else {
-        console.log(`  \x1b[32m✓ [METADATA] Key: ${k} ("${plugin[k]}")`);
+        console.log(`  \x1b[32mâœ“ [METADATA] Key: ${k} ("${plugin[k]}")`);
       }
     });
 
     if (plugin.allowed_file_patterns !== undefined) {
       if (!Array.isArray(plugin.allowed_file_patterns)) {
-        console.error(`  \x1b[31m✗ [SAFETY] allowed_file_patterns must be an array\x1b[0m`);
+        console.error(`  \x1b[31mâœ— [SAFETY] allowed_file_patterns must be an array\x1b[0m`);
         errors++;
       } else {
         plugin.allowed_file_patterns.forEach(pat => {
           if (typeof pat !== 'string') {
-            console.error(`  \x1b[31m✗ [SAFETY] allowed_file_patterns item must be a string: ${pat}\x1b[0m`);
+            console.error(`  \x1b[31mâœ— [SAFETY] allowed_file_patterns item must be a string: ${pat}\x1b[0m`);
             errors++;
             return;
           }
@@ -4476,64 +4486,64 @@ function handlePluginValidate(pluginPath, options) {
           ].some(black => normPattern.includes(black));
 
           if (!isSafeSubdir || hasTraversal || isBlacklisted) {
-            console.error(`  \x1b[31m✗ [SAFETY] File pattern '${pat}' violates safety boundaries (must reside under .ai/ or adapters/, contain no '..', and exclude blacklisted files)\x1b[0m`);
+            console.error(`  \x1b[31mâœ— [SAFETY] File pattern '${pat}' violates safety boundaries (must reside under .ai/ or adapters/, contain no '..', and exclude blacklisted files)\x1b[0m`);
             errors++;
           }
         });
         if (errors === 0) {
-          console.log(`  \x1b[32m✓ [SAFETY] allowed_file_patterns verified: ${plugin.allowed_file_patterns.length} items`);
+          console.log(`  \x1b[32mâœ“ [SAFETY] allowed_file_patterns verified: ${plugin.allowed_file_patterns.length} items`);
         }
       }
     }
 
     if (plugin.denied_file_patterns !== undefined) {
       if (!Array.isArray(plugin.denied_file_patterns)) {
-        console.error(`  \x1b[31m✗ [SAFETY] denied_file_patterns must be an array\x1b[0m`);
+        console.error(`  \x1b[31mâœ— [SAFETY] denied_file_patterns must be an array\x1b[0m`);
         errors++;
       } else {
         plugin.denied_file_patterns.forEach(pat => {
           if (typeof pat !== 'string') {
-            console.error(`  \x1b[31m✗ [SAFETY] denied_file_patterns item must be a string: ${pat}\x1b[0m`);
+            console.error(`  \x1b[31mâœ— [SAFETY] denied_file_patterns item must be a string: ${pat}\x1b[0m`);
             errors++;
           }
         });
-        console.log(`  \x1b[32m✓ [SAFETY] denied_file_patterns verified: ${plugin.denied_file_patterns.length} items`);
+        console.log(`  \x1b[32mâœ“ [SAFETY] denied_file_patterns verified: ${plugin.denied_file_patterns.length} items`);
       }
     }
 
     if (plugin.workflows !== undefined) {
       if (typeof plugin.workflows !== 'object' || Array.isArray(plugin.workflows)) {
-        console.error(`  \x1b[31m✗ [CAPABILITIES] workflows must be an object\x1b[0m`);
+        console.error(`  \x1b[31mâœ— [CAPABILITIES] workflows must be an object\x1b[0m`);
         errors++;
       } else {
-        console.log(`  \x1b[32m✓ [CAPABILITIES] workflows verified`);
+        console.log(`  \x1b[32mâœ“ [CAPABILITIES] workflows verified`);
       }
     }
 
     if (plugin.templates !== undefined) {
       if (typeof plugin.templates !== 'object' || Array.isArray(plugin.templates)) {
-        console.error(`  \x1b[31m✗ [CAPABILITIES] templates must be an object\x1b[0m`);
+        console.error(`  \x1b[31mâœ— [CAPABILITIES] templates must be an object\x1b[0m`);
         errors++;
       } else {
-        console.log(`  \x1b[32m✓ [CAPABILITIES] templates verified`);
+        console.log(`  \x1b[32mâœ“ [CAPABILITIES] templates verified`);
       }
     }
 
     if (plugin.adapters !== undefined) {
       if (typeof plugin.adapters !== 'object' || Array.isArray(plugin.adapters)) {
-        console.error(`  \x1b[31m✗ [CAPABILITIES] adapters must be an object\x1b[0m`);
+        console.error(`  \x1b[31mâœ— [CAPABILITIES] adapters must be an object\x1b[0m`);
         errors++;
       } else {
-        console.log(`  \x1b[32m✓ [CAPABILITIES] adapters verified`);
+        console.log(`  \x1b[32mâœ“ [CAPABILITIES] adapters verified`);
       }
     }
 
     if (plugin.safety_notes !== undefined) {
       if (typeof plugin.safety_notes !== 'string') {
-        console.error(`  \x1b[31m✗ [SAFETY] safety_notes must be a string\x1b[0m`);
+        console.error(`  \x1b[31mâœ— [SAFETY] safety_notes must be a string\x1b[0m`);
         errors++;
       } else {
-        console.log(`  \x1b[32m✓ [SAFETY] safety_notes verified`);
+        console.log(`  \x1b[32mâœ“ [SAFETY] safety_notes verified`);
       }
     }
   }
@@ -4543,7 +4553,7 @@ function handlePluginValidate(pluginPath, options) {
     if (options && options.noExit) return false;
     process.exit(1);
   } else {
-    console.log(`\n\x1b[32m✔ Plugin '${plugin.slug || plugin.name}' is fully valid and compliant!\x1b[0m`);
+    console.log(`\n\x1b[32mâœ” Plugin '${plugin.slug || plugin.name}' is fully valid and compliant!\x1b[0m`);
     console.log(`\n\x1b[35mRecommended Next Command:\x1b[0m`);
     console.log(`    npx multimodel-dev-os plugin install ${pluginPath} --approved\n`);
     if (options && options.noExit) return true;
@@ -4570,7 +4580,7 @@ function handlePluginInstall(pluginPath, options) {
   const slug = plugin.slug;
   const sourceDir = dirname(fullPath);
 
-  console.log(`\n📥 \x1b[34mInstalling Plugin: ${plugin.name} [slug: ${slug}]\x1b[0m`);
+  console.log(`\nðŸ“¥ \x1b[34mInstalling Plugin: ${plugin.name} [slug: ${slug}]\x1b[0m`);
 
   const filesToCopy = [];
   filesToCopy.push({
@@ -4671,7 +4681,7 @@ function handlePluginInstall(pluginPath, options) {
     console.log(`  \x1b[32mCOPY:\x1b[0m ${item.dest}`);
   });
 
-  console.log(`\n\x1b[32m✔ Plugin '${plugin.name}' installed successfully!\x1b[0m`);
+  console.log(`\n\x1b[32mâœ” Plugin '${plugin.name}' installed successfully!\x1b[0m`);
   console.log(`\n\x1b[32mSafety Status:\x1b[0m Sandboxed isolation: VERIFIED (All files written inside whitelisted .ai/ & adapters/ folders)`);
   console.log(`\nSummary of actions:`);
   console.log(`  - Manifest registered: .ai/plugins/${slug}.yaml`);
@@ -4679,12 +4689,12 @@ function handlePluginInstall(pluginPath, options) {
   console.log(`  - Synced assets:       ${assetCount} file(s)`);
   
   console.log(`\n\x1b[35mRecommended Next Commands:\x1b[0m`);
-  console.log(`    • View plugin details: npx multimodel-dev-os plugin show ${slug}`);
-  console.log(`    • Audit plugin health:  npx multimodel-dev-os plugin status --target .`);
+  console.log(`    â€¢ View plugin details: npx multimodel-dev-os plugin show ${slug}`);
+  console.log(`    â€¢ Audit plugin health:  npx multimodel-dev-os plugin status --target .`);
   if (plugin.workflows) {
     const wfKeys = Object.keys(plugin.workflows);
     if (wfKeys.length > 0) {
-      console.log(`    • Run custom workflow:  npx multimodel-dev-os workflow run ${wfKeys[0]}`);
+      console.log(`    â€¢ Run custom workflow:  npx multimodel-dev-os workflow run ${wfKeys[0]}`);
     }
   }
   console.log('');
@@ -4692,7 +4702,7 @@ function handlePluginInstall(pluginPath, options) {
 
 function handlePluginStatus(options) {
   const pluginsDir = getPluginsDir(options.target);
-  console.log(`\n🔌 \x1b[36mAuditing Plugins Status in: ${options.target}\x1b[0m`);
+  console.log(`\nðŸ”Œ \x1b[36mAuditing Plugins Status in: ${options.target}\x1b[0m`);
   console.log('==================================================');
 
   if (!existsSync(pluginsDir)) {
@@ -4741,7 +4751,7 @@ function handlePluginStatus(options) {
           p.allowed_file_patterns.forEach(pat => {
             const destPath = join(options.target, pat);
             if (!existsSync(destPath) || !statSync(destPath).isFile()) {
-              console.log(`    \x1b[31m✗\x1b[0m ${pat}`);
+              console.log(`    \x1b[31mâœ—\x1b[0m ${pat}`);
             }
           });
           console.log(`  To fix: Reinstall the plugin or validate the configuration:`);
@@ -4772,7 +4782,7 @@ function handleCatalogList(options) {
     return;
   }
 
-  console.log(`\n📚 \x1b[36mWorkflow Marketplace & Plugin Catalog [v${version}]\x1b[0m`);
+  console.log(`\nðŸ“š \x1b[36mWorkflow Marketplace & Plugin Catalog [v${version}]\x1b[0m`);
   console.log('==================================================');
   if (options.category) {
     console.log(`Filtering by category: \x1b[33m${options.category}\x1b[0m`);
@@ -4795,7 +4805,7 @@ function handleCatalogList(options) {
   }
 
   filtered.forEach(p => {
-    const isInst = installedSlugs.has(p.slug) ? ' \x1b[90m(✓ Installed)\x1b[0m' : '';
+    const isInst = installedSlugs.has(p.slug) ? ' \x1b[90m(âœ“ Installed)\x1b[0m' : '';
     console.log(`\n\x1b[32m* ${p.name}\x1b[0m (v${p.version})${isInst}`);
     console.log(`  slug:         \x1b[33m${p.slug}\x1b[0m`);
     console.log(`  source:       ${p._source || 'bundled'}`);
@@ -4827,7 +4837,7 @@ function handleCatalogSearch(query, options) {
     return;
   }
 
-  console.log(`\n🔍 \x1b[36mSearch Catalog Results for query: "${query}" (${matches.length} matches)\x1b[0m`);
+  console.log(`\nðŸ” \x1b[36mSearch Catalog Results for query: "${query}" (${matches.length} matches)\x1b[0m`);
   console.log('==================================================');
 
   if (matches.length === 0) {
@@ -4857,7 +4867,7 @@ function handleCatalogShow(slug, options) {
     return;
   }
 
-  console.log(`\n🔍 \x1b[36mCatalog Plugin: ${p.name} (v${p.version})\x1b[0m`);
+  console.log(`\nðŸ” \x1b[36mCatalog Plugin: ${p.name} (v${p.version})\x1b[0m`);
   console.log('==================================================');
   console.log(`\x1b[33mSlug:\x1b[0m         ${p.slug}`);
   console.log(`\x1b[33mSource:\x1b[0m       ${p._source || 'bundled'}`);
@@ -4896,7 +4906,7 @@ function handleCatalogCategories(options) {
     return;
   }
 
-  console.log(`\n📚 \x1b[36mMarketplace Categories (${categories.length})\x1b[0m`);
+  console.log(`\nðŸ“š \x1b[36mMarketplace Categories (${categories.length})\x1b[0m`);
   console.log('==================================================');
   categories.forEach(c => console.log(`  - ${c}`));
   console.log('\nUse \x1b[36mcatalog list --category <category>\x1b[0m to list plugins in a category.\n');
@@ -4949,7 +4959,7 @@ function handleCatalogStatus(options) {
   const plugins = catalog.plugins || [];
   const pluginsDir = getPluginsDir(options.target);
 
-  console.log(`\n📊 \x1b[36mAuditing Catalog Plugins in: ${options.target}\x1b[0m`);
+  console.log(`\nðŸ“Š \x1b[36mAuditing Catalog Plugins in: ${options.target}\x1b[0m`);
   console.log('==================================================');
 
   if (plugins.length === 0) {
@@ -4982,7 +4992,7 @@ function handleCatalogStatus(options) {
 
         const total = presentCount + missingCount;
         if (total === 0 || missingCount === 0) {
-          console.log(`  - \x1b[32m${p.name}\x1b[0m (v${p.version}): \x1b[32m✓ Installed (Up-to-date)\x1b[0m`);
+          console.log(`  - \x1b[32m${p.name}\x1b[0m (v${p.version}): \x1b[32mâœ“ Installed (Up-to-date)\x1b[0m`);
         } else {
           console.log(`  - \x1b[33m${p.name}\x1b[0m (v${p.version}): \x1b[33m! Incomplete (Missing assets)\x1b[0m (${presentCount}/${total} files present)`);
         }
@@ -5108,7 +5118,7 @@ function handleCatalogRecommend(options) {
     return;
   }
 
-  console.log(`\n💡 \x1b[36mMarketplace Recommendations for: ${options.target}\x1b[0m`);
+  console.log(`\nðŸ’¡ \x1b[36mMarketplace Recommendations for: ${options.target}\x1b[0m`);
   console.log('==================================================');
   if (recs.length === 0) {
     console.log('  No matching recommendations found.');
@@ -5138,14 +5148,14 @@ function handleRegistryList(options) {
     return;
   }
 
-  console.log(`\n🗂️  \x1b[36mRegistry Sources [v${version}]\x1b[0m`);
+  console.log(`\nðŸ—‚ï¸  \x1b[36mRegistry Sources [v${version}]\x1b[0m`);
   console.log('==================================================');
   console.log(`Policy Status: allow_remote_registries = \x1b[${policy.allow_remote_registries ? '32mtrue' : '33mfalse'}\x1b[0m (Remote registries are disabled by default for safety)\n`);
 
   const lockfile = loadRegistryLockfile(options.target || process.cwd());
 
   sources.forEach(s => {
-    const status = s.enabled ? '\x1b[32m● enabled\x1b[0m' : '\x1b[90m○ disabled\x1b[0m';
+    const status = s.enabled ? '\x1b[32mâ— enabled\x1b[0m' : '\x1b[90mâ—‹ disabled\x1b[0m';
     const label = s.name === 'bundled' ? 'bundled' : s.type === 'local' ? `local:${s.name}` : `remote:${s.name}`;
     const lockEntry = lockfile.entries[s.name];
     const lockBadge = lockEntry
@@ -5221,7 +5231,7 @@ function handleRegistryAdd(name, url, options) {
   });
 
   saveRegistrySources(sources);
-  console.log(`\n\x1b[32m✔ Registry '${name}' added successfully!\x1b[0m`);
+  console.log(`\n\x1b[32mâœ” Registry '${name}' added successfully!\x1b[0m`);
   console.log(`  Type:        ${type}`);
   console.log(`  URL:         ${url}`);
   console.log(`  Trust Level: community`);
@@ -5267,7 +5277,7 @@ function handleRegistryRemove(name, options) {
     } catch (e) {}
   }
 
-  console.log(`\n\x1b[32m✔ Registry '${name}' removed successfully.\x1b[0m`);
+  console.log(`\n\x1b[32mâœ” Registry '${name}' removed successfully.\x1b[0m`);
   console.log(`  Source entry removed from .ai/registries/sources.yaml`);
   if (existsSync(cacheDir)) {
     console.log(`  Cache directory cleared: .ai/registry-cache/${name}/`);
@@ -5308,7 +5318,7 @@ function handleRegistrySync(name, options) {
   }
 
   if (!options.approved) {
-    console.log(`\n⚠️  \x1b[33mRegistry Sync Refused — Explicit Approval Required\x1b[0m`);
+    console.log(`\nâš ï¸  \x1b[33mRegistry Sync Refused â€” Explicit Approval Required\x1b[0m`);
     console.log('==================================================');
     console.log(`Syncing remote registries requires the explicit \x1b[33m--approved\x1b[0m flag to download metadata and files.`);
     console.log(`Registry:       \x1b[32m${name}\x1b[0m`);
@@ -5317,14 +5327,14 @@ function handleRegistrySync(name, options) {
     console.log(`Checksums:      ${source.checksum_required ? 'Enforced (SHA-256)' : 'Not enforced'}`);
     console.log(`Signatures:     ${source.signature_required ? 'Required' : 'Disabled (SHA-256 fallback)'}`);
     console.log(`\n\x1b[33mPlanned Actions:\x1b[0m`);
-    console.log(`  [DOWNLOAD] catalog.yaml    → .ai/registry-cache/${name}/catalog.yaml`);
-    console.log(`  [DOWNLOAD] manifest.json   → .ai/registry-cache/${name}/manifest.json`);
-    console.log(`  [COMPUTE]  checksums.json  → .ai/registry-cache/${name}/checksums.json`);
+    console.log(`  [DOWNLOAD] catalog.yaml    â†’ .ai/registry-cache/${name}/catalog.yaml`);
+    console.log(`  [DOWNLOAD] manifest.json   â†’ .ai/registry-cache/${name}/manifest.json`);
+    console.log(`  [COMPUTE]  checksums.json  â†’ .ai/registry-cache/${name}/checksums.json`);
     console.log(`\n\x1b[33mSecurity & Safety Boundaries:\x1b[0m`);
-    console.log(`  • \x1b[32mNo automated installs:\x1b[0m Syncing only updates the local cache. No plugins are installed or run.`);
-    console.log(`  • \x1b[32mNo arbitrary code execution:\x1b[0m Registries cannot run shell scripts, commands, or packages.`);
-    console.log(`  • \x1b[32mSandboxed write paths:\x1b[0m Cache files are written strictly to .ai/registry-cache/${name}/.`);
-    console.log(`  • \x1b[32mTo install afterwards:\x1b[0m Use 'catalog install <slug> --approved' to deploy a plugin.`);
+    console.log(`  â€¢ \x1b[32mNo automated installs:\x1b[0m Syncing only updates the local cache. No plugins are installed or run.`);
+    console.log(`  â€¢ \x1b[32mNo arbitrary code execution:\x1b[0m Registries cannot run shell scripts, commands, or packages.`);
+    console.log(`  â€¢ \x1b[32mSandboxed write paths:\x1b[0m Cache files are written strictly to .ai/registry-cache/${name}/.`);
+    console.log(`  â€¢ \x1b[32mTo install afterwards:\x1b[0m Use 'catalog install <slug> --approved' to deploy a plugin.`);
     console.log(`\nTo execute this sync operation, run:`);
     console.log(`  \x1b[36mnpx multimodel-dev-os registry sync ${name} --approved\x1b[0m\n`);
     process.exit(1);
@@ -5335,7 +5345,7 @@ function handleRegistrySync(name, options) {
     mkdirSync(cacheDir, { recursive: true });
   }
 
-  console.log(`\n🔄 \x1b[36mSyncing Registry: ${name}\x1b[0m`);
+  console.log(`\nðŸ”„ \x1b[36mSyncing Registry: ${name}\x1b[0m`);
   console.log('==================================================');
 
   const url = source.url;
@@ -5367,23 +5377,23 @@ function handleRegistrySync(name, options) {
     };
 
     console.log(`Downloading: ${catalogUrl}`);
-    console.log(`  → .ai/registry-cache/${name}/catalog.yaml ...`);
+    console.log(`  â†’ .ai/registry-cache/${name}/catalog.yaml ...`);
 
     const catalogData = fetchUrlSync(catalogUrl);
     writeFileSync(catalogDest, catalogData, 'utf8');
     const catalogSize = (Buffer.byteLength(catalogData) / 1024).toFixed(1);
-    console.log(`  → OK (${catalogSize}KB)`);
+    console.log(`  â†’ OK (${catalogSize}KB)`);
 
     let manifestData = null;
     try {
       console.log(`Downloading: ${manifestUrl}`);
-      console.log(`  → .ai/registry-cache/${name}/manifest.json ...`);
+      console.log(`  â†’ .ai/registry-cache/${name}/manifest.json ...`);
       manifestData = fetchUrlSync(manifestUrl);
       writeFileSync(manifestDest, manifestData, 'utf8');
       const manifestSize = (Buffer.byteLength(manifestData) / 1024).toFixed(1);
-      console.log(`  → OK (${manifestSize}KB)`);
+      console.log(`  â†’ OK (${manifestSize}KB)`);
     } catch (e) {
-      console.log(`  → \x1b[33mNot found (optional)\x1b[0m`);
+      console.log(`  â†’ \x1b[33mNot found (optional)\x1b[0m`);
     }
 
     console.log('Computing checksums...');
@@ -5412,7 +5422,7 @@ function handleRegistrySync(name, options) {
             }
 
             console.log(`Downloading: ${baseUrl}${file}`);
-            console.log(`  → .ai/registry-cache/${name}/${file} ...`);
+            console.log(`  â†’ .ai/registry-cache/${name}/${file} ...`);
             const fileData = fetchUrlSync(`${baseUrl}${file}`);
             
             totalSize += Buffer.byteLength(fileData);
@@ -5427,7 +5437,7 @@ function handleRegistrySync(name, options) {
             }
             writeFileSync(fileDest, fileData, 'utf8');
             const fileSize = (Buffer.byteLength(fileData) / 1024).toFixed(1);
-            console.log(`  → OK (${fileSize}KB)`);
+            console.log(`  â†’ OK (${fileSize}KB)`);
 
             const actualHash = computeSHA256(fileData);
             const expectedHash = hash.replace('sha256:', '');
@@ -5448,7 +5458,7 @@ function handleRegistrySync(name, options) {
 
     const checksumsJson = JSON.stringify(checksums, null, 2);
     writeFileSync(join(cacheDir, 'checksums.json'), checksumsJson, 'utf8');
-    console.log(`  → .ai/registry-cache/${name}/checksums.json ... OK`);
+    console.log(`  â†’ .ai/registry-cache/${name}/checksums.json ... OK`);
 
     if (policy.require_checksum && manifestData) {
       try {
@@ -5483,15 +5493,15 @@ function handleRegistrySync(name, options) {
     try {
       signingKey = loadSigningKey(projectDir);
     } catch (sigKeyErr) {
-      console.log(`  \x1b[33mWarning: Signing key error — ${sigKeyErr.message}\x1b[0m`);
+      console.log(`  \x1b[33mWarning: Signing key error â€” ${sigKeyErr.message}\x1b[0m`);
     }
 
     if (signingKey) {
       try {
         signature = signPayload(signingKey, catalogHash);
-        console.log('  \x1b[32m✓ Catalog signed with project signing key (HMAC-SHA256)\x1b[0m');
+        console.log('  \x1b[32mâœ“ Catalog signed with project signing key (HMAC-SHA256)\x1b[0m');
       } catch (signErr) {
-        console.log(`  \x1b[33mWarning: Signing failed — ${signErr.message}\x1b[0m`);
+        console.log(`  \x1b[33mWarning: Signing failed â€” ${signErr.message}\x1b[0m`);
       }
     } else {
       if (policy.require_signature) {
@@ -5499,7 +5509,7 @@ function handleRegistrySync(name, options) {
         console.error(`  Generate a key with: npx multimodel-dev-os registry keygen --approved`);
         process.exit(1);
       }
-      console.log('  \x1b[33m⚠ No signing key — provenance recorded without signature.\x1b[0m');
+      console.log('  \x1b[33mâš  No signing key â€” provenance recorded without signature.\x1b[0m');
       console.log('    Generate a key with: npx multimodel-dev-os registry keygen --approved');
     }
 
@@ -5566,7 +5576,7 @@ function handleRegistrySync(name, options) {
       verification_warnings: verificationWarnings
     });
     saveRegistryLockfile(projectDir, lockfile);
-    console.log(`  \x1b[32m✓ Provenance lockfile updated: .ai/registry-lock.json\x1b[0m`);
+    console.log(`  \x1b[32mâœ“ Provenance lockfile updated: .ai/registry-lock.json\x1b[0m`);
 
     let pluginCount = 0;
     try {
@@ -5574,23 +5584,23 @@ function handleRegistrySync(name, options) {
       pluginCount = ((catParsed.catalog || {}).plugins || []).length;
     } catch (e) {}
 
-    console.log(`\n\x1b[32m✔ Registry '${name}' synced successfully!\x1b[0m`);
+    console.log(`\n\x1b[32mâœ” Registry '${name}' synced successfully!\x1b[0m`);
     console.log(`  Cache location:  .ai/registry-cache/${name}/`);
     console.log(`  Plugins cached:  ${pluginCount} entries`);
     console.log(`  Checksum status: VERIFIED (SHA256)`);
     console.log(`  Provenance:      ${signature ? 'SIGNED (HMAC-SHA256)' : 'Unsigned (no signing key)'}`);
     console.log(`  Last synced:     ${syncedAt}`);
     console.log(`\nNext steps:`);
-    console.log(`  • Browse:  npx multimodel-dev-os catalog list --source remote:${name}`);
-    console.log(`  • Verify:  npx multimodel-dev-os registry verify ${name}`);
-    console.log(`  • Lock:    npx multimodel-dev-os registry lock`);
-    console.log(`  • Install: npx multimodel-dev-os catalog install <slug> --approved\n`);
+    console.log(`  â€¢ Browse:  npx multimodel-dev-os catalog list --source remote:${name}`);
+    console.log(`  â€¢ Verify:  npx multimodel-dev-os registry verify ${name}`);
+    console.log(`  â€¢ Lock:    npx multimodel-dev-os registry lock`);
+    console.log(`  â€¢ Install: npx multimodel-dev-os catalog install <slug> --approved\n`);
   } catch (e) {
     console.error(`\n\x1b[31mSync failed: ${e.message}\x1b[0m`);
     console.log('\nPossible causes:');
-    console.log('  • Network unreachable or URL invalid');
-    console.log('  • Remote server returned an error');
-    console.log(`  • Check URL: ${catalogUrl}\n`);
+    console.log('  â€¢ Network unreachable or URL invalid');
+    console.log('  â€¢ Remote server returned an error');
+    console.log(`  â€¢ Check URL: ${catalogUrl}\n`);
     process.exit(1);
   }
 }
@@ -5620,7 +5630,7 @@ function handleRegistryStatus(options) {
     ? `\x1b[32mpresent\x1b[0m (${lockfileEntryCount} entr${lockfileEntryCount === 1 ? 'y' : 'ies'})`
     : '\x1b[90mnot present\x1b[0m';
 
-  console.log(`\n📊 \x1b[36mRegistry Status [v${version}]\x1b[0m`);
+  console.log(`\nðŸ“Š \x1b[36mRegistry Status [v${version}]\x1b[0m`);
   console.log('==================================================');
   console.log(`\x1b[33mPolicy State:\x1b[0m`);
   console.log(`  allow_remote_registries:    \x1b[${policy.allow_remote_registries ? '32mtrue' : '33mfalse'}\x1b[0m (Disabled by default)`);
@@ -5650,7 +5660,7 @@ function handleRegistryStatus(options) {
 
   console.log(`\n\x1b[33mSources:\x1b[0m`);
   sources.forEach(s => {
-    const status = s.enabled ? '\x1b[32m● enabled\x1b[0m' : '\x1b[90m○ disabled\x1b[0m';
+    const status = s.enabled ? '\x1b[32mâ— enabled\x1b[0m' : '\x1b[90mâ—‹ disabled\x1b[0m';
     const label = s.name === 'bundled' ? 'bundled' : s.type === 'local' ? `local:${s.name}` : `remote:${s.name}`;
     const synced = s.last_synced_at ? `synced: ${s.last_synced_at}` : 'never synced';
     const cacheDir = join(sourceRoot, '.ai', 'registry-cache', s.name);
@@ -5670,7 +5680,7 @@ function handleRegistryStatus(options) {
 }
 
 function handleRegistryVerify(name, options) {
-  console.log(`\n🔍 \x1b[36mVerifying Registry: ${name}\x1b[0m`);
+  console.log(`\nðŸ” \x1b[36mVerifying Registry: ${name}\x1b[0m`);
   console.log('==================================================');
 
   const projectDir = options.target || process.cwd();
@@ -5692,12 +5702,12 @@ function handleRegistryVerify(name, options) {
   if (isRemote) {
     try {
       validateRegistryUrl(url, policy);
-      urlValidationStatus = '\x1b[32m✓ Valid HTTPS\x1b[0m';
+      urlValidationStatus = '\x1b[32mâœ“ Valid HTTPS\x1b[0m';
     } catch (err) {
-      urlValidationStatus = `\x1b[31m✗ Invalid: ${err.message}\x1b[0m`;
+      urlValidationStatus = `\x1b[31mâœ— Invalid: ${err.message}\x1b[0m`;
     }
   } else {
-    urlValidationStatus = '\x1b[32m✓ Valid Local Path\x1b[0m';
+    urlValidationStatus = '\x1b[32mâœ“ Valid Local Path\x1b[0m';
   }
 
   let cacheDir;
@@ -5743,7 +5753,7 @@ function handleRegistryVerify(name, options) {
   let integrityVerified = true;
   if (!isBundled) {
     if (!existsSync(checksumPath)) {
-      console.log(`  \x1b[33m⚠ Checksums: Missing checksums.json in cache\x1b[0m`);
+      console.log(`  \x1b[33mâš  Checksums: Missing checksums.json in cache\x1b[0m`);
       integrityVerified = false;
     } else {
       try {
@@ -5751,23 +5761,23 @@ function handleRegistryVerify(name, options) {
         Object.entries(checksums).forEach(([file, expectedHash]) => {
           const filePath = join(cacheDir, file);
           if (!existsSync(filePath)) {
-            console.log(`  \x1b[31m✗ File missing in cache: ${file}\x1b[0m`);
+            console.log(`  \x1b[31mâœ— File missing in cache: ${file}\x1b[0m`);
             integrityVerified = false;
             return;
           }
           const content = readFileSync(filePath, 'utf8');
           const actualHash = `sha256:${computeSHA256(content)}`;
           if (actualHash === expectedHash) {
-            console.log(`  \x1b[32m✓ ${file}: VERIFIED (Integrity check matched via SHA-256)\x1b[0m`);
+            console.log(`  \x1b[32mâœ“ ${file}: VERIFIED (Integrity check matched via SHA-256)\x1b[0m`);
           } else {
-            console.log(`  \x1b[31m✗ ${file}: MISMATCH\x1b[0m`);
+            console.log(`  \x1b[31mâœ— ${file}: MISMATCH\x1b[0m`);
             console.log(`    Expected: ${expectedHash}`);
             console.log(`    Actual:   ${actualHash}`);
             integrityVerified = false;
           }
         });
       } catch (e) {
-        console.log(`  \x1b[31m✗ Integrity: Failed to verify checksums: ${e.message}\x1b[0m`);
+        console.log(`  \x1b[31mâœ— Integrity: Failed to verify checksums: ${e.message}\x1b[0m`);
         integrityVerified = false;
       }
     }
@@ -5785,33 +5795,33 @@ function handleRegistryVerify(name, options) {
 
     if (!lockEntry) {
       if (policy.require_lockfile_on_verify) {
-        provenanceStatus = `\x1b[31m✗ Failed (require_lockfile_on_verify is true but entry missing)\x1b[0m`;
+        provenanceStatus = `\x1b[31mâœ— Failed (require_lockfile_on_verify is true but entry missing)\x1b[0m`;
         lockfileVerdict = 'Failed';
       } else {
-        provenanceStatus = `\x1b[33m⚠ Missing provenance entry (no sync lock)\x1b[0m`;
+        provenanceStatus = `\x1b[33mâš  Missing provenance entry (no sync lock)\x1b[0m`;
         lockfileVerdict = 'Missing';
       }
     } else {
       let isProvMatch = true;
       if (catalogHash !== lockEntry.catalog_sha256) {
         isProvMatch = false;
-        console.log(`  \x1b[31m✗ Lockfile catalog hash mismatch: Expected ${lockEntry.catalog_sha256}, got ${catalogHash}\x1b[0m`);
+        console.log(`  \x1b[31mâœ— Lockfile catalog hash mismatch: Expected ${lockEntry.catalog_sha256}, got ${catalogHash}\x1b[0m`);
       }
       if (manifestHash !== 'N/A' && lockEntry.manifest_sha256 && manifestHash !== lockEntry.manifest_sha256) {
         isProvMatch = false;
-        console.log(`  \x1b[31m✗ Lockfile manifest hash mismatch: Expected ${lockEntry.manifest_sha256}, got ${manifestHash}\x1b[0m`);
+        console.log(`  \x1b[31mâœ— Lockfile manifest hash mismatch: Expected ${lockEntry.manifest_sha256}, got ${manifestHash}\x1b[0m`);
       }
       if (isProvMatch) {
-        provenanceStatus = `\x1b[32m✓ Matched lockfile entry\x1b[0m`;
+        provenanceStatus = `\x1b[32mâœ“ Matched lockfile entry\x1b[0m`;
         lockfileVerdict = 'Verified';
       } else {
-        provenanceStatus = `\x1b[31m✗ Tampering detected: hashes do not match lockfile\x1b[0m`;
+        provenanceStatus = `\x1b[31mâœ— Tampering detected: hashes do not match lockfile\x1b[0m`;
         lockfileVerdict = 'Tampered';
       }
     }
   } else {
     lockfileStatus = 'N/A (Bundled)';
-    provenanceStatus = '\x1b[32m✓ Implicit Trust\x1b[0m';
+    provenanceStatus = '\x1b[32mâœ“ Implicit Trust\x1b[0m';
     lockfileVerdict = 'Verified';
   }
 
@@ -5851,20 +5861,20 @@ function handleRegistryVerify(name, options) {
 
       const tk = trustedKeys.find(k => k.key_id === signatureKeyId);
       if (tk) {
-        trustedPublisherStatus = tk.status === 'active' ? `\x1b[32m✓ Trusted (${tk.name})\x1b[0m` : `\x1b[31m✗ ${tk.status} (${tk.name})\x1b[0m`;
+        trustedPublisherStatus = tk.status === 'active' ? `\x1b[32mâœ“ Trusted (${tk.name})\x1b[0m` : `\x1b[31mâœ— ${tk.status} (${tk.name})\x1b[0m`;
       } else {
-        trustedPublisherStatus = `\x1b[33m⚠ Unknown key_id (Not in trust store)\x1b[0m`;
+        trustedPublisherStatus = `\x1b[33mâš  Unknown key_id (Not in trust store)\x1b[0m`;
       }
 
       if (signatureResult.verified) {
-        signatureValidity = `\x1b[32m✓ Valid Signature\x1b[0m`;
+        signatureValidity = `\x1b[32mâœ“ Valid Signature\x1b[0m`;
       } else {
         const errorMsg = signatureResult.errors ? signatureResult.errors.join(', ') : (signatureResult.error || 'signature verification failed');
-        signatureValidity = `\x1b[31m✗ Invalid Signature (${errorMsg})\x1b[0m`;
+        signatureValidity = `\x1b[31mâœ— Invalid Signature (${errorMsg})\x1b[0m`;
       }
     } else {
       if (policy.require_signature || (isRemote && policy.allow_unsigned_remote === false)) {
-        signatureValidity = `\x1b[31m✗ Missing Signature (Enforced by policy)\x1b[0m`;
+        signatureValidity = `\x1b[31mâœ— Missing Signature (Enforced by policy)\x1b[0m`;
       } else {
         signatureValidity = `\x1b[90mUnsigned\x1b[0m`;
       }
@@ -5872,7 +5882,7 @@ function handleRegistryVerify(name, options) {
   } else {
     if (!isBundled && (policy.require_signature || (isRemote && policy.allow_unsigned_remote === false))) {
       signatureResult = { verified: false, error: 'Manifest missing but signature is required by policy.' };
-      signatureValidity = `\x1b[31m✗ Manifest missing (Enforced by policy)\x1b[0m`;
+      signatureValidity = `\x1b[31mâœ— Manifest missing (Enforced by policy)\x1b[0m`;
     } else {
       signatureValidity = `\x1b[90mUnsigned (No manifest)\x1b[0m`;
     }
@@ -5890,7 +5900,7 @@ function handleRegistryVerify(name, options) {
   console.log(`  Trusted Publisher:  ${trustedPublisherStatus}`);
   console.log(`  Signature Validity: ${signatureValidity}`);
 
-  let finalVerdict = '✗ Failed';
+  let finalVerdict = 'âœ— Failed';
   let passed = true;
 
   if (!integrityVerified) passed = false;
@@ -5900,11 +5910,11 @@ function handleRegistryVerify(name, options) {
 
   if (passed) {
     if (signatureResult.status === 'verified') {
-      finalVerdict = `\x1b[32m✓ Verified (Signature matches trusted key)\x1b[0m`;
+      finalVerdict = `\x1b[32mâœ“ Verified (Signature matches trusted key)\x1b[0m`;
     } else if (isBundled || isLocal) {
-      finalVerdict = `\x1b[32m✓ Verified (Implicit local trust)\x1b[0m`;
+      finalVerdict = `\x1b[32mâœ“ Verified (Implicit local trust)\x1b[0m`;
     } else {
-      finalVerdict = `\x1b[33m⚠ Unsigned (Allowed by policy)\x1b[0m`;
+      finalVerdict = `\x1b[33mâš  Unsigned (Allowed by policy)\x1b[0m`;
     }
   } else {
     const reason = !integrityVerified
@@ -5912,7 +5922,7 @@ function handleRegistryVerify(name, options) {
       : (lockfileVerdict === 'Tampered'
         ? 'Lockfile tampering detected'
         : (signatureResult.error || (signatureResult.errors && signatureResult.errors.join(', ')) || 'Signature verification failed'));
-    finalVerdict = `\x1b[31m✗ Failed (${reason})\x1b[0m`;
+    finalVerdict = `\x1b[31mâœ— Failed (${reason})\x1b[0m`;
   }
 
   console.log(`  Final Trust:        ${finalVerdict}`);
@@ -5923,7 +5933,7 @@ function handleRegistryVerify(name, options) {
     const pluginCount = ((parsed.catalog || {}).plugins || []).length;
     console.log(`  Plugins Parsed:     ${pluginCount} entries`);
   } catch (e) {
-    console.error(`\x1b[31m✗ Catalog parsing failed: ${e.message}\x1b[0m`);
+    console.error(`\x1b[31mâœ— Catalog parsing failed: ${e.message}\x1b[0m`);
     process.exit(1);
   }
 
@@ -5951,9 +5961,9 @@ function handleRegistryVerify(name, options) {
   }
 
   if (passed) {
-    console.log(`\n\x1b[32m✔ Registry '${name}' verification passed.\x1b[0m\n`);
+    console.log(`\n\x1b[32mâœ” Registry '${name}' verification passed.\x1b[0m\n`);
   } else {
-    console.error(`\n\x1b[31m✗ Registry '${name}' verification failed.\x1b[0m\n`);
+    console.error(`\n\x1b[31mâœ— Registry '${name}' verification failed.\x1b[0m\n`);
     process.exit(1);
   }
 }
@@ -5963,7 +5973,7 @@ function handleRegistryTrustList(options) {
   const policy = loadRegistryPolicy(projectDir);
   const keys = loadTrustedKeys(projectDir, policy);
 
-  console.log(`\n🔑 \x1b[36mRegistry Trust Store — Trusted Keys\x1b[0m`);
+  console.log(`\nðŸ”‘ \x1b[36mRegistry Trust Store â€” Trusted Keys\x1b[0m`);
   console.log('==================================================');
   console.log(`Trust Store Path: \x1b[36m${policy.trusted_keys_file || '.ai/registries/trusted-keys.yaml'}\x1b[0m`);
   console.log(`Total Keys:       ${keys.length}\n`);
@@ -5972,7 +5982,7 @@ function handleRegistryTrustList(options) {
     console.log('  No trusted keys configured.');
   } else {
     keys.forEach(k => {
-      const statusBadge = k.status === 'active' ? '\x1b[32m● active\x1b[0m' : `\x1b[31m○ ${k.status}\x1b[0m`;
+      const statusBadge = k.status === 'active' ? '\x1b[32mâ— active\x1b[0m' : `\x1b[31mâ—‹ ${k.status}\x1b[0m`;
       console.log(`  * \x1b[33m${k.key_id}\x1b[0m  [${statusBadge}]`);
       console.log(`    Publisher: ${k.name}`);
       console.log(`    Algorithm: ${k.algorithm}`);
@@ -5993,7 +6003,7 @@ function handleRegistryTrustShow(keyId, options) {
     process.exit(1);
   }
 
-  console.log(`\n🔑 \x1b[36mTrusted Key: ${keyId}\x1b[0m`);
+  console.log(`\nðŸ”‘ \x1b[36mTrusted Key: ${keyId}\x1b[0m`);
   console.log('==================================================');
   console.log(`\x1b[33mKey ID:\x1b[0m         ${k.key_id}`);
   console.log(`\x1b[33mPublisher:\x1b[0m      ${k.name}`);
@@ -6009,28 +6019,165 @@ function handleRegistryTrustVerify(options) {
   const policy = loadRegistryPolicy(projectDir);
   const keys = loadTrustedKeys(projectDir, policy);
 
-  console.log(`\n🔑 \x1b[36mVerifying Trust Store Integrity...\x1b[0m`);
+  console.log(`\nðŸ”‘ \x1b[36mVerifying Trust Store Integrity...\x1b[0m`);
   console.log('==================================================');
 
   let passed = true;
   keys.forEach(k => {
     try {
       normalizePublicKey(k.public_key);
-      console.log(`  \x1b[32m✓\x1b[0m Key '${k.key_id}' public key format is valid.`);
+      console.log(`  \x1b[32mâœ“\x1b[0m Key '${k.key_id}' public key format is valid.`);
     } catch (e) {
-      console.log(`  \x1b[31m✗\x1b[0m Key '${k.key_id}' public key format error: ${e.message}`);
+      console.log(`  \x1b[31mâœ—\x1b[0m Key '${k.key_id}' public key format error: ${e.message}`);
       passed = false;
     }
   });
 
   if (passed) {
-    console.log(`\n\x1b[32m✔ Trust store verification passed.\x1b[0m\n`);
+    console.log(`\n\x1b[32mâœ” Trust store verification passed.\x1b[0m\n`);
   } else {
-    console.error(`\n\x1b[31m✗ Trust store verification failed.\x1b[0m\n`);
+    console.error(`\n\x1b[31mâœ— Trust store verification failed.\x1b[0m\n`);
     process.exit(1);
   }
 }
 
+
+/**
+ * registry trust add [<url>] --name <name> [--key-id <id>] [--algorithm ed25519]
+ *                    [--scopes registry,catalog] [--public-key <pem>] --approved
+ *
+ * Two modes:
+ *   1. Remote fetch: provide a URL as the 4th positional arg - fetches from HTTPS
+ *   2. Manual:      provide --public-key directly (no URL argument)
+ */
+async function handleRegistryTrustAdd(options) {
+  const projectDir = options.target || process.cwd();
+
+  if (!options.approved) {
+    console.error('\x1b[31mError: Adding a trusted key requires --approved.\x1b[0m');
+    console.log('Review the key details carefully before approving:');
+    console.log('  Remote:  node bin/multimodel-dev-os.js registry trust add https://example.com/pub.key --name "Publisher" --approved');
+    console.log('  Manual:  node bin/multimodel-dev-os.js registry trust add --key-id my-key --name "Publisher" --public-key "MCow..." --approved');
+    process.exit(1);
+  }
+
+  const positionalArgs = params.positional || [];
+  const urlOrKeyArg = positionalArgs[3];
+
+  const keyId = options['key-id'] || options.keyId;
+  const name = options.name;
+  const algorithm = options.algorithm || 'ed25519';
+  const scopesRaw = options.scopes || 'registry';
+  const scopes = scopesRaw.split(',').map(s => s.trim()).filter(Boolean);
+  const status = options.status || 'active';
+
+  let publicKey = options['public-key'] || options.publicKey;
+  let remoteSourceUrl;
+
+  if (urlOrKeyArg && (urlOrKeyArg.startsWith('https://') || urlOrKeyArg.startsWith('http://'))) {
+    remoteSourceUrl = urlOrKeyArg;
+    console.log(`\n\x1b[36mFetching public key from remote URL...\x1b[0m`);
+    console.log(`  URL: \x1b[33m${remoteSourceUrl}\x1b[0m`);
+    try {
+      const policy = loadRegistryPolicy(projectDir);
+      const allowHttp = policy.allow_http_localhost || false;
+      publicKey = await fetchRemotePublicKey(remoteSourceUrl, { allowHttp });
+      console.log(`\n  \x1b[32m[OK]\x1b[0m Key fetched (${Buffer.byteLength(publicKey, 'utf8')} bytes)`);
+      console.log(`\n  Key preview:`);
+      console.log(`  ${publicKey.slice(0, 80)}${publicKey.length > 80 ? '...' : ''}`);
+    } catch (err) {
+      console.error(`\x1b[31mError: Failed to fetch remote public key: ${err.message}\x1b[0m`);
+      process.exit(1);
+    }
+  }
+
+  if (!publicKey) {
+    console.error('\x1b[31mError: No public key provided. Provide a URL or --public-key.\x1b[0m');
+    console.log('Examples:');
+    console.log('  Remote: node bin/multimodel-dev-os.js registry trust add https://example.com/pub.key --name "Publisher" --approved');
+    console.log('  Manual: node bin/multimodel-dev-os.js registry trust add --key-id my-key --name "Publisher" --public-key "MCow..." --approved');
+    process.exit(1);
+  }
+
+  if (!name) {
+    console.error('\x1b[31mError: --name is required when adding a trusted key.\x1b[0m');
+    console.log('Example: --name "Official Publisher"');
+    process.exit(1);
+  }
+
+  const resolvedKeyId = keyId || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+  const entry = { key_id: resolvedKeyId, name, algorithm, public_key: publicKey, scopes, status };
+  if (remoteSourceUrl) entry.remote_source_url = remoteSourceUrl;
+
+  console.log(`\n\x1b[36mAdding Trusted Key to Trust Store\x1b[0m`);
+  console.log('==================================================');
+  console.log(`  Key ID:    \x1b[33m${resolvedKeyId}\x1b[0m`);
+  console.log(`  Publisher: ${name}`);
+  console.log(`  Algorithm: ${algorithm}`);
+  console.log(`  Scopes:    ${scopes.join(', ')}`);
+  console.log(`  Status:    ${status}`);
+  if (remoteSourceUrl) console.log(`  Source:    ${remoteSourceUrl}`);
+
+  const result = addTrustedKey(projectDir, entry);
+  if (!result.added) {
+    console.error(`\x1b[31mError: ${result.error}\x1b[0m`);
+    process.exit(1);
+  }
+
+  const filePath = getTrustStorePath(projectDir);
+  console.log(`\n\x1b[32mTrusted key '${resolvedKeyId}' added successfully.\x1b[0m`);
+  console.log(`  Written to: ${filePath}`);
+  console.log(`\nNext steps:`);
+  console.log(`  * Run 'registry trust list' to confirm the key is listed.`);
+  console.log(`  * Run 'registry trust verify' to validate all key formats.`);
+  console.log(`  * Commit .ai/registries/trusted-keys.yaml to version control.\n`);
+}
+
+/**
+ * registry trust remove <key-id> --approved
+ *
+ * Removes a trusted key by key_id. Requires --approved.
+ */
+function handleRegistryTrustRemove(keyId, options) {
+  const projectDir = options.target || process.cwd();
+
+  if (!options.approved) {
+    console.error('\x1b[31mError: Removing a trusted key requires --approved.\x1b[0m');
+    console.log(`Example: node bin/multimodel-dev-os.js registry trust remove ${keyId} --approved`);
+    process.exit(1);
+  }
+
+  const policy = loadRegistryPolicy(projectDir);
+  const keys = loadTrustedKeys(projectDir, policy);
+  const existing = keys.find(k => k.key_id === keyId);
+
+  if (!existing) {
+    console.error(`\x1b[31mError: Key ID '${keyId}' not found in the trust store.\x1b[0m`);
+    console.log('Run registry trust list to see all configured keys.');
+    process.exit(1);
+  }
+
+  console.log(`\n\x1b[36mRemoving Trusted Key\x1b[0m`);
+  console.log('==================================================');
+  console.log(`  Key ID:    \x1b[33m${existing.key_id}\x1b[0m`);
+  console.log(`  Publisher: ${existing.name}`);
+  console.log(`  Algorithm: ${existing.algorithm}`);
+  console.log(`  Status:    ${existing.status}`);
+
+  const result = removeTrustedKey(projectDir, keyId, policy);
+  if (!result.removed) {
+    console.error(`\x1b[31mError: ${result.error}\x1b[0m`);
+    process.exit(1);
+  }
+
+  const filePath = getTrustStorePath(projectDir, policy);
+  console.log(`\n\x1b[32mTrusted key '${keyId}' removed from the trust store.\x1b[0m`);
+  console.log(`  Updated:   ${filePath}`);
+  console.log(`\nWarning: Registries signed by this key will no longer verify.`);
+  console.log(`  Run 'registry verify <name>' to check affected registries.`);
+  console.log(`  Commit .ai/registries/trusted-keys.yaml to propagate the change.\n`);
+}
 function handleRegistryShow(name, options) {
   const sources = loadRegistrySources();
   const source = sources.find(s => s.name === name);
@@ -6061,7 +6208,7 @@ function handleRegistryShow(name, options) {
 
   const label = source.name === 'bundled' ? 'bundled' : source.type === 'local' ? `local:${source.name}` : `remote:${source.name}`;
 
-  console.log(`\n🔍 \x1b[36mRegistry Source: ${name}\x1b[0m`);
+  console.log(`\nðŸ” \x1b[36mRegistry Source: ${name}\x1b[0m`);
   console.log('==================================================');
   console.log(`\x1b[33mName:\x1b[0m           ${source.name}`);
   console.log(`\x1b[33mSource Label:\x1b[0m   ${label}`);
@@ -6151,7 +6298,7 @@ function handleRegistryCacheClear(options) {
     } catch (e) {}
   });
 
-  console.log(`\n\x1b[32m✔ Registry cache cleared.\x1b[0m`);
+  console.log(`\n\x1b[32mâœ” Registry cache cleared.\x1b[0m`);
   console.log(`  Directories processed: ${cleared}`);
   console.log(`  Cache root: .ai/registry-cache/\n`);
 }
@@ -6162,7 +6309,7 @@ function handleRegistryKeygen(options) {
   const projectDir = options.target || process.cwd();
   const keyPath = getSigningKeyPath(projectDir);
 
-  console.log(`\n🔑 \x1b[36mRegistry Signing Key Generator\x1b[0m`);
+  console.log(`\nðŸ”‘ \x1b[36mRegistry Signing Key Generator\x1b[0m`);
   console.log('==================================================');
 
   if (!options.approved) {
@@ -6171,9 +6318,9 @@ function handleRegistryKeygen(options) {
     console.log(`  Destination: ${keyPath}`);
     console.log(`  Mode:        0o600 (owner read/write only)`);
     console.log(`\n\x1b[33mSecurity Notes:\x1b[0m`);
-    console.log(`  • Add .ai/registry-signing-key to your .gitignore`);
-    console.log(`  • Share the key securely with trusted team members for co-verification`);
-    console.log(`  • The key is used for HMAC-SHA256 signing of catalog checksums only`);
+    console.log(`  â€¢ Add .ai/registry-signing-key to your .gitignore`);
+    console.log(`  â€¢ Share the key securely with trusted team members for co-verification`);
+    console.log(`  â€¢ The key is used for HMAC-SHA256 signing of catalog checksums only`);
     console.log(`\nTo generate, run:`);
     console.log(`  \x1b[36mnpx multimodel-dev-os registry keygen --approved\x1b[0m\n`);
     process.exit(1);
@@ -6196,7 +6343,7 @@ function handleRegistryKeygen(options) {
   const newKey = generateSigningKey();
   saveSigningKey(projectDir, newKey);
 
-  console.log(`\n\x1b[32m✔ Signing key generated successfully!\x1b[0m`);
+  console.log(`\n\x1b[32mâœ” Signing key generated successfully!\x1b[0m`);
   console.log(`  Location: ${keyPath}`);
   console.log(`  Mode:     0o600 (restricted permissions)`);
   console.log(`\n\x1b[33mNext steps:\x1b[0m`);
@@ -6211,7 +6358,7 @@ function handleRegistryLock(options) {
   const projectDir = options.target || process.cwd();
   const lockfilePath = getLockfilePath(projectDir);
 
-  console.log(`\n🔒 \x1b[36mRegistry Provenance Lockfile\x1b[0m`);
+  console.log(`\nðŸ”’ \x1b[36mRegistry Provenance Lockfile\x1b[0m`);
   console.log('==================================================');
 
   if (!existsSync(lockfilePath)) {
@@ -6242,7 +6389,7 @@ function handleRegistryLock(options) {
 
   entries.forEach(([name, entry]) => {
     const sigBadge = entry.signature
-      ? `\x1b[32m[SIGNED — HMAC-SHA256]\x1b[0m`
+      ? `\x1b[32m[SIGNED â€” HMAC-SHA256]\x1b[0m`
       : `\x1b[33m[UNSIGNED]\x1b[0m`;
     console.log(`  \x1b[32m${name}\x1b[0m  ${sigBadge}`);
     console.log(`    URL:             ${entry.url}`);

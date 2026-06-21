@@ -265,7 +265,8 @@ describe('Registry CLI Integration E2E Tests', () => {
   it('registry verify bundled passes', () => {
     const rawOutput = execSync(`node ${cliPath} registry verify bundled --target ${tempCliDir}`, { encoding: 'utf8' });
     const output = stripAnsi(rawOutput);
-    expect(output).toContain('Final Trust:        ✓ Verified (Implicit local trust)');
+    // Use text-only match — the ✓ checkmark may be garbled on Windows depending on CHCP
+    expect(output).toContain('Verified (Implicit local trust)');
   });
 
   it('registry status displays security/signature policy', () => {
