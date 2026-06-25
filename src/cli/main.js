@@ -80,12 +80,35 @@ import {
   handleScan,
   handleStatus
 } from './handlers/inspection.js';
+import {
+  diffMemory,
+  handleMemoryBuild,
+  handleMemoryRefresh,
+  handleMemoryDiff
+} from './handlers/memory.js';
+import {
+  handleFeedbackAdd,
+  handleFeedbackList,
+  handleFeedbackSummarize
+} from './handlers/feedback.js';
+import {
+  handleHandoffBuild,
+  handleHandoffShow
+} from './handlers/handoff.js';
 
 const ARGS = process.argv.slice(2);
 const params = parseArgs(ARGS);
 const COMMAND = params.command;
 
 const ADAPTERS = loadAdapters(params.registry);
+
+const boundDiffMemory = (target) => diffMemory(target, {
+  scanTarget,
+  detectFrameworkSignals,
+  detectDependencySignals,
+  detectAiDevOsSignals,
+  detectRisks
+});
 
 if (params.help || !COMMAND) {
   showHelp();
@@ -105,12 +128,13 @@ if (COMMAND === 'init') {
   handleScan(params, { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks });
 } else if (COMMAND === 'memory') {
   const sub = ARGS[1];
+  const injects = { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks };
   if (sub === 'build') {
-    handleMemoryBuild(params);
+    handleMemoryBuild(params, injects);
   } else if (sub === 'refresh') {
-    handleMemoryRefresh(params);
+    handleMemoryRefresh(params, injects);
   } else if (sub === 'diff') {
-    handleMemoryDiff(params);
+    handleMemoryDiff(params, injects);
   } else {
     console.error(`\x1b[31mError: Please specify a memory subcommand: build, refresh, or diff.\x1b[0m`);
     console.error(`Example: node bin/multimodel-dev-os.js memory build`);
@@ -179,7 +203,7 @@ if (COMMAND === 'init') {
   }
   handleShowTemplate(tName, params);
 } else if (COMMAND === 'doctor') {
-  handleDoctor(params, { scanTarget, detectDependencySignals, getAnalysis, diffMemory });
+  handleDoctor(params, { scanTarget, detectDependencySignals, getAnalysis, diffMemory: boundDiffMemory });
 } else if (COMMAND === 'validate') {
   handleValidate(params);
 } else if (COMMAND === 'validate-template') {
@@ -240,7 +264,7 @@ if (COMMAND === 'init') {
   }
   handleShowSkill(sName, params);
 } else if (COMMAND === 'status') {
-  handleStatus(params, { scanTarget, detectFrameworkSignals, detectDependencySignals, diffMemory });
+  handleStatus(params, { scanTarget, detectFrameworkSignals, detectDependencySignals, diffMemory: boundDiffMemory });
 } else if (COMMAND === 'workflow') {
   const positional = getPositionalArgs(ARGS);
   const sub = positional[1];
@@ -278,10 +302,11 @@ if (COMMAND === 'init') {
 } else if (COMMAND === 'handoff') {
   const positional = getPositionalArgs(ARGS);
   const sub = positional[1];
+  const injects = { scanTarget, detectFrameworkSignals, detectDependencySignals, diffMemory: boundDiffMemory };
   if (sub === 'build') {
-    handleHandoffBuild(params);
+    handleHandoffBuild(params, injects);
   } else if (sub === 'show') {
-    handleHandoffShow(params);
+    handleHandoffShow(params, injects);
   } else {
     console.error('\x1b[31mError: Please specify a handoff subcommand: build or show.\x1b[0m');
     console.log('Example: node bin/multimodel-dev-os.js handoff build');
@@ -805,372 +830,6 @@ function detectRisks(files, targetDir) {
   });
   
   return risks;
-}
-
-function buildMemoryIndex(targetDir) {
-  const { files, ignoredCount } = scanTarget(targetDir);
-  const framework_signals = detectFrameworkSignals(files, targetDir);
-  const dependency_signals = detectDependencySignals(files, targetDir);
-  const ai_dev_os_signals = detectAiDevOsSignals(files);
-  const risks = detectRisks(files, targetDir);
-  
-  const file_fingerprints = {};
-  files.forEach(f => {
-    file_fingerprints[f.relPath] = {
-      hash: hashFile(f.fullPath),
-      size: f.size,
-      last_modified: f.mtime
-    };
-  });
-  
-  const recommended_next_steps = [];
-  if (ai_dev_os_signals.length === 0) {
-    recommended_next_steps.push('Run init to bootstrap MultiModel Dev OS.');
-  }
-  if (risks.some(r => r.severity === 'high')) {
-    recommended_next_steps.push('Address Gitignore configuration to exclude large directories (node_modules/ or build artifacts).');
-  }
-  recommended_next_steps.push('Use validate or doctor to check structural integrity.');
-  recommended_next_steps.push('Commit the .ai/ intelligence policies to share constraints across AI agents.');
-  
-  return {
-    generated_at: new Date().toISOString(),
-    project_root: targetDir.replace(/\\/g, '/'),
-    file_count: files.length,
-    ignored_count: ignoredCount,
-    file_fingerprints,
-    framework_signals,
-    dependency_signals,
-    ai_dev_os_signals,
-    risks,
-    recommended_next_steps
-  };
-}
-
-function writeMemoryFiles(targetDir, index) {
-  const intelDir = join(targetDir, '.ai', 'intelligence');
-  if (!existsSync(intelDir)) {
-    mkdirSync(intelDir, { recursive: true });
-  }
-  
-  const hashJsonPath = join(intelDir, 'memory.hash.json');
-  writeFileSync(hashJsonPath, JSON.stringify(index, null, 2), 'utf8');
-  
-  const summaryMdPath = join(intelDir, 'memory.summary.md');
-  
-  let md = `# MultiModel Dev OS Repository Memory Summary\n\n`;
-  md += `**Generated At:** ${index.generated_at}\n`;
-  md += `**Project Root:** ${index.project_root}\n`;
-  md += `**Total Files:** ${index.file_count} (Ignored: ${index.ignored_count})\n\n`;
-  
-  md += `## Framework & Environment Signals\n`;
-  md += `- **Frameworks/Languages:** ${index.framework_signals.join(', ') || 'None'}\n`;
-  md += `- **Package Manager/Build:** ${index.dependency_signals.join(', ') || 'None'}\n`;
-  md += `- **AI Dev OS Integration:** ${index.ai_dev_os_signals.join(', ') || 'None'}\n\n`;
-  
-  md += `## Codebase Fingerprints\n`;
-  md += `| File Path | Size (Bytes) | Hash (SHA-256) |\n`;
-  md += `|---|---|---|\n`;
-  
-  const entries = Object.entries(index.file_fingerprints);
-  entries.forEach(([filePath, fp]) => {
-    md += `| ${filePath} | ${fp.size} | \`${fp.hash.substring(0, 12)}...\` |\n`;
-  });
-  md += `\n`;
-  
-  if (index.risks.length > 0) {
-    md += `## Detected Risks\n`;
-    index.risks.forEach(r => {
-      md += `- **[${r.severity.toUpperCase()}]** \`${r.file_pattern}\`: ${r.risk_description}\n`;
-    });
-    md += `\n`;
-  }
-  
-  md += `## Recommended Next Steps\n`;
-  index.recommended_next_steps.forEach(step => {
-    md += `- ${step}\n`;
-  });
-  
-  writeFileSync(summaryMdPath, md, 'utf8');
-}
-
-function diffMemory(targetDir) {
-  const hashJsonPath = join(targetDir, '.ai', 'intelligence', 'memory.hash.json');
-  if (!existsSync(hashJsonPath)) {
-    return null;
-  }
-  
-  let existing;
-  try {
-    existing = JSON.parse(readFileSync(hashJsonPath, 'utf8'));
-  } catch (e) {
-    return null;
-  }
-  
-  const currentScan = buildMemoryIndex(targetDir);
-  
-  const added = [];
-  const removed = [];
-  const changed = [];
-  let unchangedCount = 0;
-  
-  const currentFp = currentScan.file_fingerprints;
-  const existingFp = existing.file_fingerprints || {};
-  
-  Object.keys(currentFp).forEach(file => {
-    if (!existingFp[file]) {
-      added.push(file);
-    } else if (existingFp[file].hash !== currentFp[file].hash || existingFp[file].size !== currentFp[file].size) {
-      changed.push(file);
-    } else {
-      unchangedCount++;
-    }
-  });
-  
-  Object.keys(existingFp).forEach(file => {
-    if (!currentFp[file]) {
-      removed.push(file);
-    }
-  });
-  
-  return { added, removed, changed, unchangedCount, currentScan };
-}
-
-
-function handleMemoryBuild(options) {
-  console.log(`\nðŸ§  \x1b[36mBuilding Codebase Memory in: ${options.target}\x1b[0m`);
-  console.log('==================================================');
-  
-  const index = buildMemoryIndex(options.target);
-  writeMemoryFiles(options.target, index);
-  
-  console.log(`  \x1b[32mCREATE:\x1b[0m .ai/intelligence/memory.hash.json`);
-  console.log(`  \x1b[32mCREATE:\x1b[0m .ai/intelligence/memory.summary.md`);
-  console.log(`\nâœ” Memory index built successfully! [Files indexed: ${index.file_count}]`);
-  
-  console.log(`\n\x1b[33mRecommended Next Steps:\x1b[0m`);
-  index.recommended_next_steps.forEach(step => console.log(`  - ${step}`));
-  console.log();
-}
-
-function handleMemoryRefresh(options) {
-  console.log(`\nðŸ§  \x1b[36mRefreshing Codebase Memory in: ${options.target}\x1b[0m`);
-  console.log('==================================================');
-  
-  const diff = diffMemory(options.target);
-  if (!diff) {
-    console.log('  No existing memory index found. Building fresh index...');
-    handleMemoryBuild(options);
-    return;
-  }
-  
-  writeMemoryFiles(options.target, diff.currentScan);
-  
-  console.log(`  \x1b[32mUPDATE:\x1b[0m .ai/intelligence/memory.hash.json`);
-  console.log(`  \x1b[32mUPDATE:\x1b[0m .ai/intelligence/memory.summary.md`);
-  
-  console.log(`\nâœ” Memory index refreshed successfully!`);
-  console.log(`  Added:     ${diff.added.length}`);
-  console.log(`  Removed:   ${diff.removed.length}`);
-  console.log(`  Changed:   ${diff.changed.length}`);
-  console.log(`  Unchanged: ${diff.unchangedCount}`);
-  console.log();
-}
-
-function handleMemoryDiff(options) {
-  console.log(`\nðŸ§  \x1b[36mDiffing Codebase State against Memory in: ${options.target}\x1b[0m`);
-  console.log('==================================================');
-  
-  const diff = diffMemory(options.target);
-  if (!diff) {
-    console.error(`\x1b[31mError: No existing memory index found. Run 'memory build' first.\x1b[0m\n`);
-    if (options && options.noExit) return false;
-    process.exit(1);
-  }
-  
-  console.log(`\n\x1b[33mMemory Diff Summary:\x1b[0m`);
-  console.log(`  Added Files:   ${diff.added.length}`);
-  console.log(`  Removed Files: ${diff.removed.length}`);
-  console.log(`  Changed Files: ${diff.changed.length}`);
-  console.log(`  Unchanged:     ${diff.unchangedCount}`);
-  
-  if (diff.added.length > 0) {
-    console.log(`\n\x1b[32mAdded Files:\x1b[0m`);
-    diff.added.forEach(f => console.log(`  + ${f}`));
-  }
-  if (diff.removed.length > 0) {
-    console.log(`\n\x1b[31mRemoved Files:\x1b[0m`);
-    diff.removed.forEach(f => console.log(`  - ${f}`));
-  }
-  if (diff.changed.length > 0) {
-    console.log(`\n\x1b[33mChanged Files:\x1b[0m`);
-    diff.changed.forEach(f => console.log(`  M ${f}`));
-  }
-  
-  console.log();
-}
-
-function handleFeedbackAdd(options) {
-  const intelDir = join(options.target, '.ai', 'intelligence');
-  if (!options.dryRun && !existsSync(intelDir)) {
-    mkdirSync(intelDir, { recursive: true });
-  }
-
-  const addIdx = process.argv.indexOf('add');
-  const text = (addIdx !== -1 && process.argv[addIdx + 1] && !process.argv[addIdx + 1].startsWith('-')) ? process.argv[addIdx + 1] : null;
-
-  if (!text) {
-    console.error(`\x1b[31mError: Please provide feedback text.\x1b[0m`);
-    console.log(`Example: node bin/multimodel-dev-os.js feedback add "Prefer CSS modules"`);
-    process.exit(1);
-  }
-
-  const uuid = createHash('md5').update(new Date().toISOString() + Math.random().toString()).digest('hex').substring(0, 16);
-  const tagsStr = options.tags || '';
-  const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()) : [];
-  const filesStr = options.files || '';
-  const related_files = filesStr ? filesStr.split(',').map(f => f.trim()) : [];
-
-  const rawRecord = {
-    id: `fb-${uuid}`,
-    created_at: new Date().toISOString(),
-    source: 'user',
-    type: options.type || 'unknown',
-    text: text,
-    tags: tags,
-    related_files: related_files
-  };
-
-  rawRecord.hash = createHash('sha256').update(JSON.stringify(rawRecord)).digest('hex');
-
-  const recordLine = JSON.stringify(rawRecord) + '\n';
-  const feedbackLogPath = join(intelDir, 'feedback-log.jsonl');
-
-  if (options.dryRun) {
-    console.log(`\x1b[36m[DRY-RUN] WOULD APPEND TO ${feedbackLogPath}:\x1b[0m`);
-    console.log(recordLine.trim());
-  } else {
-    try {
-      let isDuplicate = false;
-      if (existsSync(feedbackLogPath)) {
-        const lines = readFileSync(feedbackLogPath, 'utf8').split('\n');
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-            const entry = JSON.parse(line);
-            if (entry.text === text && JSON.stringify(entry.related_files) === JSON.stringify(related_files)) {
-              isDuplicate = true;
-              break;
-            }
-          } catch (e) {}
-        }
-      }
-      if (isDuplicate) {
-        console.log(`\x1b[33mFeedback already exists. Skipping duplicate entry.\x1b[0m`);
-        return;
-      }
-
-      writeFileSync(feedbackLogPath, recordLine, { flag: 'a', encoding: 'utf8' });
-      console.log(`âœ” Feedback successfully added (ID: ${rawRecord.id})`);
-    } catch (e) {
-      console.error(`\x1b[31mError: Failed to write to feedback-log.jsonl: ${e.message}\x1b[0m`);
-      process.exit(1);
-    }
-  }
-}
-
-function handleFeedbackList(options) {
-  const feedbackLogPath = join(options.target, '.ai', 'intelligence', 'feedback-log.jsonl');
-  if (!existsSync(feedbackLogPath)) {
-    console.log('No feedback logged yet.');
-    return;
-  }
-
-  try {
-    const content = readFileSync(feedbackLogPath, 'utf8');
-    const lines = content.split('\n').filter(l => l.trim() !== '');
-    if (lines.length === 0) {
-      console.log('No feedback logged yet.');
-      return;
-    }
-
-    console.log(`\nðŸ§  \x1b[36mLogged Feedback Entries\x1b[0m`);
-    console.log('==================================================');
-    lines.forEach(line => {
-      try {
-        const entry = JSON.parse(line);
-        console.log(`\n\x1b[32m* [${entry.type || 'unknown'}] (${entry.id})\x1b[0m`);
-        console.log(`  \x1b[37mText:\x1b[0m ${entry.text}`);
-        if (entry.tags && entry.tags.length > 0) {
-          console.log(`  \x1b[33mTags:\x1b[0m ${entry.tags.join(', ')}`);
-        }
-        if (entry.related_files && entry.related_files.length > 0) {
-          console.log(`  \x1b[33mFiles:\x1b[0m ${entry.related_files.join(', ')}`);
-        }
-        console.log(`  \x1b[33mLogged:\x1b[0m ${entry.created_at}`);
-      } catch (e) {}
-    });
-    console.log();
-  } catch (e) {
-    console.error(`\x1b[31mError: Failed to read feedback log: ${e.message}\x1b[0m`);
-    process.exit(1);
-  }
-}
-
-function handleFeedbackSummarize(options) {
-  const intelDir = join(options.target, '.ai', 'intelligence');
-  const feedbackLogPath = join(intelDir, 'feedback-log.jsonl');
-  if (!existsSync(feedbackLogPath)) {
-    console.log('No feedback logs found to compile.');
-    return;
-  }
-
-  try {
-    const content = readFileSync(feedbackLogPath, 'utf8');
-    const lines = content.split('\n').filter(l => l.trim() !== '');
-    if (lines.length === 0) {
-      console.log('No feedback logs found to compile.');
-      return;
-    }
-
-    const categories = {};
-    lines.forEach(line => {
-      try {
-        const entry = JSON.parse(line);
-        const cat = entry.type || 'general';
-        if (!categories[cat]) categories[cat] = [];
-        categories[cat].push(entry);
-      } catch (e) {}
-    });
-
-    let md = `# Compiled Learning Rules\n\n`;
-    md += `*Generated automatically by MultiModel Dev OS. Do not modify manually.*\n\n`;
-    md += `**Last compiled:** ${new Date().toISOString()}\n`;
-    md += `**Total source feedback items:** ${lines.length}\n\n`;
-    md += `## Active Instructions\n\n`;
-
-    Object.keys(categories).forEach(cat => {
-      md += `### Category: ${cat}\n`;
-      categories[cat].forEach(entry => {
-        const pattern = entry.related_files && entry.related_files.length > 0 ? entry.related_files.join(', ') : '*';
-        md += `*   **Pattern:** \`${pattern}\`\n`;
-        md += `    *   **Rule:** ${entry.text}\n`;
-        md += `    *   **Source ID:** \`${entry.id}\`\n\n`;
-      });
-    });
-
-    const targetRulesPath = join(intelDir, 'learning-rules.md');
-    if (options.dryRun) {
-      console.log(`\x1b[36m[DRY-RUN] WOULD WRITE TO ${targetRulesPath}:\x1b[0m`);
-      console.log(md);
-    } else {
-      writeFileSync(targetRulesPath, md, 'utf8');
-      console.log(`âœ” Compiled ${lines.length} feedback items into learning rules in .ai/intelligence/learning-rules.md`);
-    }
-  } catch (e) {
-    console.error(`\x1b[31mError: Failed to compile learning rules: ${e.message}\x1b[0m`);
-    process.exit(1);
-  }
 }
 
 function handleImprovePropose(options) {
@@ -2145,12 +1804,12 @@ function handleWorkflowRun(wName, options) {
 
     const steps = wf.steps || [];
     const safeCommands = {
-      'scan': () => handleScan(options),
-      'doctor': () => handleDoctor(options),
+      'scan': () => handleScan(options, { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks }),
+      'doctor': () => handleDoctor(options, { scanTarget, detectDependencySignals, getAnalysis, diffMemory: boundDiffMemory }),
       'verify': () => handleVerify({ ...options, noExit: true }),
-      'memory diff': () => handleMemoryDiff({ ...options, noExit: true }),
-      'memory refresh': () => handleMemoryRefresh(options),
-      'memory build': () => handleMemoryBuild(options),
+      'memory diff': () => handleMemoryDiff({ ...options, noExit: true }, { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks }),
+      'memory refresh': () => handleMemoryRefresh(options, { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks }),
+      'memory build': () => handleMemoryBuild(options, { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks }),
       'feedback list': () => handleFeedbackList(options),
       'feedback summarize': () => handleFeedbackSummarize(options),
       'improve review': () => handleImproveReview(options),
@@ -2181,177 +1840,6 @@ function handleWorkflowRun(wName, options) {
     console.error(`\x1b[31mError running workflow '${wName}': ${e.message}\x1b[0m`);
   }
 }
-
-function handleHandoffBuild(options) {
-  const intelDir = join(options.target, '.ai', 'intelligence');
-  if (!existsSync(intelDir)) {
-    mkdirSync(intelDir, { recursive: true });
-  }
-  const handoffPath = join(intelDir, 'handoff.md');
-
-  // 1. Get package metadata
-  let pkgName = 'unknown';
-  let pkgVersion = 'unknown';
-  try {
-    const pkgPath = join(options.target, 'package.json');
-    if (existsSync(pkgPath)) {
-      const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
-      pkgName = pkg.name || pkgName;
-      pkgVersion = pkg.version || pkgVersion;
-    }
-  } catch (e) {}
-
-  // 2. Scan targets
-  const { files } = scanTarget(options.target);
-  const frameworkSignals = detectFrameworkSignals(files, options.target);
-  const dependencySignals = detectDependencySignals(files, options.target);
-
-  // 3. Memory
-  const memoryHashPath = join(intelDir, 'memory.hash.json');
-  let memoryStatus = 'MISSING';
-  let memoryTime = 'N/A';
-  if (existsSync(memoryHashPath)) {
-    try {
-      const memObj = JSON.parse(readFileSync(memoryHashPath, 'utf8'));
-      memoryTime = memObj.generated_at || 'N/A';
-      const diff = diffMemory(options.target);
-      if (diff) {
-        memoryStatus = (diff.added.length === 0 && diff.removed.length === 0 && diff.changed.length === 0) ? 'CURRENT' : 'STALE';
-      }
-    } catch (e) {
-      memoryStatus = 'CORRUPT';
-    }
-  }
-
-  // 4. Feedback
-  const feedbackPath = join(intelDir, 'feedback-log.jsonl');
-  let feedbackCount = 0;
-  if (existsSync(feedbackPath)) {
-    try {
-      feedbackCount = readFileSync(feedbackPath, 'utf8').trim().split(/\r?\n/).filter(l => l.trim() !== '').length;
-    } catch (e) {}
-  }
-  const rulesPath = join(intelDir, 'learning-rules.md');
-  const rulesStatus = existsSync(rulesPath) ? 'PRESENT' : 'MISSING';
-
-  // 5. Proposals
-  const proposalsDir = join(options.target, '.ai', 'proposals');
-  let pendingCount = 0;
-  let approvedCount = 0;
-  let rejectedCount = 0;
-  if (existsSync(proposalsDir)) {
-    try {
-      const propFiles = readdirSync(proposalsDir).filter(f => f.startsWith('proposal-') && f.endsWith('.md'));
-      propFiles.forEach(file => {
-        const content = readFileSync(join(proposalsDir, file), 'utf8');
-        const fmMatch = content.match(/^---([\s\S]*?)---/);
-        if (fmMatch) {
-          const metadata = parseYaml(fmMatch[1]) || {};
-          const status = metadata.approval_status || 'pending';
-          if (status === 'approved') approvedCount++;
-          else if (status === 'rejected') rejectedCount++;
-          else pendingCount++;
-        }
-      });
-    } catch (e) {}
-  }
-
-  // 6. Apply logs
-  const applyLogPath = join(proposalsDir, 'apply-log.jsonl');
-  let applyLogCount = 0;
-  let lastApplyId = 'None';
-  if (existsSync(applyLogPath)) {
-    try {
-      const lines = readFileSync(applyLogPath, 'utf8').trim().split(/\r?\n/).filter(l => l.trim() !== '');
-      applyLogCount = lines.length;
-      if (applyLogCount > 0) {
-        const lastRecord = JSON.parse(lines[lines.length - 1]);
-        lastApplyId = lastRecord.id || 'unknown';
-      }
-    } catch (e) {}
-  }
-
-  // 7. Core Learning Summary
-  let rulesSummary = 'No learning rules defined yet.';
-  if (existsSync(rulesPath)) {
-    try {
-      const rulesContent = readFileSync(rulesPath, 'utf8');
-      const lines = rulesContent.split(/\r?\n/);
-      const summaryLines = [];
-      for (const line of lines) {
-        if (line.startsWith('*   **Pattern:**') || line.startsWith('    *   **Rule:**')) {
-          summaryLines.push(line);
-        }
-        if (summaryLines.length >= 10) break;
-      }
-      if (summaryLines.length > 0) {
-        rulesSummary = summaryLines.join('\n');
-      }
-    } catch (e) {}
-  }
-
-  // Next steps recommended
-  let recs = '1. Run `npx multimodel-dev-os workflow run repo-health` to check the directory hygiene.\n2. Review pending proposals if any exist.';
-  if (!existsSync(join(options.target, '.ai', 'config.yaml'))) {
-    recs = '1. Run `npx multimodel-dev-os init` to bootstrap MultiModel Dev OS.\n2. Run `npx multimodel-dev-os memory build` to initialize codebase memory.';
-  } else if (memoryStatus === 'MISSING') {
-    recs = '1. Run `npx multimodel-dev-os memory build` to initialize codebase index.\n2. Verify package safety boundaries.';
-  } else if (memoryStatus === 'STALE') {
-    recs = '1. Run `npx multimodel-dev-os memory refresh` to update memory files.\n2. Analyze modifications.';
-  } else if (pendingCount > 0) {
-    recs = `1. Run \`npx multimodel-dev-os improve review\` to inspect the ${pendingCount} pending proposals.\n2. Apply approved changes manually.`;
-  }
-
-  const handoffContent = `# Agent Handoff Spec - ${new Date().toISOString()}
-
-## 1. Project Context
-- **Name**: ${pkgName}
-- **Version**: ${pkgVersion}
-- **Frameworks**: ${frameworkSignals.join(', ') || 'None'}
-- **Dependencies**: ${dependencySignals.join(', ') || 'None'}
-
-## 2. Intelligence Core State
-- **Memory**: ${memoryStatus} (Last build: ${memoryTime})
-- **Feedback Loop**: ${feedbackCount} items logged. \`learning-rules.md\` is ${rulesStatus}.
-- **Proposals**: ${pendingCount} Pending, ${approvedCount} Approved, ${rejectedCount} Rejected.
-- **Applied Modifications**: ${applyLogCount} runs recorded. Last run: ${lastApplyId}.
-
-## 3. Core Learning Summaries
-\`\`\`markdown
-${rulesSummary}
-\`\`\`
-
-## 4. Safety Constraints
-- Workflow run is restricted to read-only actions.
-- Modifications must be applied explicitly via \`improve apply --approved\`.
-- No code modification permissions exist in this session context.
-
-## 5. Recommended Next Steps
-${recs}
-`;
-
-  try {
-    writeFileSync(handoffPath, handoffContent, 'utf8');
-    console.log(`\nâœ” Handoff context built successfully in: .ai/intelligence/handoff.md`);
-  } catch (e) {
-    console.error(`\x1b[31mError writing handoff: ${e.message}\x1b[0m`);
-  }
-}
-
-function handleHandoffShow(options) {
-  const handoffPath = join(options.target, '.ai', 'intelligence', 'handoff.md');
-  if (!existsSync(handoffPath)) {
-    console.log('No compiled handoff file exists. Building first...');
-    handleHandoffBuild(options);
-  }
-  try {
-    const content = readFileSync(handoffPath, 'utf8');
-    console.log('\n' + content);
-  } catch (e) {
-    console.error(`\x1b[31mError reading handoff: ${e.message}\x1b[0m`);
-  }
-}
-
 
 function getAnalysis(target) {
   const { files, ignoredCount } = scanTarget(target);
