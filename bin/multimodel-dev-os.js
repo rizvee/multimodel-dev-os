@@ -3,9 +3,8 @@
 
 
 // src/cli/main.js
-import { existsSync as existsSync16, mkdirSync as mkdirSync10, readFileSync as readFileSync17, writeFileSync as writeFileSync12, readdirSync as readdirSync7, statSync as statSync6 } from "fs";
-import { join as join16, dirname as dirname8, resolve as resolve6, relative as relative4, isAbsolute as isAbsolute3, basename as basename3 } from "path";
-import { createHash as createHash3 } from "crypto";
+import { existsSync as existsSync18, mkdirSync as mkdirSync11, readFileSync as readFileSync19, writeFileSync as writeFileSync13, readdirSync as readdirSync8, statSync as statSync6 } from "fs";
+import { join as join18, dirname as dirname9, resolve as resolve7, relative as relative5, isAbsolute as isAbsolute4, basename as basename4 } from "path";
 import readline from "readline";
 import { execSync, execFileSync as execFileSync2 } from "child_process";
 
@@ -919,7 +918,7 @@ function removeTrustedKey(targetDir, keyId, policy) {
   return { removed: true };
 }
 function fetchRemotePublicKey(url, options = {}) {
-  return new Promise((resolve7, reject) => {
+  return new Promise((resolve8, reject) => {
     let parsedUrl;
     try {
       parsedUrl = new URL(url);
@@ -972,7 +971,7 @@ function fetchRemotePublicKey(url, options = {}) {
         if (!trimmed) {
           return reject(new Error(`Remote key fetch returned empty response from '${url}'.`));
         }
-        resolve7(trimmed);
+        resolve8(trimmed);
       });
       res.on("error", (err) => reject(new Error(`Response error from '${url}': ${err.message}`)));
     });
@@ -4821,743 +4820,14 @@ function handleHandoffShow(options, { scanTarget: scanTarget2, detectFrameworkSi
   }
 }
 
-// src/cli/main.js
-var ARGS = process.argv.slice(2);
-var params = parseArgs(ARGS);
-var COMMAND = params.command;
-var ADAPTERS = loadAdapters(params.registry);
-var boundDiffMemory = (target) => diffMemory(target, {
-  scanTarget,
-  detectFrameworkSignals,
-  detectDependencySignals,
-  detectAiDevOsSignals,
-  detectRisks
-});
-if (params.help || !COMMAND) {
-  showHelp();
-  process.exit(0);
-}
-if (COMMAND === "init") {
-  if (params.mobile === "android") {
-    params.template = "expo-react-native-android";
-  } else if (params.aiApp === "rag") {
-    params.template = "rag-knowledge-base";
-  }
-  handleInit(params);
-} else if (COMMAND === "verify") {
-  handleVerify(params);
-} else if (COMMAND === "scan") {
-  handleScan(params, { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks });
-} else if (COMMAND === "memory") {
-  const sub = ARGS[1];
-  const injects = { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks };
-  if (sub === "build") {
-    handleMemoryBuild(params, injects);
-  } else if (sub === "refresh") {
-    handleMemoryRefresh(params, injects);
-  } else if (sub === "diff") {
-    handleMemoryDiff(params, injects);
-  } else {
-    console.error(`\x1B[31mError: Please specify a memory subcommand: build, refresh, or diff.\x1B[0m`);
-    console.error(`Example: node bin/multimodel-dev-os.js memory build`);
-    process.exit(1);
-  }
-} else if (COMMAND === "feedback") {
-  const sub = ARGS[1];
-  if (sub === "add") {
-    handleFeedbackAdd(params);
-  } else if (sub === "list") {
-    handleFeedbackList(params);
-  } else if (sub === "summarize") {
-    handleFeedbackSummarize(params);
-  } else {
-    console.error(`\x1B[31mError: Please specify a feedback subcommand: add, list, or summarize.\x1B[0m`);
-    console.log(`Example: node bin/multimodel-dev-os.js feedback add "Prefer CSS Modules"`);
-    process.exit(1);
-  }
-} else if (COMMAND === "improve") {
-  const positional = getPositionalArgs(ARGS);
-  const sub = positional[1];
-  if (sub === "propose") {
-    handleImprovePropose(params);
-  } else if (sub === "review") {
-    handleImproveReview(params);
-  } else if (sub === "status") {
-    handleImproveStatus(params);
-  } else if (sub === "validate") {
-    const proposalFile = positional[2];
-    if (!proposalFile) {
-      console.error(`\x1B[31mError: Please specify a proposal file path.\x1B[0m`);
-      console.log(`Example: node bin/multimodel-dev-os.js improve validate .ai/proposals/proposal-xxxx.md`);
-      process.exit(1);
-    }
-    handleImproveValidate(proposalFile, params);
-  } else if (sub === "diff") {
-    const proposalFile = positional[2];
-    if (!proposalFile) {
-      console.error(`\x1B[31mError: Please specify a proposal file path.\x1B[0m`);
-      console.log(`Example: node bin/multimodel-dev-os.js improve diff .ai/proposals/proposal-xxxx.md`);
-      process.exit(1);
-    }
-    handleImproveDiff(proposalFile, params);
-  } else if (sub === "apply") {
-    const proposalFile = positional[2];
-    if (!proposalFile) {
-      console.error(`\x1B[31mError: Please specify a proposal file path.\x1B[0m`);
-      console.log(`Example: node bin/multimodel-dev-os.js improve apply .ai/proposals/proposal-xxxx.md --approved`);
-      process.exit(1);
-    }
-    handleImproveApply(proposalFile, params);
-  } else if (sub === "log") {
-    handleImproveLog(params);
-  } else {
-    console.error(`\x1B[31mError: Please specify an improve subcommand: propose, review, status, validate, diff, apply, or log.\x1B[0m`);
-    console.log(`Example: node bin/multimodel-dev-os.js improve validate .ai/proposals/proposal-xxxx.md`);
-    process.exit(1);
-  }
-} else if (COMMAND === "templates" || COMMAND === "list-templates") {
-  handleListTemplates(params);
-} else if (COMMAND === "show-template") {
-  const tName = ARGS[1];
-  if (!tName || tName.startsWith("-")) {
-    console.error("\x1B[31mError: Please specify a template name. Example: node bin/multimodel-dev-os.js show-template nextjs-saas\x1B[0m");
-    process.exit(1);
-  }
-  handleShowTemplate(tName, params);
-} else if (COMMAND === "doctor") {
-  handleDoctor(params, { scanTarget, detectDependencySignals, getAnalysis, diffMemory: boundDiffMemory });
-} else if (COMMAND === "validate") {
-  handleValidate(params);
-} else if (COMMAND === "validate-template") {
-  const tName = ARGS[1];
-  if (!tName || tName.startsWith("-")) {
-    console.error("\x1B[31mError: Please specify a template name. Example: node bin/multimodel-dev-os.js validate-template nextjs-saas\x1B[0m");
-    process.exit(1);
-  }
-  handleValidateTemplate(tName, params);
-} else if (COMMAND === "validate-adapter") {
-  const aName = ARGS[1];
-  if (!aName || aName.startsWith("-")) {
-    console.error("\x1B[31mError: Please specify an adapter name. Example: node bin/multimodel-dev-os.js validate-adapter cursor\x1B[0m");
-    process.exit(1);
-  }
-  handleValidateAdapter(aName, params);
-} else if (COMMAND === "validate-skill") {
-  const sName = ARGS[1];
-  if (!sName || sName.startsWith("-")) {
-    console.error("\x1B[31mError: Please specify a skill name. Example: node bin/multimodel-dev-os.js validate-skill custom-skill.example\x1B[0m");
-    process.exit(1);
-  }
-  handleValidateSkill(sName, params);
-} else if (COMMAND === "models") {
-  handleListModels(params);
-} else if (COMMAND === "show-model") {
-  const mName = ARGS[1];
-  if (!mName || mName.startsWith("-")) {
-    console.error("\x1B[31mError: Please specify a model name. Example: node bin/multimodel-dev-os.js show-model claude-sonnet-latest\x1B[0m");
-    process.exit(1);
-  }
-  handleShowModel(mName);
-} else if (COMMAND === "providers") {
-  handleListProviders();
-} else if (COMMAND === "route-model") {
-  const taskName = ARGS[1];
-  if (!taskName || taskName.startsWith("-")) {
-    console.error("\x1B[31mError: Please specify a task. Example: node bin/multimodel-dev-os.js route-model planning\x1B[0m");
-    process.exit(1);
-  }
-  handleRouteModel(taskName);
-} else if (COMMAND === "adapters") {
-  handleListAdapters(params);
-} else if (COMMAND === "show-adapter") {
-  const aName = ARGS[1];
-  if (!aName || aName.startsWith("-")) {
-    console.error("\x1B[31mError: Please specify an adapter name. Example: node bin/multimodel-dev-os.js show-adapter cursor\x1B[0m");
-    process.exit(1);
-  }
-  handleShowAdapter(aName);
-} else if (COMMAND === "skills") {
-  handleListSkills(params);
-} else if (COMMAND === "show-skill") {
-  const sName = ARGS[1];
-  if (!sName || sName.startsWith("-")) {
-    console.error("\x1B[31mError: Please specify a skill name. Example: node bin/multimodel-dev-os.js show-skill bug-fix\x1B[0m");
-    process.exit(1);
-  }
-  handleShowSkill(sName, params);
-} else if (COMMAND === "status") {
-  handleStatus(params, { scanTarget, detectFrameworkSignals, detectDependencySignals, diffMemory: boundDiffMemory });
-} else if (COMMAND === "workflow") {
-  const positional = getPositionalArgs(ARGS);
-  const sub = positional[1];
-  if (sub === "list") {
-    handleWorkflowList(params);
-  } else if (sub === "show") {
-    const wName = positional[2];
-    if (!wName) {
-      console.error("\x1B[31mError: Please specify a workflow name.\x1B[0m");
-      console.log("Example: node bin/multimodel-dev-os.js workflow show repo-health");
-      process.exit(1);
-    }
-    handleWorkflowShow(wName, params);
-  } else if (sub === "plan") {
-    const wName = positional[2];
-    if (!wName) {
-      console.error("\x1B[31mError: Please specify a workflow name.\x1B[0m");
-      console.log("Example: node bin/multimodel-dev-os.js workflow plan repo-health");
-      process.exit(1);
-    }
-    handleWorkflowPlan(wName, params);
-  } else if (sub === "run") {
-    const wName = positional[2];
-    if (!wName) {
-      console.error("\x1B[31mError: Please specify a workflow name.\x1B[0m");
-      console.log("Example: node bin/multimodel-dev-os.js workflow run repo-health");
-      process.exit(1);
-    }
-    handleWorkflowRun(wName, params);
-  } else {
-    console.error("\x1B[31mError: Please specify a workflow subcommand: list, show, plan, or run.\x1B[0m");
-    console.log("Example: node bin/multimodel-dev-os.js workflow list");
-    process.exit(1);
-  }
-} else if (COMMAND === "handoff") {
-  const positional = getPositionalArgs(ARGS);
-  const sub = positional[1];
-  const injects = { scanTarget, detectFrameworkSignals, detectDependencySignals, diffMemory: boundDiffMemory };
-  if (sub === "build") {
-    handleHandoffBuild(params, injects);
-  } else if (sub === "show") {
-    handleHandoffShow(params, injects);
-  } else {
-    console.error("\x1B[31mError: Please specify a handoff subcommand: build or show.\x1B[0m");
-    console.log("Example: node bin/multimodel-dev-os.js handoff build");
-    process.exit(1);
-  }
-} else if (COMMAND === "onboard") {
-  const positional = getPositionalArgs(ARGS);
-  const sub = positional[1];
-  if (sub === "analyze") {
-    handleOnboardAnalyze(params);
-  } else if (sub === "recommend") {
-    handleOnboardRecommend(params);
-  } else if (sub === "plan") {
-    handleOnboardPlan(params);
-  } else if (sub === "apply") {
-    handleOnboardApply(params);
-  } else if (sub === "status") {
-    handleOnboardStatus(params);
-  } else {
-    console.error("\x1B[31mError: Please specify an onboard subcommand: analyze, recommend, plan, apply, or status.\x1B[0m");
-    console.log("Example: node bin/multimodel-dev-os.js onboard analyze");
-    process.exit(1);
-  }
-} else if (COMMAND === "adapter") {
-  const positional = getPositionalArgs(ARGS);
-  const sub = positional[1];
-  if (sub === "status") {
-    handleAdapterStatus(params);
-  } else if (sub === "diff") {
-    const aName = positional[2];
-    if (!aName) {
-      console.error('\x1B[31mError: Please specify an adapter name (e.g. cursor, claude) or "all".\x1B[0m');
-      process.exit(1);
-    }
-    handleAdapterDiff(aName, params);
-  } else if (sub === "sync") {
-    const aName = positional[2];
-    if (!aName) {
-      console.error('\x1B[31mError: Please specify an adapter name or "all" to sync.\x1B[0m');
-      process.exit(1);
-    }
-    handleAdapterSync(aName, params);
-  } else {
-    console.error("\x1B[31mError: Please specify an adapter subcommand: status, diff, or sync.\x1B[0m");
-    console.log("Example: node bin/multimodel-dev-os.js adapter status");
-    process.exit(1);
-  }
-} else if (COMMAND === "dashboard" || COMMAND === "ui") {
-  handleDashboard(params);
-} else if (COMMAND === "plugin") {
-  const positional = getPositionalArgs(ARGS);
-  const sub = positional[1];
-  if (sub === "list") {
-    handlePluginList(params);
-  } else if (sub === "show") {
-    const pSlug = positional[2];
-    if (!pSlug) {
-      console.error("\x1B[31mError: Please specify a plugin name/slug.\x1B[0m");
-      process.exit(1);
-    }
-    handlePluginShow(pSlug, params);
-  } else if (sub === "validate") {
-    const pPath = positional[2];
-    if (!pPath) {
-      console.error("\x1B[31mError: Please specify a plugin configuration file path.\x1B[0m");
-      process.exit(1);
-    }
-    handlePluginValidate(pPath, params);
-  } else if (sub === "install") {
-    const pPath = positional[2];
-    if (!pPath) {
-      console.error("\x1B[31mError: Please specify a plugin configuration file path to install.\x1B[0m");
-      process.exit(1);
-    }
-    handlePluginInstall(pPath, params);
-  } else if (sub === "status") {
-    handlePluginStatus(params);
-  } else {
-    console.error("\x1B[31mError: Please specify a plugin subcommand: list, show, validate, install, or status.\x1B[0m");
-    console.log("Example: node bin/multimodel-dev-os.js plugin list");
-    process.exit(1);
-  }
-} else if (COMMAND === "catalog") {
-  const positional = getPositionalArgs(ARGS);
-  const sub = positional[1];
-  if (sub === "list") {
-    handleCatalogList(params);
-  } else if (sub === "search") {
-    const query = positional[2];
-    if (!query) {
-      console.error("\x1B[31mError: Please specify a search query.\x1B[0m");
-      process.exit(1);
-    }
-    handleCatalogSearch(query, params);
-  } else if (sub === "show") {
-    const slug = positional[2];
-    if (!slug) {
-      console.error("\x1B[31mError: Please specify a catalog plugin slug.\x1B[0m");
-      process.exit(1);
-    }
-    handleCatalogShow(slug, params);
-  } else if (sub === "categories") {
-    handleCatalogCategories(params);
-  } else if (sub === "recommend") {
-    handleCatalogRecommend(params, { getAnalysis });
-  } else if (sub === "install") {
-    const slug = positional[2];
-    if (!slug) {
-      console.error("\x1B[31mError: Please specify a catalog plugin slug to install.\x1B[0m");
-      process.exit(1);
-    }
-    handleCatalogInstall(slug, params);
-  } else if (sub === "status") {
-    handleCatalogStatus(params);
-  } else {
-    console.error("\x1B[31mError: Please specify a catalog subcommand: list, search, show, categories, recommend, install, or status.\x1B[0m");
-    console.log("Example: node bin/multimodel-dev-os.js catalog list");
-    process.exit(1);
-  }
-} else if (COMMAND === "registry") {
-  const positional = getPositionalArgs(ARGS);
-  const sub = positional[1];
-  if (sub === "list") {
-    handleRegistryList(params);
-  } else if (sub === "add") {
-    const rName = positional[2];
-    const rUrl = positional[3];
-    if (!rName || !rUrl) {
-      console.error("\x1B[31mError: Please specify a registry name and URL.\x1B[0m");
-      console.log("Example: node bin/multimodel-dev-os.js registry add official https://example.com/catalog.yaml --approved");
-      process.exit(1);
-    }
-    handleRegistryAdd(rName, rUrl, params);
-  } else if (sub === "remove") {
-    const rName = positional[2];
-    if (!rName) {
-      console.error("\x1B[31mError: Please specify a registry name to remove.\x1B[0m");
-      process.exit(1);
-    }
-    handleRegistryRemove(rName, params);
-  } else if (sub === "sync") {
-    const rName = positional[2];
-    if (!rName) {
-      console.error("\x1B[31mError: Please specify a registry name to sync.\x1B[0m");
-      process.exit(1);
-    }
-    handleRegistrySync(rName, params);
-  } else if (sub === "status") {
-    handleRegistryStatus(params);
-  } else if (sub === "verify") {
-    const rName = positional[2] || "bundled";
-    handleRegistryVerify(rName, params);
-  } else if (sub === "show") {
-    const rName = positional[2];
-    if (!rName) {
-      console.error("\x1B[31mError: Please specify a registry name to show.\x1B[0m");
-      process.exit(1);
-    }
-    handleRegistryShow(rName, params);
-  } else if (sub === "cache") {
-    const cacheSub = positional[2];
-    if (cacheSub === "clear") {
-      handleRegistryCacheClear(params);
-    } else {
-      console.error("\x1B[31mError: Please specify a cache subcommand: clear.\x1B[0m");
-      process.exit(1);
-    }
-  } else if (sub === "keygen") {
-    handleRegistryKeygen(params);
-  } else if (sub === "lock") {
-    handleRegistryLock(params);
-  } else if (sub === "trust") {
-    const trustSub = positional[2];
-    if (trustSub === "list") {
-      handleRegistryTrustList(params);
-    } else if (trustSub === "show") {
-      const keyId = positional[3];
-      if (!keyId) {
-        console.error("\x1B[31mError: Please specify a key ID.\x1B[0m");
-        process.exit(1);
-      }
-      handleRegistryTrustShow(keyId, params);
-    } else if (trustSub === "verify") {
-      handleRegistryTrustVerify(params);
-    } else if (trustSub === "add") {
-      handleRegistryTrustAdd(positional, params);
-    } else if (trustSub === "remove") {
-      const keyId = positional[3];
-      if (!keyId) {
-        console.error("\x1B[31mError: Please specify a key ID to remove.\x1B[0m");
-        console.log("Example: node bin/multimodel-dev-os.js registry trust remove my-key-id --approved");
-        process.exit(1);
-      }
-      handleRegistryTrustRemove(keyId, params);
-    } else {
-      console.error("\x1B[31mError: Please specify a trust subcommand: list, show, verify, add, or remove.\x1B[0m");
-      console.log("Example: node bin/multimodel-dev-os.js registry trust list");
-      process.exit(1);
-    }
-  } else {
-    console.error("\x1B[31mError: Please specify a registry subcommand: list, add, remove, sync, status, verify, show, cache, keygen, lock, or trust (list, show, verify, add, remove).\x1B[0m");
-    console.log("Example: node bin/multimodel-dev-os.js registry list");
-    process.exit(1);
-  }
-} else {
-  console.error(`\x1B[31mUnknown command: ${COMMAND}\x1B[0m`);
-  showHelp();
-  process.exit(1);
-}
-function handleListModels(options) {
-  const registryPath = join16(sourceRoot, ".ai", "models", "registry.yaml");
-  if (!existsSync16(registryPath)) {
-    console.error("Error: Model registry not found.");
-    process.exit(1);
-  }
-  const registry = parseYaml(readFileSync17(registryPath, "utf8"));
-  const models = registry.models || {};
-  if (options && options.json) {
-    console.log(JSON.stringify(models, null, 2));
-    return;
-  }
-  console.log(`
-\xF0\u0178\xA4\u2013 \x1B[36mModel Registry [v${version}]\x1B[0m`);
-  console.log("==================================================");
-  Object.keys(models).forEach((name) => {
-    const m = models[name];
-    console.log(`
-\x1B[32m* ${name}\x1B[0m (${m.alias || ""})`);
-    console.log(`  \x1B[33mProvider:\x1B[0m ${m.provider}`);
-    console.log(`  \x1B[33mOfficial ID:\x1B[0m ${m.official_id}`);
-    console.log(`  \x1B[33mContext Window:\x1B[0m ${m.context_window} tokens`);
-    console.log(`  \x1B[33mTiers:\x1B[0m Cost: ${m.tiers?.cost}, Reasoning: ${m.tiers?.reasoning}, Coding: ${m.tiers?.coding}`);
-  });
-  console.log("\nUse \x1B[36mshow-model <model-alias>\x1B[0m to view detailed model capabilities.\n");
-}
-function handleShowModel(name) {
-  const registryPath = join16(sourceRoot, ".ai", "models", "registry.yaml");
-  if (!existsSync16(registryPath)) {
-    console.error("Error: Model registry not found.");
-    process.exit(1);
-  }
-  const registry = parseYaml(readFileSync17(registryPath, "utf8"));
-  const models = registry.models || {};
-  const m = models[name];
-  if (!m) {
-    console.error(`\x1B[31mError: Model alias '${name}' not found in registry.\x1B[0m`);
-    process.exit(1);
-  }
-  console.log(`
-\xF0\u0178\u201D\x8D \x1B[36mModel: ${name}\x1B[0m`);
-  console.log("==================================================");
-  console.log(`\x1B[33mProvider:\x1B[0m ${m.provider}`);
-  console.log(`\x1B[33mAlias:\x1B[0m ${m.alias}`);
-  console.log(`\x1B[33mOfficial ID:\x1B[0m ${m.official_id}`);
-  console.log(`\x1B[33mContext Window:\x1B[0m ${m.context_window} tokens`);
-  console.log(`\x1B[33mCapabilities:\x1B[0m`);
-  console.log(`  \xE2\u201D\u0153\xE2\u201D\u20AC Vision: ${m.capabilities?.vision ? "Yes" : "No"}`);
-  console.log(`  \xE2\u201D\u201D\xE2\u201D\u20AC Tool Use: ${m.capabilities?.tool_use ? "Yes" : "No"}`);
-  console.log(`\x1B[33mTiers:\x1B[0m`);
-  console.log(`  \xE2\u201D\u0153\xE2\u201D\u20AC Cost: ${m.tiers?.cost}`);
-  console.log(`  \xE2\u201D\u0153\xE2\u201D\u20AC Speed: ${m.tiers?.speed}`);
-  console.log(`  \xE2\u201D\u0153\xE2\u201D\u20AC Reasoning: ${m.tiers?.reasoning}`);
-  console.log(`  \xE2\u201D\u201D\xE2\u201D\u20AC Coding: ${m.tiers?.coding}`);
-  console.log();
-}
-function handleListProviders() {
-  const providersPath = join16(sourceRoot, ".ai", "models", "providers.yaml");
-  if (!existsSync16(providersPath)) {
-    console.error("Error: Providers registry not found.");
-    process.exit(1);
-  }
-  const reg = parseYaml(readFileSync17(providersPath, "utf8"));
-  const providers = reg.providers || {};
-  console.log(`
-\xF0\u0178\u201D\u0152 \x1B[36mAI Providers [v${version}]\x1B[0m`);
-  console.log("==================================================");
-  Object.keys(providers).forEach((name) => {
-    const p = providers[name];
-    console.log(`
-\x1B[32m* ${p.name || name}\x1B[0m (${name})`);
-    console.log(`  \x1B[33mEndpoint:\x1B[0m ${p.api_endpoint || "Local"}`);
-    console.log(`  \x1B[33mEnv Key:\x1B[0m ${p.env_key || "None"}`);
-  });
-  console.log();
-}
-function handleRouteModel(task) {
-  const presetsPath = join16(sourceRoot, ".ai", "models", "routing-presets.yaml");
-  if (!existsSync16(presetsPath)) {
-    console.error("Error: Routing presets not found.");
-    process.exit(1);
-  }
-  const reg = parseYaml(readFileSync17(presetsPath, "utf8"));
-  const presets = reg.presets || {};
-  const preset = presets[task];
-  if (!preset) {
-    console.error(`\x1B[31mError: Routing preset for task '${task}' not found. Available: ${Object.keys(presets).join(", ")}\x1B[0m`);
-    process.exit(1);
-  }
-  console.log(`
-\xF0\u0178\u017D\xAF \x1B[36mRouting Suggestion for: ${task}\x1B[0m`);
-  console.log("==================================================");
-  console.log(`\x1B[33mPrimary Model:\x1B[0m \x1B[32m${preset.primary}\x1B[0m`);
-  console.log(`\x1B[33mFallback Model:\x1B[0m \x1B[33m${preset.fallback}\x1B[0m`);
-  console.log();
-}
-function handleListAdapters(options) {
-  const adaptersPath = join16(sourceRoot, ".ai", "adapters", "registry.yaml");
-  if (!existsSync16(adaptersPath)) {
-    console.error("Error: Adapters registry not found.");
-    process.exit(1);
-  }
-  const reg = parseYaml(readFileSync17(adaptersPath, "utf8"));
-  const adapters = reg.adapters || {};
-  if (options && options.json) {
-    console.log(JSON.stringify(adapters, null, 2));
-    return;
-  }
-  console.log(`
-\xF0\u0178\u201D\u0152 \x1B[36mIDE & Agent Adapters [v${version}]\x1B[0m`);
-  console.log("==================================================");
-  Object.keys(adapters).forEach((name) => {
-    const a = adapters[name];
-    console.log(`
-\x1B[32m* ${a.name || name}\x1B[0m (${name})`);
-    console.log(`  \x1B[33mRules File:\x1B[0m ${a.rules_file}`);
-    console.log(`  \x1B[33mAdapter Type:\x1B[0m ${a.type}`);
-    console.log(`  \x1B[33mRule Format:\x1B[0m ${a.format}`);
-  });
-  console.log("\nUse \x1B[36mshow-adapter <adapter-name>\x1B[0m to view detailed adapter metadata.\n");
-}
-function handleShowAdapter(name) {
-  const adaptersPath = join16(sourceRoot, ".ai", "adapters", "registry.yaml");
-  if (!existsSync16(adaptersPath)) {
-    console.error("Error: Adapters registry not found.");
-    process.exit(1);
-  }
-  const reg = parseYaml(readFileSync17(adaptersPath, "utf8"));
-  const adapters = reg.adapters || {};
-  const a = adapters[name];
-  if (!a) {
-    console.error(`\x1B[31mError: Adapter '${name}' not found in registry.\x1B[0m`);
-    process.exit(1);
-  }
-  console.log(`
-\xF0\u0178\u201D\x8D \x1B[36mAdapter: ${a.name || name}\x1B[0m`);
-  console.log("==================================================");
-  console.log(`\x1B[33mRules File:\x1B[0m ${a.rules_file}`);
-  console.log(`\x1B[33mType:\x1B[0m ${a.type}`);
-  console.log(`\x1B[33mFormat:\x1B[0m ${a.format}`);
-  console.log();
-}
-function handleListSkills(options) {
-  const skillsDir = join16(options.target, ".ai", "skills");
-  if (!existsSync16(skillsDir)) {
-    console.log("\n\x1B[33m[Notice] .ai/skills directory is not initialized in the target workspace.\x1B[0m\n");
-    return;
-  }
-  const files = readdirSync7(skillsDir).filter((f) => f.endsWith(".md"));
-  console.log(`
-\xF0\u0178\xA7\xA0 \x1B[36mAvailable Skills in Target [v${version}]\x1B[0m`);
-  console.log("==================================================");
-  files.forEach((f) => {
-    console.log(`  \x1B[32m- ${f.replace(".md", "")}\x1B[0m (file: .ai/skills/${f})`);
-  });
-  console.log("\nUse \x1B[36mshow-skill <skill-name>\x1B[0m to read a skill's prompt text.\n");
-}
-function handleShowSkill(name, options) {
-  const skillsDir = join16(options.target, ".ai", "skills");
-  const skillFile = join16(skillsDir, name.endsWith(".md") ? name : `${name}.md`);
-  if (!existsSync16(skillFile)) {
-    console.error(`\x1B[31mError: Skill '${name}' not found in target .ai/skills/.\x1B[0m`);
-    process.exit(1);
-  }
-  console.log(`
-\xF0\u0178\u201C\u2013 \x1B[36mSkill Prompt: ${name}\x1B[0m`);
-  console.log("==================================================");
-  console.log(readFileSync17(skillFile, "utf8"));
-  console.log();
-}
-function scanTarget(targetDir) {
-  const files = [];
-  let ignoredCount = 0;
-  function walk(dir) {
-    if (!existsSync16(dir))
-      return;
-    const items = readdirSync7(dir);
-    for (const item of items) {
-      const fullPath = join16(dir, item);
-      const relPath = relative4(targetDir, fullPath).replace(/\\/g, "/");
-      if (shouldIgnorePath(relPath)) {
-        ignoredCount++;
-        continue;
-      }
-      try {
-        const stat = statSync6(fullPath);
-        if (stat.isDirectory()) {
-          walk(fullPath);
-        } else if (stat.isFile()) {
-          files.push({
-            relPath,
-            fullPath,
-            size: stat.size,
-            mtime: stat.mtime.toISOString()
-          });
-        }
-      } catch (e) {
-      }
-    }
-  }
-  walk(targetDir);
-  return { files, ignoredCount };
-}
-function detectFrameworkSignals(files, targetDir) {
-  const signals = [];
-  const hasFile = (name) => files.some((f) => f.relPath.toLowerCase() === name.toLowerCase());
-  if (hasFile("next.config.js") || hasFile("next.config.mjs"))
-    signals.push("Next.js");
-  if (hasFile("nuxt.config.js") || hasFile("nuxt.config.ts"))
-    signals.push("Nuxt.js");
-  if (hasFile("wp-config.php") || hasFile("index.php"))
-    signals.push("WordPress/PHP");
-  if (hasFile("tsconfig.json"))
-    signals.push("TypeScript");
-  if (hasFile("package.json")) {
-    signals.push("Node.js");
-    try {
-      const pkg = JSON.parse(readFileSync17(join16(targetDir, "package.json"), "utf8"));
-      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-      if (deps["react"])
-        signals.push("React");
-      if (deps["vue"])
-        signals.push("Vue");
-      if (deps["svelte"])
-        signals.push("Svelte");
-      if (deps["expo"])
-        signals.push("Expo");
-      if (deps["react-native"])
-        signals.push("React Native");
-      if (deps["vite"])
-        signals.push("Vite");
-      if (deps["express"])
-        signals.push("Express");
-      if (deps["angular"])
-        signals.push("Angular");
-    } catch (e) {
-    }
-  }
-  if (hasFile("requirements.txt") || hasFile("pyproject.toml"))
-    signals.push("Python");
-  if (hasFile("cargo.toml"))
-    signals.push("Rust");
-  if (hasFile("gemfile"))
-    signals.push("Ruby");
-  if (hasFile("go.mod"))
-    signals.push("Go");
-  if (signals.length === 0)
-    signals.push("Generic/Unknown");
-  return [...new Set(signals)];
-}
-function detectDependencySignals(files, targetDir) {
-  const signals = [];
-  const hasFile = (name) => files.some((f) => f.relPath.toLowerCase() === name.toLowerCase());
-  if (hasFile("package-lock.json"))
-    signals.push("npm");
-  else if (hasFile("yarn.lock"))
-    signals.push("Yarn");
-  else if (hasFile("pnpm-lock.yaml"))
-    signals.push("pnpm");
-  else if (hasFile("bun.lockb"))
-    signals.push("Bun");
-  if (hasFile("requirements.txt"))
-    signals.push("pip");
-  if (hasFile("poetry.lock"))
-    signals.push("Poetry");
-  if (hasFile("cargo.lock"))
-    signals.push("Cargo");
-  return signals;
-}
-function detectAiDevOsSignals(files) {
-  const signals = [];
-  const hasFile = (name) => files.some((f) => f.relPath.toLowerCase() === name.toLowerCase());
-  if (hasFile("agents.md"))
-    signals.push("AGENTS.md");
-  if (hasFile("memory.md"))
-    signals.push("MEMORY.md");
-  if (hasFile("tasks.md"))
-    signals.push("TASKS.md");
-  if (hasFile("runbook.md"))
-    signals.push("RUNBOOK.md");
-  if (hasFile(".ai/config.yaml"))
-    signals.push(".ai/config.yaml");
-  const hasPrefix = (prefix) => files.some((f) => f.relPath.startsWith(prefix));
-  if (hasPrefix(".ai/templates/"))
-    signals.push("Templates Registry");
-  if (hasPrefix(".ai/adapters/"))
-    signals.push("Adapters Registry");
-  if (hasPrefix(".ai/skills/"))
-    signals.push("Skills Registry");
-  if (hasPrefix(".ai/intelligence/"))
-    signals.push("Intelligence Layer");
-  if (hasPrefix(".ai/policies/"))
-    signals.push("Policy Layer");
-  if (hasPrefix(".ai/registries/"))
-    signals.push("Registry Layer");
-  return signals;
-}
-function detectRisks(files, targetDir) {
-  const risks = [];
-  const gitignorePath = join16(targetDir, ".gitignore");
-  const gitignoreContent = existsSync16(gitignorePath) ? readFileSync17(gitignorePath, "utf8") : "";
-  const hasFolder = (name) => files.some((f) => f.relPath.split("/")[0] === name);
-  if (hasFolder("node_modules") && !gitignoreContent.includes("node_modules")) {
-    risks.push({
-      file_pattern: "node_modules/",
-      risk_description: "Large token-sink directory node_modules/ is present but not ignored in .gitignore.",
-      severity: "high"
-    });
-  }
-  files.forEach((f) => {
-    if (f.relPath.endsWith(".json") && f.relPath.toLowerCase().includes("config") && f.size > 5e4) {
-      risks.push({
-        file_pattern: f.relPath,
-        risk_description: `Large config file (${(f.size / 1024).toFixed(1)} KB) might contain sensitive parameters or inflate prompt context.`,
-        severity: "medium"
-      });
-    }
-  });
-  return risks;
-}
+// src/cli/handlers/workflow.js
+import { existsSync as existsSync17, readFileSync as readFileSync18 } from "fs";
+import { join as join17 } from "path";
+
+// src/cli/handlers/improve.js
+import { existsSync as existsSync16, mkdirSync as mkdirSync10, readFileSync as readFileSync17, writeFileSync as writeFileSync12, readdirSync as readdirSync7 } from "fs";
+import { join as join16, resolve as resolve6, relative as relative4, isAbsolute as isAbsolute3, dirname as dirname8, basename as basename3 } from "path";
+import { createHash as createHash3 } from "crypto";
 function handleImprovePropose(options) {
   const proposalsDir = join16(options.target, ".ai", "proposals");
   if (!options.dryRun && !existsSync16(proposalsDir)) {
@@ -5645,7 +4915,7 @@ ${suggestedChange}
     console.log(md);
   } else {
     writeFileSync12(proposalFile, md, "utf8");
-    console.log(`\xE2\u0153\u201D Created codebase improvement proposal: .ai/proposals/${id}.md`);
+    console.log(`\u2714 Created codebase improvement proposal: .ai/proposals/${id}.md`);
   }
 }
 function handleImproveReview(options) {
@@ -5661,7 +4931,7 @@ function handleImproveReview(options) {
       return;
     }
     console.log(`
-\xF0\u0178\u201C\u2039 \x1B[36mCodebase Improvement Proposals\x1B[0m`);
+\u{1F4CB} \x1B[36mCodebase Improvement Proposals\x1B[0m`);
     console.log("==================================================");
     files.forEach((file) => {
       const fullPath = join16(proposalsDir, file);
@@ -5715,7 +4985,7 @@ function handleImproveStatus(options) {
       }
     });
     console.log(`
-\xE2\u0161\u2122 \x1B[36mImprovement Proposals Engine Status\x1B[0m`);
+\u2699 \x1B[36mImprovement Proposals Engine Status\x1B[0m`);
     console.log("==================================================");
     console.log(`  Total Proposals:  ${files.length}`);
     console.log(`  Pending Approval: \x1B[33m${pending}\x1B[0m`);
@@ -5966,7 +5236,7 @@ function validateProposal(proposalFile, targetRoot) {
   };
 }
 function handleImproveValidate(proposalFile, options) {
-  console.log(`\xF0\u0178\u203A\xA1  \x1B[34mValidating improvement proposal: ${proposalFile}\x1B[0m
+  console.log(`\u{1F6E1}  \x1B[34mValidating improvement proposal: ${proposalFile}\x1B[0m
 `);
   const validation = validateProposal(proposalFile, options.target);
   if (validation.proposalId) {
@@ -5990,9 +5260,9 @@ function handleImproveValidate(proposalFile, options) {
     const gate = validation.gates[g];
     const label = gateLabels[g];
     if (gate.status === "pass") {
-      console.log(`  \x1B[32m[\xE2\u0153\u201C]\x1B[0m ${label}`);
+      console.log(`  \x1B[32m[\u2713]\x1B[0m ${label}`);
     } else if (gate.status === "fail") {
-      console.log(`  \x1B[31m[\xE2\u0153\u2014]\x1B[0m ${label} - \x1B[31m${gate.reason}\x1B[0m`);
+      console.log(`  \x1B[31m[\u2717]\x1B[0m ${label} - \x1B[31m${gate.reason}\x1B[0m`);
     } else {
       console.log(`  \x1B[37m[-]\x1B[0m ${label}`);
     }
@@ -6027,12 +5297,12 @@ function handleImproveValidate(proposalFile, options) {
     console.error();
     process.exit(1);
   }
-  console.log(`\x1B[32m\xE2\u0153\u201D Proposal is VALID and ready to be applied. ${validation.operations.length} operations parsed successfully.\x1B[0m
+  console.log(`\x1B[32m\u2714 Proposal is VALID and ready to be applied. ${validation.operations.length} operations parsed successfully.\x1B[0m
 `);
   process.exit(0);
 }
 function handleImproveDiff(proposalFile, options) {
-  console.log(`\xF0\u0178\u201D\x8D \x1B[36mGenerating diff for proposal: ${proposalFile}\x1B[0m
+  console.log(`\u{1F50D}  \x1B[36mGenerating diff for proposal: ${proposalFile}\x1B[0m
 `);
   const validation = validateProposal(proposalFile, options.target);
   if (!validation.valid) {
@@ -6088,7 +5358,7 @@ function handleImproveDiff(proposalFile, options) {
       if (type === "create_file") {
         const exists = existsSync16(op.resolvedPath);
         if (exists) {
-          console.log(`  \x1B[31m\xE2\u0161\xA0\xEF\xB8\x8F  [Overwriting existing file]\x1B[0m`);
+          console.log(`  \x1B[31m\u26A0\uFE0F   [Overwriting existing file]\x1B[0m`);
         } else {
           console.log(`  \x1B[32m+ [Creating new file]\x1B[0m`);
         }
@@ -6127,7 +5397,7 @@ function handleImproveApply(proposalFile, options) {
     console.error(`Example: node bin/multimodel-dev-os.js improve apply ${proposalFile} --approved`);
     process.exit(1);
   }
-  console.log(`\xF0\u0178\u0161\u20AC \x1B[34mApplying proposal: ${proposalFile}\x1B[0m`);
+  console.log(`\u{1F680} \x1B[34mApplying proposal: ${proposalFile}\x1B[0m`);
   const validation = validateProposal(proposalFile, options.target);
   if (!validation.valid) {
     console.error(`\x1B[31mValidation FAILED: ${validation.reason}\x1B[0m`);
@@ -6286,7 +5556,7 @@ Applying changes...`);
   }
   if (status === "success") {
     console.log(`
-\x1B[32m\xE2\u0153\u201D Proposal applied successfully!\x1B[0m`);
+\x1B[32m\u2714 Proposal applied successfully!\x1B[0m`);
     console.log(`Files changed:`);
     filesChanged.forEach((f) => console.log(`  - ${f}`));
     console.log(`Audit log recorded to: ${logFile}`);
@@ -6303,7 +5573,7 @@ function handleImproveLog(options) {
   try {
     const lines = readFileSync17(logFile, "utf8").trim().split(/\r?\n/);
     console.log(`
-\xF0\u0178\u201C\u0153 \x1B[36mApplied Proposals Audit Log\x1B[0m`);
+\u{1F4DC} \x1B[36mApplied Proposals Audit Log\x1B[0m`);
     console.log("==================================================");
     lines.forEach((line) => {
       if (!line.trim())
@@ -6324,12 +5594,14 @@ function handleImproveLog(options) {
     process.exit(1);
   }
 }
+
+// src/cli/handlers/workflow.js
 function getWorkflowsPath(target) {
-  let workflowsPath = join16(target, ".ai", "registries", "workflows.yaml");
+  let workflowsPath = join17(target, ".ai", "registries", "workflows.yaml");
   let usingFallback = false;
-  if (!existsSync16(workflowsPath)) {
-    const fallbackPath = join16(sourceRoot, ".ai", "registries", "workflows.yaml");
-    if (existsSync16(fallbackPath)) {
+  if (!existsSync17(workflowsPath)) {
+    const fallbackPath = join17(sourceRoot, ".ai", "registries", "workflows.yaml");
+    if (existsSync17(fallbackPath)) {
       workflowsPath = fallbackPath;
       usingFallback = true;
     }
@@ -6338,7 +5610,7 @@ function getWorkflowsPath(target) {
 }
 function handleWorkflowList(options) {
   const { workflowsPath, usingFallback } = getWorkflowsPath(options.target);
-  if (!existsSync16(workflowsPath)) {
+  if (!existsSync17(workflowsPath)) {
     console.log("No workflows registry found.");
     return;
   }
@@ -6346,10 +5618,10 @@ function handleWorkflowList(options) {
     console.log("\x1B[33mNotice: Local workflows registry not found. Using bundled workflows registry fallback.\x1B[0m");
   }
   try {
-    const registry = parseYaml(readFileSync17(workflowsPath, "utf8")) || {};
+    const registry = parseYaml(readFileSync18(workflowsPath, "utf8")) || {};
     const workflows = registry.workflows || {};
     console.log(`
-\xE2\u0161\u2122 \x1B[36mRegistered Workflows\x1B[0m`);
+\u2699 \x1B[36mRegistered Workflows\x1B[0m`);
     console.log("==================================================");
     Object.keys(workflows).forEach((key) => {
       const wf = workflows[key];
@@ -6368,7 +5640,7 @@ function handleWorkflowList(options) {
 }
 function handleWorkflowShow(wName, options) {
   const { workflowsPath, usingFallback } = getWorkflowsPath(options.target);
-  if (!existsSync16(workflowsPath)) {
+  if (!existsSync17(workflowsPath)) {
     console.log("No workflows registry found.");
     return;
   }
@@ -6376,7 +5648,7 @@ function handleWorkflowShow(wName, options) {
     console.log("\x1B[33mNotice: Local workflows registry not found. Using bundled workflows registry fallback.\x1B[0m");
   }
   try {
-    const registry = parseYaml(readFileSync17(workflowsPath, "utf8")) || {};
+    const registry = parseYaml(readFileSync18(workflowsPath, "utf8")) || {};
     const workflows = registry.workflows || {};
     const wf = workflows[wName];
     if (!wf) {
@@ -6387,7 +5659,7 @@ function handleWorkflowShow(wName, options) {
     const risk = wf.risk_level || "unknown";
     const riskColor = risk === "low" ? "\x1B[32m" : risk === "medium" ? "\x1B[33m" : "\x1B[31m";
     console.log(`
-\xE2\u0161\u2122 \x1B[36mWorkflow Spec: ${name}\x1B[0m`);
+\u2699 \x1B[36mWorkflow Spec: ${name}\x1B[0m`);
     console.log("==================================================");
     console.log(`  Description:             ${wf.description || "No description"}`);
     console.log(`  Risk Level:              ${riskColor}${risk.toUpperCase()}\x1B[0m`);
@@ -6409,7 +5681,7 @@ function handleWorkflowShow(wName, options) {
 }
 function handleWorkflowPlan(wName, options) {
   const { workflowsPath, usingFallback } = getWorkflowsPath(options.target);
-  if (!existsSync16(workflowsPath)) {
+  if (!existsSync17(workflowsPath)) {
     console.log("No workflows registry found.");
     return;
   }
@@ -6417,7 +5689,7 @@ function handleWorkflowPlan(wName, options) {
     console.log("\x1B[33mNotice: Local workflows registry not found. Using bundled workflows registry fallback.\x1B[0m");
   }
   try {
-    const registry = parseYaml(readFileSync17(workflowsPath, "utf8")) || {};
+    const registry = parseYaml(readFileSync18(workflowsPath, "utf8")) || {};
     const workflows = registry.workflows || {};
     const wf = workflows[wName];
     if (!wf) {
@@ -6426,7 +5698,7 @@ function handleWorkflowPlan(wName, options) {
     }
     const name = wf.name || wName;
     console.log(`
-\xF0\u0178\u201C\x9D \x1B[36mExecution Plan for Workflow: ${name}\x1B[0m`);
+\u{1F4CB} \x1B[36mExecution Plan for Workflow: ${name}\x1B[0m`);
     console.log("==================================================");
     console.log(`\x1B[33m[DRY-RUN/PLAN ONLY] No commands will be run.\x1B[0m
 `);
@@ -6442,9 +5714,9 @@ function handleWorkflowPlan(wName, options) {
     console.error(`\x1B[31mError loading workflow plan: ${e.message}\x1B[0m`);
   }
 }
-function handleWorkflowRun(wName, options) {
+function handleWorkflowRun(wName, options, { scanTarget: scanTarget2, detectFrameworkSignals: detectFrameworkSignals2, detectDependencySignals: detectDependencySignals2, detectAiDevOsSignals: detectAiDevOsSignals2, detectRisks: detectRisks2, getAnalysis: getAnalysis2, boundDiffMemory: boundDiffMemory2 } = {}) {
   const { workflowsPath, usingFallback } = getWorkflowsPath(options.target);
-  if (!existsSync16(workflowsPath)) {
+  if (!existsSync17(workflowsPath)) {
     console.log("No workflows registry found.");
     return;
   }
@@ -6452,7 +5724,7 @@ function handleWorkflowRun(wName, options) {
     console.log("\x1B[33mNotice: Local workflows registry not found. Using bundled workflows registry fallback.\x1B[0m");
   }
   try {
-    const registry = parseYaml(readFileSync17(workflowsPath, "utf8")) || {};
+    const registry = parseYaml(readFileSync18(workflowsPath, "utf8")) || {};
     const workflows = registry.workflows || {};
     const wf = workflows[wName];
     if (!wf) {
@@ -6461,16 +5733,16 @@ function handleWorkflowRun(wName, options) {
     }
     const name = wf.name || wName;
     console.log(`
-\xF0\u0178\u0161\u20AC \x1B[36mRunning Workflow: ${name}\x1B[0m`);
+\u{1F680} \x1B[36mRunning Workflow: ${name}\x1B[0m`);
     console.log("==================================================");
     const steps = wf.steps || [];
     const safeCommands = {
-      "scan": () => handleScan(options, { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks }),
-      "doctor": () => handleDoctor(options, { scanTarget, detectDependencySignals, getAnalysis, diffMemory: boundDiffMemory }),
+      "scan": () => handleScan(options, { scanTarget: scanTarget2, detectFrameworkSignals: detectFrameworkSignals2, detectDependencySignals: detectDependencySignals2, detectAiDevOsSignals: detectAiDevOsSignals2, detectRisks: detectRisks2 }),
+      "doctor": () => handleDoctor(options, { scanTarget: scanTarget2, detectDependencySignals: detectDependencySignals2, getAnalysis: getAnalysis2, diffMemory: boundDiffMemory2 }),
       "verify": () => handleVerify({ ...options, noExit: true }),
-      "memory diff": () => handleMemoryDiff({ ...options, noExit: true }, { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks }),
-      "memory refresh": () => handleMemoryRefresh(options, { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks }),
-      "memory build": () => handleMemoryBuild(options, { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks }),
+      "memory diff": () => handleMemoryDiff({ ...options, noExit: true }, { scanTarget: scanTarget2, detectFrameworkSignals: detectFrameworkSignals2, detectDependencySignals: detectDependencySignals2, detectAiDevOsSignals: detectAiDevOsSignals2, detectRisks: detectRisks2 }),
+      "memory refresh": () => handleMemoryRefresh(options, { scanTarget: scanTarget2, detectFrameworkSignals: detectFrameworkSignals2, detectDependencySignals: detectDependencySignals2, detectAiDevOsSignals: detectAiDevOsSignals2, detectRisks: detectRisks2 }),
+      "memory build": () => handleMemoryBuild(options, { scanTarget: scanTarget2, detectFrameworkSignals: detectFrameworkSignals2, detectDependencySignals: detectDependencySignals2, detectAiDevOsSignals: detectAiDevOsSignals2, detectRisks: detectRisks2 }),
       "feedback list": () => handleFeedbackList(options),
       "feedback summarize": () => handleFeedbackSummarize(options),
       "improve review": () => handleImproveReview(options),
@@ -6497,11 +5769,749 @@ function handleWorkflowRun(wName, options) {
       }
     });
     console.log(`
-\xE2\u0153\u201D Workflow '${name}' complete.
+\u2714 Workflow '${name}' complete.
 `);
   } catch (e) {
     console.error(`\x1B[31mError running workflow '${wName}': ${e.message}\x1B[0m`);
   }
+}
+
+// src/cli/main.js
+var ARGS = process.argv.slice(2);
+var params = parseArgs(ARGS);
+var COMMAND = params.command;
+var ADAPTERS = loadAdapters(params.registry);
+var boundDiffMemory = (target) => diffMemory(target, {
+  scanTarget,
+  detectFrameworkSignals,
+  detectDependencySignals,
+  detectAiDevOsSignals,
+  detectRisks
+});
+if (params.help || !COMMAND) {
+  showHelp();
+  process.exit(0);
+}
+if (COMMAND === "init") {
+  if (params.mobile === "android") {
+    params.template = "expo-react-native-android";
+  } else if (params.aiApp === "rag") {
+    params.template = "rag-knowledge-base";
+  }
+  handleInit(params);
+} else if (COMMAND === "verify") {
+  handleVerify(params);
+} else if (COMMAND === "scan") {
+  handleScan(params, { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks });
+} else if (COMMAND === "memory") {
+  const sub = ARGS[1];
+  const injects = { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks };
+  if (sub === "build") {
+    handleMemoryBuild(params, injects);
+  } else if (sub === "refresh") {
+    handleMemoryRefresh(params, injects);
+  } else if (sub === "diff") {
+    handleMemoryDiff(params, injects);
+  } else {
+    console.error(`\x1B[31mError: Please specify a memory subcommand: build, refresh, or diff.\x1B[0m`);
+    console.error(`Example: node bin/multimodel-dev-os.js memory build`);
+    process.exit(1);
+  }
+} else if (COMMAND === "feedback") {
+  const sub = ARGS[1];
+  if (sub === "add") {
+    handleFeedbackAdd(params);
+  } else if (sub === "list") {
+    handleFeedbackList(params);
+  } else if (sub === "summarize") {
+    handleFeedbackSummarize(params);
+  } else {
+    console.error(`\x1B[31mError: Please specify a feedback subcommand: add, list, or summarize.\x1B[0m`);
+    console.log(`Example: node bin/multimodel-dev-os.js feedback add "Prefer CSS Modules"`);
+    process.exit(1);
+  }
+} else if (COMMAND === "improve") {
+  const positional = getPositionalArgs(ARGS);
+  const sub = positional[1];
+  if (sub === "propose") {
+    handleImprovePropose(params);
+  } else if (sub === "review") {
+    handleImproveReview(params);
+  } else if (sub === "status") {
+    handleImproveStatus(params);
+  } else if (sub === "validate") {
+    const proposalFile = positional[2];
+    if (!proposalFile) {
+      console.error(`\x1B[31mError: Please specify a proposal file path.\x1B[0m`);
+      console.log(`Example: node bin/multimodel-dev-os.js improve validate .ai/proposals/proposal-xxxx.md`);
+      process.exit(1);
+    }
+    handleImproveValidate(proposalFile, params);
+  } else if (sub === "diff") {
+    const proposalFile = positional[2];
+    if (!proposalFile) {
+      console.error(`\x1B[31mError: Please specify a proposal file path.\x1B[0m`);
+      console.log(`Example: node bin/multimodel-dev-os.js improve diff .ai/proposals/proposal-xxxx.md`);
+      process.exit(1);
+    }
+    handleImproveDiff(proposalFile, params);
+  } else if (sub === "apply") {
+    const proposalFile = positional[2];
+    if (!proposalFile) {
+      console.error(`\x1B[31mError: Please specify a proposal file path.\x1B[0m`);
+      console.log(`Example: node bin/multimodel-dev-os.js improve apply .ai/proposals/proposal-xxxx.md --approved`);
+      process.exit(1);
+    }
+    handleImproveApply(proposalFile, params);
+  } else if (sub === "log") {
+    handleImproveLog(params);
+  } else {
+    console.error(`\x1B[31mError: Please specify an improve subcommand: propose, review, status, validate, diff, apply, or log.\x1B[0m`);
+    console.log(`Example: node bin/multimodel-dev-os.js improve validate .ai/proposals/proposal-xxxx.md`);
+    process.exit(1);
+  }
+} else if (COMMAND === "templates" || COMMAND === "list-templates") {
+  handleListTemplates(params);
+} else if (COMMAND === "show-template") {
+  const tName = ARGS[1];
+  if (!tName || tName.startsWith("-")) {
+    console.error("\x1B[31mError: Please specify a template name. Example: node bin/multimodel-dev-os.js show-template nextjs-saas\x1B[0m");
+    process.exit(1);
+  }
+  handleShowTemplate(tName, params);
+} else if (COMMAND === "doctor") {
+  handleDoctor(params, { scanTarget, detectDependencySignals, getAnalysis, diffMemory: boundDiffMemory });
+} else if (COMMAND === "validate") {
+  handleValidate(params);
+} else if (COMMAND === "validate-template") {
+  const tName = ARGS[1];
+  if (!tName || tName.startsWith("-")) {
+    console.error("\x1B[31mError: Please specify a template name. Example: node bin/multimodel-dev-os.js validate-template nextjs-saas\x1B[0m");
+    process.exit(1);
+  }
+  handleValidateTemplate(tName, params);
+} else if (COMMAND === "validate-adapter") {
+  const aName = ARGS[1];
+  if (!aName || aName.startsWith("-")) {
+    console.error("\x1B[31mError: Please specify an adapter name. Example: node bin/multimodel-dev-os.js validate-adapter cursor\x1B[0m");
+    process.exit(1);
+  }
+  handleValidateAdapter(aName, params);
+} else if (COMMAND === "validate-skill") {
+  const sName = ARGS[1];
+  if (!sName || sName.startsWith("-")) {
+    console.error("\x1B[31mError: Please specify a skill name. Example: node bin/multimodel-dev-os.js validate-skill custom-skill.example\x1B[0m");
+    process.exit(1);
+  }
+  handleValidateSkill(sName, params);
+} else if (COMMAND === "models") {
+  handleListModels(params);
+} else if (COMMAND === "show-model") {
+  const mName = ARGS[1];
+  if (!mName || mName.startsWith("-")) {
+    console.error("\x1B[31mError: Please specify a model name. Example: node bin/multimodel-dev-os.js show-model claude-sonnet-latest\x1B[0m");
+    process.exit(1);
+  }
+  handleShowModel(mName);
+} else if (COMMAND === "providers") {
+  handleListProviders();
+} else if (COMMAND === "route-model") {
+  const taskName = ARGS[1];
+  if (!taskName || taskName.startsWith("-")) {
+    console.error("\x1B[31mError: Please specify a task. Example: node bin/multimodel-dev-os.js route-model planning\x1B[0m");
+    process.exit(1);
+  }
+  handleRouteModel(taskName);
+} else if (COMMAND === "adapters") {
+  handleListAdapters(params);
+} else if (COMMAND === "show-adapter") {
+  const aName = ARGS[1];
+  if (!aName || aName.startsWith("-")) {
+    console.error("\x1B[31mError: Please specify an adapter name. Example: node bin/multimodel-dev-os.js show-adapter cursor\x1B[0m");
+    process.exit(1);
+  }
+  handleShowAdapter(aName);
+} else if (COMMAND === "skills") {
+  handleListSkills(params);
+} else if (COMMAND === "show-skill") {
+  const sName = ARGS[1];
+  if (!sName || sName.startsWith("-")) {
+    console.error("\x1B[31mError: Please specify a skill name. Example: node bin/multimodel-dev-os.js show-skill bug-fix\x1B[0m");
+    process.exit(1);
+  }
+  handleShowSkill(sName, params);
+} else if (COMMAND === "status") {
+  handleStatus(params, { scanTarget, detectFrameworkSignals, detectDependencySignals, diffMemory: boundDiffMemory });
+} else if (COMMAND === "workflow") {
+  const positional = getPositionalArgs(ARGS);
+  const sub = positional[1];
+  if (sub === "list") {
+    handleWorkflowList(params);
+  } else if (sub === "show") {
+    const wName = positional[2];
+    if (!wName) {
+      console.error("\x1B[31mError: Please specify a workflow name.\x1B[0m");
+      console.log("Example: node bin/multimodel-dev-os.js workflow show repo-health");
+      process.exit(1);
+    }
+    handleWorkflowShow(wName, params);
+  } else if (sub === "plan") {
+    const wName = positional[2];
+    if (!wName) {
+      console.error("\x1B[31mError: Please specify a workflow name.\x1B[0m");
+      console.log("Example: node bin/multimodel-dev-os.js workflow plan repo-health");
+      process.exit(1);
+    }
+    handleWorkflowPlan(wName, params);
+  } else if (sub === "run") {
+    const wName = positional[2];
+    if (!wName) {
+      console.error("\x1B[31mError: Please specify a workflow name.\x1B[0m");
+      console.log("Example: node bin/multimodel-dev-os.js workflow run repo-health");
+      process.exit(1);
+    }
+    handleWorkflowRun(wName, params, { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks, getAnalysis, boundDiffMemory });
+  } else {
+    console.error("\x1B[31mError: Please specify a workflow subcommand: list, show, plan, or run.\x1B[0m");
+    console.log("Example: node bin/multimodel-dev-os.js workflow list");
+    process.exit(1);
+  }
+} else if (COMMAND === "handoff") {
+  const positional = getPositionalArgs(ARGS);
+  const sub = positional[1];
+  const injects = { scanTarget, detectFrameworkSignals, detectDependencySignals, diffMemory: boundDiffMemory };
+  if (sub === "build") {
+    handleHandoffBuild(params, injects);
+  } else if (sub === "show") {
+    handleHandoffShow(params, injects);
+  } else {
+    console.error("\x1B[31mError: Please specify a handoff subcommand: build or show.\x1B[0m");
+    console.log("Example: node bin/multimodel-dev-os.js handoff build");
+    process.exit(1);
+  }
+} else if (COMMAND === "onboard") {
+  const positional = getPositionalArgs(ARGS);
+  const sub = positional[1];
+  if (sub === "analyze") {
+    handleOnboardAnalyze(params);
+  } else if (sub === "recommend") {
+    handleOnboardRecommend(params);
+  } else if (sub === "plan") {
+    handleOnboardPlan(params);
+  } else if (sub === "apply") {
+    handleOnboardApply(params);
+  } else if (sub === "status") {
+    handleOnboardStatus(params);
+  } else {
+    console.error("\x1B[31mError: Please specify an onboard subcommand: analyze, recommend, plan, apply, or status.\x1B[0m");
+    console.log("Example: node bin/multimodel-dev-os.js onboard analyze");
+    process.exit(1);
+  }
+} else if (COMMAND === "adapter") {
+  const positional = getPositionalArgs(ARGS);
+  const sub = positional[1];
+  if (sub === "status") {
+    handleAdapterStatus(params);
+  } else if (sub === "diff") {
+    const aName = positional[2];
+    if (!aName) {
+      console.error('\x1B[31mError: Please specify an adapter name (e.g. cursor, claude) or "all".\x1B[0m');
+      process.exit(1);
+    }
+    handleAdapterDiff(aName, params);
+  } else if (sub === "sync") {
+    const aName = positional[2];
+    if (!aName) {
+      console.error('\x1B[31mError: Please specify an adapter name or "all" to sync.\x1B[0m');
+      process.exit(1);
+    }
+    handleAdapterSync(aName, params);
+  } else {
+    console.error("\x1B[31mError: Please specify an adapter subcommand: status, diff, or sync.\x1B[0m");
+    console.log("Example: node bin/multimodel-dev-os.js adapter status");
+    process.exit(1);
+  }
+} else if (COMMAND === "dashboard" || COMMAND === "ui") {
+  handleDashboard(params);
+} else if (COMMAND === "plugin") {
+  const positional = getPositionalArgs(ARGS);
+  const sub = positional[1];
+  if (sub === "list") {
+    handlePluginList(params);
+  } else if (sub === "show") {
+    const pSlug = positional[2];
+    if (!pSlug) {
+      console.error("\x1B[31mError: Please specify a plugin name/slug.\x1B[0m");
+      process.exit(1);
+    }
+    handlePluginShow(pSlug, params);
+  } else if (sub === "validate") {
+    const pPath = positional[2];
+    if (!pPath) {
+      console.error("\x1B[31mError: Please specify a plugin configuration file path.\x1B[0m");
+      process.exit(1);
+    }
+    handlePluginValidate(pPath, params);
+  } else if (sub === "install") {
+    const pPath = positional[2];
+    if (!pPath) {
+      console.error("\x1B[31mError: Please specify a plugin configuration file path to install.\x1B[0m");
+      process.exit(1);
+    }
+    handlePluginInstall(pPath, params);
+  } else if (sub === "status") {
+    handlePluginStatus(params);
+  } else {
+    console.error("\x1B[31mError: Please specify a plugin subcommand: list, show, validate, install, or status.\x1B[0m");
+    console.log("Example: node bin/multimodel-dev-os.js plugin list");
+    process.exit(1);
+  }
+} else if (COMMAND === "catalog") {
+  const positional = getPositionalArgs(ARGS);
+  const sub = positional[1];
+  if (sub === "list") {
+    handleCatalogList(params);
+  } else if (sub === "search") {
+    const query = positional[2];
+    if (!query) {
+      console.error("\x1B[31mError: Please specify a search query.\x1B[0m");
+      process.exit(1);
+    }
+    handleCatalogSearch(query, params);
+  } else if (sub === "show") {
+    const slug = positional[2];
+    if (!slug) {
+      console.error("\x1B[31mError: Please specify a catalog plugin slug.\x1B[0m");
+      process.exit(1);
+    }
+    handleCatalogShow(slug, params);
+  } else if (sub === "categories") {
+    handleCatalogCategories(params);
+  } else if (sub === "recommend") {
+    handleCatalogRecommend(params, { getAnalysis });
+  } else if (sub === "install") {
+    const slug = positional[2];
+    if (!slug) {
+      console.error("\x1B[31mError: Please specify a catalog plugin slug to install.\x1B[0m");
+      process.exit(1);
+    }
+    handleCatalogInstall(slug, params);
+  } else if (sub === "status") {
+    handleCatalogStatus(params);
+  } else {
+    console.error("\x1B[31mError: Please specify a catalog subcommand: list, search, show, categories, recommend, install, or status.\x1B[0m");
+    console.log("Example: node bin/multimodel-dev-os.js catalog list");
+    process.exit(1);
+  }
+} else if (COMMAND === "registry") {
+  const positional = getPositionalArgs(ARGS);
+  const sub = positional[1];
+  if (sub === "list") {
+    handleRegistryList(params);
+  } else if (sub === "add") {
+    const rName = positional[2];
+    const rUrl = positional[3];
+    if (!rName || !rUrl) {
+      console.error("\x1B[31mError: Please specify a registry name and URL.\x1B[0m");
+      console.log("Example: node bin/multimodel-dev-os.js registry add official https://example.com/catalog.yaml --approved");
+      process.exit(1);
+    }
+    handleRegistryAdd(rName, rUrl, params);
+  } else if (sub === "remove") {
+    const rName = positional[2];
+    if (!rName) {
+      console.error("\x1B[31mError: Please specify a registry name to remove.\x1B[0m");
+      process.exit(1);
+    }
+    handleRegistryRemove(rName, params);
+  } else if (sub === "sync") {
+    const rName = positional[2];
+    if (!rName) {
+      console.error("\x1B[31mError: Please specify a registry name to sync.\x1B[0m");
+      process.exit(1);
+    }
+    handleRegistrySync(rName, params);
+  } else if (sub === "status") {
+    handleRegistryStatus(params);
+  } else if (sub === "verify") {
+    const rName = positional[2] || "bundled";
+    handleRegistryVerify(rName, params);
+  } else if (sub === "show") {
+    const rName = positional[2];
+    if (!rName) {
+      console.error("\x1B[31mError: Please specify a registry name to show.\x1B[0m");
+      process.exit(1);
+    }
+    handleRegistryShow(rName, params);
+  } else if (sub === "cache") {
+    const cacheSub = positional[2];
+    if (cacheSub === "clear") {
+      handleRegistryCacheClear(params);
+    } else {
+      console.error("\x1B[31mError: Please specify a cache subcommand: clear.\x1B[0m");
+      process.exit(1);
+    }
+  } else if (sub === "keygen") {
+    handleRegistryKeygen(params);
+  } else if (sub === "lock") {
+    handleRegistryLock(params);
+  } else if (sub === "trust") {
+    const trustSub = positional[2];
+    if (trustSub === "list") {
+      handleRegistryTrustList(params);
+    } else if (trustSub === "show") {
+      const keyId = positional[3];
+      if (!keyId) {
+        console.error("\x1B[31mError: Please specify a key ID.\x1B[0m");
+        process.exit(1);
+      }
+      handleRegistryTrustShow(keyId, params);
+    } else if (trustSub === "verify") {
+      handleRegistryTrustVerify(params);
+    } else if (trustSub === "add") {
+      handleRegistryTrustAdd(positional, params);
+    } else if (trustSub === "remove") {
+      const keyId = positional[3];
+      if (!keyId) {
+        console.error("\x1B[31mError: Please specify a key ID to remove.\x1B[0m");
+        console.log("Example: node bin/multimodel-dev-os.js registry trust remove my-key-id --approved");
+        process.exit(1);
+      }
+      handleRegistryTrustRemove(keyId, params);
+    } else {
+      console.error("\x1B[31mError: Please specify a trust subcommand: list, show, verify, add, or remove.\x1B[0m");
+      console.log("Example: node bin/multimodel-dev-os.js registry trust list");
+      process.exit(1);
+    }
+  } else {
+    console.error("\x1B[31mError: Please specify a registry subcommand: list, add, remove, sync, status, verify, show, cache, keygen, lock, or trust (list, show, verify, add, remove).\x1B[0m");
+    console.log("Example: node bin/multimodel-dev-os.js registry list");
+    process.exit(1);
+  }
+} else {
+  console.error(`\x1B[31mUnknown command: ${COMMAND}\x1B[0m`);
+  showHelp();
+  process.exit(1);
+}
+function handleListModels(options) {
+  const registryPath = join18(sourceRoot, ".ai", "models", "registry.yaml");
+  if (!existsSync18(registryPath)) {
+    console.error("Error: Model registry not found.");
+    process.exit(1);
+  }
+  const registry = parseYaml(readFileSync19(registryPath, "utf8"));
+  const models = registry.models || {};
+  if (options && options.json) {
+    console.log(JSON.stringify(models, null, 2));
+    return;
+  }
+  console.log(`
+\xF0\u0178\xA4\u2013 \x1B[36mModel Registry [v${version}]\x1B[0m`);
+  console.log("==================================================");
+  Object.keys(models).forEach((name) => {
+    const m = models[name];
+    console.log(`
+\x1B[32m* ${name}\x1B[0m (${m.alias || ""})`);
+    console.log(`  \x1B[33mProvider:\x1B[0m ${m.provider}`);
+    console.log(`  \x1B[33mOfficial ID:\x1B[0m ${m.official_id}`);
+    console.log(`  \x1B[33mContext Window:\x1B[0m ${m.context_window} tokens`);
+    console.log(`  \x1B[33mTiers:\x1B[0m Cost: ${m.tiers?.cost}, Reasoning: ${m.tiers?.reasoning}, Coding: ${m.tiers?.coding}`);
+  });
+  console.log("\nUse \x1B[36mshow-model <model-alias>\x1B[0m to view detailed model capabilities.\n");
+}
+function handleShowModel(name) {
+  const registryPath = join18(sourceRoot, ".ai", "models", "registry.yaml");
+  if (!existsSync18(registryPath)) {
+    console.error("Error: Model registry not found.");
+    process.exit(1);
+  }
+  const registry = parseYaml(readFileSync19(registryPath, "utf8"));
+  const models = registry.models || {};
+  const m = models[name];
+  if (!m) {
+    console.error(`\x1B[31mError: Model alias '${name}' not found in registry.\x1B[0m`);
+    process.exit(1);
+  }
+  console.log(`
+\xF0\u0178\u201D\x8D \x1B[36mModel: ${name}\x1B[0m`);
+  console.log("==================================================");
+  console.log(`\x1B[33mProvider:\x1B[0m ${m.provider}`);
+  console.log(`\x1B[33mAlias:\x1B[0m ${m.alias}`);
+  console.log(`\x1B[33mOfficial ID:\x1B[0m ${m.official_id}`);
+  console.log(`\x1B[33mContext Window:\x1B[0m ${m.context_window} tokens`);
+  console.log(`\x1B[33mCapabilities:\x1B[0m`);
+  console.log(`  \xE2\u201D\u0153\xE2\u201D\u20AC Vision: ${m.capabilities?.vision ? "Yes" : "No"}`);
+  console.log(`  \xE2\u201D\u201D\xE2\u201D\u20AC Tool Use: ${m.capabilities?.tool_use ? "Yes" : "No"}`);
+  console.log(`\x1B[33mTiers:\x1B[0m`);
+  console.log(`  \xE2\u201D\u0153\xE2\u201D\u20AC Cost: ${m.tiers?.cost}`);
+  console.log(`  \xE2\u201D\u0153\xE2\u201D\u20AC Speed: ${m.tiers?.speed}`);
+  console.log(`  \xE2\u201D\u0153\xE2\u201D\u20AC Reasoning: ${m.tiers?.reasoning}`);
+  console.log(`  \xE2\u201D\u201D\xE2\u201D\u20AC Coding: ${m.tiers?.coding}`);
+  console.log();
+}
+function handleListProviders() {
+  const providersPath = join18(sourceRoot, ".ai", "models", "providers.yaml");
+  if (!existsSync18(providersPath)) {
+    console.error("Error: Providers registry not found.");
+    process.exit(1);
+  }
+  const reg = parseYaml(readFileSync19(providersPath, "utf8"));
+  const providers = reg.providers || {};
+  console.log(`
+\xF0\u0178\u201D\u0152 \x1B[36mAI Providers [v${version}]\x1B[0m`);
+  console.log("==================================================");
+  Object.keys(providers).forEach((name) => {
+    const p = providers[name];
+    console.log(`
+\x1B[32m* ${p.name || name}\x1B[0m (${name})`);
+    console.log(`  \x1B[33mEndpoint:\x1B[0m ${p.api_endpoint || "Local"}`);
+    console.log(`  \x1B[33mEnv Key:\x1B[0m ${p.env_key || "None"}`);
+  });
+  console.log();
+}
+function handleRouteModel(task) {
+  const presetsPath = join18(sourceRoot, ".ai", "models", "routing-presets.yaml");
+  if (!existsSync18(presetsPath)) {
+    console.error("Error: Routing presets not found.");
+    process.exit(1);
+  }
+  const reg = parseYaml(readFileSync19(presetsPath, "utf8"));
+  const presets = reg.presets || {};
+  const preset = presets[task];
+  if (!preset) {
+    console.error(`\x1B[31mError: Routing preset for task '${task}' not found. Available: ${Object.keys(presets).join(", ")}\x1B[0m`);
+    process.exit(1);
+  }
+  console.log(`
+\xF0\u0178\u017D\xAF \x1B[36mRouting Suggestion for: ${task}\x1B[0m`);
+  console.log("==================================================");
+  console.log(`\x1B[33mPrimary Model:\x1B[0m \x1B[32m${preset.primary}\x1B[0m`);
+  console.log(`\x1B[33mFallback Model:\x1B[0m \x1B[33m${preset.fallback}\x1B[0m`);
+  console.log();
+}
+function handleListAdapters(options) {
+  const adaptersPath = join18(sourceRoot, ".ai", "adapters", "registry.yaml");
+  if (!existsSync18(adaptersPath)) {
+    console.error("Error: Adapters registry not found.");
+    process.exit(1);
+  }
+  const reg = parseYaml(readFileSync19(adaptersPath, "utf8"));
+  const adapters = reg.adapters || {};
+  if (options && options.json) {
+    console.log(JSON.stringify(adapters, null, 2));
+    return;
+  }
+  console.log(`
+\xF0\u0178\u201D\u0152 \x1B[36mIDE & Agent Adapters [v${version}]\x1B[0m`);
+  console.log("==================================================");
+  Object.keys(adapters).forEach((name) => {
+    const a = adapters[name];
+    console.log(`
+\x1B[32m* ${a.name || name}\x1B[0m (${name})`);
+    console.log(`  \x1B[33mRules File:\x1B[0m ${a.rules_file}`);
+    console.log(`  \x1B[33mAdapter Type:\x1B[0m ${a.type}`);
+    console.log(`  \x1B[33mRule Format:\x1B[0m ${a.format}`);
+  });
+  console.log("\nUse \x1B[36mshow-adapter <adapter-name>\x1B[0m to view detailed adapter metadata.\n");
+}
+function handleShowAdapter(name) {
+  const adaptersPath = join18(sourceRoot, ".ai", "adapters", "registry.yaml");
+  if (!existsSync18(adaptersPath)) {
+    console.error("Error: Adapters registry not found.");
+    process.exit(1);
+  }
+  const reg = parseYaml(readFileSync19(adaptersPath, "utf8"));
+  const adapters = reg.adapters || {};
+  const a = adapters[name];
+  if (!a) {
+    console.error(`\x1B[31mError: Adapter '${name}' not found in registry.\x1B[0m`);
+    process.exit(1);
+  }
+  console.log(`
+\xF0\u0178\u201D\x8D \x1B[36mAdapter: ${a.name || name}\x1B[0m`);
+  console.log("==================================================");
+  console.log(`\x1B[33mRules File:\x1B[0m ${a.rules_file}`);
+  console.log(`\x1B[33mType:\x1B[0m ${a.type}`);
+  console.log(`\x1B[33mFormat:\x1B[0m ${a.format}`);
+  console.log();
+}
+function handleListSkills(options) {
+  const skillsDir = join18(options.target, ".ai", "skills");
+  if (!existsSync18(skillsDir)) {
+    console.log("\n\x1B[33m[Notice] .ai/skills directory is not initialized in the target workspace.\x1B[0m\n");
+    return;
+  }
+  const files = readdirSync8(skillsDir).filter((f) => f.endsWith(".md"));
+  console.log(`
+\xF0\u0178\xA7\xA0 \x1B[36mAvailable Skills in Target [v${version}]\x1B[0m`);
+  console.log("==================================================");
+  files.forEach((f) => {
+    console.log(`  \x1B[32m- ${f.replace(".md", "")}\x1B[0m (file: .ai/skills/${f})`);
+  });
+  console.log("\nUse \x1B[36mshow-skill <skill-name>\x1B[0m to read a skill's prompt text.\n");
+}
+function handleShowSkill(name, options) {
+  const skillsDir = join18(options.target, ".ai", "skills");
+  const skillFile = join18(skillsDir, name.endsWith(".md") ? name : `${name}.md`);
+  if (!existsSync18(skillFile)) {
+    console.error(`\x1B[31mError: Skill '${name}' not found in target .ai/skills/.\x1B[0m`);
+    process.exit(1);
+  }
+  console.log(`
+\xF0\u0178\u201C\u2013 \x1B[36mSkill Prompt: ${name}\x1B[0m`);
+  console.log("==================================================");
+  console.log(readFileSync19(skillFile, "utf8"));
+  console.log();
+}
+function scanTarget(targetDir) {
+  const files = [];
+  let ignoredCount = 0;
+  function walk(dir) {
+    if (!existsSync18(dir))
+      return;
+    const items = readdirSync8(dir);
+    for (const item of items) {
+      const fullPath = join18(dir, item);
+      const relPath = relative5(targetDir, fullPath).replace(/\\/g, "/");
+      if (shouldIgnorePath(relPath)) {
+        ignoredCount++;
+        continue;
+      }
+      try {
+        const stat = statSync6(fullPath);
+        if (stat.isDirectory()) {
+          walk(fullPath);
+        } else if (stat.isFile()) {
+          files.push({
+            relPath,
+            fullPath,
+            size: stat.size,
+            mtime: stat.mtime.toISOString()
+          });
+        }
+      } catch (e) {
+      }
+    }
+  }
+  walk(targetDir);
+  return { files, ignoredCount };
+}
+function detectFrameworkSignals(files, targetDir) {
+  const signals = [];
+  const hasFile = (name) => files.some((f) => f.relPath.toLowerCase() === name.toLowerCase());
+  if (hasFile("next.config.js") || hasFile("next.config.mjs"))
+    signals.push("Next.js");
+  if (hasFile("nuxt.config.js") || hasFile("nuxt.config.ts"))
+    signals.push("Nuxt.js");
+  if (hasFile("wp-config.php") || hasFile("index.php"))
+    signals.push("WordPress/PHP");
+  if (hasFile("tsconfig.json"))
+    signals.push("TypeScript");
+  if (hasFile("package.json")) {
+    signals.push("Node.js");
+    try {
+      const pkg = JSON.parse(readFileSync19(join18(targetDir, "package.json"), "utf8"));
+      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+      if (deps["react"])
+        signals.push("React");
+      if (deps["vue"])
+        signals.push("Vue");
+      if (deps["svelte"])
+        signals.push("Svelte");
+      if (deps["expo"])
+        signals.push("Expo");
+      if (deps["react-native"])
+        signals.push("React Native");
+      if (deps["vite"])
+        signals.push("Vite");
+      if (deps["express"])
+        signals.push("Express");
+      if (deps["angular"])
+        signals.push("Angular");
+    } catch (e) {
+    }
+  }
+  if (hasFile("requirements.txt") || hasFile("pyproject.toml"))
+    signals.push("Python");
+  if (hasFile("cargo.toml"))
+    signals.push("Rust");
+  if (hasFile("gemfile"))
+    signals.push("Ruby");
+  if (hasFile("go.mod"))
+    signals.push("Go");
+  if (signals.length === 0)
+    signals.push("Generic/Unknown");
+  return [...new Set(signals)];
+}
+function detectDependencySignals(files, targetDir) {
+  const signals = [];
+  const hasFile = (name) => files.some((f) => f.relPath.toLowerCase() === name.toLowerCase());
+  if (hasFile("package-lock.json"))
+    signals.push("npm");
+  else if (hasFile("yarn.lock"))
+    signals.push("Yarn");
+  else if (hasFile("pnpm-lock.yaml"))
+    signals.push("pnpm");
+  else if (hasFile("bun.lockb"))
+    signals.push("Bun");
+  if (hasFile("requirements.txt"))
+    signals.push("pip");
+  if (hasFile("poetry.lock"))
+    signals.push("Poetry");
+  if (hasFile("cargo.lock"))
+    signals.push("Cargo");
+  return signals;
+}
+function detectAiDevOsSignals(files) {
+  const signals = [];
+  const hasFile = (name) => files.some((f) => f.relPath.toLowerCase() === name.toLowerCase());
+  if (hasFile("agents.md"))
+    signals.push("AGENTS.md");
+  if (hasFile("memory.md"))
+    signals.push("MEMORY.md");
+  if (hasFile("tasks.md"))
+    signals.push("TASKS.md");
+  if (hasFile("runbook.md"))
+    signals.push("RUNBOOK.md");
+  if (hasFile(".ai/config.yaml"))
+    signals.push(".ai/config.yaml");
+  const hasPrefix = (prefix) => files.some((f) => f.relPath.startsWith(prefix));
+  if (hasPrefix(".ai/templates/"))
+    signals.push("Templates Registry");
+  if (hasPrefix(".ai/adapters/"))
+    signals.push("Adapters Registry");
+  if (hasPrefix(".ai/skills/"))
+    signals.push("Skills Registry");
+  if (hasPrefix(".ai/intelligence/"))
+    signals.push("Intelligence Layer");
+  if (hasPrefix(".ai/policies/"))
+    signals.push("Policy Layer");
+  if (hasPrefix(".ai/registries/"))
+    signals.push("Registry Layer");
+  return signals;
+}
+function detectRisks(files, targetDir) {
+  const risks = [];
+  const gitignorePath = join18(targetDir, ".gitignore");
+  const gitignoreContent = existsSync18(gitignorePath) ? readFileSync19(gitignorePath, "utf8") : "";
+  const hasFolder = (name) => files.some((f) => f.relPath.split("/")[0] === name);
+  if (hasFolder("node_modules") && !gitignoreContent.includes("node_modules")) {
+    risks.push({
+      file_pattern: "node_modules/",
+      risk_description: "Large token-sink directory node_modules/ is present but not ignored in .gitignore.",
+      severity: "high"
+    });
+  }
+  files.forEach((f) => {
+    if (f.relPath.endsWith(".json") && f.relPath.toLowerCase().includes("config") && f.size > 5e4) {
+      risks.push({
+        file_pattern: f.relPath,
+        risk_description: `Large config file (${(f.size / 1024).toFixed(1)} KB) might contain sensitive parameters or inflate prompt context.`,
+        severity: "medium"
+      });
+    }
+  });
+  return risks;
 }
 function getAnalysis(target) {
   const { files, ignoredCount } = scanTarget(target);
@@ -6544,7 +6554,7 @@ function getAnalysis(target) {
     repoType = "docs";
   } else if (files.some((f) => f.relPath === "package.json")) {
     try {
-      const pkg = JSON.parse(readFileSync17(join16(target, "package.json"), "utf8"));
+      const pkg = JSON.parse(readFileSync19(join18(target, "package.json"), "utf8"));
       if (pkg.main && (pkg.main.includes("dist/") || pkg.main.includes("lib/"))) {
         repoType = "library";
       }
@@ -6565,7 +6575,7 @@ function getAnalysis(target) {
   const packageScripts = [];
   if (files.some((f) => f.relPath === "package.json")) {
     try {
-      const pkg = JSON.parse(readFileSync17(join16(target, "package.json"), "utf8"));
+      const pkg = JSON.parse(readFileSync19(join18(target, "package.json"), "utf8"));
       if (pkg.scripts) {
         Object.keys(pkg.scripts).forEach((k) => packageScripts.push(k));
       }
@@ -6573,10 +6583,10 @@ function getAnalysis(target) {
     }
   }
   const githubWorkflows = [];
-  const githubDir = join16(target, ".github", "workflows");
-  if (existsSync16(githubDir)) {
+  const githubDir = join18(target, ".github", "workflows");
+  if (existsSync18(githubDir)) {
     try {
-      readdirSync7(githubDir).forEach((f) => {
+      readdirSync8(githubDir).forEach((f) => {
         if (f.endsWith(".yml") || f.endsWith(".yaml"))
           githubWorkflows.push(f);
       });
@@ -6682,8 +6692,8 @@ function handleOnboardPlan(options) {
   console.log("==================================================");
   const analysis = getAnalysis(options.target);
   const rec = getRecommendation(analysis);
-  const planPath = join16(options.target, ".ai", "intelligence", "onboarding.plan.json");
-  const reportPath = join16(options.target, ".ai", "intelligence", "onboarding.report.md");
+  const planPath = join18(options.target, ".ai", "intelligence", "onboarding.plan.json");
+  const reportPath = join18(options.target, ".ai", "intelligence", "onboarding.report.md");
   const plannedFiles = [
     { action: "CREATE", path: "AGENTS.md", source_template: `examples/${rec.template}/AGENTS.md` },
     { action: "CREATE", path: "MEMORY.md", source_template: `examples/${rec.template}/MEMORY.md` },
@@ -6759,13 +6769,13 @@ function handleOnboardPlan(options) {
   reportMd += `\`\`\`
 `;
   try {
-    const intelDir = join16(options.target, ".ai", "intelligence");
-    if (!options.dryRun && !existsSync16(intelDir)) {
-      mkdirSync10(intelDir, { recursive: true });
+    const intelDir = join18(options.target, ".ai", "intelligence");
+    if (!options.dryRun && !existsSync18(intelDir)) {
+      mkdirSync11(intelDir, { recursive: true });
     }
     if (!options.dryRun) {
-      writeFileSync12(planPath, JSON.stringify(planData, null, 2), "utf8");
-      writeFileSync12(reportPath, reportMd, "utf8");
+      writeFileSync13(planPath, JSON.stringify(planData, null, 2), "utf8");
+      writeFileSync13(reportPath, reportMd, "utf8");
     }
     console.log(`  [SUCCESS] Onboarding plan generated:`);
     console.log(`    - Plan JSON:   .ai/intelligence/onboarding.plan.json`);
@@ -6783,14 +6793,14 @@ function handleOnboardApply(options) {
     console.log("Example: node bin/multimodel-dev-os.js onboard apply --approved");
     process.exit(1);
   }
-  const planPath = join16(options.target, ".ai", "intelligence", "onboarding.plan.json");
-  if (!existsSync16(planPath)) {
+  const planPath = join18(options.target, ".ai", "intelligence", "onboarding.plan.json");
+  if (!existsSync18(planPath)) {
     console.error('\x1B[31mError: Onboarding plan not found. Run "npx multimodel-dev-os onboard plan" first.\x1B[0m');
     process.exit(1);
   }
   let plan;
   try {
-    plan = JSON.parse(readFileSync17(planPath, "utf8"));
+    plan = JSON.parse(readFileSync19(planPath, "utf8"));
   } catch (e) {
     console.error(`\x1B[31mError reading plan JSON: ${e.message}\x1B[0m`);
     process.exit(1);
@@ -6804,23 +6814,23 @@ function handleOnboardApply(options) {
   plan.planned_files.forEach((f) => {
     let srcFile;
     if (f.source_template === "RUNBOOK.md") {
-      srcFile = join16(sourceRoot, "RUNBOOK.md");
+      srcFile = join18(sourceRoot, "RUNBOOK.md");
     } else {
-      srcFile = join16(sourceRoot, f.source_template);
+      srcFile = join18(sourceRoot, f.source_template);
     }
     operations.push({ dest: f.path, src: srcFile });
   });
-  const templateDir = join16(sourceRoot, "examples", template);
-  const templateAiDir = join16(templateDir, ".ai");
-  if (existsSync16(templateAiDir) && !options.caveman) {
+  const templateDir = join18(sourceRoot, "examples", template);
+  const templateAiDir = join18(templateDir, ".ai");
+  if (existsSync18(templateAiDir) && !options.caveman) {
     const subdirs = ["context", "skills"];
     subdirs.forEach((sub) => {
-      const subPath = join16(templateAiDir, sub);
-      if (existsSync16(subPath)) {
-        readdirSync7(subPath).forEach((file) => {
+      const subPath = join18(templateAiDir, sub);
+      if (existsSync18(subPath)) {
+        readdirSync8(subPath).forEach((file) => {
           operations.push({
-            dest: join16(".ai", sub, file),
-            src: join16(subPath, file)
+            dest: join18(".ai", sub, file),
+            src: join18(subPath, file)
           });
         });
       }
@@ -6828,17 +6838,17 @@ function handleOnboardApply(options) {
   }
   const globalAiSubdirs = ["context", "agents", "skills", "prompts", "checks", "templates", "session-logs", "registries", "proposals", "intelligence"];
   globalAiSubdirs.forEach((sub) => {
-    const globalPath = join16(sourceRoot, ".ai", sub);
-    if (existsSync16(globalPath)) {
-      readdirSync7(globalPath).forEach((file) => {
-        const destRel = join16(".ai", sub, file);
+    const globalPath = join18(sourceRoot, ".ai", sub);
+    if (existsSync18(globalPath)) {
+      readdirSync8(globalPath).forEach((file) => {
+        const destRel = join18(".ai", sub, file);
         if (!operations.some((op) => op.dest === destRel)) {
           if (options.caveman && (sub === "context" || sub === "skills" || sub === "prompts" || sub === "checks")) {
             return;
           }
           operations.push({
             dest: destRel,
-            src: join16(globalPath, file)
+            src: join18(globalPath, file)
           });
         }
       });
@@ -6848,16 +6858,16 @@ function handleOnboardApply(options) {
   let skippedCount = 0;
   let updatedCount = 0;
   operations.forEach((op) => {
-    const destPath = join16(options.target, op.dest);
-    const destDir = dirname8(destPath);
-    if (existsSync16(destPath)) {
+    const destPath = join18(options.target, op.dest);
+    const destDir = dirname9(destPath);
+    if (existsSync18(destPath)) {
       if (options.force) {
         if (!options.dryRun) {
           const backupPath = destPath + ".bak";
-          writeFileSync12(backupPath, readFileSync17(destPath));
-          if (!existsSync16(destDir))
-            mkdirSync10(destDir, { recursive: true });
-          writeFileSync12(destPath, readFileSync17(op.src));
+          writeFileSync13(backupPath, readFileSync19(destPath));
+          if (!existsSync18(destDir))
+            mkdirSync11(destDir, { recursive: true });
+          writeFileSync13(destPath, readFileSync19(op.src));
           console.log(`  \x1B[33mOVERWRITE (BACKUP CREATED):\x1B[0m ${op.dest} -> ${op.dest}.bak`);
         } else {
           console.log(`  \x1B[36m[DRY-RUN] WOULD OVERWRITE & BACKUP:\x1B[0m ${op.dest}`);
@@ -6869,9 +6879,9 @@ function handleOnboardApply(options) {
       }
     } else {
       if (!options.dryRun) {
-        if (!existsSync16(destDir))
-          mkdirSync10(destDir, { recursive: true });
-        writeFileSync12(destPath, readFileSync17(op.src));
+        if (!existsSync18(destDir))
+          mkdirSync11(destDir, { recursive: true });
+        writeFileSync13(destPath, readFileSync19(op.src));
         console.log(`  \x1B[32mCREATE:\x1B[0m ${op.dest}`);
       } else {
         console.log(`  \x1B[36m[DRY-RUN] WOULD CREATE:\x1B[0m ${op.dest}`);
@@ -6896,8 +6906,8 @@ function handleOnboardStatus(options) {
   ];
   let presentCount = 0;
   crucialFiles.forEach((f) => {
-    const fullPath = join16(options.target, f);
-    const exists = existsSync16(fullPath);
+    const fullPath = join18(options.target, f);
+    const exists = existsSync18(fullPath);
     if (exists)
       presentCount++;
     console.log(`  [${exists ? "\xE2\u0153\u201D" : " "}] ${f}`);
@@ -6914,10 +6924,10 @@ function handleOnboardStatus(options) {
   }
 }
 function getEnabledAdapters(target) {
-  const configPath = join16(target, ".ai", "config.yaml");
-  if (existsSync16(configPath)) {
+  const configPath = join18(target, ".ai", "config.yaml");
+  if (existsSync18(configPath)) {
     try {
-      const config = parseYaml(readFileSync17(configPath, "utf8")) || {};
+      const config = parseYaml(readFileSync19(configPath, "utf8")) || {};
       return config.adapters || {};
     } catch (e) {
     }
@@ -6933,7 +6943,7 @@ function handleAdapterStatus(options) {
     const a = ADAPTERS[name];
     const isEnabled = enabled[name] || false;
     const rulesFile = a.rules_file;
-    const exists = existsSync16(join16(options.target, rulesFile));
+    const exists = existsSync18(join18(options.target, rulesFile));
     let statusStr = "\x1B[31mMISSING\x1B[0m";
     if (exists) {
       statusStr = "\x1B[32mINSTALLED\x1B[0m";
@@ -6992,15 +7002,15 @@ function handleAdapterDiff(aName, options) {
   }
   adaptersToDiff.forEach((name) => {
     const a = ADAPTERS[name];
-    const srcFile = join16(sourceRoot, "adapters", name, a.rules_file);
-    const destFile = join16(options.target, a.rules_file);
-    if (!existsSync16(srcFile)) {
+    const srcFile = join18(sourceRoot, "adapters", name, a.rules_file);
+    const destFile = join18(options.target, a.rules_file);
+    if (!existsSync18(srcFile)) {
       console.warn(`Warning: Source file for adapter '${name}' is missing at: ${srcFile}`);
       return;
     }
-    const srcContent = readFileSync17(srcFile, "utf8");
-    if (existsSync16(destFile)) {
-      const destContent = readFileSync17(destFile, "utf8");
+    const srcContent = readFileSync19(srcFile, "utf8");
+    if (existsSync18(destFile)) {
+      const destContent = readFileSync19(destFile, "utf8");
       printDiff(srcContent, destContent, a.rules_file);
     } else {
       console.log(`
@@ -7039,21 +7049,21 @@ function handleAdapterSync(aName, options) {
   console.log("==================================================");
   adaptersToSync.forEach((name) => {
     const a = ADAPTERS[name];
-    const srcFile = join16(sourceRoot, "adapters", name, a.rules_file);
-    const destFile = join16(options.target, a.rules_file);
-    const destDir = dirname8(destFile);
-    if (!existsSync16(srcFile)) {
+    const srcFile = join18(sourceRoot, "adapters", name, a.rules_file);
+    const destFile = join18(options.target, a.rules_file);
+    const destDir = dirname9(destFile);
+    if (!existsSync18(srcFile)) {
       console.warn(`Warning: Source file for adapter '${name}' is missing at: ${srcFile}`);
       return;
     }
-    if (existsSync16(destFile)) {
+    if (existsSync18(destFile)) {
       if (options.force) {
         if (!options.dryRun) {
           const backupPath = destFile + ".bak";
-          writeFileSync12(backupPath, readFileSync17(destFile));
-          if (!existsSync16(destDir))
-            mkdirSync10(destDir, { recursive: true });
-          writeFileSync12(destFile, readFileSync17(srcFile));
+          writeFileSync13(backupPath, readFileSync19(destFile));
+          if (!existsSync18(destDir))
+            mkdirSync11(destDir, { recursive: true });
+          writeFileSync13(destFile, readFileSync19(srcFile));
           console.log(`  \x1B[33mOVERWRITE (BACKUP CREATED):\x1B[0m ${a.rules_file} -> ${a.rules_file}.bak`);
         } else {
           console.log(`  \x1B[36m[DRY-RUN] WOULD OVERWRITE & BACKUP:\x1B[0m ${a.rules_file}`);
@@ -7063,9 +7073,9 @@ function handleAdapterSync(aName, options) {
       }
     } else {
       if (!options.dryRun) {
-        if (!existsSync16(destDir))
-          mkdirSync10(destDir, { recursive: true });
-        writeFileSync12(destFile, readFileSync17(srcFile));
+        if (!existsSync18(destDir))
+          mkdirSync11(destDir, { recursive: true });
+        writeFileSync13(destFile, readFileSync19(srcFile));
         console.log(`  \x1B[32mCREATE:\x1B[0m ${a.rules_file}`);
       } else {
         console.log(`  \x1B[36m[DRY-RUN] WOULD CREATE:\x1B[0m ${a.rules_file}`);
@@ -7216,7 +7226,7 @@ function handleDashboard(options) {
 \x1B[36mRunning Command:\x1B[0m npx multimodel-dev-os ${cmdStr}${targetFlag}`);
     console.log("--------------------------------------------------\n");
     try {
-      const cliPath = join16(sourceRoot, "bin", "multimodel-dev-os.js");
+      const cliPath = join18(sourceRoot, "bin", "multimodel-dev-os.js");
       execSync(`node "${cliPath}" ${cmdStr} --target "${options.target}"`, { stdio: "inherit" });
     } catch (e) {
       console.error(`
@@ -7228,9 +7238,9 @@ function handleDashboard(options) {
       process.stdin.setRawMode(true);
     }
     process.stdin.resume();
-    return new Promise((resolve7) => {
+    return new Promise((resolve8) => {
       process.stdin.once("keypress", () => {
-        resolve7();
+        resolve8();
       });
     });
   };
