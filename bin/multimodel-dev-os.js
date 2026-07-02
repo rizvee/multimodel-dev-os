@@ -2,12 +2,6 @@
 // Generated from src/. Do not edit directly.
 
 
-// src/cli/main.js
-import { existsSync as existsSync18, mkdirSync as mkdirSync11, readFileSync as readFileSync19, writeFileSync as writeFileSync13, readdirSync as readdirSync8, statSync as statSync6 } from "fs";
-import { join as join18, dirname as dirname9, resolve as resolve7, relative as relative5, isAbsolute as isAbsolute4, basename as basename4 } from "path";
-import readline from "readline";
-import { execSync, execFileSync as execFileSync2 } from "child_process";
-
 // src/cli/args.js
 import { resolve } from "path";
 function parseArgs(args) {
@@ -332,7 +326,7 @@ function showHelp() {
   console.log("  adapter <subcmd>  Manage and sync rule/settings files for IDE adapters (subcmd: status, diff, sync)");
   console.log("  plugin <subcmd>   Manage declarative plugins (subcmd: list, show, validate, install, status)");
   console.log("  catalog <subcmd>  Manage Workflow Marketplace & Plugin Catalog (subcmd: list, search, show, categories, recommend, install, status)");
-  console.log("  registry <subcmd> Manage trusted remote catalog registries (subcmd: list, add, remove, sync, status, verify, show, cache, keygen, lock, trust list/show/verify/add/remove)");
+  console.log("  registry <subcmd> Manage trusted remote catalog registries (subcmd: list, add, remove, sync, status, verify, show, cache, keygen, lock, trust list/show/verify/add/remove/sync)");
   console.log("  verify            Validate structural integrity of an existing project");
   console.log("  templates         List all built-in template profiles with details");
   console.log("  list-templates    Alias for templates command");
@@ -373,6 +367,11 @@ function showHelp() {
   console.log("  -f, --force             Overwrite existing files without prompting\n");
 }
 
+// src/cli/handlers/registry.js
+import { existsSync as existsSync7, mkdirSync as mkdirSync3, readFileSync as readFileSync8, writeFileSync as writeFileSync5, readdirSync, statSync } from "fs";
+import { join as join7, dirname as dirname4, resolve as resolve3, relative, isAbsolute as isAbsolute2, basename } from "path";
+import { execFileSync as execFileSync2 } from "child_process";
+
 // src/core/hashes.js
 import { createHash } from "crypto";
 import { readFileSync as readFileSync2 } from "fs";
@@ -410,7 +409,7 @@ function loadRegistryPolicy(targetDir) {
     allow_unsigned_bundled: true,
     allow_unsigned_remote: false,
     trusted_keys_file: ".ai/registries/trusted-keys.yaml",
-    allowed_signature_algorithms: ["ed25519", "hmac-sha256"],
+    allowed_signature_algorithms: ["ed25519", "hmac-sha256", "gpg"],
     require_trusted_publisher: false,
     provenance_required: true
   };
@@ -429,29 +428,6 @@ function loadRegistryPolicy(targetDir) {
     }
   }
   return defaults;
-}
-
-// src/core/security.js
-function shouldIgnorePath(relPath) {
-  const normalized = relPath.replace(/\\/g, "/");
-  const segments = normalized.split("/");
-  const ignoredFolders = ["node_modules", ".git", "dist", "build", ".next", "coverage"];
-  for (const seg of segments) {
-    if (ignoredFolders.includes(seg))
-      return true;
-  }
-  if (normalized.includes("docs/.vitepress/dist") || normalized.includes("docs/.vitepress/cache")) {
-    return true;
-  }
-  if (normalized.endsWith("memory.hash.json") || normalized.endsWith("memory.summary.md") || normalized.endsWith("feedback-log.jsonl") || normalized.endsWith("learning-rules.md") || normalized.endsWith("apply-log.jsonl") || normalized.includes(".ai/proposals/")) {
-    return true;
-  }
-  const lower = normalized.toLowerCase();
-  const filePart = segments[segments.length - 1];
-  if (lower.endsWith(".env") || lower.includes(".env.") || lower.endsWith(".npmrc") || lower.endsWith(".keystore") || lower.endsWith(".jks") || lower.endsWith(".key") || lower.endsWith(".pem") || lower.endsWith("credentials.json") || filePart === "id_rsa" || filePart === "id_dsa" || filePart === "id_ecdsa" || filePart === "id_ed25519") {
-    return true;
-  }
-  return false;
 }
 
 // src/registry/validation.js
@@ -601,8 +577,10 @@ function updateLockfileEntry(lockfile, name, entry) {
 
 // src/registry/signing.js
 import { generateKeyPairSync, sign, verify, createHmac, timingSafeEqual, randomBytes } from "crypto";
-import { existsSync as existsSync5, readFileSync as readFileSync6, writeFileSync as writeFileSync3, mkdirSync as mkdirSync2, chmodSync } from "fs";
+import { existsSync as existsSync5, readFileSync as readFileSync6, writeFileSync as writeFileSync3, mkdirSync as mkdirSync2, chmodSync, rmSync } from "fs";
 import { join as join5, dirname as dirname3 } from "path";
+import { execFileSync } from "child_process";
+import os from "os";
 var SIGNING_KEY_FILENAME = "registry-signing-key";
 function getSigningKeyPath(targetDir) {
   return join5(targetDir, ".ai", SIGNING_KEY_FILENAME);
@@ -701,6 +679,60 @@ function verifyEd25519Payload(publicKey, payload, signature) {
     return false;
   }
 }
+function verifyGpgSignature(publicKey, payload, signature) {
+  if (typeof publicKey !== "string" || typeof payload !== "string" || typeof signature !== "string") {
+    return false;
+  }
+  if (process.env.MMDO_TEST_MOCK_GPG === "true") {
+    if (signature.includes("INVALID") || publicKey.includes("INVALID")) {
+      return false;
+    }
+    return true;
+  }
+  try {
+    const gpgCmd = process.platform === "win32" ? "gpg.exe" : "gpg";
+    execFileSync(gpgCmd, ["--version"], { stdio: "ignore" });
+  } catch (err) {
+    throw new Error("GPG command-line utility ('gpg') is not installed or not found on PATH.");
+  }
+  const tempHomedir = join5(os.tmpdir(), `mmdo-gpg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`);
+  try {
+    mkdirSync2(tempHomedir, { recursive: true });
+    const keyPath = join5(tempHomedir, "pubkey.asc");
+    const payloadPath = join5(tempHomedir, "payload.txt");
+    const sigPath = join5(tempHomedir, "signature.asc");
+    writeFileSync3(keyPath, publicKey, "utf8");
+    writeFileSync3(payloadPath, payload, "utf8");
+    writeFileSync3(sigPath, signature, "utf8");
+    execFileSync("gpg", [
+      "--homedir",
+      tempHomedir,
+      "--batch",
+      "--yes",
+      "--import",
+      keyPath
+    ], { stdio: "ignore" });
+    execFileSync("gpg", [
+      "--homedir",
+      tempHomedir,
+      "--batch",
+      "--yes",
+      "--verify",
+      sigPath,
+      payloadPath
+    ], { stdio: "ignore" });
+    return true;
+  } catch (_e) {
+    return false;
+  } finally {
+    if (existsSync5(tempHomedir)) {
+      try {
+        rmSync(tempHomedir, { recursive: true, force: true });
+      } catch (_e) {
+      }
+    }
+  }
+}
 function verifySignatureBlock({ manifest, trustedKeys, policy = {}, hmacKey = null, source = {} }) {
   const isBundled = source.name === "bundled";
   const isLocal = source.type === "local";
@@ -729,7 +761,7 @@ function verifySignatureBlock({ manifest, trustedKeys, policy = {}, hmacKey = nu
   }
   let verifiedCount = 0;
   const errors = [];
-  const allowedAlgs = policy.allowed_signature_algorithms || ["ed25519", "hmac-sha256"];
+  const allowedAlgs = policy.allowed_signature_algorithms || ["ed25519", "hmac-sha256", "gpg"];
   for (const sigBlock of signatureBlocks) {
     const alg = sigBlock.algorithm;
     const keyId = sigBlock.key_id;
@@ -783,6 +815,31 @@ function verifySignatureBlock({ manifest, trustedKeys, policy = {}, hmacKey = nu
         }
       } catch (err) {
         errors.push(`Ed25519 signature verification failed: ${err.message}`);
+      }
+    } else if (alg === "gpg") {
+      const trustedKey = trustedKeys ? trustedKeys.find((k) => k.key_id === keyId) : null;
+      if (!trustedKey) {
+        errors.push(`Key ID '${keyId}' not found in trust store.`);
+        continue;
+      }
+      if (trustedKey.status !== "active") {
+        errors.push(`Key ID '${keyId}' is ${trustedKey.status} (must be active).`);
+        continue;
+      }
+      const scopes = trustedKey.scopes || [];
+      if (!scopes.includes("registry") && !scopes.includes("catalog")) {
+        errors.push(`Key ID '${keyId}' does not have required scope 'registry' or 'catalog' (scopes: ${scopes.join(", ")}).`);
+        continue;
+      }
+      try {
+        const payload = createCanonicalPayload(manifest, signedFields);
+        if (verifyGpgSignature(trustedKey.public_key, payload, signature)) {
+          verifiedCount++;
+        } else {
+          errors.push(`Invalid GPG signature for key_id '${keyId}'.`);
+        }
+      } catch (err) {
+        errors.push(`GPG signature verification failed: ${err.message}`);
       }
     } else {
       errors.push(`Unsupported signature algorithm '${alg}' for key_id '${keyId}'.`);
@@ -868,7 +925,7 @@ function addTrustedKey(targetDir, keyEntry, policy) {
       return { added: false, error: `Missing required field: '${field}'.` };
     }
   }
-  const validAlgorithms = ["ed25519", "hmac-sha256"];
+  const validAlgorithms = ["ed25519", "hmac-sha256", "gpg"];
   if (!validAlgorithms.includes(keyEntry.algorithm)) {
     return { added: false, error: `Unsupported algorithm '${keyEntry.algorithm}'. Allowed: ${validAlgorithms.join(", ")}.` };
   }
@@ -918,7 +975,7 @@ function removeTrustedKey(targetDir, keyId, policy) {
   return { removed: true };
 }
 function fetchRemotePublicKey(url, options = {}) {
-  return new Promise((resolve8, reject) => {
+  return new Promise((resolve7, reject) => {
     let parsedUrl;
     try {
       parsedUrl = new URL(url);
@@ -971,7 +1028,7 @@ function fetchRemotePublicKey(url, options = {}) {
         if (!trimmed) {
           return reject(new Error(`Remote key fetch returned empty response from '${url}'.`));
         }
-        resolve8(trimmed);
+        resolve7(trimmed);
       });
       res.on("error", (err) => reject(new Error(`Response error from '${url}': ${err.message}`)));
     });
@@ -982,6 +1039,40 @@ function fetchRemotePublicKey(url, options = {}) {
     req.on("error", (err) => reject(new Error(`Request error for '${url}': ${err.message}`)));
     req.end();
   });
+}
+async function syncRemoteKeys(targetDir, options = {}) {
+  const pol = loadRegistryPolicy(targetDir);
+  const filePath = getTrustStorePath(targetDir, pol);
+  const publishers = loadTrustedKeys(targetDir, pol);
+  const updated = [];
+  const errors = [];
+  let checkedCount = 0;
+  const newPublishers = [...publishers];
+  for (let i = 0; i < newPublishers.length; i++) {
+    const p = newPublishers[i];
+    if (!p.remote_source_url) {
+      continue;
+    }
+    checkedCount++;
+    try {
+      const newKey = await fetchRemotePublicKey(p.remote_source_url, { allowHttp: options.allowHttp });
+      if (newKey && newKey !== p.public_key.trim()) {
+        const updatedRecord = {
+          ...p,
+          public_key: newKey,
+          added_at: (/* @__PURE__ */ new Date()).toISOString()
+        };
+        newPublishers[i] = updatedRecord;
+        updated.push({ key_id: p.key_id, oldKey: p.public_key, newKey });
+      }
+    } catch (err) {
+      errors.push({ key_id: p.key_id, error: err.message });
+    }
+  }
+  if (updated.length > 0 && !options.dryRun) {
+    serializeTrustedKeys(filePath, newPublishers);
+  }
+  return { updated, errors, checkedCount };
 }
 
 // src/registry/verdict.js
@@ -1014,9 +1105,6 @@ function createTrustVerdict({
 }
 
 // src/cli/handlers/registry.js
-import { existsSync as existsSync7, mkdirSync as mkdirSync3, readFileSync as readFileSync8, writeFileSync as writeFileSync5, readdirSync, statSync } from "fs";
-import { join as join7, dirname as dirname4, resolve as resolve3, relative, isAbsolute as isAbsolute2, basename } from "path";
-import { execFileSync } from "child_process";
 function handleRegistryList(options) {
   const sources = loadRegistrySources();
   const policy = loadRegistryPolicy(options.target);
@@ -1241,7 +1329,7 @@ To execute this sync operation, run:`);
           process.exit(1);
         });
       `;
-      return execFileSync(process.execPath, ["-e", script, "--", targetUrl], { encoding: "utf8", timeout: 3e4 });
+      return execFileSync2(process.execPath, ["-e", script, "--", targetUrl], { encoding: "utf8", timeout: 3e4 });
     };
     console.log(`Downloading: ${catalogUrl}`);
     console.log(`  \u2192 .ai/registry-cache/${name}/catalog.yaml ...`);
@@ -1975,6 +2063,59 @@ Warning: Registries signed by this key will no longer verify.`);
   console.log(`  Run 'registry verify <name>' to check affected registries.`);
   console.log(`  Commit .ai/registries/trusted-keys.yaml to propagate the change.
 `);
+}
+async function handleRegistryTrustSync(options) {
+  const projectDir = options.target || process.cwd();
+  if (!options.approved) {
+    console.error("\x1B[31mError: Syncing trusted keys requires --approved.\x1B[0m");
+    console.log("To sync remote trusted keys, run:");
+    console.log("  npx multimodel-dev-os registry trust sync --approved");
+    process.exit(1);
+  }
+  const dryRun = !!options["dry-run"] || !!options.dryRun;
+  const policy = loadRegistryPolicy(projectDir);
+  const allowHttp = policy.allow_http_localhost || false;
+  console.log(`
+\u{1F511} \x1B[36mRegistry Trust Store \u2014 Syncing Remote Keys\x1B[0m`);
+  console.log("==================================================");
+  if (dryRun) {
+    console.log("  Mode: Dry Run (No changes will be written to disk)\n");
+  }
+  try {
+    const result = await syncRemoteKeys(projectDir, { dryRun, allowHttp });
+    console.log(`  Checked keys: ${result.checkedCount}`);
+    console.log(`  Updated keys: ${result.updated.length}`);
+    console.log(`  Errors:       ${result.errors.length}
+`);
+    if (result.updated.length > 0) {
+      console.log("\x1B[32mUpdated Keys:\x1B[0m");
+      result.updated.forEach((u) => {
+        console.log(`  * \x1B[33m${u.key_id}\x1B[0m`);
+        console.log(`    Old key preview: ${u.oldKey.trim().slice(0, 40)}...`);
+        console.log(`    New key preview: ${u.newKey.trim().slice(0, 40)}...`);
+      });
+      console.log("");
+    }
+    if (result.errors.length > 0) {
+      console.error("\x1B[31mErrors encountered during sync:\x1B[0m");
+      result.errors.forEach((e) => {
+        console.error(`  * \x1B[33m${e.key_id}\x1B[0m: ${e.error}`);
+      });
+      console.log("");
+    }
+    if (result.updated.length > 0 && !dryRun) {
+      console.log(`\x1B[32m\u2714 Trust store remote keys synced successfully.\x1B[0m`);
+      console.log(`  Commit ${policy.trusted_keys_file || ".ai/registries/trusted-keys.yaml"} to propagate these key updates.
+`);
+    } else if (result.updated.length === 0) {
+      console.log(`\x1B[32m\u2714 All remote keys are already up to date.\x1B[0m
+`);
+    }
+  } catch (err) {
+    console.error(`\x1B[31mError: Failed to sync remote keys: ${err.message}\x1B[0m
+`);
+    process.exit(1);
+  }
 }
 function handleRegistryShow(name, options) {
   const sources = loadRegistrySources();
@@ -3113,7 +3254,7 @@ function handleInit(options) {
   console.log(`
 \x1B[34mInitializing multimodel-dev-os in: ${options.target}\x1B[0m`);
   const TEMPLATES = loadTemplates(options.registry);
-  const ADAPTERS2 = loadAdapters(options.registry);
+  const ADAPTERS = loadAdapters(options.registry);
   const tInfo = TEMPLATES[options.template];
   if (tInfo && tInfo.status === "planned") {
     console.warn(`  \x1B[33m[WARNING] Template '${options.template}' is planned for a future release and is not yet available.\x1B[0m`);
@@ -3247,7 +3388,7 @@ function handleInit(options) {
   });
   if (!options.dryRun) {
     options.adapters.forEach((adapter) => {
-      const a = ADAPTERS2[adapter];
+      const a = ADAPTERS[adapter];
       if (a && a.rules_file) {
         const srcFile = join11(sourceRoot, "adapters", adapter, a.rules_file);
         const destFile = join11(options.target, a.rules_file);
@@ -3272,7 +3413,7 @@ function handleInit(options) {
     }
   } else {
     options.adapters.forEach((adapter) => {
-      const a = ADAPTERS2[adapter];
+      const a = ADAPTERS[adapter];
       if (a && a.rules_file) {
         console.log(`  \x1B[36m[DRY-RUN] WOULD CREATE ROOT ADAPTER FILE:\x1B[0m ${a.rules_file}`);
       }
@@ -3288,7 +3429,7 @@ function handleInit(options) {
     console.log(`  3. \x1B[1mActivate IDE / Agent Rules:\x1B[0m`);
     console.log(`     Ensure adapter configuration files are copied or linked to the root of your workspace:`);
     options.adapters.forEach((adapter) => {
-      const a = ADAPTERS2[adapter];
+      const a = ADAPTERS[adapter];
       if (a && a.rules_file) {
         console.log(`     - For \x1B[32m${a.name || adapter}\x1B[0m: Check the root-level \x1B[33m${a.rules_file}\x1B[0m file`);
       }
@@ -3367,8 +3508,290 @@ function handleShowTemplate(name, options) {
 }
 
 // src/cli/handlers/inspection.js
-import { existsSync as existsSync12, readFileSync as readFileSync13, readdirSync as readdirSync5, statSync as statSync5, writeFileSync as writeFileSync8, mkdirSync as mkdirSync6 } from "fs";
-import { join as join12, dirname as dirname7, relative as relative3, resolve as resolve5, basename as basename2 } from "path";
+import { existsSync as existsSync13, readFileSync as readFileSync14, readdirSync as readdirSync6, statSync as statSync6, writeFileSync as writeFileSync8, mkdirSync as mkdirSync6 } from "fs";
+import { join as join13, dirname as dirname7, relative as relative4, resolve as resolve5, basename as basename2 } from "path";
+
+// src/core/analysis.js
+import { existsSync as existsSync12, readdirSync as readdirSync5, statSync as statSync5, readFileSync as readFileSync13 } from "fs";
+import { join as join12, relative as relative3 } from "path";
+
+// src/core/security.js
+function shouldIgnorePath(relPath) {
+  const normalized = relPath.replace(/\\/g, "/");
+  const segments = normalized.split("/");
+  const ignoredFolders = ["node_modules", ".git", "dist", "build", ".next", "coverage"];
+  for (const seg of segments) {
+    if (ignoredFolders.includes(seg))
+      return true;
+  }
+  if (normalized.includes("docs/.vitepress/dist") || normalized.includes("docs/.vitepress/cache")) {
+    return true;
+  }
+  if (normalized.endsWith("memory.hash.json") || normalized.endsWith("memory.summary.md") || normalized.endsWith("feedback-log.jsonl") || normalized.endsWith("learning-rules.md") || normalized.endsWith("apply-log.jsonl") || normalized.includes(".ai/proposals/")) {
+    return true;
+  }
+  const lower = normalized.toLowerCase();
+  const filePart = segments[segments.length - 1];
+  if (lower.endsWith(".env") || lower.includes(".env.") || lower.endsWith(".npmrc") || lower.endsWith(".keystore") || lower.endsWith(".jks") || lower.endsWith(".key") || lower.endsWith(".pem") || lower.endsWith("credentials.json") || filePart === "id_rsa" || filePart === "id_dsa" || filePart === "id_ecdsa" || filePart === "id_ed25519") {
+    return true;
+  }
+  return false;
+}
+
+// src/core/analysis.js
+function scanTarget(targetDir) {
+  const files = [];
+  let ignoredCount = 0;
+  function walk(dir) {
+    if (!existsSync12(dir))
+      return;
+    const items = readdirSync5(dir);
+    for (const item of items) {
+      const fullPath = join12(dir, item);
+      const relPath = relative3(targetDir, fullPath).replace(/\\/g, "/");
+      if (shouldIgnorePath(relPath)) {
+        ignoredCount++;
+        continue;
+      }
+      try {
+        const stat = statSync5(fullPath);
+        if (stat.isDirectory()) {
+          walk(fullPath);
+        } else if (stat.isFile()) {
+          files.push({
+            relPath,
+            fullPath,
+            size: stat.size,
+            mtime: stat.mtime.toISOString()
+          });
+        }
+      } catch (e) {
+      }
+    }
+  }
+  walk(targetDir);
+  return { files, ignoredCount };
+}
+function detectFrameworkSignals(files, targetDir) {
+  const signals = [];
+  const hasFile = (name) => files.some((f) => f.relPath.toLowerCase() === name.toLowerCase());
+  if (hasFile("next.config.js") || hasFile("next.config.mjs"))
+    signals.push("Next.js");
+  if (hasFile("nuxt.config.js") || hasFile("nuxt.config.ts"))
+    signals.push("Nuxt.js");
+  if (hasFile("wp-config.php") || hasFile("index.php"))
+    signals.push("WordPress/PHP");
+  if (hasFile("tsconfig.json"))
+    signals.push("TypeScript");
+  if (hasFile("package.json")) {
+    signals.push("Node.js");
+    try {
+      const pkg = JSON.parse(readFileSync13(join12(targetDir, "package.json"), "utf8"));
+      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+      if (deps["react"])
+        signals.push("React");
+      if (deps["vue"])
+        signals.push("Vue");
+      if (deps["svelte"])
+        signals.push("Svelte");
+      if (deps["expo"])
+        signals.push("Expo");
+      if (deps["react-native"])
+        signals.push("React Native");
+      if (deps["vite"])
+        signals.push("Vite");
+      if (deps["express"])
+        signals.push("Express");
+      if (deps["angular"])
+        signals.push("Angular");
+    } catch (e) {
+    }
+  }
+  if (hasFile("requirements.txt") || hasFile("pyproject.toml"))
+    signals.push("Python");
+  if (hasFile("cargo.toml"))
+    signals.push("Rust");
+  if (hasFile("gemfile"))
+    signals.push("Ruby");
+  if (hasFile("go.mod"))
+    signals.push("Go");
+  if (signals.length === 0)
+    signals.push("Generic/Unknown");
+  return [...new Set(signals)];
+}
+function detectDependencySignals(files, targetDir) {
+  const signals = [];
+  const hasFile = (name) => files.some((f) => f.relPath.toLowerCase() === name.toLowerCase());
+  if (hasFile("package-lock.json"))
+    signals.push("npm");
+  else if (hasFile("yarn.lock"))
+    signals.push("Yarn");
+  else if (hasFile("pnpm-lock.yaml"))
+    signals.push("pnpm");
+  else if (hasFile("bun.lockb"))
+    signals.push("Bun");
+  if (hasFile("requirements.txt"))
+    signals.push("pip");
+  if (hasFile("poetry.lock"))
+    signals.push("Poetry");
+  if (hasFile("cargo.lock"))
+    signals.push("Cargo");
+  return signals;
+}
+function detectAiDevOsSignals(files) {
+  const signals = [];
+  const hasFile = (name) => files.some((f) => f.relPath.toLowerCase() === name.toLowerCase());
+  if (hasFile("agents.md"))
+    signals.push("AGENTS.md");
+  if (hasFile("memory.md"))
+    signals.push("MEMORY.md");
+  if (hasFile("tasks.md"))
+    signals.push("TASKS.md");
+  if (hasFile("runbook.md"))
+    signals.push("RUNBOOK.md");
+  if (hasFile(".ai/config.yaml"))
+    signals.push(".ai/config.yaml");
+  const hasPrefix = (prefix) => files.some((f) => f.relPath.startsWith(prefix));
+  if (hasPrefix(".ai/templates/"))
+    signals.push("Templates Registry");
+  if (hasPrefix(".ai/adapters/"))
+    signals.push("Adapters Registry");
+  if (hasPrefix(".ai/skills/"))
+    signals.push("Skills Registry");
+  if (hasPrefix(".ai/intelligence/"))
+    signals.push("Intelligence Layer");
+  if (hasPrefix(".ai/policies/"))
+    signals.push("Policy Layer");
+  if (hasPrefix(".ai/registries/"))
+    signals.push("Registry Layer");
+  return signals;
+}
+function detectRisks(files, targetDir) {
+  const risks = [];
+  const gitignorePath = join12(targetDir, ".gitignore");
+  const gitignoreContent = existsSync12(gitignorePath) ? readFileSync13(gitignorePath, "utf8") : "";
+  const hasFolder = (name) => files.some((f) => f.relPath.split("/")[0] === name);
+  if (hasFolder("node_modules") && !gitignoreContent.includes("node_modules")) {
+    risks.push({
+      file_pattern: "node_modules/",
+      risk_description: "Large token-sink directory node_modules/ is present but not ignored in .gitignore.",
+      severity: "high"
+    });
+  }
+  files.forEach((f) => {
+    if (f.relPath.endsWith(".json") && f.relPath.toLowerCase().includes("config") && f.size > 5e4) {
+      risks.push({
+        file_pattern: f.relPath,
+        risk_description: `Large config file (${(f.size / 1024).toFixed(1)} KB) might contain sensitive parameters or inflate prompt context.`,
+        severity: "medium"
+      });
+    }
+  });
+  return risks;
+}
+function getAnalysis(target) {
+  const { files, ignoredCount } = scanTarget(target);
+  const frameworks = detectFrameworkSignals(files, target);
+  const packageManagers = detectDependencySignals(files, target);
+  const aiSignals = detectAiDevOsSignals(files);
+  let jsCount = 0, tsCount = 0, phpCount = 0, pyCount = 0, mdCount = 0;
+  files.forEach((f) => {
+    const ext = f.relPath.substring(f.relPath.lastIndexOf(".")).toLowerCase();
+    if (ext === ".js" || ext === ".mjs" || ext === ".cjs")
+      jsCount++;
+    else if (ext === ".ts" || ext === ".tsx")
+      tsCount++;
+    else if (ext === ".php")
+      phpCount++;
+    else if (ext === ".py")
+      pyCount++;
+    else if (ext === ".md")
+      mdCount++;
+  });
+  let language = "mixed";
+  if (tsCount > jsCount && tsCount > phpCount && tsCount > pyCount && tsCount > mdCount)
+    language = "TS";
+  else if (jsCount > tsCount && jsCount > phpCount && jsCount > pyCount && jsCount > mdCount)
+    language = "JS";
+  else if (phpCount > jsCount && phpCount > tsCount && phpCount > pyCount && phpCount > mdCount)
+    language = "PHP";
+  else if (pyCount > jsCount && pyCount > tsCount && phpCount > pyCount && phpCount > mdCount)
+    language = "Python";
+  else if (mdCount > jsCount && mdCount > tsCount && mdCount > phpCount && mdCount > pyCount)
+    language = "Markdown-heavy";
+  let repoType = "app";
+  if (files.some((f) => f.relPath.includes("wp-content/themes") || f.relPath.includes("wp-content/plugins"))) {
+    repoType = "WordPress theme/plugin";
+  } else if (files.some((f) => f.relPath.includes("app.json") || f.relPath.includes("eas.json"))) {
+    repoType = "mobile app";
+  } else if (files.some((f) => f.relPath.includes("lerna.json") || f.relPath.includes("pnpm-workspace.yaml"))) {
+    repoType = "monorepo";
+  } else if (files.some((f) => f.relPath.includes("docs/")) && mdCount > files.length * 0.4) {
+    repoType = "docs";
+  } else if (files.some((f) => f.relPath === "package.json")) {
+    try {
+      const pkg = JSON.parse(readFileSync13(join12(target, "package.json"), "utf8"));
+      if (pkg.main && (pkg.main.includes("dist/") || pkg.main.includes("lib/"))) {
+        repoType = "library";
+      }
+    } catch (e) {
+    }
+  }
+  const existingTools = [];
+  if (files.some((f) => f.relPath === ".cursorrules"))
+    existingTools.push("Cursor");
+  if (files.some((f) => f.relPath === "CLAUDE.md"))
+    existingTools.push("Claude");
+  if (files.some((f) => f.relPath === "GEMINI.md"))
+    existingTools.push("Gemini");
+  if (files.some((f) => f.relPath.startsWith(".vscode/")))
+    existingTools.push("VS Code");
+  if (files.some((f) => f.relPath.startsWith(".gemini/")))
+    existingTools.push("Antigravity");
+  const packageScripts = [];
+  if (files.some((f) => f.relPath === "package.json")) {
+    try {
+      const pkg = JSON.parse(readFileSync13(join12(target, "package.json"), "utf8"));
+      if (pkg.scripts) {
+        Object.keys(pkg.scripts).forEach((k) => packageScripts.push(k));
+      }
+    } catch (e) {
+    }
+  }
+  const githubWorkflows = [];
+  const githubDir = join12(target, ".github", "workflows");
+  if (existsSync12(githubDir)) {
+    try {
+      readdirSync5(githubDir).forEach((f) => {
+        if (f.endsWith(".yml") || f.endsWith(".yaml"))
+          githubWorkflows.push(f);
+      });
+    } catch (e) {
+    }
+  }
+  const envRiskMarkers = [];
+  files.forEach((f) => {
+    const name = f.relPath.toLowerCase();
+    if (name.includes(".env") || name.includes("id_rsa") || name.includes("credential") || name.endsWith(".pem") || name.endsWith(".key") || name.endsWith(".keystore") || name.endsWith(".jks")) {
+      envRiskMarkers.push(f.relPath);
+    }
+  });
+  return {
+    packageManagers,
+    frameworks,
+    language,
+    repoType,
+    existingTools,
+    packageScripts,
+    githubWorkflows,
+    envRiskMarkers,
+    aiSignals,
+    filesCount: files.length,
+    ignoredCount
+  };
+}
+
+// src/cli/handlers/inspection.js
 function handleVerify(options) {
   console.log(`
 \x1B[34mRunning strict verification in: ${options.target}\x1B[0m
@@ -3376,8 +3799,8 @@ function handleVerify(options) {
   let passed = 0;
   let failed = 0;
   const assertFile = (relPath) => {
-    const fullPath = join12(options.target, relPath);
-    if (existsSync12(fullPath) && statSync5(fullPath).isFile()) {
+    const fullPath = join13(options.target, relPath);
+    if (existsSync13(fullPath) && statSync6(fullPath).isFile()) {
       console.log(`  \x1B[32m\u2713\x1B[0m ${relPath}`);
       passed++;
     } else {
@@ -3423,7 +3846,7 @@ function handleVerify(options) {
     process.exit(0);
   }
 }
-function handleDoctor(options, { scanTarget: scanTarget2, detectDependencySignals: detectDependencySignals2, getAnalysis: getAnalysis2, diffMemory: diffMemory2 } = {}) {
+function handleDoctor(options, { scanTarget: scanTarget2 = scanTarget, detectDependencySignals: detectDependencySignals2 = detectDependencySignals, getAnalysis: getAnalysis2 = getAnalysis, diffMemory: diffMemory2 } = {}) {
   if (options.tokens) {
     handleDoctorTokens(options);
     return;
@@ -3448,9 +3871,9 @@ function handleDoctor(options, { scanTarget: scanTarget2, detectDependencySignal
     console.warn(`  \x1B[33m[WARNING]\x1B[0m ${msg}`);
     warnings++;
   };
-  const gitignorePath = join12(options.target, ".gitignore");
-  if (existsSync12(gitignorePath)) {
-    const content = readFileSync13(gitignorePath, "utf8");
+  const gitignorePath = join13(options.target, ".gitignore");
+  if (existsSync13(gitignorePath)) {
+    const content = readFileSync14(gitignorePath, "utf8");
     if (!content.includes("node_modules")) {
       warn(".gitignore is missing node_modules! This will cause AI tools to choke by scanning dependencies.");
     }
@@ -3460,9 +3883,9 @@ function handleDoctor(options, { scanTarget: scanTarget2, detectDependencySignal
   } else {
     warn("Missing .gitignore file in target workspace! AI tools might read large build artifacts.");
   }
-  const agentsPath = join12(options.target, "AGENTS.md");
-  if (existsSync12(agentsPath)) {
-    const content = readFileSync13(agentsPath, "utf8");
+  const agentsPath = join13(options.target, "AGENTS.md");
+  if (existsSync13(agentsPath)) {
+    const content = readFileSync14(agentsPath, "utf8");
     if (!content.includes("build:") && !content.includes("build")) {
       warn("AGENTS.md is missing build command specifications.");
     }
@@ -3475,31 +3898,31 @@ function handleDoctor(options, { scanTarget: scanTarget2, detectDependencySignal
   } else {
     warn("AGENTS.md is missing from project root.");
   }
-  const memoryPath = join12(options.target, "MEMORY.md");
-  if (existsSync12(memoryPath)) {
-    const content = readFileSync13(memoryPath, "utf8");
+  const memoryPath = join13(options.target, "MEMORY.md");
+  if (existsSync13(memoryPath)) {
+    const content = readFileSync14(memoryPath, "utf8");
     const placeholdersCount = (content.match(/null/g) || []).length;
     if (placeholdersCount > 3) {
       warn(`MEMORY.md contains ${placeholdersCount} empty 'null' placeholders. Update project constraints.`);
     }
   }
-  const tasksPath = join12(options.target, "TASKS.md");
-  if (existsSync12(tasksPath)) {
-    const content = readFileSync13(tasksPath, "utf8");
+  const tasksPath = join13(options.target, "TASKS.md");
+  if (existsSync13(tasksPath)) {
+    const content = readFileSync14(tasksPath, "utf8");
     if (!content.includes("- [ ]") && !content.includes("- [/]")) {
       warn("TASKS.md has no active task section (no tasks marked as - [ ] or - [/]).");
     }
   } else {
     warn("TASKS.md is missing from project root.");
   }
-  const configPath = join12(options.target, ".ai", "config.yaml");
-  if (existsSync12(configPath)) {
-    const content = readFileSync13(configPath, "utf8");
+  const configPath = join13(options.target, ".ai", "config.yaml");
+  if (existsSync13(configPath)) {
+    const content = readFileSync14(configPath, "utf8");
     const checkAdapter = (adapterName, filename) => {
       const regex = new RegExp(`${adapterName}:\\s*true`);
       if (regex.test(content)) {
-        const filePath = join12(options.target, filename);
-        if (!existsSync12(filePath)) {
+        const filePath = join13(options.target, filename);
+        if (!existsSync13(filePath)) {
           warn(`Adapter '${adapterName}' is enabled in .ai/config.yaml but matching adapter file '${filename}' is missing from root.`);
         }
       }
@@ -3514,9 +3937,9 @@ function handleDoctor(options, { scanTarget: scanTarget2, detectDependencySignal
   }
   const sinkFolders = ["node_modules", "dist", "build", ".next", ".git"];
   sinkFolders.forEach((folder) => {
-    const fullPath = join12(options.target, folder);
-    if (existsSync12(fullPath)) {
-      const gitignore = existsSync12(gitignorePath) ? readFileSync13(gitignorePath, "utf8") : "";
+    const fullPath = join13(options.target, folder);
+    if (existsSync13(fullPath)) {
+      const gitignore = existsSync13(gitignorePath) ? readFileSync14(gitignorePath, "utf8") : "";
       if (!gitignore.includes(folder)) {
         warn(`Large token-sink directory '${folder}/' is present in workspace but not ignored in .gitignore. AI tools may read it.`);
       }
@@ -3540,9 +3963,9 @@ function handleValidate(options) {
 `);
   let errors = 0;
   const assertPath = (relPath, type) => {
-    const fullPath = join12(options.target, relPath);
-    if (existsSync12(fullPath)) {
-      const stat = statSync5(fullPath);
+    const fullPath = join13(options.target, relPath);
+    if (existsSync13(fullPath)) {
+      const stat = statSync6(fullPath);
       const isOk = type === "file" ? stat.isFile() : stat.isDirectory();
       if (isOk) {
         console.log(`  \x1B[32m\u2713\x1B[0m ${relPath} (${type})`);
@@ -3559,15 +3982,15 @@ function handleValidate(options) {
   core.forEach((f) => assertPath(f, "file"));
   const dirs = [".ai/context", ".ai/skills", ".ai/session-logs"];
   dirs.forEach((d) => assertPath(d, "dir"));
-  const agentsPath = join12(options.target, ".ai/agents");
-  const agentsExist = existsSync12(agentsPath) && statSync5(agentsPath).isDirectory();
+  const agentsPath = join13(options.target, ".ai/agents");
+  const agentsExist = existsSync13(agentsPath) && statSync6(agentsPath).isDirectory();
   if (agentsExist) {
     console.log(`  \x1B[32m\u2713\x1B[0m .ai/agents (dir)`);
   } else {
-    const agentsMdPath = join12(options.target, "AGENTS.md");
+    const agentsMdPath = join13(options.target, "AGENTS.md");
     let explained = false;
-    if (existsSync12(agentsMdPath)) {
-      const agentsMdContent = readFileSync13(agentsMdPath, "utf8");
+    if (existsSync13(agentsMdPath)) {
+      const agentsMdContent = readFileSync14(agentsMdPath, "utf8");
       if (agentsMdContent.includes("multimodel") || agentsMdContent.includes("orchestrator") || agentsMdContent.includes("global") || agentsMdContent.includes("role") || agentsMdContent.includes("Agent Roles")) {
         explained = true;
       }
@@ -3579,14 +4002,14 @@ function handleValidate(options) {
       errors++;
     }
   }
-  const configPath = join12(options.target, ".ai", "config.yaml");
-  if (existsSync12(configPath)) {
-    const content = readFileSync13(configPath, "utf8");
+  const configPath = join13(options.target, ".ai", "config.yaml");
+  if (existsSync13(configPath)) {
+    const content = readFileSync14(configPath, "utf8");
     const assertAdapter = (adapterName, filename) => {
       const regex = new RegExp(`${adapterName}:\\s*true`);
       if (regex.test(content)) {
-        const fullPath = join12(options.target, filename);
-        if (existsSync12(fullPath)) {
+        const fullPath = join13(options.target, filename);
+        if (existsSync13(fullPath)) {
           console.log(`  \x1B[32m\u2713\x1B[0m ${filename} (enabled adapter rules file verified)`);
         } else {
           console.error(`  \x1B[31m\u2717 ${filename} (adapter '${adapterName}' is enabled in .ai/config.yaml, but rule file is missing!)\x1B[0m`);
@@ -3651,15 +4074,15 @@ function handleDoctorTokens(options) {
   const filesFound = [];
   const ignoredDirs = [".git", "node_modules", "dist", "build", ".next", ".expo", "bin", "assets", "docs", "web-build", "out", "coverage", ".nuxt", ".svelte-kit", "bower_components", "vendor"];
   function scan(dir) {
-    if (!existsSync12(dir))
+    if (!existsSync13(dir))
       return;
-    const items = readdirSync5(dir);
+    const items = readdirSync6(dir);
     for (const item of items) {
       if (ignoredDirs.includes(item))
         continue;
-      const fullPath = join12(dir, item);
+      const fullPath = join13(dir, item);
       try {
-        const stat = statSync5(fullPath);
+        const stat = statSync6(fullPath);
         if (stat.isDirectory()) {
           scan(fullPath);
         } else if (stat.isFile()) {
@@ -3720,19 +4143,19 @@ function handleValidateTemplate(name, options) {
       console.log(`  \x1B[32m\u2713\x1B[0m Registry key: ${k}`);
     }
   });
-  const templateDir = join12(sourceRoot, "examples", name);
-  if (!existsSync12(templateDir)) {
+  const templateDir = join13(sourceRoot, "examples", name);
+  if (!existsSync13(templateDir)) {
     console.error(`  \x1B[31m\u2717 Source folder missing: examples/${name}\x1B[0m`);
     errors++;
   } else {
     console.log(`  \x1B[32m\u2713\x1B[0m Source folder: examples/${name}`);
     if (Array.isArray(t.required_files)) {
       t.required_files.forEach((f) => {
-        const filePath = join12(templateDir, f);
-        const globalPath = join12(sourceRoot, f);
-        if (existsSync12(filePath)) {
+        const filePath = join13(templateDir, f);
+        const globalPath = join13(sourceRoot, f);
+        if (existsSync13(filePath)) {
           console.log(`  \x1B[32m\u2713\x1B[0m Required file (template override): ${f}`);
-        } else if (existsSync12(globalPath)) {
+        } else if (existsSync13(globalPath)) {
           console.log(`  \x1B[32m\u2713\x1B[0m Required file (global fallback): ${f}`);
         } else {
           console.error(`  \x1B[31m\u2717 Required file missing: ${f}\x1B[0m`);
@@ -3754,8 +4177,8 @@ function handleValidateTemplate(name, options) {
   }
 }
 function handleValidateAdapter(name, options) {
-  const ADAPTERS2 = loadAdapters(options?.registry);
-  const a = ADAPTERS2[name];
+  const ADAPTERS = loadAdapters(options?.registry);
+  const a = ADAPTERS[name];
   if (!a) {
     console.error(`\x1B[31mError: Adapter '${name}' not found in registry.\x1B[0m`);
     process.exit(1);
@@ -3772,22 +4195,22 @@ function handleValidateAdapter(name, options) {
       console.log(`  \x1B[32m\u2713\x1B[0m Registry key: ${k}`);
     }
   });
-  const adapterDir = join12(sourceRoot, "adapters", name);
-  if (!existsSync12(adapterDir)) {
+  const adapterDir = join13(sourceRoot, "adapters", name);
+  if (!existsSync13(adapterDir)) {
     console.error(`  \x1B[31m\u2717 Source folder missing: adapters/${name}\x1B[0m`);
     errors++;
   } else {
     console.log(`  \x1B[32m\u2713\x1B[0m Source folder: adapters/${name}`);
-    const setupFile = join12(adapterDir, "setup.md");
-    if (existsSync12(setupFile)) {
+    const setupFile = join13(adapterDir, "setup.md");
+    if (existsSync13(setupFile)) {
       console.log(`  \x1B[32m\u2713\x1B[0m Required file: setup.md`);
     } else {
       console.error(`  \x1B[31m\u2717 Required file missing: adapters/${name}/setup.md\x1B[0m`);
       errors++;
     }
     if (a.rules_file) {
-      const rulesFile = join12(adapterDir, a.rules_file);
-      if (existsSync12(rulesFile)) {
+      const rulesFile = join13(adapterDir, a.rules_file);
+      if (existsSync13(rulesFile)) {
         console.log(`  \x1B[32m\u2713\x1B[0m Rules file: ${a.rules_file}`);
       } else {
         console.error(`  \x1B[31m\u2717 Rules file missing: adapters/${name}/${a.rules_file}\x1B[0m`);
@@ -3808,18 +4231,18 @@ function handleValidateAdapter(name, options) {
   }
 }
 function handleValidateSkill(name, options) {
-  const skillsDir = join12(options.target, ".ai", "skills");
-  let skillFile = join12(skillsDir, name.endsWith(".md") ? name : `${name}.md`);
-  if (!existsSync12(skillFile)) {
-    skillFile = join12(sourceRoot, ".ai", "skills", name.endsWith(".md") ? name : `${name}.md`);
+  const skillsDir = join13(options.target, ".ai", "skills");
+  let skillFile = join13(skillsDir, name.endsWith(".md") ? name : `${name}.md`);
+  if (!existsSync13(skillFile)) {
+    skillFile = join13(sourceRoot, ".ai", "skills", name.endsWith(".md") ? name : `${name}.md`);
   }
-  if (!existsSync12(skillFile)) {
+  if (!existsSync13(skillFile)) {
     console.error(`\x1B[31mError: Skill '${name}' not found.\x1B[0m`);
     process.exit(1);
   }
   console.log(`
 \u{1F4CB} \x1B[34mValidating Skill: ${name}\x1B[0m`);
-  const content = readFileSync13(skillFile, "utf8");
+  const content = readFileSync14(skillFile, "utf8");
   let errors = 0;
   const reqHeaders = [
     { header: "# Purpose", regex: /^#\s+Purpose/mi },
@@ -3854,7 +4277,7 @@ function handleValidateAllRegistries(options) {
 `);
   let errors = 0;
   const TEMPLATES = loadTemplates(options?.registry);
-  const ADAPTERS2 = loadAdapters(options?.registry);
+  const ADAPTERS = loadAdapters(options?.registry);
   console.log("--- Templates Registry Validation ---");
   Object.keys(TEMPLATES).forEach((name) => {
     const t = TEMPLATES[name];
@@ -3870,15 +4293,15 @@ Validating Template: ${name}`);
         errors++;
       }
     });
-    const templateDir = join12(sourceRoot, "examples", name);
-    if (t.status === "stable" && !existsSync12(templateDir)) {
+    const templateDir = join13(sourceRoot, "examples", name);
+    if (t.status === "stable" && !existsSync13(templateDir)) {
       console.error(`  \x1B[31m\u2717 Stable template source folder missing: examples/${name}\x1B[0m`);
       errors++;
     }
   });
   console.log("\n--- Adapters Registry Validation ---");
-  Object.keys(ADAPTERS2).forEach((name) => {
-    const a = ADAPTERS2[name];
+  Object.keys(ADAPTERS).forEach((name) => {
+    const a = ADAPTERS[name];
     console.log(`Validating Adapter: ${name}`);
     const reqKeys = ["name", "rules_file", "format", "type"];
     reqKeys.forEach((k) => {
@@ -3905,7 +4328,7 @@ function handleDoctorRelease(options) {
   let warnings = 0;
   let packageVersion = "unknown";
   try {
-    const pkg = JSON.parse(readFileSync13(join12(sourceRoot, "package.json"), "utf8"));
+    const pkg = JSON.parse(readFileSync14(join13(sourceRoot, "package.json"), "utf8"));
     packageVersion = pkg.version;
     console.log(`  \x1B[32m\u2713\x1B[0m package.json version: ${packageVersion}`);
   } catch (e) {
@@ -3913,9 +4336,9 @@ function handleDoctorRelease(options) {
     warnings++;
   }
   const checkInstallScript = (filename, regex) => {
-    const filePath = join12(sourceRoot, filename);
-    if (existsSync12(filePath)) {
-      const content = readFileSync13(filePath, "utf8");
+    const filePath = join13(sourceRoot, filename);
+    if (existsSync13(filePath)) {
+      const content = readFileSync14(filePath, "utf8");
       const match = content.match(regex);
       if (match && match[1] === packageVersion) {
         console.log(`  \x1B[32m\u2713\x1B[0m ${filename} version aligns: ${match[1]}`);
@@ -3929,8 +4352,8 @@ function handleDoctorRelease(options) {
   checkInstallScript("scripts/install.ps1", /\$VERSION\s*=\s*"([^"]+)"/i);
   const blacklist = [".npmrc"];
   blacklist.forEach((file) => {
-    const fullPath = join12(sourceRoot, file);
-    if (existsSync12(fullPath)) {
+    const fullPath = join13(sourceRoot, file);
+    if (existsSync13(fullPath)) {
       console.warn(`  \x1B[33m[WARNING]\x1B[0m Blacklisted file found in release root: ${file}`);
       warnings++;
     } else {
@@ -3938,13 +4361,13 @@ function handleDoctorRelease(options) {
     }
   });
   const scanSafety = (dir) => {
-    if (!existsSync12(dir))
+    if (!existsSync13(dir))
       return;
-    const items = readdirSync5(dir);
+    const items = readdirSync6(dir);
     for (const item of items) {
-      const fullPath = join12(dir, item);
+      const fullPath = join13(dir, item);
       try {
-        const stat = statSync5(fullPath);
+        const stat = statSync6(fullPath);
         if (stat.isDirectory()) {
           scanSafety(fullPath);
         } else if (stat.isFile()) {
@@ -3957,7 +4380,7 @@ function handleDoctorRelease(options) {
       }
     }
   };
-  scanSafety(join12(sourceRoot, "examples"));
+  scanSafety(join13(sourceRoot, "examples"));
   console.log("\n==================================================");
   if (warnings > 0) {
     console.warn(`  \x1B[33mRelease doctor complete with ${warnings} warnings.\x1B[0m
@@ -3966,7 +4389,7 @@ function handleDoctorRelease(options) {
     console.log("  \x1B[32m\u2714 Release hygiene checks PASSED successfully!\x1B[0m\n");
   }
 }
-function handleScan(options, { scanTarget: scanTarget2, detectFrameworkSignals: detectFrameworkSignals2, detectDependencySignals: detectDependencySignals2, detectAiDevOsSignals: detectAiDevOsSignals2, detectRisks: detectRisks2 } = {}) {
+function handleScan(options, { scanTarget: scanTarget2 = scanTarget, detectFrameworkSignals: detectFrameworkSignals2 = detectFrameworkSignals, detectDependencySignals: detectDependencySignals2 = detectDependencySignals, detectAiDevOsSignals: detectAiDevOsSignals2 = detectAiDevOsSignals, detectRisks: detectRisks2 = detectRisks } = {}) {
   console.log(`
 \u{1F50D} \x1B[36mCodebase Scan target: ${options.target}\x1B[0m`);
   console.log("==================================================");
@@ -4002,16 +4425,16 @@ function handleScan(options, { scanTarget: scanTarget2, detectFrameworkSignals: 
   }
   console.log();
 }
-function handleStatus(options, { scanTarget: scanTarget2, detectFrameworkSignals: detectFrameworkSignals2, detectDependencySignals: detectDependencySignals2, diffMemory: diffMemory2 } = {}) {
+function handleStatus(options, { scanTarget: scanTarget2 = scanTarget, detectFrameworkSignals: detectFrameworkSignals2 = detectFrameworkSignals, detectDependencySignals: detectDependencySignals2 = detectDependencySignals, diffMemory: diffMemory2 } = {}) {
   console.log(`
 \u{1F4CA} \x1B[36mRepository Intelligence Status: ${options.target}\x1B[0m`);
   console.log("==================================================");
   let pkgName = "unknown";
   let pkgVersion2 = "unknown";
   try {
-    const pkgPath = join12(options.target, "package.json");
-    if (existsSync12(pkgPath)) {
-      const pkg = JSON.parse(readFileSync13(pkgPath, "utf8"));
+    const pkgPath = join13(options.target, "package.json");
+    if (existsSync13(pkgPath)) {
+      const pkg = JSON.parse(readFileSync14(pkgPath, "utf8"));
       pkgName = pkg.name || pkgName;
       pkgVersion2 = pkg.version || pkgVersion2;
     }
@@ -4026,12 +4449,12 @@ function handleStatus(options, { scanTarget: scanTarget2, detectFrameworkSignals
   console.log(`  \x1B[33mFramework & Dependency Signals:\x1B[0m`);
   console.log(`    Frameworks:      ${frameworkSignals.join(", ") || "None"}`);
   console.log(`    Dependencies:    ${dependencySignals.join(", ") || "None"}`);
-  const memoryHashPath = join12(options.target, ".ai", "intelligence", "memory.hash.json");
+  const memoryHashPath = join13(options.target, ".ai", "intelligence", "memory.hash.json");
   let memoryStatus = "\x1B[31mMISSING\x1B[0m";
   let lastBuildTime = "N/A";
-  if (existsSync12(memoryHashPath)) {
+  if (existsSync13(memoryHashPath)) {
     try {
-      const memObj = JSON.parse(readFileSync13(memoryHashPath, "utf8"));
+      const memObj = JSON.parse(readFileSync14(memoryHashPath, "utf8"));
       lastBuildTime = memObj.generated_at || "N/A";
       const diff = diffMemory2(options.target);
       if (diff) {
@@ -4048,30 +4471,30 @@ function handleStatus(options, { scanTarget: scanTarget2, detectFrameworkSignals
   console.log(`  \x1B[33mMemory State:\x1B[0m`);
   console.log(`    Status:          ${memoryStatus}`);
   console.log(`    Last Built:      ${lastBuildTime}`);
-  const feedbackPath = join12(options.target, ".ai", "intelligence", "feedback-log.jsonl");
+  const feedbackPath = join13(options.target, ".ai", "intelligence", "feedback-log.jsonl");
   let feedbackCount = 0;
-  if (existsSync12(feedbackPath)) {
+  if (existsSync13(feedbackPath)) {
     try {
-      feedbackCount = readFileSync13(feedbackPath, "utf8").trim().split(/\r?\n/).filter((l) => l.trim() !== "").length;
+      feedbackCount = readFileSync14(feedbackPath, "utf8").trim().split(/\r?\n/).filter((l) => l.trim() !== "").length;
     } catch (e) {
     }
   }
-  const rulesPath = join12(options.target, ".ai", "intelligence", "learning-rules.md");
-  const rulesStatus = existsSync12(rulesPath) ? "\x1B[32mPRESENT\x1B[0m" : "\x1B[31mMISSING\x1B[0m";
+  const rulesPath = join13(options.target, ".ai", "intelligence", "learning-rules.md");
+  const rulesStatus = existsSync13(rulesPath) ? "\x1B[32mPRESENT\x1B[0m" : "\x1B[31mMISSING\x1B[0m";
   console.log(`  \x1B[33mFeedback Loop & Rules:\x1B[0m`);
   console.log(`    Feedback Count:  ${feedbackCount}`);
   console.log(`    Learning Rules:  ${rulesStatus}`);
-  const proposalsDir = join12(options.target, ".ai", "proposals");
+  const proposalsDir = join13(options.target, ".ai", "proposals");
   let pendingCount = 0;
   let approvedCount = 0;
   let rejectedCount = 0;
   let totalProposals = 0;
-  if (existsSync12(proposalsDir)) {
+  if (existsSync13(proposalsDir)) {
     try {
-      const propFiles = readdirSync5(proposalsDir).filter((f) => f.startsWith("proposal-") && f.endsWith(".md"));
+      const propFiles = readdirSync6(proposalsDir).filter((f) => f.startsWith("proposal-") && f.endsWith(".md"));
       totalProposals = propFiles.length;
       propFiles.forEach((file) => {
-        const content = readFileSync13(join12(proposalsDir, file), "utf8");
+        const content = readFileSync14(join13(proposalsDir, file), "utf8");
         const fmMatch = content.match(/^---([\s\S]*?)---/);
         if (fmMatch) {
           const metadata = parseYaml(fmMatch[1]) || {};
@@ -4092,26 +4515,26 @@ function handleStatus(options, { scanTarget: scanTarget2, detectFrameworkSignals
   console.log(`    Pending:         \x1B[33m${pendingCount}\x1B[0m`);
   console.log(`    Approved:        \x1B[32m${approvedCount}\x1B[0m`);
   console.log(`    Rejected:        \x1B[31m${rejectedCount}\x1B[0m`);
-  const applyLogPath = join12(options.target, ".ai", "proposals", "apply-log.jsonl");
+  const applyLogPath = join13(options.target, ".ai", "proposals", "apply-log.jsonl");
   let applyLogCount = 0;
-  if (existsSync12(applyLogPath)) {
+  if (existsSync13(applyLogPath)) {
     try {
-      applyLogCount = readFileSync13(applyLogPath, "utf8").trim().split(/\r?\n/).filter((l) => l.trim() !== "").length;
+      applyLogCount = readFileSync14(applyLogPath, "utf8").trim().split(/\r?\n/).filter((l) => l.trim() !== "").length;
     } catch (e) {
     }
   }
   console.log(`  \x1B[33mApply Audit Log:\x1B[0m`);
   console.log(`    Apply Count:     ${applyLogCount}`);
   let nextMove = "mmdo status";
-  if (!existsSync12(join12(options.target, ".ai", "config.yaml"))) {
+  if (!existsSync13(join13(options.target, ".ai", "config.yaml"))) {
     nextMove = "\x1B[36mnpx multimodel-dev-os init\x1B[0m (initialize MultiModel Dev OS first)";
-  } else if (!existsSync12(memoryHashPath)) {
+  } else if (!existsSync13(memoryHashPath)) {
     nextMove = "\x1B[36mnpx multimodel-dev-os memory build\x1B[0m (initialize memory index)";
   } else {
     const diff = diffMemory2(options.target);
     if (diff && (diff.added.length > 0 || diff.removed.length > 0 || diff.changed.length > 0)) {
       nextMove = "\x1B[36mnpx multimodel-dev-os memory refresh\x1B[0m (update memory with changes)";
-    } else if (feedbackCount > 0 && !existsSync12(rulesPath)) {
+    } else if (feedbackCount > 0 && !existsSync13(rulesPath)) {
       nextMove = "\x1B[36mnpx multimodel-dev-os feedback summarize\x1B[0m (compile feedback into learning rules)";
     } else if (pendingCount > 0) {
       nextMove = "\x1B[36mnpx multimodel-dev-os improve review\x1B[0m (review pending proposals)";
@@ -4133,8 +4556,8 @@ function handleDoctorIntelligence(options, { diffMemory: diffMemory2 } = {}) {
     console.warn(`  \x1B[33m[WARNING]\x1B[0m ${msg}`);
     warnings++;
   };
-  const memoryHashPath = join12(options.target, ".ai", "intelligence", "memory.hash.json");
-  if (!existsSync12(memoryHashPath)) {
+  const memoryHashPath = join13(options.target, ".ai", "intelligence", "memory.hash.json");
+  if (!existsSync13(memoryHashPath)) {
     warn("Memory hash index (.ai/intelligence/memory.hash.json) is MISSING. Run `memory build` first.");
   } else {
     try {
@@ -4148,23 +4571,23 @@ function handleDoctorIntelligence(options, { diffMemory: diffMemory2 } = {}) {
       warn("Failed to diff memory index.");
     }
   }
-  const feedbackPath = join12(options.target, ".ai", "intelligence", "feedback-log.jsonl");
-  if (!existsSync12(feedbackPath)) {
+  const feedbackPath = join13(options.target, ".ai", "intelligence", "feedback-log.jsonl");
+  if (!existsSync13(feedbackPath)) {
     warn("Feedback log (.ai/intelligence/feedback-log.jsonl) is MISSING.");
   }
-  const rulesPath = join12(options.target, ".ai", "intelligence", "learning-rules.md");
-  if (!existsSync12(rulesPath)) {
+  const rulesPath = join13(options.target, ".ai", "intelligence", "learning-rules.md");
+  if (!existsSync13(rulesPath)) {
     warn("Learning rules (.ai/intelligence/learning-rules.md) are MISSING. Run `feedback summarize` to compile logs.");
   }
-  const proposalsDir = join12(options.target, ".ai", "proposals");
-  if (!existsSync12(proposalsDir)) {
+  const proposalsDir = join13(options.target, ".ai", "proposals");
+  if (!existsSync13(proposalsDir)) {
     warn("Proposals directory (.ai/proposals) is MISSING.");
   } else {
     try {
-      const files = readdirSync5(proposalsDir).filter((f) => f.startsWith("proposal-") && f.endsWith(".md"));
+      const files = readdirSync6(proposalsDir).filter((f) => f.startsWith("proposal-") && f.endsWith(".md"));
       let pending = 0;
       files.forEach((file) => {
-        const content = readFileSync13(join12(proposalsDir, file), "utf8");
+        const content = readFileSync14(join13(proposalsDir, file), "utf8");
         const fmMatch = content.match(/^---([\s\S]*?)---/);
         if (fmMatch) {
           const metadata = parseYaml(fmMatch[1]) || {};
@@ -4179,13 +4602,13 @@ function handleDoctorIntelligence(options, { diffMemory: diffMemory2 } = {}) {
     } catch (e) {
     }
   }
-  const applyLogPath = join12(options.target, ".ai", "proposals", "apply-log.jsonl");
-  if (!existsSync12(applyLogPath)) {
+  const applyLogPath = join13(options.target, ".ai", "proposals", "apply-log.jsonl");
+  if (!existsSync13(applyLogPath)) {
     warn("Apply audit log (.ai/proposals/apply-log.jsonl) is MISSING.");
   }
-  const gitignorePath = join12(options.target, ".gitignore");
-  if (existsSync12(gitignorePath)) {
-    const gitignoreContent = readFileSync13(gitignorePath, "utf8");
+  const gitignorePath = join13(options.target, ".gitignore");
+  if (existsSync13(gitignorePath)) {
+    const gitignoreContent = readFileSync14(gitignorePath, "utf8");
     const checkIgnore = (pattern) => {
       if (!gitignoreContent.includes(pattern)) {
         warn(`.gitignore is missing rules ignoring: ${pattern}`);
@@ -4199,9 +4622,9 @@ function handleDoctorIntelligence(options, { diffMemory: diffMemory2 } = {}) {
   } else {
     warn(".gitignore file is missing in target root.");
   }
-  if (existsSync12(memoryHashPath)) {
+  if (existsSync13(memoryHashPath)) {
     try {
-      const memObj = JSON.parse(readFileSync13(memoryHashPath, "utf8"));
+      const memObj = JSON.parse(readFileSync14(memoryHashPath, "utf8"));
       const fingerprints = memObj.file_fingerprints || {};
       Object.keys(fingerprints).forEach((file) => {
         const name = file.toLowerCase();
@@ -4220,7 +4643,7 @@ function handleDoctorIntelligence(options, { diffMemory: diffMemory2 } = {}) {
     console.log("\x1B[32m\u2714 Doctor intelligence check complete. Your intelligence setup is pristine!\x1B[0m\n");
   }
 }
-function handleDoctorOnboarding(options, { scanTarget: scanTarget2, detectDependencySignals: detectDependencySignals2 } = {}) {
+function handleDoctorOnboarding(options, { scanTarget: scanTarget2 = scanTarget, detectDependencySignals: detectDependencySignals2 = detectDependencySignals } = {}) {
   console.log(`
 \u{1FA7A} \x1B[36mRunning advisory onboarding doctor checkup in: ${options.target}\x1B[0m
 `);
@@ -4236,29 +4659,29 @@ function handleDoctorOnboarding(options, { scanTarget: scanTarget2, detectDepend
     "RUNBOOK.md"
   ];
   crucialFiles.forEach((f) => {
-    if (!existsSync12(join12(options.target, f))) {
+    if (!existsSync13(join13(options.target, f))) {
       warn(`Crucial onboarding file '${f}' is missing from project root.`);
     }
   });
-  const configPath = join12(options.target, ".ai", "config.yaml");
-  if (!existsSync12(configPath)) {
+  const configPath = join13(options.target, ".ai", "config.yaml");
+  if (!existsSync13(configPath)) {
     warn("MultiModel Dev OS configuration file (.ai/config.yaml) is missing.");
   }
-  const registriesDir = join12(options.target, ".ai", "registries");
-  if (!existsSync12(registriesDir)) {
+  const registriesDir = join13(options.target, ".ai", "registries");
+  if (!existsSync13(registriesDir)) {
     warn("Registries directory (.ai/registries) is missing.");
   }
-  const proposalsDir = join12(options.target, ".ai", "proposals");
-  if (!existsSync12(proposalsDir)) {
+  const proposalsDir = join13(options.target, ".ai", "proposals");
+  if (!existsSync13(proposalsDir)) {
     warn("Proposals directory (.ai/proposals) is missing.");
   }
-  const intelligenceDir = join12(options.target, ".ai", "intelligence");
-  if (!existsSync12(intelligenceDir)) {
+  const intelligenceDir = join13(options.target, ".ai", "intelligence");
+  if (!existsSync13(intelligenceDir)) {
     warn("Intelligence directory (.ai/intelligence) is missing.");
   }
-  const gitignorePath = join12(options.target, ".gitignore");
-  if (existsSync12(gitignorePath)) {
-    const gitignoreContent = readFileSync13(gitignorePath, "utf8");
+  const gitignorePath = join13(options.target, ".gitignore");
+  if (existsSync13(gitignorePath)) {
+    const gitignoreContent = readFileSync14(gitignorePath, "utf8");
     const checkIgnore = (pattern) => {
       if (!gitignoreContent.includes(pattern)) {
         warn(`Generated runtime file '${pattern}' is not ignored in .gitignore.`);
@@ -4282,9 +4705,9 @@ function handleDoctorOnboarding(options, { scanTarget: scanTarget2, detectDepend
 }
 
 // src/cli/handlers/memory.js
-import { existsSync as existsSync13, mkdirSync as mkdirSync7, readFileSync as readFileSync14, writeFileSync as writeFileSync9 } from "fs";
-import { join as join13 } from "path";
-function buildMemoryIndex(targetDir, { scanTarget: scanTarget2, detectFrameworkSignals: detectFrameworkSignals2, detectDependencySignals: detectDependencySignals2, detectAiDevOsSignals: detectAiDevOsSignals2, detectRisks: detectRisks2 } = {}) {
+import { existsSync as existsSync14, mkdirSync as mkdirSync7, readFileSync as readFileSync15, writeFileSync as writeFileSync9 } from "fs";
+import { join as join14 } from "path";
+function buildMemoryIndex(targetDir, { scanTarget: scanTarget2 = scanTarget, detectFrameworkSignals: detectFrameworkSignals2 = detectFrameworkSignals, detectDependencySignals: detectDependencySignals2 = detectDependencySignals, detectAiDevOsSignals: detectAiDevOsSignals2 = detectAiDevOsSignals, detectRisks: detectRisks2 = detectRisks } = {}) {
   const { files, ignoredCount } = scanTarget2(targetDir);
   const framework_signals = detectFrameworkSignals2(files, targetDir);
   const dependency_signals = detectDependencySignals2(files, targetDir);
@@ -4321,13 +4744,13 @@ function buildMemoryIndex(targetDir, { scanTarget: scanTarget2, detectFrameworkS
   };
 }
 function writeMemoryFiles(targetDir, index) {
-  const intelDir = join13(targetDir, ".ai", "intelligence");
-  if (!existsSync13(intelDir)) {
+  const intelDir = join14(targetDir, ".ai", "intelligence");
+  if (!existsSync14(intelDir)) {
     mkdirSync7(intelDir, { recursive: true });
   }
-  const hashJsonPath = join13(intelDir, "memory.hash.json");
+  const hashJsonPath = join14(intelDir, "memory.hash.json");
   writeFileSync9(hashJsonPath, JSON.stringify(index, null, 2), "utf8");
-  const summaryMdPath = join13(intelDir, "memory.summary.md");
+  const summaryMdPath = join14(intelDir, "memory.summary.md");
   let md = `# MultiModel Dev OS Repository Memory Summary
 
 `;
@@ -4378,14 +4801,14 @@ function writeMemoryFiles(targetDir, index) {
   });
   writeFileSync9(summaryMdPath, md, "utf8");
 }
-function diffMemory(targetDir, { scanTarget: scanTarget2, detectFrameworkSignals: detectFrameworkSignals2, detectDependencySignals: detectDependencySignals2, detectAiDevOsSignals: detectAiDevOsSignals2, detectRisks: detectRisks2 } = {}) {
-  const hashJsonPath = join13(targetDir, ".ai", "intelligence", "memory.hash.json");
-  if (!existsSync13(hashJsonPath)) {
+function diffMemory(targetDir, { scanTarget: scanTarget2 = scanTarget, detectFrameworkSignals: detectFrameworkSignals2 = detectFrameworkSignals, detectDependencySignals: detectDependencySignals2 = detectDependencySignals, detectAiDevOsSignals: detectAiDevOsSignals2 = detectAiDevOsSignals, detectRisks: detectRisks2 = detectRisks } = {}) {
+  const hashJsonPath = join14(targetDir, ".ai", "intelligence", "memory.hash.json");
+  if (!existsSync14(hashJsonPath)) {
     return null;
   }
   let existing;
   try {
-    existing = JSON.parse(readFileSync14(hashJsonPath, "utf8"));
+    existing = JSON.parse(readFileSync15(hashJsonPath, "utf8"));
   } catch (e) {
     return null;
   }
@@ -4412,7 +4835,7 @@ function diffMemory(targetDir, { scanTarget: scanTarget2, detectFrameworkSignals
   });
   return { added, removed, changed, unchangedCount, currentScan };
 }
-function handleMemoryBuild(options, { scanTarget: scanTarget2, detectFrameworkSignals: detectFrameworkSignals2, detectDependencySignals: detectDependencySignals2, detectAiDevOsSignals: detectAiDevOsSignals2, detectRisks: detectRisks2 } = {}) {
+function handleMemoryBuild(options, { scanTarget: scanTarget2 = scanTarget, detectFrameworkSignals: detectFrameworkSignals2 = detectFrameworkSignals, detectDependencySignals: detectDependencySignals2 = detectDependencySignals, detectAiDevOsSignals: detectAiDevOsSignals2 = detectAiDevOsSignals, detectRisks: detectRisks2 = detectRisks } = {}) {
   console.log(`
 \u{1F9E0} \x1B[36mBuilding Codebase Memory in: ${options.target}\x1B[0m`);
   console.log("==================================================");
@@ -4427,7 +4850,7 @@ function handleMemoryBuild(options, { scanTarget: scanTarget2, detectFrameworkSi
   index.recommended_next_steps.forEach((step) => console.log(`  - ${step}`));
   console.log();
 }
-function handleMemoryRefresh(options, { scanTarget: scanTarget2, detectFrameworkSignals: detectFrameworkSignals2, detectDependencySignals: detectDependencySignals2, detectAiDevOsSignals: detectAiDevOsSignals2, detectRisks: detectRisks2 } = {}) {
+function handleMemoryRefresh(options, { scanTarget: scanTarget2 = scanTarget, detectFrameworkSignals: detectFrameworkSignals2 = detectFrameworkSignals, detectDependencySignals: detectDependencySignals2 = detectDependencySignals, detectAiDevOsSignals: detectAiDevOsSignals2 = detectAiDevOsSignals, detectRisks: detectRisks2 = detectRisks } = {}) {
   console.log(`
 \u{1F9E0} \x1B[36mRefreshing Codebase Memory in: ${options.target}\x1B[0m`);
   console.log("==================================================");
@@ -4448,7 +4871,7 @@ function handleMemoryRefresh(options, { scanTarget: scanTarget2, detectFramework
   console.log(`  Unchanged: ${diff.unchangedCount}`);
   console.log();
 }
-function handleMemoryDiff(options, { scanTarget: scanTarget2, detectFrameworkSignals: detectFrameworkSignals2, detectDependencySignals: detectDependencySignals2, detectAiDevOsSignals: detectAiDevOsSignals2, detectRisks: detectRisks2 } = {}) {
+function handleMemoryDiff(options, { scanTarget: scanTarget2 = scanTarget, detectFrameworkSignals: detectFrameworkSignals2 = detectFrameworkSignals, detectDependencySignals: detectDependencySignals2 = detectDependencySignals, detectAiDevOsSignals: detectAiDevOsSignals2 = detectAiDevOsSignals, detectRisks: detectRisks2 = detectRisks } = {}) {
   console.log(`
 \u{1F9E0} \x1B[36mDiffing Codebase State against Memory in: ${options.target}\x1B[0m`);
   console.log("==================================================");
@@ -4485,12 +4908,12 @@ function handleMemoryDiff(options, { scanTarget: scanTarget2, detectFrameworkSig
 }
 
 // src/cli/handlers/feedback.js
-import { existsSync as existsSync14, mkdirSync as mkdirSync8, readFileSync as readFileSync15, writeFileSync as writeFileSync10 } from "fs";
-import { join as join14 } from "path";
+import { existsSync as existsSync15, mkdirSync as mkdirSync8, readFileSync as readFileSync16, writeFileSync as writeFileSync10 } from "fs";
+import { join as join15 } from "path";
 import { createHash as createHash2 } from "crypto";
 function handleFeedbackAdd(options) {
-  const intelDir = join14(options.target, ".ai", "intelligence");
-  if (!options.dryRun && !existsSync14(intelDir)) {
+  const intelDir = join15(options.target, ".ai", "intelligence");
+  if (!options.dryRun && !existsSync15(intelDir)) {
     mkdirSync8(intelDir, { recursive: true });
   }
   const addIdx = process.argv.indexOf("add");
@@ -4516,15 +4939,15 @@ function handleFeedbackAdd(options) {
   };
   rawRecord.hash = createHash2("sha256").update(JSON.stringify(rawRecord)).digest("hex");
   const recordLine = JSON.stringify(rawRecord) + "\n";
-  const feedbackLogPath = join14(intelDir, "feedback-log.jsonl");
+  const feedbackLogPath = join15(intelDir, "feedback-log.jsonl");
   if (options.dryRun) {
     console.log(`\x1B[36m[DRY-RUN] WOULD APPEND TO ${feedbackLogPath}:\x1B[0m`);
     console.log(recordLine.trim());
   } else {
     try {
       let isDuplicate = false;
-      if (existsSync14(feedbackLogPath)) {
-        const lines = readFileSync15(feedbackLogPath, "utf8").split("\n");
+      if (existsSync15(feedbackLogPath)) {
+        const lines = readFileSync16(feedbackLogPath, "utf8").split("\n");
         for (const line of lines) {
           if (!line.trim())
             continue;
@@ -4551,13 +4974,13 @@ function handleFeedbackAdd(options) {
   }
 }
 function handleFeedbackList(options) {
-  const feedbackLogPath = join14(options.target, ".ai", "intelligence", "feedback-log.jsonl");
-  if (!existsSync14(feedbackLogPath)) {
+  const feedbackLogPath = join15(options.target, ".ai", "intelligence", "feedback-log.jsonl");
+  if (!existsSync15(feedbackLogPath)) {
     console.log("No feedback logged yet.");
     return;
   }
   try {
-    const content = readFileSync15(feedbackLogPath, "utf8");
+    const content = readFileSync16(feedbackLogPath, "utf8");
     const lines = content.split("\n").filter((l) => l.trim() !== "");
     if (lines.length === 0) {
       console.log("No feedback logged yet.");
@@ -4589,14 +5012,14 @@ function handleFeedbackList(options) {
   }
 }
 function handleFeedbackSummarize(options) {
-  const intelDir = join14(options.target, ".ai", "intelligence");
-  const feedbackLogPath = join14(intelDir, "feedback-log.jsonl");
-  if (!existsSync14(feedbackLogPath)) {
+  const intelDir = join15(options.target, ".ai", "intelligence");
+  const feedbackLogPath = join15(intelDir, "feedback-log.jsonl");
+  if (!existsSync15(feedbackLogPath)) {
     console.log("No feedback logs found to compile.");
     return;
   }
   try {
-    const content = readFileSync15(feedbackLogPath, "utf8");
+    const content = readFileSync16(feedbackLogPath, "utf8");
     const lines = content.split("\n").filter((l) => l.trim() !== "");
     if (lines.length === 0) {
       console.log("No feedback logs found to compile.");
@@ -4641,7 +5064,7 @@ function handleFeedbackSummarize(options) {
 `;
       });
     });
-    const targetRulesPath = join14(intelDir, "learning-rules.md");
+    const targetRulesPath = join15(intelDir, "learning-rules.md");
     if (options.dryRun) {
       console.log(`\x1B[36m[DRY-RUN] WOULD WRITE TO ${targetRulesPath}:\x1B[0m`);
       console.log(md);
@@ -4656,20 +5079,20 @@ function handleFeedbackSummarize(options) {
 }
 
 // src/cli/handlers/handoff.js
-import { existsSync as existsSync15, mkdirSync as mkdirSync9, readFileSync as readFileSync16, writeFileSync as writeFileSync11, readdirSync as readdirSync6 } from "fs";
-import { join as join15 } from "path";
-function handleHandoffBuild(options, { scanTarget: scanTarget2, detectFrameworkSignals: detectFrameworkSignals2, detectDependencySignals: detectDependencySignals2, diffMemory: diffMemory2 } = {}) {
-  const intelDir = join15(options.target, ".ai", "intelligence");
-  if (!existsSync15(intelDir)) {
+import { existsSync as existsSync16, mkdirSync as mkdirSync9, readFileSync as readFileSync17, writeFileSync as writeFileSync11, readdirSync as readdirSync7 } from "fs";
+import { join as join16 } from "path";
+function handleHandoffBuild(options, { scanTarget: scanTarget2 = scanTarget, detectFrameworkSignals: detectFrameworkSignals2 = detectFrameworkSignals, detectDependencySignals: detectDependencySignals2 = detectDependencySignals, diffMemory: diffMemory2 } = {}) {
+  const intelDir = join16(options.target, ".ai", "intelligence");
+  if (!existsSync16(intelDir)) {
     mkdirSync9(intelDir, { recursive: true });
   }
-  const handoffPath = join15(intelDir, "handoff.md");
+  const handoffPath = join16(intelDir, "handoff.md");
   let pkgName = "unknown";
   let pkgVersion2 = "unknown";
   try {
-    const pkgPath = join15(options.target, "package.json");
-    if (existsSync15(pkgPath)) {
-      const pkg = JSON.parse(readFileSync16(pkgPath, "utf8"));
+    const pkgPath = join16(options.target, "package.json");
+    if (existsSync16(pkgPath)) {
+      const pkg = JSON.parse(readFileSync17(pkgPath, "utf8"));
       pkgName = pkg.name || pkgName;
       pkgVersion2 = pkg.version || pkgVersion2;
     }
@@ -4678,12 +5101,12 @@ function handleHandoffBuild(options, { scanTarget: scanTarget2, detectFrameworkS
   const { files } = scanTarget2(options.target);
   const frameworkSignals = detectFrameworkSignals2(files, options.target);
   const dependencySignals = detectDependencySignals2(files, options.target);
-  const memoryHashPath = join15(intelDir, "memory.hash.json");
+  const memoryHashPath = join16(intelDir, "memory.hash.json");
   let memoryStatus = "MISSING";
   let memoryTime = "N/A";
-  if (existsSync15(memoryHashPath)) {
+  if (existsSync16(memoryHashPath)) {
     try {
-      const memObj = JSON.parse(readFileSync16(memoryHashPath, "utf8"));
+      const memObj = JSON.parse(readFileSync17(memoryHashPath, "utf8"));
       memoryTime = memObj.generated_at || "N/A";
       const diff = diffMemory2(options.target);
       if (diff) {
@@ -4693,25 +5116,25 @@ function handleHandoffBuild(options, { scanTarget: scanTarget2, detectFrameworkS
       memoryStatus = "CORRUPT";
     }
   }
-  const feedbackPath = join15(intelDir, "feedback-log.jsonl");
+  const feedbackPath = join16(intelDir, "feedback-log.jsonl");
   let feedbackCount = 0;
-  if (existsSync15(feedbackPath)) {
+  if (existsSync16(feedbackPath)) {
     try {
-      feedbackCount = readFileSync16(feedbackPath, "utf8").trim().split(/\r?\n/).filter((l) => l.trim() !== "").length;
+      feedbackCount = readFileSync17(feedbackPath, "utf8").trim().split(/\r?\n/).filter((l) => l.trim() !== "").length;
     } catch (e) {
     }
   }
-  const rulesPath = join15(intelDir, "learning-rules.md");
-  const rulesStatus = existsSync15(rulesPath) ? "PRESENT" : "MISSING";
-  const proposalsDir = join15(options.target, ".ai", "proposals");
+  const rulesPath = join16(intelDir, "learning-rules.md");
+  const rulesStatus = existsSync16(rulesPath) ? "PRESENT" : "MISSING";
+  const proposalsDir = join16(options.target, ".ai", "proposals");
   let pendingCount = 0;
   let approvedCount = 0;
   let rejectedCount = 0;
-  if (existsSync15(proposalsDir)) {
+  if (existsSync16(proposalsDir)) {
     try {
-      const propFiles = readdirSync6(proposalsDir).filter((f) => f.startsWith("proposal-") && f.endsWith(".md"));
+      const propFiles = readdirSync7(proposalsDir).filter((f) => f.startsWith("proposal-") && f.endsWith(".md"));
       propFiles.forEach((file) => {
-        const content = readFileSync16(join15(proposalsDir, file), "utf8");
+        const content = readFileSync17(join16(proposalsDir, file), "utf8");
         const fmMatch = content.match(/^---([\s\S]*?)---/);
         if (fmMatch) {
           const metadata = parseYaml(fmMatch[1]) || {};
@@ -4727,12 +5150,12 @@ function handleHandoffBuild(options, { scanTarget: scanTarget2, detectFrameworkS
     } catch (e) {
     }
   }
-  const applyLogPath = join15(proposalsDir, "apply-log.jsonl");
+  const applyLogPath = join16(proposalsDir, "apply-log.jsonl");
   let applyLogCount = 0;
   let lastApplyId = "None";
-  if (existsSync15(applyLogPath)) {
+  if (existsSync16(applyLogPath)) {
     try {
-      const lines = readFileSync16(applyLogPath, "utf8").trim().split(/\r?\n/).filter((l) => l.trim() !== "");
+      const lines = readFileSync17(applyLogPath, "utf8").trim().split(/\r?\n/).filter((l) => l.trim() !== "");
       applyLogCount = lines.length;
       if (applyLogCount > 0) {
         const lastRecord = JSON.parse(lines[lines.length - 1]);
@@ -4742,9 +5165,9 @@ function handleHandoffBuild(options, { scanTarget: scanTarget2, detectFrameworkS
     }
   }
   let rulesSummary = "No learning rules defined yet.";
-  if (existsSync15(rulesPath)) {
+  if (existsSync16(rulesPath)) {
     try {
-      const rulesContent = readFileSync16(rulesPath, "utf8");
+      const rulesContent = readFileSync17(rulesPath, "utf8");
       const lines = rulesContent.split(/\r?\n/);
       const summaryLines = [];
       for (const line of lines) {
@@ -4761,7 +5184,7 @@ function handleHandoffBuild(options, { scanTarget: scanTarget2, detectFrameworkS
     }
   }
   let recs = "1. Run `npx multimodel-dev-os workflow run repo-health` to check the directory hygiene.\n2. Review pending proposals if any exist.";
-  if (!existsSync15(join15(options.target, ".ai", "config.yaml"))) {
+  if (!existsSync16(join16(options.target, ".ai", "config.yaml"))) {
     recs = "1. Run `npx multimodel-dev-os init` to bootstrap MultiModel Dev OS.\n2. Run `npx multimodel-dev-os memory build` to initialize codebase memory.";
   } else if (memoryStatus === "MISSING") {
     recs = "1. Run `npx multimodel-dev-os memory build` to initialize codebase index.\n2. Verify package safety boundaries.";
@@ -4806,14 +5229,14 @@ ${recs}
     console.error(`\x1B[31mError writing handoff: ${e.message}\x1B[0m`);
   }
 }
-function handleHandoffShow(options, { scanTarget: scanTarget2, detectFrameworkSignals: detectFrameworkSignals2, detectDependencySignals: detectDependencySignals2, diffMemory: diffMemory2 } = {}) {
-  const handoffPath = join15(options.target, ".ai", "intelligence", "handoff.md");
-  if (!existsSync15(handoffPath)) {
+function handleHandoffShow(options, { scanTarget: scanTarget2 = scanTarget, detectFrameworkSignals: detectFrameworkSignals2 = detectFrameworkSignals, detectDependencySignals: detectDependencySignals2 = detectDependencySignals, diffMemory: diffMemory2 } = {}) {
+  const handoffPath = join16(options.target, ".ai", "intelligence", "handoff.md");
+  if (!existsSync16(handoffPath)) {
     console.log("No compiled handoff file exists. Building first...");
     handleHandoffBuild(options, { scanTarget: scanTarget2, detectFrameworkSignals: detectFrameworkSignals2, detectDependencySignals: detectDependencySignals2, diffMemory: diffMemory2 });
   }
   try {
-    const content = readFileSync16(handoffPath, "utf8");
+    const content = readFileSync17(handoffPath, "utf8");
     console.log("\n" + content);
   } catch (e) {
     console.error(`\x1B[31mError reading handoff: ${e.message}\x1B[0m`);
@@ -4821,16 +5244,16 @@ function handleHandoffShow(options, { scanTarget: scanTarget2, detectFrameworkSi
 }
 
 // src/cli/handlers/workflow.js
-import { existsSync as existsSync17, readFileSync as readFileSync18 } from "fs";
-import { join as join17 } from "path";
+import { existsSync as existsSync18, readFileSync as readFileSync19 } from "fs";
+import { join as join18 } from "path";
 
 // src/cli/handlers/improve.js
-import { existsSync as existsSync16, mkdirSync as mkdirSync10, readFileSync as readFileSync17, writeFileSync as writeFileSync12, readdirSync as readdirSync7 } from "fs";
-import { join as join16, resolve as resolve6, relative as relative4, isAbsolute as isAbsolute3, dirname as dirname8, basename as basename3 } from "path";
+import { existsSync as existsSync17, mkdirSync as mkdirSync10, readFileSync as readFileSync18, writeFileSync as writeFileSync12, readdirSync as readdirSync8 } from "fs";
+import { join as join17, resolve as resolve6, relative as relative5, isAbsolute as isAbsolute3, dirname as dirname8, basename as basename3 } from "path";
 import { createHash as createHash3 } from "crypto";
 function handleImprovePropose(options) {
-  const proposalsDir = join16(options.target, ".ai", "proposals");
-  if (!options.dryRun && !existsSync16(proposalsDir)) {
+  const proposalsDir = join17(options.target, ".ai", "proposals");
+  if (!options.dryRun && !existsSync17(proposalsDir)) {
     mkdirSync10(proposalsDir, { recursive: true });
   }
   const now = /* @__PURE__ */ new Date();
@@ -4847,15 +5270,15 @@ function handleImprovePropose(options) {
   let suggestedChange = "No code suggestions compiled.";
   let verifyCommand = "npm run verify";
   let rollbackPlan = "git checkout -- .";
-  const gitignorePath = join16(options.target, ".gitignore");
-  const agentsPath = join16(options.target, "AGENTS.md");
-  if (!existsSync16(gitignorePath)) {
+  const gitignorePath = join17(options.target, ".gitignore");
+  const agentsPath = join17(options.target, "AGENTS.md");
+  if (!existsSync17(gitignorePath)) {
     problem = "Missing .gitignore file in target workspace. AI agents may scan large build directories and run out of token context.";
     evidence = `.gitignore file is not present at root directory: ${options.target}`;
     affectedFiles = [".gitignore"];
     suggestedChange = "Create a standard .gitignore file to exclude node_modules, build/ and dist/ directories.";
     rollbackPlan = "git clean -fd .gitignore";
-  } else if (!existsSync16(agentsPath)) {
+  } else if (!existsSync17(agentsPath)) {
     problem = "Missing AGENTS.md document in target workspace. Models will lack stack-specific implementation blueprints.";
     evidence = `AGENTS.md file is not present at root directory: ${options.target}`;
     affectedFiles = ["AGENTS.md"];
@@ -4909,7 +5332,7 @@ ${suggestedChange}
 *   **Rollback Command**: \`${rollbackPlan}\`
 *   **Approval Status**: PENDING (Manual approval required before implementation)
 `;
-  const proposalFile = join16(proposalsDir, `${id}.md`);
+  const proposalFile = join17(proposalsDir, `${id}.md`);
   if (options.dryRun) {
     console.log(`\x1B[36m[DRY-RUN] WOULD WRITE PROPOSAL TO ${proposalFile}:\x1B[0m`);
     console.log(md);
@@ -4919,13 +5342,13 @@ ${suggestedChange}
   }
 }
 function handleImproveReview(options) {
-  const proposalsDir = join16(options.target, ".ai", "proposals");
-  if (!existsSync16(proposalsDir)) {
+  const proposalsDir = join17(options.target, ".ai", "proposals");
+  if (!existsSync17(proposalsDir)) {
     console.log("No improvement proposals found.");
     return;
   }
   try {
-    const files = readdirSync7(proposalsDir).filter((f) => f.startsWith("proposal-") && f.endsWith(".md"));
+    const files = readdirSync8(proposalsDir).filter((f) => f.startsWith("proposal-") && f.endsWith(".md"));
     if (files.length === 0) {
       console.log("No improvement proposals found.");
       return;
@@ -4934,8 +5357,8 @@ function handleImproveReview(options) {
 \u{1F4CB} \x1B[36mCodebase Improvement Proposals\x1B[0m`);
     console.log("==================================================");
     files.forEach((file) => {
-      const fullPath = join16(proposalsDir, file);
-      const content = readFileSync17(fullPath, "utf8");
+      const fullPath = join17(proposalsDir, file);
+      const content = readFileSync18(fullPath, "utf8");
       const fmMatch = content.match(/^---([\s\S]*?)---/);
       if (!fmMatch)
         return;
@@ -4958,20 +5381,20 @@ function handleImproveReview(options) {
   }
 }
 function handleImproveStatus(options) {
-  const proposalsDir = join16(options.target, ".ai", "proposals");
-  if (!existsSync16(proposalsDir)) {
+  const proposalsDir = join17(options.target, ".ai", "proposals");
+  if (!existsSync17(proposalsDir)) {
     console.log("Improvement Proposal Engine Status:");
     console.log("  Total Proposals:  0");
     console.log("  Pending Approval: 0");
     return;
   }
   try {
-    const files = readdirSync7(proposalsDir).filter((f) => f.startsWith("proposal-") && f.endsWith(".md"));
+    const files = readdirSync8(proposalsDir).filter((f) => f.startsWith("proposal-") && f.endsWith(".md"));
     let pending = 0;
     let approved = 0;
     let rejected = 0;
     files.forEach((file) => {
-      const content = readFileSync17(join16(proposalsDir, file), "utf8");
+      const content = readFileSync18(join17(proposalsDir, file), "utf8");
       const fmMatch = content.match(/^---([\s\S]*?)---/);
       if (fmMatch) {
         const metadata = parseYaml(fmMatch[1]) || {};
@@ -5006,7 +5429,7 @@ function validatePath(targetRoot, relPath) {
     return { valid: false, reason: `Path '${relPath}' contains directory traversal or is absolute.`, type: "outside" };
   }
   const resolved = resolve6(targetRoot, relPath);
-  const relativeFromRoot = relative4(targetRoot, resolved);
+  const relativeFromRoot = relative5(targetRoot, resolved);
   if (relativeFromRoot.startsWith("..") || isAbsolute3(relativeFromRoot) || resolved === targetRoot) {
     return { valid: false, reason: `Path '${relPath}' resolves outside the target root.`, type: "outside" };
   }
@@ -5047,11 +5470,11 @@ function validateProposal(proposalFile, targetRoot) {
     permissions: { status: "skip" },
     constraints: { status: "skip" }
   };
-  if (!existsSync16(proposalFile)) {
+  if (!existsSync17(proposalFile)) {
     gates.frontmatter = { status: "fail", reason: "missing frontmatter" };
     return { valid: false, reason: "missing frontmatter", gates };
   }
-  const content = readFileSync17(proposalFile, "utf8");
+  const content = readFileSync18(proposalFile, "utf8");
   const fmMatch = content.match(/^---([\s\S]*?)---/);
   if (!fmMatch) {
     gates.frontmatter = { status: "fail", reason: "missing frontmatter" };
@@ -5162,7 +5585,7 @@ function validateProposal(proposalFile, targetRoot) {
           constraintsStatus = "fail";
           constraintsReason = `unsupported operation type`;
         }
-      } else if (existsSync16(resolvedPath) && !op.overwrite) {
+      } else if (existsSync17(resolvedPath) && !op.overwrite) {
         if (constraintsStatus === "pass") {
           constraintsStatus = "fail";
           constraintsReason = `create_file target exists without overwrite`;
@@ -5181,13 +5604,13 @@ function validateProposal(proposalFile, targetRoot) {
           constraintsStatus = "fail";
           constraintsReason = `unsupported operation type`;
         }
-      } else if (!existsSync16(resolvedPath)) {
+      } else if (!existsSync17(resolvedPath)) {
         if (constraintsStatus === "pass") {
           constraintsStatus = "fail";
           constraintsReason = `replace_text zero matches`;
         }
       } else {
-        const fileContent = readFileSync17(resolvedPath, "utf8");
+        const fileContent = readFileSync18(resolvedPath, "utf8");
         let count = 0;
         let pos = fileContent.indexOf(op.find);
         while (pos !== -1) {
@@ -5356,7 +5779,7 @@ function handleImproveDiff(proposalFile, options) {
       console.log(`
 \x1B[33m[Operation #${idx + 1}] Target: ${op.path}\x1B[0m`);
       if (type === "create_file") {
-        const exists = existsSync16(op.resolvedPath);
+        const exists = existsSync17(op.resolvedPath);
         if (exists) {
           console.log(`  \x1B[31m\u26A0\uFE0F   [Overwriting existing file]\x1B[0m`);
         } else {
@@ -5366,10 +5789,10 @@ function handleImproveDiff(proposalFile, options) {
         console.log(`  + [File content: ${linesCount} line(s), overwrite: ${!!op.overwrite}]`);
         printTruncatedLines(op.content, "  +", "\x1B[32m");
       } else if (type === "append_line") {
-        const exists = existsSync16(op.resolvedPath);
+        const exists = existsSync17(op.resolvedPath);
         let currentFileContent = "";
         if (exists) {
-          currentFileContent = readFileSync17(op.resolvedPath, "utf8");
+          currentFileContent = readFileSync18(op.resolvedPath, "utf8");
         }
         const fileLines = currentFileContent.split(/\r?\n/);
         const lineExists = fileLines.some((l) => l.trim() === op.line.trim());
@@ -5402,14 +5825,14 @@ function handleImproveApply(proposalFile, options) {
   if (!validation.valid) {
     console.error(`\x1B[31mValidation FAILED: ${validation.reason}\x1B[0m`);
     const applyId2 = `apply-${(/* @__PURE__ */ new Date()).toISOString().replace(/[-:T.Z]/g, "").slice(0, 14)}`;
-    const logDir2 = join16(options.target, ".ai", "proposals");
-    if (!existsSync16(logDir2)) {
+    const logDir2 = join17(options.target, ".ai", "proposals");
+    if (!existsSync17(logDir2)) {
       try {
         mkdirSync10(logDir2, { recursive: true });
       } catch (e) {
       }
     }
-    const logFile2 = join16(logDir2, "apply-log.jsonl");
+    const logFile2 = join17(logDir2, "apply-log.jsonl");
     const record2 = {
       id: applyId2,
       proposal_id: validation.proposalId || basename3(proposalFile, ".md"),
@@ -5448,26 +5871,26 @@ Applying changes...`);
   const applyId = `apply-${(/* @__PURE__ */ new Date()).toISOString().replace(/[-:T.Z]/g, "").slice(0, 14)}`;
   try {
     operations.forEach((op) => {
-      const relPath = relative4(options.target, op.resolvedPath).replace(/\\/g, "/");
+      const relPath = relative5(options.target, op.resolvedPath).replace(/\\/g, "/");
       if (!filesChanged.includes(relPath)) {
         filesChanged.push(relPath);
       }
-      if (existsSync16(op.resolvedPath)) {
-        const fileContent = readFileSync17(op.resolvedPath, "utf8");
+      if (existsSync17(op.resolvedPath)) {
+        const fileContent = readFileSync18(op.resolvedPath, "utf8");
         beforeHashes[relPath] = getSha256(fileContent);
       } else {
         beforeHashes[relPath] = null;
       }
     });
     operations.forEach((op, idx) => {
-      const relPath = relative4(options.target, op.resolvedPath).replace(/\\/g, "/");
+      const relPath = relative5(options.target, op.resolvedPath).replace(/\\/g, "/");
       console.log(`  Executing Operation #${idx + 1} (${op.type}) on '${relPath}'...`);
       if (op.type === "create_file") {
         const dir = dirname8(op.resolvedPath);
-        if (!existsSync16(dir)) {
+        if (!existsSync17(dir)) {
           mkdirSync10(dir, { recursive: true });
         }
-        const exists = existsSync16(op.resolvedPath);
+        const exists = existsSync17(op.resolvedPath);
         writeFileSync12(op.resolvedPath, op.content, "utf8");
         if (exists) {
           console.log(`    [OVERWRITTEN] Overwrote existing file '${relPath}'.`);
@@ -5476,8 +5899,8 @@ Applying changes...`);
         }
       } else if (op.type === "append_line") {
         let content = "";
-        if (existsSync16(op.resolvedPath)) {
-          content = readFileSync17(op.resolvedPath, "utf8");
+        if (existsSync17(op.resolvedPath)) {
+          content = readFileSync18(op.resolvedPath, "utf8");
         }
         const fileLines = content.split(/\r?\n/);
         const lineExists = fileLines.some((l) => l.trim() === op.line.trim());
@@ -5488,7 +5911,7 @@ Applying changes...`);
           }
           newContent += op.line + "\n";
           const dir = dirname8(op.resolvedPath);
-          if (!existsSync16(dir)) {
+          if (!existsSync17(dir)) {
             mkdirSync10(dir, { recursive: true });
           }
           writeFileSync12(op.resolvedPath, newContent, "utf8");
@@ -5497,7 +5920,7 @@ Applying changes...`);
           console.log(`    [IDEMPOTENT] Line already exists in '${relPath}'. Skipping append.`);
         }
       } else if (op.type === "replace_text") {
-        const fileContent = readFileSync17(op.resolvedPath, "utf8");
+        const fileContent = readFileSync18(op.resolvedPath, "utf8");
         let count = 0;
         let pos = fileContent.indexOf(op.find);
         while (pos !== -1) {
@@ -5518,8 +5941,8 @@ Applying changes...`);
     });
     filesChanged.forEach((relPath) => {
       const fullPath = resolve6(options.target, relPath);
-      if (existsSync16(fullPath)) {
-        const fileContent = readFileSync17(fullPath, "utf8");
+      if (existsSync17(fullPath)) {
+        const fileContent = readFileSync18(fullPath, "utf8");
         afterHashes[relPath] = getSha256(fileContent);
       } else {
         afterHashes[relPath] = null;
@@ -5531,11 +5954,11 @@ Applying changes...`);
     notes = `Execution error: ${e.message}`;
     console.error(`\x1B[31mError applying proposal: ${e.message}\x1B[0m`);
   }
-  const logDir = join16(options.target, ".ai", "proposals");
-  if (!existsSync16(logDir)) {
+  const logDir = join17(options.target, ".ai", "proposals");
+  if (!existsSync17(logDir)) {
     mkdirSync10(logDir, { recursive: true });
   }
-  const logFile = join16(logDir, "apply-log.jsonl");
+  const logFile = join17(logDir, "apply-log.jsonl");
   const record = {
     id: applyId,
     proposal_id: proposalId,
@@ -5565,13 +5988,13 @@ Applying changes...`);
   }
 }
 function handleImproveLog(options) {
-  const logFile = join16(options.target, ".ai", "proposals", "apply-log.jsonl");
-  if (!existsSync16(logFile)) {
+  const logFile = join17(options.target, ".ai", "proposals", "apply-log.jsonl");
+  if (!existsSync17(logFile)) {
     console.log("No apply log found.");
     return;
   }
   try {
-    const lines = readFileSync17(logFile, "utf8").trim().split(/\r?\n/);
+    const lines = readFileSync18(logFile, "utf8").trim().split(/\r?\n/);
     console.log(`
 \u{1F4DC} \x1B[36mApplied Proposals Audit Log\x1B[0m`);
     console.log("==================================================");
@@ -5597,11 +6020,11 @@ function handleImproveLog(options) {
 
 // src/cli/handlers/workflow.js
 function getWorkflowsPath(target) {
-  let workflowsPath = join17(target, ".ai", "registries", "workflows.yaml");
+  let workflowsPath = join18(target, ".ai", "registries", "workflows.yaml");
   let usingFallback = false;
-  if (!existsSync17(workflowsPath)) {
-    const fallbackPath = join17(sourceRoot, ".ai", "registries", "workflows.yaml");
-    if (existsSync17(fallbackPath)) {
+  if (!existsSync18(workflowsPath)) {
+    const fallbackPath = join18(sourceRoot, ".ai", "registries", "workflows.yaml");
+    if (existsSync18(fallbackPath)) {
       workflowsPath = fallbackPath;
       usingFallback = true;
     }
@@ -5610,7 +6033,7 @@ function getWorkflowsPath(target) {
 }
 function handleWorkflowList(options) {
   const { workflowsPath, usingFallback } = getWorkflowsPath(options.target);
-  if (!existsSync17(workflowsPath)) {
+  if (!existsSync18(workflowsPath)) {
     console.log("No workflows registry found.");
     return;
   }
@@ -5618,7 +6041,7 @@ function handleWorkflowList(options) {
     console.log("\x1B[33mNotice: Local workflows registry not found. Using bundled workflows registry fallback.\x1B[0m");
   }
   try {
-    const registry = parseYaml(readFileSync18(workflowsPath, "utf8")) || {};
+    const registry = parseYaml(readFileSync19(workflowsPath, "utf8")) || {};
     const workflows = registry.workflows || {};
     console.log(`
 \u2699 \x1B[36mRegistered Workflows\x1B[0m`);
@@ -5640,7 +6063,7 @@ function handleWorkflowList(options) {
 }
 function handleWorkflowShow(wName, options) {
   const { workflowsPath, usingFallback } = getWorkflowsPath(options.target);
-  if (!existsSync17(workflowsPath)) {
+  if (!existsSync18(workflowsPath)) {
     console.log("No workflows registry found.");
     return;
   }
@@ -5648,7 +6071,7 @@ function handleWorkflowShow(wName, options) {
     console.log("\x1B[33mNotice: Local workflows registry not found. Using bundled workflows registry fallback.\x1B[0m");
   }
   try {
-    const registry = parseYaml(readFileSync18(workflowsPath, "utf8")) || {};
+    const registry = parseYaml(readFileSync19(workflowsPath, "utf8")) || {};
     const workflows = registry.workflows || {};
     const wf = workflows[wName];
     if (!wf) {
@@ -5681,7 +6104,7 @@ function handleWorkflowShow(wName, options) {
 }
 function handleWorkflowPlan(wName, options) {
   const { workflowsPath, usingFallback } = getWorkflowsPath(options.target);
-  if (!existsSync17(workflowsPath)) {
+  if (!existsSync18(workflowsPath)) {
     console.log("No workflows registry found.");
     return;
   }
@@ -5689,7 +6112,7 @@ function handleWorkflowPlan(wName, options) {
     console.log("\x1B[33mNotice: Local workflows registry not found. Using bundled workflows registry fallback.\x1B[0m");
   }
   try {
-    const registry = parseYaml(readFileSync18(workflowsPath, "utf8")) || {};
+    const registry = parseYaml(readFileSync19(workflowsPath, "utf8")) || {};
     const workflows = registry.workflows || {};
     const wf = workflows[wName];
     if (!wf) {
@@ -5714,9 +6137,9 @@ function handleWorkflowPlan(wName, options) {
     console.error(`\x1B[31mError loading workflow plan: ${e.message}\x1B[0m`);
   }
 }
-function handleWorkflowRun(wName, options, { scanTarget: scanTarget2, detectFrameworkSignals: detectFrameworkSignals2, detectDependencySignals: detectDependencySignals2, detectAiDevOsSignals: detectAiDevOsSignals2, detectRisks: detectRisks2, getAnalysis: getAnalysis2, boundDiffMemory: boundDiffMemory2 } = {}) {
+function handleWorkflowRun(wName, options, { scanTarget: scanTarget2 = scanTarget, detectFrameworkSignals: detectFrameworkSignals2 = detectFrameworkSignals, detectDependencySignals: detectDependencySignals2 = detectDependencySignals, detectAiDevOsSignals: detectAiDevOsSignals2 = detectAiDevOsSignals, detectRisks: detectRisks2 = detectRisks, getAnalysis: getAnalysis2 = getAnalysis, boundDiffMemory: boundDiffMemory2 } = {}) {
   const { workflowsPath, usingFallback } = getWorkflowsPath(options.target);
-  if (!existsSync17(workflowsPath)) {
+  if (!existsSync18(workflowsPath)) {
     console.log("No workflows registry found.");
     return;
   }
@@ -5724,7 +6147,7 @@ function handleWorkflowRun(wName, options, { scanTarget: scanTarget2, detectFram
     console.log("\x1B[33mNotice: Local workflows registry not found. Using bundled workflows registry fallback.\x1B[0m");
   }
   try {
-    const registry = parseYaml(readFileSync18(workflowsPath, "utf8")) || {};
+    const registry = parseYaml(readFileSync19(workflowsPath, "utf8")) || {};
     const workflows = registry.workflows || {};
     const wf = workflows[wName];
     if (!wf) {
@@ -5776,11 +6199,850 @@ function handleWorkflowRun(wName, options, { scanTarget: scanTarget2, detectFram
   }
 }
 
+// src/cli/handlers/models.js
+import { existsSync as existsSync19, readFileSync as readFileSync20 } from "fs";
+import { join as join19 } from "path";
+function handleListModels(options) {
+  const registryPath = join19(sourceRoot, ".ai", "models", "registry.yaml");
+  if (!existsSync19(registryPath)) {
+    console.error("Error: Model registry not found.");
+    process.exit(1);
+  }
+  const registry = parseYaml(readFileSync20(registryPath, "utf8"));
+  const models = registry.models || {};
+  if (options && options.json) {
+    console.log(JSON.stringify(models, null, 2));
+    return;
+  }
+  console.log(`
+\u{1F916} \x1B[36mModel Registry [v${version}]\x1B[0m`);
+  console.log("==================================================");
+  Object.keys(models).forEach((name) => {
+    const m = models[name];
+    console.log(`
+\x1B[32m* ${name}\x1B[0m (${m.alias || ""})`);
+    console.log(`  \x1B[33mProvider:\x1B[0m ${m.provider}`);
+    console.log(`  \x1B[33mOfficial ID:\x1B[0m ${m.official_id}`);
+    console.log(`  \x1B[33mContext Window:\x1B[0m ${m.context_window} tokens`);
+    console.log(`  \x1B[33mTiers:\x1B[0m Cost: ${m.tiers?.cost}, Reasoning: ${m.tiers?.reasoning}, Coding: ${m.tiers?.coding}`);
+  });
+  console.log("\nUse \x1B[36mshow-model <model-alias>\x1B[0m to view detailed model capabilities.\n");
+}
+function handleShowModel(name) {
+  const registryPath = join19(sourceRoot, ".ai", "models", "registry.yaml");
+  if (!existsSync19(registryPath)) {
+    console.error("Error: Model registry not found.");
+    process.exit(1);
+  }
+  const registry = parseYaml(readFileSync20(registryPath, "utf8"));
+  const models = registry.models || {};
+  const m = models[name];
+  if (!m) {
+    console.error(`\x1B[31mError: Model alias '${name}' not found in registry.\x1B[0m`);
+    process.exit(1);
+  }
+  console.log(`
+\u{1F50D} \x1B[36mModel: ${name}\x1B[0m`);
+  console.log("==================================================");
+  console.log(`\x1B[33mProvider:\x1B[0m ${m.provider}`);
+  console.log(`\x1B[33mAlias:\x1B[0m ${m.alias}`);
+  console.log(`\x1B[33mOfficial ID:\x1B[0m ${m.official_id}`);
+  console.log(`\x1B[33mContext Window:\x1B[0m ${m.context_window} tokens`);
+  console.log(`\x1B[33mCapabilities:\x1B[0m`);
+  console.log(`  \u251C\u2500\u2500 Vision: ${m.capabilities?.vision ? "Yes" : "No"}`);
+  console.log(`  \u2514\u2500\u2500 Tool Use: ${m.capabilities?.tool_use ? "Yes" : "No"}`);
+  console.log(`\x1B[33mTiers:\x1B[0m`);
+  console.log(`  \u251C\u2500\u2500 Cost: ${m.tiers?.cost}`);
+  console.log(`  \u251C\u2500\u2500 Speed: ${m.tiers?.speed}`);
+  console.log(`  \u251C\u2500\u2500 Reasoning: ${m.tiers?.reasoning}`);
+  console.log(`  \u2514\u2500\u2500 Coding: ${m.tiers?.coding}`);
+  console.log();
+}
+function handleListProviders() {
+  const providersPath = join19(sourceRoot, ".ai", "models", "providers.yaml");
+  if (!existsSync19(providersPath)) {
+    console.error("Error: Providers registry not found.");
+    process.exit(1);
+  }
+  const reg = parseYaml(readFileSync20(providersPath, "utf8"));
+  const providers = reg.providers || {};
+  console.log(`
+\u{1F50C} \x1B[36mAI Providers [v${version}]\x1B[0m`);
+  console.log("==================================================");
+  Object.keys(providers).forEach((name) => {
+    const p = providers[name];
+    console.log(`
+\x1B[32m* ${p.name || name}\x1B[0m (${name})`);
+    console.log(`  \x1B[33mEndpoint:\x1B[0m ${p.api_endpoint || "Local"}`);
+    console.log(`  \x1B[33mEnv Key:\x1B[0m ${p.env_key || "None"}`);
+  });
+  console.log();
+}
+function handleRouteModel(task) {
+  const presetsPath = join19(sourceRoot, ".ai", "models", "routing-presets.yaml");
+  if (!existsSync19(presetsPath)) {
+    console.error("Error: Routing presets not found.");
+    process.exit(1);
+  }
+  const reg = parseYaml(readFileSync20(presetsPath, "utf8"));
+  const presets = reg.presets || {};
+  const preset = presets[task];
+  if (!preset) {
+    console.error(`\x1B[31mError: Routing preset for task '${task}' not found. Available: ${Object.keys(presets).join(", ")}\x1B[0m`);
+    process.exit(1);
+  }
+  console.log(`
+\u{1F3AF} \x1B[36mRouting Suggestion for: ${task}\x1B[0m`);
+  console.log("==================================================");
+  console.log(`\x1B[33mPrimary Model:\x1B[0m \x1B[32m${preset.primary}\x1B[0m`);
+  console.log(`\x1B[33mFallback Model:\x1B[0m \x1B[33m${preset.fallback}\x1B[0m`);
+  console.log();
+}
+
+// src/cli/handlers/adapters.js
+import { existsSync as existsSync20, readFileSync as readFileSync21, writeFileSync as writeFileSync13, mkdirSync as mkdirSync11 } from "fs";
+import { join as join20, dirname as dirname9 } from "path";
+function handleListAdapters(options) {
+  const adaptersPath = join20(sourceRoot, ".ai", "adapters", "registry.yaml");
+  if (!existsSync20(adaptersPath)) {
+    console.error("Error: Adapters registry not found.");
+    process.exit(1);
+  }
+  const reg = parseYaml(readFileSync21(adaptersPath, "utf8"));
+  const adapters = reg.adapters || {};
+  if (options && options.json) {
+    console.log(JSON.stringify(adapters, null, 2));
+    return;
+  }
+  console.log(`
+\u{1F50C} \x1B[36mIDE & Agent Adapters [v${version}]\x1B[0m`);
+  console.log("==================================================");
+  Object.keys(adapters).forEach((name) => {
+    const a = adapters[name];
+    console.log(`
+\x1B[32m* ${a.name || name}\x1B[0m (${name})`);
+    console.log(`  \x1B[33mRules File:\x1B[0m ${a.rules_file}`);
+    console.log(`  \x1B[33mAdapter Type:\x1B[0m ${a.type}`);
+    console.log(`  \x1B[33mRule Format:\x1B[0m ${a.format}`);
+  });
+  console.log("\nUse \x1B[36mshow-adapter <adapter-name>\x1B[0m to view detailed adapter metadata.\n");
+}
+function handleShowAdapter(name) {
+  const adaptersPath = join20(sourceRoot, ".ai", "adapters", "registry.yaml");
+  if (!existsSync20(adaptersPath)) {
+    console.error("Error: Adapters registry not found.");
+    process.exit(1);
+  }
+  const reg = parseYaml(readFileSync21(adaptersPath, "utf8"));
+  const adapters = reg.adapters || {};
+  const a = adapters[name];
+  if (!a) {
+    console.error(`\x1B[31mError: Adapter '${name}' not found in registry.\x1B[0m`);
+    process.exit(1);
+  }
+  console.log(`
+\u{1F50D} \x1B[36mAdapter: ${a.name || name}\x1B[0m`);
+  console.log("==================================================");
+  console.log(`\x1B[33mRules File:\x1B[0m ${a.rules_file}`);
+  console.log(`\x1B[33mType:\x1B[0m ${a.type}`);
+  console.log(`\x1B[33mFormat:\x1B[0m ${a.format}`);
+  console.log();
+}
+function getEnabledAdapters(target) {
+  const configPath = join20(target, ".ai", "config.yaml");
+  if (existsSync20(configPath)) {
+    try {
+      const config = parseYaml(readFileSync21(configPath, "utf8")) || {};
+      return config.adapters || {};
+    } catch (e) {
+    }
+  }
+  return {};
+}
+function handleAdapterStatus(options) {
+  console.log(`
+\u{1F50C} \x1B[36mIDE & Agent Adapters Status: ${options.target}\x1B[0m`);
+  console.log("==================================================");
+  const enabled = getEnabledAdapters(options.target);
+  const adapters = loadAdapters(options.registry);
+  Object.keys(adapters).forEach((name) => {
+    const a = adapters[name];
+    const isEnabled = enabled[name] || false;
+    const rulesFile = a.rules_file;
+    const exists = existsSync20(join20(options.target, rulesFile));
+    let statusStr = "\x1B[31mMISSING\x1B[0m";
+    if (exists) {
+      statusStr = "\x1B[32mINSTALLED\x1B[0m";
+    }
+    console.log(`
+\x1B[33m* ${a.name || name}\x1B[0m (${name})`);
+    console.log(`  Config Status: ${isEnabled ? "\x1B[32mENABLED\x1B[0m" : "\x1B[37mDISABLED\x1B[0m"}`);
+    console.log(`  File Status:   ${statusStr} (${rulesFile})`);
+  });
+  console.log();
+}
+function printDiff(srcContent, destContent, filename) {
+  console.log(`
+Diff for ${filename}:`);
+  console.log("--------------------------------------------------");
+  if (srcContent === destContent) {
+    console.log("  Pristine (No differences detected)");
+    return;
+  }
+  const srcLines = srcContent.split(/\r?\n/);
+  const destLines = destContent.split(/\r?\n/);
+  let i = 0;
+  while (i < Math.max(srcLines.length, destLines.length)) {
+    const sLine = srcLines[i];
+    const dLine = destLines[i];
+    if (sLine !== dLine) {
+      if (dLine !== void 0)
+        console.log(`\x1B[31m- ${dLine}\x1B[0m`);
+      if (sLine !== void 0)
+        console.log(`\x1B[32m+ ${sLine}\x1B[0m`);
+    } else {
+      if (sLine !== void 0)
+        console.log(`  ${sLine}`);
+    }
+    i++;
+  }
+}
+function handleAdapterDiff(aName, options) {
+  const adapters = loadAdapters(options.registry);
+  const adaptersToDiff = [];
+  if (aName === "all") {
+    const enabled = getEnabledAdapters(options.target);
+    Object.keys(adapters).forEach((name) => {
+      if (enabled[name])
+        adaptersToDiff.push(name);
+    });
+  } else {
+    if (!adapters[aName]) {
+      console.error(`\x1B[31mError: Adapter '${aName}' not found in registry.\x1B[0m`);
+      process.exit(1);
+    }
+    adaptersToDiff.push(aName);
+  }
+  if (adaptersToDiff.length === 0) {
+    console.log("No enabled adapters found to diff.");
+    return;
+  }
+  adaptersToDiff.forEach((name) => {
+    const a = adapters[name];
+    const srcFile = join20(sourceRoot, "adapters", name, a.rules_file);
+    const destFile = join20(options.target, a.rules_file);
+    if (!existsSync20(srcFile)) {
+      console.warn(`Warning: Source file for adapter '${name}' is missing at: ${srcFile}`);
+      return;
+    }
+    const srcContent = readFileSync21(srcFile, "utf8");
+    if (existsSync20(destFile)) {
+      const destContent = readFileSync21(destFile, "utf8");
+      printDiff(srcContent, destContent, a.rules_file);
+    } else {
+      console.log(`
+File: ${a.rules_file} \x1B[31m(MISSING)\x1B[0m`);
+      console.log("--------------------------------------------------");
+      srcContent.split(/\r?\n/).forEach((l) => console.log(`\x1B[32m+ ${l}\x1B[0m`));
+    }
+  });
+}
+function handleAdapterSync(aName, options) {
+  if (!options.approved) {
+    console.error("\x1B[31mError: Adapter sync requires explicit approval flag: --approved\x1B[0m");
+    console.log("Example: node bin/multimodel-dev-os.js adapter sync cursor --approved");
+    process.exit(1);
+  }
+  const adapters = loadAdapters(options.registry);
+  const adaptersToSync = [];
+  if (aName === "all") {
+    const enabled = getEnabledAdapters(options.target);
+    Object.keys(adapters).forEach((name) => {
+      if (enabled[name])
+        adaptersToSync.push(name);
+    });
+  } else {
+    if (!adapters[aName]) {
+      console.error(`\x1B[31mError: Adapter '${aName}' not found in registry.\x1B[0m`);
+      process.exit(1);
+    }
+    adaptersToSync.push(aName);
+  }
+  if (adaptersToSync.length === 0) {
+    console.log("No adapters found to sync.");
+    return;
+  }
+  console.log(`
+\u{1F504} \x1B[36mSynchronizing IDE Adapters in: ${options.target}\x1B[0m`);
+  console.log("==================================================");
+  adaptersToSync.forEach((name) => {
+    const a = adapters[name];
+    const srcFile = join20(sourceRoot, "adapters", name, a.rules_file);
+    const destFile = join20(options.target, a.rules_file);
+    const destDir = dirname9(destFile);
+    if (!existsSync20(srcFile)) {
+      console.warn(`Warning: Source file for adapter '${name}' is missing at: ${srcFile}`);
+      return;
+    }
+    if (existsSync20(destFile)) {
+      if (options.force) {
+        if (!options.dryRun) {
+          const backupPath = destFile + ".bak";
+          writeFileSync13(backupPath, readFileSync21(destFile));
+          if (!existsSync20(destDir))
+            mkdirSync11(destDir, { recursive: true });
+          writeFileSync13(destFile, readFileSync21(srcFile));
+          console.log(`  \x1B[33mOVERWRITE (BACKUP CREATED):\x1B[0m ${a.rules_file} -> ${a.rules_file}.bak`);
+        } else {
+          console.log(`  \x1B[36m[DRY-RUN] WOULD OVERWRITE & BACKUP:\x1B[0m ${a.rules_file}`);
+        }
+      } else {
+        console.log(`  \x1B[37m[SKIP] Already exists:\x1B[0m ${a.rules_file}`);
+      }
+    } else {
+      if (!options.dryRun) {
+        if (!existsSync20(destDir))
+          mkdirSync11(destDir, { recursive: true });
+        writeFileSync13(destFile, readFileSync21(srcFile));
+        console.log(`  \x1B[32mCREATE:\x1B[0m ${a.rules_file}`);
+      } else {
+        console.log(`  \x1B[36m[DRY-RUN] WOULD CREATE:\x1B[0m ${a.rules_file}`);
+      }
+    }
+  });
+  console.log();
+}
+
+// src/cli/handlers/skills.js
+import { existsSync as existsSync21, readdirSync as readdirSync9, readFileSync as readFileSync22 } from "fs";
+import { join as join21 } from "path";
+function handleListSkills(options) {
+  const skillsDir = join21(options.target, ".ai", "skills");
+  if (!existsSync21(skillsDir)) {
+    console.log("\n\x1B[33m[Notice] .ai/skills directory is not initialized in the target workspace.\x1B[0m\n");
+    return;
+  }
+  const files = readdirSync9(skillsDir).filter((f) => f.endsWith(".md"));
+  console.log(`
+\u{1F9E0} \x1B[36mAvailable Skills in Target [v${version}]\x1B[0m`);
+  console.log("==================================================");
+  files.forEach((f) => {
+    console.log(`  \x1B[32m- ${f.replace(".md", "")}\x1B[0m (file: .ai/skills/${f})`);
+  });
+  console.log("\nUse \x1B[36mshow-skill <skill-name>\x1B[0m to read a skill's prompt text.\n");
+}
+function handleShowSkill(name, options) {
+  const skillsDir = join21(options.target, ".ai", "skills");
+  const skillFile = join21(skillsDir, name.endsWith(".md") ? name : `${name}.md`);
+  if (!existsSync21(skillFile)) {
+    console.error(`\x1B[31mError: Skill '${name}' not found in target .ai/skills/.\x1B[0m`);
+    process.exit(1);
+  }
+  console.log(`
+\u{1F4D6} \x1B[36mSkill Prompt: ${name}\x1B[0m`);
+  console.log("==================================================");
+  console.log(readFileSync22(skillFile, "utf8"));
+  console.log();
+}
+
+// src/cli/handlers/onboard.js
+import { existsSync as existsSync22, mkdirSync as mkdirSync12, readFileSync as readFileSync23, writeFileSync as writeFileSync14, readdirSync as readdirSync10 } from "fs";
+import { join as join22, dirname as dirname10 } from "path";
+function getRecommendation(analysis) {
+  const scores = {
+    "nextjs-saas": 0,
+    "expo-react-native-android": 0,
+    "wordpress-site": 0,
+    "ecommerce-store": 0,
+    "seo-landing-page": 0,
+    "general-app": 0.1
+  };
+  if (analysis.frameworks.includes("Next.js"))
+    scores["nextjs-saas"] += 0.6;
+  if (analysis.frameworks.includes("React"))
+    scores["nextjs-saas"] += 0.2;
+  if (analysis.frameworks.includes("TypeScript"))
+    scores["nextjs-saas"] += 0.1;
+  if (analysis.repoType === "mobile app")
+    scores["expo-react-native-android"] += 0.6;
+  if (analysis.frameworks.includes("Expo") || analysis.frameworks.includes("React Native"))
+    scores["expo-react-native-android"] += 0.3;
+  if (analysis.repoType === "WordPress theme/plugin")
+    scores["wordpress-site"] += 0.6;
+  if (analysis.frameworks.includes("WordPress/PHP"))
+    scores["wordpress-site"] += 0.3;
+  if (analysis.frameworks.includes("Vite") || analysis.frameworks.includes("React"))
+    scores["seo-landing-page"] += 0.3;
+  let recommended = "general-app";
+  let maxScore = 0;
+  Object.keys(scores).forEach((k) => {
+    if (scores[k] > maxScore) {
+      maxScore = scores[k];
+      recommended = k;
+    }
+  });
+  const suggestedAdapters = ["cursor", "claude", "gemini", "vscode", "antigravity"];
+  return {
+    template: recommended,
+    confidence: Math.min(1, maxScore === 0.1 ? 0.5 : maxScore),
+    suggestedAdapters,
+    riskNotes: analysis.envRiskMarkers.length > 0 ? "Workspace contains unignored credentials or key files. Ensure .gitignore covers them." : "None"
+  };
+}
+function handleOnboardAnalyze(options) {
+  console.log(`
+\u{1F50D} \x1B[36mAnalyzing Workspace for Onboarding: ${options.target}\x1B[0m`);
+  console.log("==================================================");
+  const analysis = getAnalysis(options.target);
+  console.log(`  Package Manager:       ${analysis.packageManagers.join(", ") || "None"}`);
+  console.log(`  Detected Frameworks:   ${analysis.frameworks.join(", ") || "None"}`);
+  console.log(`  Dominant Language:     ${analysis.language}`);
+  console.log(`  Repository Type:       ${analysis.repoType}`);
+  console.log(`  Existing AI Tools:     ${analysis.existingTools.join(", ") || "None"}`);
+  console.log(`  GitHub Workflows:      ${analysis.githubWorkflows.join(", ") || "None"}`);
+  console.log(`  Security Risk Markers: ${analysis.envRiskMarkers.length} files found`);
+  if (analysis.envRiskMarkers.length > 0) {
+    analysis.envRiskMarkers.forEach((m) => console.log(`    \u2514\u2500\u2500> ${m} (potential secrets exposure risk)`));
+  }
+  console.log();
+}
+function handleOnboardRecommend(options) {
+  const analysis = getAnalysis(options.target);
+  const rec = getRecommendation(analysis);
+  console.log(`
+\u{1F4A1} \x1B[36mOnboarding Recommendation for: ${options.target}\x1B[0m`);
+  console.log("==================================================");
+  console.log(`  Recommended Template:  \x1B[32m${rec.template}\x1B[0m`);
+  console.log(`  Confidence Score:      ${(rec.confidence * 100).toFixed(0)}%`);
+  console.log(`  Suggested Adapters:    ${rec.suggestedAdapters.join(", ")}`);
+  console.log(`  Risk Notes:            ${rec.riskNotes}`);
+  console.log(`  Suggested Next Command:`);
+  console.log(`    npx multimodel-dev-os onboard plan --target .`);
+  console.log();
+}
+function handleOnboardPlan(options) {
+  console.log(`
+\u{1F4CB} \x1B[36mGenerating Onboarding Plan: ${options.target}\x1B[0m`);
+  console.log("==================================================");
+  const analysis = getAnalysis(options.target);
+  const rec = getRecommendation(analysis);
+  const planPath = join22(options.target, ".ai", "intelligence", "onboarding.plan.json");
+  const reportPath = join22(options.target, ".ai", "intelligence", "onboarding.report.md");
+  const plannedFiles = [
+    { action: "CREATE", path: "AGENTS.md", source_template: `examples/${rec.template}/AGENTS.md` },
+    { action: "CREATE", path: "MEMORY.md", source_template: `examples/${rec.template}/MEMORY.md` },
+    { action: "CREATE", path: "TASKS.md", source_template: `examples/${rec.template}/TASKS.md` },
+    { action: "CREATE", path: "RUNBOOK.md", source_template: `RUNBOOK.md` },
+    { action: "CREATE", path: ".ai/config.yaml", source_template: `examples/${rec.template}/.ai/config.yaml` }
+  ];
+  const planData = {
+    generated_at: (/* @__PURE__ */ new Date()).toISOString(),
+    target_path: options.target,
+    project_analysis: {
+      package_manager: analysis.packageManagers.join(", ") || "npm",
+      framework: analysis.frameworks.join(", ") || "Generic",
+      language: analysis.language,
+      repo_type: analysis.repoType,
+      has_existing_ai_config: analysis.aiSignals.includes(".ai/config.yaml"),
+      risk_markers: analysis.envRiskMarkers
+    },
+    recommendation: {
+      template: rec.template,
+      confidence: rec.confidence,
+      suggested_adapters: rec.suggestedAdapters,
+      reasons: [`Detected dominant language ${analysis.language}`, `Detected framework ${analysis.frameworks.join(", ")}`]
+    },
+    planned_files: plannedFiles
+  };
+  let reportMd = `# MultiModel Dev OS Onboarding Report
+
+`;
+  reportMd += `**Generated At:** ${planData.generated_at}
+`;
+  reportMd += `**Target Path:** ${planData.target_path}
+
+`;
+  reportMd += `## 1. Project Analysis Details
+`;
+  reportMd += `- **Package Manager:** ${planData.project_analysis.package_manager}
+`;
+  reportMd += `- **Frameworks:** ${planData.project_analysis.framework}
+`;
+  reportMd += `- **Language:** ${planData.project_analysis.language}
+`;
+  reportMd += `- **Repo Type:** ${planData.project_analysis.repo_type}
+
+`;
+  reportMd += `## 2. Onboarding Recommendation
+`;
+  reportMd += `- **Recommended Profile:** **${planData.recommendation.template}** (Confidence: ${(planData.recommendation.confidence * 100).toFixed(0)}%)
+`;
+  reportMd += `- **Suggested Adapters:** ${planData.recommendation.suggested_adapters.join(", ")}
+
+`;
+  reportMd += `## 3. Planned File Operations
+`;
+  reportMd += `| Action | Target Path | Source Template |
+`;
+  reportMd += `|---|---|---|
+`;
+  plannedFiles.forEach((f) => {
+    reportMd += `| ${f.action} | ${f.path} | ${f.source_template} |
+`;
+  });
+  reportMd += `
+`;
+  reportMd += `## 4. Next Step
+`;
+  reportMd += `To safely apply this plan, run:
+`;
+  reportMd += `\`\`\`bash
+`;
+  reportMd += `npx multimodel-dev-os onboard apply --target . --approved
+`;
+  reportMd += `\`\`\`
+`;
+  try {
+    const intelDir = join22(options.target, ".ai", "intelligence");
+    if (!options.dryRun && !existsSync22(intelDir)) {
+      mkdirSync12(intelDir, { recursive: true });
+    }
+    if (!options.dryRun) {
+      writeFileSync14(planPath, JSON.stringify(planData, null, 2), "utf8");
+      writeFileSync14(reportPath, reportMd, "utf8");
+    }
+    console.log(`  [SUCCESS] Onboarding plan generated:`);
+    console.log(`    - Plan JSON:   .ai/intelligence/onboarding.plan.json`);
+    console.log(`    - Report MD:   .ai/intelligence/onboarding.report.md`);
+    console.log(`
+Review the plan and run "npx multimodel-dev-os onboard apply --target . --approved" to execute.
+`);
+  } catch (e) {
+    console.error(`\x1B[31mError writing plan: ${e.message}\x1B[0m`);
+  }
+}
+function handleOnboardApply(options) {
+  if (!options.approved) {
+    console.error("\x1B[31mError: Onboarding apply requires explicit approval flag: --approved\x1B[0m");
+    console.log("Example: node bin/multimodel-dev-os.js onboard apply --approved");
+    process.exit(1);
+  }
+  const planPath = join22(options.target, ".ai", "intelligence", "onboarding.plan.json");
+  if (!existsSync22(planPath)) {
+    console.error('\x1B[31mError: Onboarding plan not found. Run "npx multimodel-dev-os onboard plan" first.\x1B[0m');
+    process.exit(1);
+  }
+  let plan;
+  try {
+    plan = JSON.parse(readFileSync23(planPath, "utf8"));
+  } catch (e) {
+    console.error(`\x1B[31mError reading plan JSON: ${e.message}\x1B[0m`);
+    process.exit(1);
+  }
+  console.log(`
+\u{1F680} \x1B[36mApplying Onboarding Scaffolding: ${options.target}\x1B[0m`);
+  console.log("==================================================");
+  const template = plan.recommendation.template;
+  options.template = template;
+  const operations = [];
+  plan.planned_files.forEach((f) => {
+    let srcFile;
+    if (f.source_template === "RUNBOOK.md") {
+      srcFile = join22(sourceRoot, "RUNBOOK.md");
+    } else {
+      srcFile = join22(sourceRoot, f.source_template);
+    }
+    operations.push({ dest: f.path, src: srcFile });
+  });
+  const templateDir = join22(sourceRoot, "examples", template);
+  const templateAiDir = join22(templateDir, ".ai");
+  if (existsSync22(templateAiDir) && !options.caveman) {
+    const subdirs = ["context", "skills"];
+    subdirs.forEach((sub) => {
+      const subPath = join22(templateAiDir, sub);
+      if (existsSync22(subPath)) {
+        readdirSync10(subPath).forEach((file) => {
+          operations.push({
+            dest: join22(".ai", sub, file),
+            src: join22(subPath, file)
+          });
+        });
+      }
+    });
+  }
+  const globalAiSubdirs = ["context", "agents", "skills", "prompts", "checks", "templates", "session-logs", "registries", "proposals", "intelligence"];
+  globalAiSubdirs.forEach((sub) => {
+    const globalPath = join22(sourceRoot, ".ai", sub);
+    if (existsSync22(globalPath)) {
+      readdirSync10(globalPath).forEach((file) => {
+        const destRel = join22(".ai", sub, file);
+        if (!operations.some((op) => op.dest === destRel)) {
+          if (options.caveman && (sub === "context" || sub === "skills" || sub === "prompts" || sub === "checks")) {
+            return;
+          }
+          operations.push({
+            dest: destRel,
+            src: join22(globalPath, file)
+          });
+        }
+      });
+    }
+  });
+  let createdCount = 0;
+  let skippedCount = 0;
+  let updatedCount = 0;
+  operations.forEach((op) => {
+    const destPath = join22(options.target, op.dest);
+    const destDir = dirname10(destPath);
+    if (existsSync22(destPath)) {
+      if (options.force) {
+        if (!options.dryRun) {
+          const backupPath = destPath + ".bak";
+          writeFileSync14(backupPath, readFileSync23(destPath));
+          if (!existsSync22(destDir))
+            mkdirSync12(destDir, { recursive: true });
+          writeFileSync14(destPath, readFileSync23(op.src));
+          console.log(`  \x1B[33mOVERWRITE (BACKUP CREATED):\x1B[0m ${op.dest} -> ${op.dest}.bak`);
+        } else {
+          console.log(`  \x1B[36m[DRY-RUN] WOULD OVERWRITE & BACKUP:\x1B[0m ${op.dest}`);
+        }
+        updatedCount++;
+      } else {
+        console.log(`  \x1B[37m[SKIP] Already exists:\x1B[0m ${op.dest}`);
+        skippedCount++;
+      }
+    } else {
+      if (!options.dryRun) {
+        if (!existsSync22(destDir))
+          mkdirSync12(destDir, { recursive: true });
+        writeFileSync14(destPath, readFileSync23(op.src));
+        console.log(`  \x1B[32mCREATE:\x1B[0m ${op.dest}`);
+      } else {
+        console.log(`  \x1B[36m[DRY-RUN] WOULD CREATE:\x1B[0m ${op.dest}`);
+      }
+      createdCount++;
+    }
+  });
+  console.log(`
+\u2714 Onboarding apply complete! Created: ${createdCount}, Skipped: ${skippedCount}, Overwritten (with backup): ${updatedCount}
+`);
+}
+function handleOnboardStatus(options) {
+  console.log(`
+\u{1F4CA} \x1B[36mOnboarding Status Dashboard: ${options.target}\x1B[0m`);
+  console.log("==================================================");
+  const crucialFiles = [
+    "AGENTS.md",
+    "MEMORY.md",
+    "TASKS.md",
+    "RUNBOOK.md",
+    ".ai/config.yaml"
+  ];
+  let presentCount = 0;
+  crucialFiles.forEach((f) => {
+    const fullPath = join22(options.target, f);
+    const exists = existsSync22(fullPath);
+    if (exists)
+      presentCount++;
+    console.log(`  [${exists ? "\u2714" : " "}] ${f}`);
+  });
+  const percentage = presentCount / crucialFiles.length * 100;
+  console.log(`
+  Completeness Score: ${percentage.toFixed(0)}%`);
+  if (percentage === 100) {
+    console.log("  Status: \x1B[32mREADY (Onboarding complete)\x1B[0m\n");
+  } else if (percentage > 0) {
+    console.log('  Status: \x1B[33mIN_PROGRESS (Run "onboard apply --approved" to initialize remaining files)\x1B[0m\n');
+  } else {
+    console.log('  Status: \x1B[31mMISSING (Run "onboard plan" and "onboard apply" to onboard this repo)\x1B[0m\n');
+  }
+}
+
+// src/cli/handlers/dashboard.js
+import { join as join23 } from "path";
+import readline from "readline";
+import { execSync } from "child_process";
+function selectMenu(title, items, callback) {
+  let cursor = 0;
+  const draw = () => {
+    console.clear();
+    console.log(`
+\u{1F9E0} \x1B[36m${title}\x1B[0m`);
+    console.log("==================================================");
+    items.forEach((item, index) => {
+      if (index === cursor) {
+        console.log(`  \x1B[32m\u276F ${item.name}\x1B[0m`);
+      } else {
+        console.log(`    ${item.name}`);
+      }
+    });
+    console.log("\n\x1B[90m(Use Arrow keys to navigate, Enter to select, Esc/Ctrl+C to exit)\x1B[0m\n");
+  };
+  readline.emitKeypressEvents(process.stdin);
+  if (process.stdin.isTTY) {
+    process.stdin.setRawMode(true);
+  }
+  process.stdin.resume();
+  const onKeypress = (str, key) => {
+    if (!key)
+      return;
+    if (key.name === "up") {
+      cursor = (cursor - 1 + items.length) % items.length;
+      draw();
+    } else if (key.name === "down") {
+      cursor = (cursor + 1) % items.length;
+      draw();
+    } else if (key.name === "return") {
+      cleanup();
+      callback(items[cursor]);
+    } else if (key.name === "escape" || key.ctrl && key.name === "c") {
+      cleanup();
+      process.exit(0);
+    }
+  };
+  const cleanup = () => {
+    process.stdin.removeListener("keypress", onKeypress);
+    if (process.stdin.isTTY) {
+      process.stdin.setRawMode(false);
+    }
+    process.stdin.pause();
+  };
+  process.stdin.on("keypress", onKeypress);
+  draw();
+}
+function handleDashboard(options) {
+  const mainMenu = [
+    { name: "Active Workspace Status", action: "command", command: "status" },
+    { name: "Codebase Scan Analysis", action: "command", command: "scan" },
+    { name: "Onboarding Operations...", action: "submenu", menu: "onboard" },
+    { name: "Adapter Synchronization...", action: "submenu", menu: "adapter" },
+    { name: "Memory & Intelligence...", action: "submenu", menu: "memory" },
+    { name: "Developer Feedback Loops...", action: "submenu", menu: "feedback" },
+    { name: "Workflow Marketplace Catalog...", action: "submenu", menu: "catalog" },
+    { name: "Registry Sources & Cache...", action: "submenu", menu: "registry" },
+    { name: "Quality Gates & Diagnostics...", action: "submenu", menu: "quality" },
+    { name: "Plugins Status Overview", action: "command", command: "plugin status" },
+    { name: "Exit Command Center", action: "exit" }
+  ];
+  const submenus = {
+    onboard: [
+      { name: "\u2190 Back to Main Menu", action: "back" },
+      { name: "Onboard: Analyze Repository", action: "command", command: "onboard analyze" },
+      { name: "Onboard: Recommendation Summary", action: "command", command: "onboard recommend" },
+      { name: "Onboard: Generate Integration Plan", action: "command", command: "onboard plan" },
+      { name: "Onboard: Apply Configs (Dry Run)", action: "command", command: "onboard apply --dry-run" },
+      { name: "Onboard: View Status Heuristics", action: "command", command: "onboard status" }
+    ],
+    adapter: [
+      { name: "\u2190 Back to Main Menu", action: "back" },
+      { name: "Adapters: Check Sync Status", action: "command", command: "adapter status" },
+      { name: "Adapters: Sync All rule files (Dry Run)", action: "command", command: "adapter sync all --dry-run" },
+      { name: "Adapters: Diff Cursor rules", action: "command", command: "adapter diff cursor" },
+      { name: "Adapters: Diff Claude rules", action: "command", command: "adapter diff claude" }
+    ],
+    memory: [
+      { name: "\u2190 Back to Main Menu", action: "back" },
+      { name: "Memory: Build index", action: "command", command: "memory build" },
+      { name: "Memory: Refresh changes", action: "command", command: "memory refresh" },
+      { name: "Memory: Diff index status", action: "command", command: "memory diff" },
+      { name: "Handoff: Build session summary", action: "command", command: "handoff build" },
+      { name: "Handoff: Print summary to terminal", action: "command", command: "handoff show" }
+    ],
+    feedback: [
+      { name: "\u2190 Back to Main Menu", action: "back" },
+      { name: "Feedback: List developer corrections", action: "command", command: "feedback list" },
+      { name: "Feedback: Summarize to learning rules", action: "command", command: "feedback summarize" },
+      { name: "Proposals: Propose improvement proposal", action: "command", command: "improve propose" },
+      { name: "Proposals: Review active proposals list", action: "command", command: "improve review" }
+    ],
+    catalog: [
+      { name: "\u2190 Back to Main Menu", action: "back" },
+      { name: "Catalog: List bundled plugins", action: "command", command: "catalog list" },
+      { name: "Catalog: Recommend for current repo", action: "command", command: "catalog recommend" },
+      { name: "Catalog: Show installed catalog status", action: "command", command: "catalog status" }
+    ],
+    quality: [
+      { name: "\u2190 Back to Main Menu", action: "back" },
+      { name: "Doctor: Run Advisory Diagnostics", action: "command", command: "doctor" },
+      { name: "Validate: Strict Schema Compliance", action: "command", command: "validate" },
+      { name: "Verify: Run Release verification tests", action: "command", command: "verify" }
+    ],
+    registry: [
+      { name: "\u2190 Back to Main Menu", action: "back" },
+      { name: "Registry: List configured sources", action: "command", command: "registry list" },
+      { name: "Registry: Show sync status", action: "command", command: "registry status" },
+      { name: "Registry: Verify cache integrity", action: "command", command: "registry verify bundled" },
+      { name: "Registry: Show policy status", action: "command", command: "registry status" }
+    ]
+  };
+  if (!process.stdout.isTTY || !process.stdin.isTTY || options.dryRun || options.listActions) {
+    console.log(`
+\u{1F4CA} \x1B[36mMultiModel Dev OS Command Center (Headless/CI Preview)\x1B[0m`);
+    console.log(`Target Workspace: \x1B[32m${options.target}\x1B[0m`);
+    console.log("==================================================");
+    const targetFlag = options.target === process.cwd() ? "" : ` --target "${options.target}"`;
+    mainMenu.forEach((item) => {
+      if (item.action === "command") {
+        console.log(`  \x1B[33m\u2022\x1B[0m ${item.name.padEnd(30)} \u2192 \x1B[36mnpx multimodel-dev-os ${item.command}${targetFlag}\x1B[0m`);
+      } else if (item.action === "submenu") {
+        console.log(`
+  \x1B[35m[${item.name.replace("...", "")}]\x1B[0m`);
+        submenus[item.menu].forEach((sub) => {
+          if (sub.action === "command") {
+            console.log(`    \u2514\u2500\u2500 ${sub.name.padEnd(35)} \u2192 \x1B[36mnpx multimodel-dev-os ${sub.command}${targetFlag}\x1B[0m`);
+          }
+        });
+      }
+    });
+    console.log("\n\x1B[90m(Run with -t or --target to specify another workspace directory)\x1B[0m\n");
+    return;
+  }
+  const runCommandWrapper = (cmdStr) => {
+    console.clear();
+    const targetFlag = options.target === process.cwd() ? "" : ` --target "${options.target}"`;
+    console.log(`
+\x1B[36mRunning Command:\x1B[0m npx multimodel-dev-os ${cmdStr}${targetFlag}`);
+    console.log("--------------------------------------------------\n");
+    try {
+      const cliPath = join23(sourceRoot, "bin", "multimodel-dev-os.js");
+      execSync(`node "${cliPath}" ${cmdStr} --target "${options.target}"`, { stdio: "inherit" });
+    } catch (e) {
+      console.error(`
+\x1B[31mCommand failed with error: ${e.message}\x1B[0m`);
+    }
+    console.log("\n--------------------------------------------------");
+    console.log("Press any key to return to menu...");
+    if (process.stdin.isTTY) {
+      process.stdin.setRawMode(true);
+    }
+    process.stdin.resume();
+    return new Promise((resolve7) => {
+      process.stdin.once("keypress", () => {
+        resolve7();
+      });
+    });
+  };
+  const showMenu = (menuItems, title) => {
+    selectMenu(title, menuItems, async (selected) => {
+      if (selected.action === "exit") {
+        process.exit(0);
+      } else if (selected.action === "back") {
+        showMenu(mainMenu, "MultiModel Dev OS Command Center");
+      } else if (selected.action === "submenu") {
+        showMenu(submenus[selected.menu], selected.name);
+      } else if (selected.action === "command") {
+        await runCommandWrapper(selected.command);
+        showMenu(menuItems, title);
+      }
+    });
+  };
+  showMenu(mainMenu, "MultiModel Dev OS Command Center");
+}
+
 // src/cli/main.js
 var ARGS = process.argv.slice(2);
 var params = parseArgs(ARGS);
 var COMMAND = params.command;
-var ADAPTERS = loadAdapters(params.registry);
 var boundDiffMemory = (target) => diffMemory(target, {
   scanTarget,
   detectFrameworkSignals,
@@ -6178,13 +7440,15 @@ if (COMMAND === "init") {
         process.exit(1);
       }
       handleRegistryTrustRemove(keyId, params);
+    } else if (trustSub === "sync") {
+      handleRegistryTrustSync(params);
     } else {
-      console.error("\x1B[31mError: Please specify a trust subcommand: list, show, verify, add, or remove.\x1B[0m");
-      console.log("Example: node bin/multimodel-dev-os.js registry trust list");
+      console.error("\x1B[31mError: Please specify a trust subcommand: list, show, verify, add, remove, or sync.\x1B[0m");
+      console.log("Example: node bin/multimodel-dev-os.js registry trust sync --approved");
       process.exit(1);
     }
   } else {
-    console.error("\x1B[31mError: Please specify a registry subcommand: list, add, remove, sync, status, verify, show, cache, keygen, lock, or trust (list, show, verify, add, remove).\x1B[0m");
+    console.error("\x1B[31mError: Please specify a registry subcommand: list, add, remove, sync, status, verify, show, cache, keygen, lock, or trust (list, show, verify, add, remove, sync).\x1B[0m");
     console.log("Example: node bin/multimodel-dev-os.js registry list");
     process.exit(1);
   }
@@ -6192,1071 +7456,4 @@ if (COMMAND === "init") {
   console.error(`\x1B[31mUnknown command: ${COMMAND}\x1B[0m`);
   showHelp();
   process.exit(1);
-}
-function handleListModels(options) {
-  const registryPath = join18(sourceRoot, ".ai", "models", "registry.yaml");
-  if (!existsSync18(registryPath)) {
-    console.error("Error: Model registry not found.");
-    process.exit(1);
-  }
-  const registry = parseYaml(readFileSync19(registryPath, "utf8"));
-  const models = registry.models || {};
-  if (options && options.json) {
-    console.log(JSON.stringify(models, null, 2));
-    return;
-  }
-  console.log(`
-\xF0\u0178\xA4\u2013 \x1B[36mModel Registry [v${version}]\x1B[0m`);
-  console.log("==================================================");
-  Object.keys(models).forEach((name) => {
-    const m = models[name];
-    console.log(`
-\x1B[32m* ${name}\x1B[0m (${m.alias || ""})`);
-    console.log(`  \x1B[33mProvider:\x1B[0m ${m.provider}`);
-    console.log(`  \x1B[33mOfficial ID:\x1B[0m ${m.official_id}`);
-    console.log(`  \x1B[33mContext Window:\x1B[0m ${m.context_window} tokens`);
-    console.log(`  \x1B[33mTiers:\x1B[0m Cost: ${m.tiers?.cost}, Reasoning: ${m.tiers?.reasoning}, Coding: ${m.tiers?.coding}`);
-  });
-  console.log("\nUse \x1B[36mshow-model <model-alias>\x1B[0m to view detailed model capabilities.\n");
-}
-function handleShowModel(name) {
-  const registryPath = join18(sourceRoot, ".ai", "models", "registry.yaml");
-  if (!existsSync18(registryPath)) {
-    console.error("Error: Model registry not found.");
-    process.exit(1);
-  }
-  const registry = parseYaml(readFileSync19(registryPath, "utf8"));
-  const models = registry.models || {};
-  const m = models[name];
-  if (!m) {
-    console.error(`\x1B[31mError: Model alias '${name}' not found in registry.\x1B[0m`);
-    process.exit(1);
-  }
-  console.log(`
-\xF0\u0178\u201D\x8D \x1B[36mModel: ${name}\x1B[0m`);
-  console.log("==================================================");
-  console.log(`\x1B[33mProvider:\x1B[0m ${m.provider}`);
-  console.log(`\x1B[33mAlias:\x1B[0m ${m.alias}`);
-  console.log(`\x1B[33mOfficial ID:\x1B[0m ${m.official_id}`);
-  console.log(`\x1B[33mContext Window:\x1B[0m ${m.context_window} tokens`);
-  console.log(`\x1B[33mCapabilities:\x1B[0m`);
-  console.log(`  \xE2\u201D\u0153\xE2\u201D\u20AC Vision: ${m.capabilities?.vision ? "Yes" : "No"}`);
-  console.log(`  \xE2\u201D\u201D\xE2\u201D\u20AC Tool Use: ${m.capabilities?.tool_use ? "Yes" : "No"}`);
-  console.log(`\x1B[33mTiers:\x1B[0m`);
-  console.log(`  \xE2\u201D\u0153\xE2\u201D\u20AC Cost: ${m.tiers?.cost}`);
-  console.log(`  \xE2\u201D\u0153\xE2\u201D\u20AC Speed: ${m.tiers?.speed}`);
-  console.log(`  \xE2\u201D\u0153\xE2\u201D\u20AC Reasoning: ${m.tiers?.reasoning}`);
-  console.log(`  \xE2\u201D\u201D\xE2\u201D\u20AC Coding: ${m.tiers?.coding}`);
-  console.log();
-}
-function handleListProviders() {
-  const providersPath = join18(sourceRoot, ".ai", "models", "providers.yaml");
-  if (!existsSync18(providersPath)) {
-    console.error("Error: Providers registry not found.");
-    process.exit(1);
-  }
-  const reg = parseYaml(readFileSync19(providersPath, "utf8"));
-  const providers = reg.providers || {};
-  console.log(`
-\xF0\u0178\u201D\u0152 \x1B[36mAI Providers [v${version}]\x1B[0m`);
-  console.log("==================================================");
-  Object.keys(providers).forEach((name) => {
-    const p = providers[name];
-    console.log(`
-\x1B[32m* ${p.name || name}\x1B[0m (${name})`);
-    console.log(`  \x1B[33mEndpoint:\x1B[0m ${p.api_endpoint || "Local"}`);
-    console.log(`  \x1B[33mEnv Key:\x1B[0m ${p.env_key || "None"}`);
-  });
-  console.log();
-}
-function handleRouteModel(task) {
-  const presetsPath = join18(sourceRoot, ".ai", "models", "routing-presets.yaml");
-  if (!existsSync18(presetsPath)) {
-    console.error("Error: Routing presets not found.");
-    process.exit(1);
-  }
-  const reg = parseYaml(readFileSync19(presetsPath, "utf8"));
-  const presets = reg.presets || {};
-  const preset = presets[task];
-  if (!preset) {
-    console.error(`\x1B[31mError: Routing preset for task '${task}' not found. Available: ${Object.keys(presets).join(", ")}\x1B[0m`);
-    process.exit(1);
-  }
-  console.log(`
-\xF0\u0178\u017D\xAF \x1B[36mRouting Suggestion for: ${task}\x1B[0m`);
-  console.log("==================================================");
-  console.log(`\x1B[33mPrimary Model:\x1B[0m \x1B[32m${preset.primary}\x1B[0m`);
-  console.log(`\x1B[33mFallback Model:\x1B[0m \x1B[33m${preset.fallback}\x1B[0m`);
-  console.log();
-}
-function handleListAdapters(options) {
-  const adaptersPath = join18(sourceRoot, ".ai", "adapters", "registry.yaml");
-  if (!existsSync18(adaptersPath)) {
-    console.error("Error: Adapters registry not found.");
-    process.exit(1);
-  }
-  const reg = parseYaml(readFileSync19(adaptersPath, "utf8"));
-  const adapters = reg.adapters || {};
-  if (options && options.json) {
-    console.log(JSON.stringify(adapters, null, 2));
-    return;
-  }
-  console.log(`
-\xF0\u0178\u201D\u0152 \x1B[36mIDE & Agent Adapters [v${version}]\x1B[0m`);
-  console.log("==================================================");
-  Object.keys(adapters).forEach((name) => {
-    const a = adapters[name];
-    console.log(`
-\x1B[32m* ${a.name || name}\x1B[0m (${name})`);
-    console.log(`  \x1B[33mRules File:\x1B[0m ${a.rules_file}`);
-    console.log(`  \x1B[33mAdapter Type:\x1B[0m ${a.type}`);
-    console.log(`  \x1B[33mRule Format:\x1B[0m ${a.format}`);
-  });
-  console.log("\nUse \x1B[36mshow-adapter <adapter-name>\x1B[0m to view detailed adapter metadata.\n");
-}
-function handleShowAdapter(name) {
-  const adaptersPath = join18(sourceRoot, ".ai", "adapters", "registry.yaml");
-  if (!existsSync18(adaptersPath)) {
-    console.error("Error: Adapters registry not found.");
-    process.exit(1);
-  }
-  const reg = parseYaml(readFileSync19(adaptersPath, "utf8"));
-  const adapters = reg.adapters || {};
-  const a = adapters[name];
-  if (!a) {
-    console.error(`\x1B[31mError: Adapter '${name}' not found in registry.\x1B[0m`);
-    process.exit(1);
-  }
-  console.log(`
-\xF0\u0178\u201D\x8D \x1B[36mAdapter: ${a.name || name}\x1B[0m`);
-  console.log("==================================================");
-  console.log(`\x1B[33mRules File:\x1B[0m ${a.rules_file}`);
-  console.log(`\x1B[33mType:\x1B[0m ${a.type}`);
-  console.log(`\x1B[33mFormat:\x1B[0m ${a.format}`);
-  console.log();
-}
-function handleListSkills(options) {
-  const skillsDir = join18(options.target, ".ai", "skills");
-  if (!existsSync18(skillsDir)) {
-    console.log("\n\x1B[33m[Notice] .ai/skills directory is not initialized in the target workspace.\x1B[0m\n");
-    return;
-  }
-  const files = readdirSync8(skillsDir).filter((f) => f.endsWith(".md"));
-  console.log(`
-\xF0\u0178\xA7\xA0 \x1B[36mAvailable Skills in Target [v${version}]\x1B[0m`);
-  console.log("==================================================");
-  files.forEach((f) => {
-    console.log(`  \x1B[32m- ${f.replace(".md", "")}\x1B[0m (file: .ai/skills/${f})`);
-  });
-  console.log("\nUse \x1B[36mshow-skill <skill-name>\x1B[0m to read a skill's prompt text.\n");
-}
-function handleShowSkill(name, options) {
-  const skillsDir = join18(options.target, ".ai", "skills");
-  const skillFile = join18(skillsDir, name.endsWith(".md") ? name : `${name}.md`);
-  if (!existsSync18(skillFile)) {
-    console.error(`\x1B[31mError: Skill '${name}' not found in target .ai/skills/.\x1B[0m`);
-    process.exit(1);
-  }
-  console.log(`
-\xF0\u0178\u201C\u2013 \x1B[36mSkill Prompt: ${name}\x1B[0m`);
-  console.log("==================================================");
-  console.log(readFileSync19(skillFile, "utf8"));
-  console.log();
-}
-function scanTarget(targetDir) {
-  const files = [];
-  let ignoredCount = 0;
-  function walk(dir) {
-    if (!existsSync18(dir))
-      return;
-    const items = readdirSync8(dir);
-    for (const item of items) {
-      const fullPath = join18(dir, item);
-      const relPath = relative5(targetDir, fullPath).replace(/\\/g, "/");
-      if (shouldIgnorePath(relPath)) {
-        ignoredCount++;
-        continue;
-      }
-      try {
-        const stat = statSync6(fullPath);
-        if (stat.isDirectory()) {
-          walk(fullPath);
-        } else if (stat.isFile()) {
-          files.push({
-            relPath,
-            fullPath,
-            size: stat.size,
-            mtime: stat.mtime.toISOString()
-          });
-        }
-      } catch (e) {
-      }
-    }
-  }
-  walk(targetDir);
-  return { files, ignoredCount };
-}
-function detectFrameworkSignals(files, targetDir) {
-  const signals = [];
-  const hasFile = (name) => files.some((f) => f.relPath.toLowerCase() === name.toLowerCase());
-  if (hasFile("next.config.js") || hasFile("next.config.mjs"))
-    signals.push("Next.js");
-  if (hasFile("nuxt.config.js") || hasFile("nuxt.config.ts"))
-    signals.push("Nuxt.js");
-  if (hasFile("wp-config.php") || hasFile("index.php"))
-    signals.push("WordPress/PHP");
-  if (hasFile("tsconfig.json"))
-    signals.push("TypeScript");
-  if (hasFile("package.json")) {
-    signals.push("Node.js");
-    try {
-      const pkg = JSON.parse(readFileSync19(join18(targetDir, "package.json"), "utf8"));
-      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-      if (deps["react"])
-        signals.push("React");
-      if (deps["vue"])
-        signals.push("Vue");
-      if (deps["svelte"])
-        signals.push("Svelte");
-      if (deps["expo"])
-        signals.push("Expo");
-      if (deps["react-native"])
-        signals.push("React Native");
-      if (deps["vite"])
-        signals.push("Vite");
-      if (deps["express"])
-        signals.push("Express");
-      if (deps["angular"])
-        signals.push("Angular");
-    } catch (e) {
-    }
-  }
-  if (hasFile("requirements.txt") || hasFile("pyproject.toml"))
-    signals.push("Python");
-  if (hasFile("cargo.toml"))
-    signals.push("Rust");
-  if (hasFile("gemfile"))
-    signals.push("Ruby");
-  if (hasFile("go.mod"))
-    signals.push("Go");
-  if (signals.length === 0)
-    signals.push("Generic/Unknown");
-  return [...new Set(signals)];
-}
-function detectDependencySignals(files, targetDir) {
-  const signals = [];
-  const hasFile = (name) => files.some((f) => f.relPath.toLowerCase() === name.toLowerCase());
-  if (hasFile("package-lock.json"))
-    signals.push("npm");
-  else if (hasFile("yarn.lock"))
-    signals.push("Yarn");
-  else if (hasFile("pnpm-lock.yaml"))
-    signals.push("pnpm");
-  else if (hasFile("bun.lockb"))
-    signals.push("Bun");
-  if (hasFile("requirements.txt"))
-    signals.push("pip");
-  if (hasFile("poetry.lock"))
-    signals.push("Poetry");
-  if (hasFile("cargo.lock"))
-    signals.push("Cargo");
-  return signals;
-}
-function detectAiDevOsSignals(files) {
-  const signals = [];
-  const hasFile = (name) => files.some((f) => f.relPath.toLowerCase() === name.toLowerCase());
-  if (hasFile("agents.md"))
-    signals.push("AGENTS.md");
-  if (hasFile("memory.md"))
-    signals.push("MEMORY.md");
-  if (hasFile("tasks.md"))
-    signals.push("TASKS.md");
-  if (hasFile("runbook.md"))
-    signals.push("RUNBOOK.md");
-  if (hasFile(".ai/config.yaml"))
-    signals.push(".ai/config.yaml");
-  const hasPrefix = (prefix) => files.some((f) => f.relPath.startsWith(prefix));
-  if (hasPrefix(".ai/templates/"))
-    signals.push("Templates Registry");
-  if (hasPrefix(".ai/adapters/"))
-    signals.push("Adapters Registry");
-  if (hasPrefix(".ai/skills/"))
-    signals.push("Skills Registry");
-  if (hasPrefix(".ai/intelligence/"))
-    signals.push("Intelligence Layer");
-  if (hasPrefix(".ai/policies/"))
-    signals.push("Policy Layer");
-  if (hasPrefix(".ai/registries/"))
-    signals.push("Registry Layer");
-  return signals;
-}
-function detectRisks(files, targetDir) {
-  const risks = [];
-  const gitignorePath = join18(targetDir, ".gitignore");
-  const gitignoreContent = existsSync18(gitignorePath) ? readFileSync19(gitignorePath, "utf8") : "";
-  const hasFolder = (name) => files.some((f) => f.relPath.split("/")[0] === name);
-  if (hasFolder("node_modules") && !gitignoreContent.includes("node_modules")) {
-    risks.push({
-      file_pattern: "node_modules/",
-      risk_description: "Large token-sink directory node_modules/ is present but not ignored in .gitignore.",
-      severity: "high"
-    });
-  }
-  files.forEach((f) => {
-    if (f.relPath.endsWith(".json") && f.relPath.toLowerCase().includes("config") && f.size > 5e4) {
-      risks.push({
-        file_pattern: f.relPath,
-        risk_description: `Large config file (${(f.size / 1024).toFixed(1)} KB) might contain sensitive parameters or inflate prompt context.`,
-        severity: "medium"
-      });
-    }
-  });
-  return risks;
-}
-function getAnalysis(target) {
-  const { files, ignoredCount } = scanTarget(target);
-  const frameworks = detectFrameworkSignals(files, target);
-  const packageManagers = detectDependencySignals(files, target);
-  const aiSignals = detectAiDevOsSignals(files);
-  let jsCount = 0, tsCount = 0, phpCount = 0, pyCount = 0, mdCount = 0;
-  files.forEach((f) => {
-    const ext = f.relPath.substring(f.relPath.lastIndexOf(".")).toLowerCase();
-    if (ext === ".js" || ext === ".mjs" || ext === ".cjs")
-      jsCount++;
-    else if (ext === ".ts" || ext === ".tsx")
-      tsCount++;
-    else if (ext === ".php")
-      phpCount++;
-    else if (ext === ".py")
-      pyCount++;
-    else if (ext === ".md")
-      mdCount++;
-  });
-  let language = "mixed";
-  if (tsCount > jsCount && tsCount > phpCount && tsCount > pyCount && tsCount > mdCount)
-    language = "TS";
-  else if (jsCount > tsCount && jsCount > phpCount && jsCount > pyCount && jsCount > mdCount)
-    language = "JS";
-  else if (phpCount > jsCount && phpCount > tsCount && phpCount > pyCount && phpCount > mdCount)
-    language = "PHP";
-  else if (pyCount > jsCount && pyCount > tsCount && phpCount > pyCount && phpCount > mdCount)
-    language = "Python";
-  else if (mdCount > jsCount && mdCount > tsCount && mdCount > phpCount && mdCount > pyCount)
-    language = "Markdown-heavy";
-  let repoType = "app";
-  if (files.some((f) => f.relPath.includes("wp-content/themes") || f.relPath.includes("wp-content/plugins"))) {
-    repoType = "WordPress theme/plugin";
-  } else if (files.some((f) => f.relPath.includes("app.json") || f.relPath.includes("eas.json"))) {
-    repoType = "mobile app";
-  } else if (files.some((f) => f.relPath.includes("lerna.json") || f.relPath.includes("pnpm-workspace.yaml"))) {
-    repoType = "monorepo";
-  } else if (files.some((f) => f.relPath.includes("docs/")) && mdCount > files.length * 0.4) {
-    repoType = "docs";
-  } else if (files.some((f) => f.relPath === "package.json")) {
-    try {
-      const pkg = JSON.parse(readFileSync19(join18(target, "package.json"), "utf8"));
-      if (pkg.main && (pkg.main.includes("dist/") || pkg.main.includes("lib/"))) {
-        repoType = "library";
-      }
-    } catch (e) {
-    }
-  }
-  const existingTools = [];
-  if (files.some((f) => f.relPath === ".cursorrules"))
-    existingTools.push("Cursor");
-  if (files.some((f) => f.relPath === "CLAUDE.md"))
-    existingTools.push("Claude");
-  if (files.some((f) => f.relPath === "GEMINI.md"))
-    existingTools.push("Gemini");
-  if (files.some((f) => f.relPath.startsWith(".vscode/")))
-    existingTools.push("VS Code");
-  if (files.some((f) => f.relPath.startsWith(".gemini/")))
-    existingTools.push("Antigravity");
-  const packageScripts = [];
-  if (files.some((f) => f.relPath === "package.json")) {
-    try {
-      const pkg = JSON.parse(readFileSync19(join18(target, "package.json"), "utf8"));
-      if (pkg.scripts) {
-        Object.keys(pkg.scripts).forEach((k) => packageScripts.push(k));
-      }
-    } catch (e) {
-    }
-  }
-  const githubWorkflows = [];
-  const githubDir = join18(target, ".github", "workflows");
-  if (existsSync18(githubDir)) {
-    try {
-      readdirSync8(githubDir).forEach((f) => {
-        if (f.endsWith(".yml") || f.endsWith(".yaml"))
-          githubWorkflows.push(f);
-      });
-    } catch (e) {
-    }
-  }
-  const envRiskMarkers = [];
-  files.forEach((f) => {
-    const name = f.relPath.toLowerCase();
-    if (name.includes(".env") || name.includes("id_rsa") || name.includes("credential") || name.endsWith(".pem") || name.endsWith(".key") || name.endsWith(".keystore") || name.endsWith(".jks")) {
-      envRiskMarkers.push(f.relPath);
-    }
-  });
-  return {
-    packageManagers,
-    frameworks,
-    language,
-    repoType,
-    existingTools,
-    packageScripts,
-    githubWorkflows,
-    envRiskMarkers,
-    aiSignals,
-    filesCount: files.length,
-    ignoredCount
-  };
-}
-function getRecommendation(analysis) {
-  const scores = {
-    "nextjs-saas": 0,
-    "expo-react-native-android": 0,
-    "wordpress-site": 0,
-    "ecommerce-store": 0,
-    "seo-landing-page": 0,
-    "general-app": 0.1
-  };
-  if (analysis.frameworks.includes("Next.js"))
-    scores["nextjs-saas"] += 0.6;
-  if (analysis.frameworks.includes("React"))
-    scores["nextjs-saas"] += 0.2;
-  if (analysis.frameworks.includes("TypeScript"))
-    scores["nextjs-saas"] += 0.1;
-  if (analysis.repoType === "mobile app")
-    scores["expo-react-native-android"] += 0.6;
-  if (analysis.frameworks.includes("Expo") || analysis.frameworks.includes("React Native"))
-    scores["expo-react-native-android"] += 0.3;
-  if (analysis.repoType === "WordPress theme/plugin")
-    scores["wordpress-site"] += 0.6;
-  if (analysis.frameworks.includes("WordPress/PHP"))
-    scores["wordpress-site"] += 0.3;
-  if (analysis.frameworks.includes("Vite") || analysis.frameworks.includes("React"))
-    scores["seo-landing-page"] += 0.3;
-  let recommended = "general-app";
-  let maxScore = 0;
-  Object.keys(scores).forEach((k) => {
-    if (scores[k] > maxScore) {
-      maxScore = scores[k];
-      recommended = k;
-    }
-  });
-  const suggestedAdapters = ["cursor", "claude", "gemini", "vscode", "antigravity"];
-  return {
-    template: recommended,
-    confidence: Math.min(1, maxScore === 0.1 ? 0.5 : maxScore),
-    suggestedAdapters,
-    riskNotes: analysis.envRiskMarkers.length > 0 ? "Workspace contains unignored credentials or key files. Ensure .gitignore covers them." : "None"
-  };
-}
-function handleOnboardAnalyze(options) {
-  console.log(`
-\xF0\u0178\u201D\x8D \x1B[36mAnalyzing Workspace for Onboarding: ${options.target}\x1B[0m`);
-  console.log("==================================================");
-  const analysis = getAnalysis(options.target);
-  console.log(`  Package Manager:       ${analysis.packageManagers.join(", ") || "None"}`);
-  console.log(`  Detected Frameworks:   ${analysis.frameworks.join(", ") || "None"}`);
-  console.log(`  Dominant Language:     ${analysis.language}`);
-  console.log(`  Repository Type:       ${analysis.repoType}`);
-  console.log(`  Existing AI Tools:     ${analysis.existingTools.join(", ") || "None"}`);
-  console.log(`  GitHub Workflows:      ${analysis.githubWorkflows.join(", ") || "None"}`);
-  console.log(`  Security Risk Markers: ${analysis.envRiskMarkers.length} files found`);
-  if (analysis.envRiskMarkers.length > 0) {
-    analysis.envRiskMarkers.forEach((m) => console.log(`    \xE2\u201D\u201D\xE2\u201D\u20AC> ${m} (potential secrets exposure risk)`));
-  }
-  console.log();
-}
-function handleOnboardRecommend(options) {
-  const analysis = getAnalysis(options.target);
-  const rec = getRecommendation(analysis);
-  console.log(`
-\xF0\u0178\u2019\xA1 \x1B[36mOnboarding Recommendation for: ${options.target}\x1B[0m`);
-  console.log("==================================================");
-  console.log(`  Recommended Template:  \x1B[32m${rec.template}\x1B[0m`);
-  console.log(`  Confidence Score:      ${(rec.confidence * 100).toFixed(0)}%`);
-  console.log(`  Suggested Adapters:    ${rec.suggestedAdapters.join(", ")}`);
-  console.log(`  Risk Notes:            ${rec.riskNotes}`);
-  console.log(`  Suggested Next Command:`);
-  console.log(`    npx multimodel-dev-os onboard plan --target .`);
-  console.log();
-}
-function handleOnboardPlan(options) {
-  console.log(`
-\xF0\u0178\u201C\u2039 \x1B[36mGenerating Onboarding Plan: ${options.target}\x1B[0m`);
-  console.log("==================================================");
-  const analysis = getAnalysis(options.target);
-  const rec = getRecommendation(analysis);
-  const planPath = join18(options.target, ".ai", "intelligence", "onboarding.plan.json");
-  const reportPath = join18(options.target, ".ai", "intelligence", "onboarding.report.md");
-  const plannedFiles = [
-    { action: "CREATE", path: "AGENTS.md", source_template: `examples/${rec.template}/AGENTS.md` },
-    { action: "CREATE", path: "MEMORY.md", source_template: `examples/${rec.template}/MEMORY.md` },
-    { action: "CREATE", path: "TASKS.md", source_template: `examples/${rec.template}/TASKS.md` },
-    { action: "CREATE", path: "RUNBOOK.md", source_template: `RUNBOOK.md` },
-    { action: "CREATE", path: ".ai/config.yaml", source_template: `examples/${rec.template}/.ai/config.yaml` }
-  ];
-  const planData = {
-    generated_at: (/* @__PURE__ */ new Date()).toISOString(),
-    target_path: options.target,
-    project_analysis: {
-      package_manager: analysis.packageManagers.join(", ") || "npm",
-      framework: analysis.frameworks.join(", ") || "Generic",
-      language: analysis.language,
-      repo_type: analysis.repoType,
-      has_existing_ai_config: analysis.aiSignals.includes(".ai/config.yaml"),
-      risk_markers: analysis.envRiskMarkers
-    },
-    recommendation: {
-      template: rec.template,
-      confidence: rec.confidence,
-      suggested_adapters: rec.suggestedAdapters,
-      reasons: [`Detected dominant language ${analysis.language}`, `Detected framework ${analysis.frameworks.join(", ")}`]
-    },
-    planned_files: plannedFiles
-  };
-  let reportMd = `# MultiModel Dev OS Onboarding Report
-
-`;
-  reportMd += `**Generated At:** ${planData.generated_at}
-`;
-  reportMd += `**Target Path:** ${planData.target_path}
-
-`;
-  reportMd += `## 1. Project Analysis Details
-`;
-  reportMd += `- **Package Manager:** ${planData.project_analysis.package_manager}
-`;
-  reportMd += `- **Frameworks:** ${planData.project_analysis.framework}
-`;
-  reportMd += `- **Language:** ${planData.project_analysis.language}
-`;
-  reportMd += `- **Repo Type:** ${planData.project_analysis.repo_type}
-
-`;
-  reportMd += `## 2. Onboarding Recommendation
-`;
-  reportMd += `- **Recommended Profile:** **${planData.recommendation.template}** (Confidence: ${(planData.recommendation.confidence * 100).toFixed(0)}%)
-`;
-  reportMd += `- **Suggested Adapters:** ${planData.recommendation.suggested_adapters.join(", ")}
-
-`;
-  reportMd += `## 3. Planned File Operations
-`;
-  reportMd += `| Action | Target Path | Source Template |
-`;
-  reportMd += `|---|---|---|
-`;
-  plannedFiles.forEach((f) => {
-    reportMd += `| ${f.action} | ${f.path} | ${f.source_template} |
-`;
-  });
-  reportMd += `
-`;
-  reportMd += `## 4. Next Step
-`;
-  reportMd += `To safely apply this plan, run:
-`;
-  reportMd += `\`\`\`bash
-`;
-  reportMd += `npx multimodel-dev-os onboard apply --target . --approved
-`;
-  reportMd += `\`\`\`
-`;
-  try {
-    const intelDir = join18(options.target, ".ai", "intelligence");
-    if (!options.dryRun && !existsSync18(intelDir)) {
-      mkdirSync11(intelDir, { recursive: true });
-    }
-    if (!options.dryRun) {
-      writeFileSync13(planPath, JSON.stringify(planData, null, 2), "utf8");
-      writeFileSync13(reportPath, reportMd, "utf8");
-    }
-    console.log(`  [SUCCESS] Onboarding plan generated:`);
-    console.log(`    - Plan JSON:   .ai/intelligence/onboarding.plan.json`);
-    console.log(`    - Report MD:   .ai/intelligence/onboarding.report.md`);
-    console.log(`
-Review the plan and run "npx multimodel-dev-os onboard apply --target . --approved" to execute.
-`);
-  } catch (e) {
-    console.error(`\x1B[31mError writing plan: ${e.message}\x1B[0m`);
-  }
-}
-function handleOnboardApply(options) {
-  if (!options.approved) {
-    console.error("\x1B[31mError: Onboarding apply requires explicit approval flag: --approved\x1B[0m");
-    console.log("Example: node bin/multimodel-dev-os.js onboard apply --approved");
-    process.exit(1);
-  }
-  const planPath = join18(options.target, ".ai", "intelligence", "onboarding.plan.json");
-  if (!existsSync18(planPath)) {
-    console.error('\x1B[31mError: Onboarding plan not found. Run "npx multimodel-dev-os onboard plan" first.\x1B[0m');
-    process.exit(1);
-  }
-  let plan;
-  try {
-    plan = JSON.parse(readFileSync19(planPath, "utf8"));
-  } catch (e) {
-    console.error(`\x1B[31mError reading plan JSON: ${e.message}\x1B[0m`);
-    process.exit(1);
-  }
-  console.log(`
-\xF0\u0178\u0161\u20AC \x1B[36mApplying Onboarding Scaffolding: ${options.target}\x1B[0m`);
-  console.log("==================================================");
-  const template = plan.recommendation.template;
-  options.template = template;
-  const operations = [];
-  plan.planned_files.forEach((f) => {
-    let srcFile;
-    if (f.source_template === "RUNBOOK.md") {
-      srcFile = join18(sourceRoot, "RUNBOOK.md");
-    } else {
-      srcFile = join18(sourceRoot, f.source_template);
-    }
-    operations.push({ dest: f.path, src: srcFile });
-  });
-  const templateDir = join18(sourceRoot, "examples", template);
-  const templateAiDir = join18(templateDir, ".ai");
-  if (existsSync18(templateAiDir) && !options.caveman) {
-    const subdirs = ["context", "skills"];
-    subdirs.forEach((sub) => {
-      const subPath = join18(templateAiDir, sub);
-      if (existsSync18(subPath)) {
-        readdirSync8(subPath).forEach((file) => {
-          operations.push({
-            dest: join18(".ai", sub, file),
-            src: join18(subPath, file)
-          });
-        });
-      }
-    });
-  }
-  const globalAiSubdirs = ["context", "agents", "skills", "prompts", "checks", "templates", "session-logs", "registries", "proposals", "intelligence"];
-  globalAiSubdirs.forEach((sub) => {
-    const globalPath = join18(sourceRoot, ".ai", sub);
-    if (existsSync18(globalPath)) {
-      readdirSync8(globalPath).forEach((file) => {
-        const destRel = join18(".ai", sub, file);
-        if (!operations.some((op) => op.dest === destRel)) {
-          if (options.caveman && (sub === "context" || sub === "skills" || sub === "prompts" || sub === "checks")) {
-            return;
-          }
-          operations.push({
-            dest: destRel,
-            src: join18(globalPath, file)
-          });
-        }
-      });
-    }
-  });
-  let createdCount = 0;
-  let skippedCount = 0;
-  let updatedCount = 0;
-  operations.forEach((op) => {
-    const destPath = join18(options.target, op.dest);
-    const destDir = dirname9(destPath);
-    if (existsSync18(destPath)) {
-      if (options.force) {
-        if (!options.dryRun) {
-          const backupPath = destPath + ".bak";
-          writeFileSync13(backupPath, readFileSync19(destPath));
-          if (!existsSync18(destDir))
-            mkdirSync11(destDir, { recursive: true });
-          writeFileSync13(destPath, readFileSync19(op.src));
-          console.log(`  \x1B[33mOVERWRITE (BACKUP CREATED):\x1B[0m ${op.dest} -> ${op.dest}.bak`);
-        } else {
-          console.log(`  \x1B[36m[DRY-RUN] WOULD OVERWRITE & BACKUP:\x1B[0m ${op.dest}`);
-        }
-        updatedCount++;
-      } else {
-        console.log(`  \x1B[37m[SKIP] Already exists:\x1B[0m ${op.dest}`);
-        skippedCount++;
-      }
-    } else {
-      if (!options.dryRun) {
-        if (!existsSync18(destDir))
-          mkdirSync11(destDir, { recursive: true });
-        writeFileSync13(destPath, readFileSync19(op.src));
-        console.log(`  \x1B[32mCREATE:\x1B[0m ${op.dest}`);
-      } else {
-        console.log(`  \x1B[36m[DRY-RUN] WOULD CREATE:\x1B[0m ${op.dest}`);
-      }
-      createdCount++;
-    }
-  });
-  console.log(`
-\xE2\u0153\u201D Onboarding apply complete! Created: ${createdCount}, Skipped: ${skippedCount}, Overwritten (with backup): ${updatedCount}
-`);
-}
-function handleOnboardStatus(options) {
-  console.log(`
-\xF0\u0178\u201C\u0160 \x1B[36mOnboarding Status Dashboard: ${options.target}\x1B[0m`);
-  console.log("==================================================");
-  const crucialFiles = [
-    "AGENTS.md",
-    "MEMORY.md",
-    "TASKS.md",
-    "RUNBOOK.md",
-    ".ai/config.yaml"
-  ];
-  let presentCount = 0;
-  crucialFiles.forEach((f) => {
-    const fullPath = join18(options.target, f);
-    const exists = existsSync18(fullPath);
-    if (exists)
-      presentCount++;
-    console.log(`  [${exists ? "\xE2\u0153\u201D" : " "}] ${f}`);
-  });
-  const percentage = presentCount / crucialFiles.length * 100;
-  console.log(`
-  Completeness Score: ${percentage.toFixed(0)}%`);
-  if (percentage === 100) {
-    console.log("  Status: \x1B[32mREADY (Onboarding complete)\x1B[0m\n");
-  } else if (percentage > 0) {
-    console.log('  Status: \x1B[33mIN_PROGRESS (Run "onboard apply --approved" to initialize remaining files)\x1B[0m\n');
-  } else {
-    console.log('  Status: \x1B[31mMISSING (Run "onboard plan" and "onboard apply" to onboard this repo)\x1B[0m\n');
-  }
-}
-function getEnabledAdapters(target) {
-  const configPath = join18(target, ".ai", "config.yaml");
-  if (existsSync18(configPath)) {
-    try {
-      const config = parseYaml(readFileSync19(configPath, "utf8")) || {};
-      return config.adapters || {};
-    } catch (e) {
-    }
-  }
-  return {};
-}
-function handleAdapterStatus(options) {
-  console.log(`
-\xF0\u0178\u201D\u0152 \x1B[36mIDE & Agent Adapters Status: ${options.target}\x1B[0m`);
-  console.log("==================================================");
-  const enabled = getEnabledAdapters(options.target);
-  Object.keys(ADAPTERS).forEach((name) => {
-    const a = ADAPTERS[name];
-    const isEnabled = enabled[name] || false;
-    const rulesFile = a.rules_file;
-    const exists = existsSync18(join18(options.target, rulesFile));
-    let statusStr = "\x1B[31mMISSING\x1B[0m";
-    if (exists) {
-      statusStr = "\x1B[32mINSTALLED\x1B[0m";
-    }
-    console.log(`
-\x1B[33m* ${a.name || name}\x1B[0m (${name})`);
-    console.log(`  Config Status: ${isEnabled ? "\x1B[32mENABLED\x1B[0m" : "\x1B[37mDISABLED\x1B[0m"}`);
-    console.log(`  File Status:   ${statusStr} (${rulesFile})`);
-  });
-  console.log();
-}
-function printDiff(srcContent, destContent, filename) {
-  console.log(`
-Diff for ${filename}:`);
-  console.log("--------------------------------------------------");
-  if (srcContent === destContent) {
-    console.log("  Pristine (No differences detected)");
-    return;
-  }
-  const srcLines = srcContent.split(/\r?\n/);
-  const destLines = destContent.split(/\r?\n/);
-  let i = 0;
-  while (i < Math.max(srcLines.length, destLines.length)) {
-    const sLine = srcLines[i];
-    const dLine = destLines[i];
-    if (sLine !== dLine) {
-      if (dLine !== void 0)
-        console.log(`\x1B[31m- ${dLine}\x1B[0m`);
-      if (sLine !== void 0)
-        console.log(`\x1B[32m+ ${sLine}\x1B[0m`);
-    } else {
-      if (sLine !== void 0)
-        console.log(`  ${sLine}`);
-    }
-    i++;
-  }
-}
-function handleAdapterDiff(aName, options) {
-  const adaptersToDiff = [];
-  if (aName === "all") {
-    const enabled = getEnabledAdapters(options.target);
-    Object.keys(ADAPTERS).forEach((name) => {
-      if (enabled[name])
-        adaptersToDiff.push(name);
-    });
-  } else {
-    if (!ADAPTERS[aName]) {
-      console.error(`\x1B[31mError: Adapter '${aName}' not found in registry.\x1B[0m`);
-      process.exit(1);
-    }
-    adaptersToDiff.push(aName);
-  }
-  if (adaptersToDiff.length === 0) {
-    console.log("No enabled adapters found to diff.");
-    return;
-  }
-  adaptersToDiff.forEach((name) => {
-    const a = ADAPTERS[name];
-    const srcFile = join18(sourceRoot, "adapters", name, a.rules_file);
-    const destFile = join18(options.target, a.rules_file);
-    if (!existsSync18(srcFile)) {
-      console.warn(`Warning: Source file for adapter '${name}' is missing at: ${srcFile}`);
-      return;
-    }
-    const srcContent = readFileSync19(srcFile, "utf8");
-    if (existsSync18(destFile)) {
-      const destContent = readFileSync19(destFile, "utf8");
-      printDiff(srcContent, destContent, a.rules_file);
-    } else {
-      console.log(`
-File: ${a.rules_file} \x1B[31m(MISSING)\x1B[0m`);
-      console.log("--------------------------------------------------");
-      srcContent.split(/\r?\n/).forEach((l) => console.log(`\x1B[32m+ ${l}\x1B[0m`));
-    }
-  });
-}
-function handleAdapterSync(aName, options) {
-  if (!options.approved) {
-    console.error("\x1B[31mError: Adapter sync requires explicit approval flag: --approved\x1B[0m");
-    console.log("Example: node bin/multimodel-dev-os.js adapter sync cursor --approved");
-    process.exit(1);
-  }
-  const adaptersToSync = [];
-  if (aName === "all") {
-    const enabled = getEnabledAdapters(options.target);
-    Object.keys(ADAPTERS).forEach((name) => {
-      if (enabled[name])
-        adaptersToSync.push(name);
-    });
-  } else {
-    if (!ADAPTERS[aName]) {
-      console.error(`\x1B[31mError: Adapter '${aName}' not found in registry.\x1B[0m`);
-      process.exit(1);
-    }
-    adaptersToSync.push(aName);
-  }
-  if (adaptersToSync.length === 0) {
-    console.log("No adapters found to sync.");
-    return;
-  }
-  console.log(`
-\xF0\u0178\u201D\u201E \x1B[36mSynchronizing IDE Adapters in: ${options.target}\x1B[0m`);
-  console.log("==================================================");
-  adaptersToSync.forEach((name) => {
-    const a = ADAPTERS[name];
-    const srcFile = join18(sourceRoot, "adapters", name, a.rules_file);
-    const destFile = join18(options.target, a.rules_file);
-    const destDir = dirname9(destFile);
-    if (!existsSync18(srcFile)) {
-      console.warn(`Warning: Source file for adapter '${name}' is missing at: ${srcFile}`);
-      return;
-    }
-    if (existsSync18(destFile)) {
-      if (options.force) {
-        if (!options.dryRun) {
-          const backupPath = destFile + ".bak";
-          writeFileSync13(backupPath, readFileSync19(destFile));
-          if (!existsSync18(destDir))
-            mkdirSync11(destDir, { recursive: true });
-          writeFileSync13(destFile, readFileSync19(srcFile));
-          console.log(`  \x1B[33mOVERWRITE (BACKUP CREATED):\x1B[0m ${a.rules_file} -> ${a.rules_file}.bak`);
-        } else {
-          console.log(`  \x1B[36m[DRY-RUN] WOULD OVERWRITE & BACKUP:\x1B[0m ${a.rules_file}`);
-        }
-      } else {
-        console.log(`  \x1B[37m[SKIP] Already exists:\x1B[0m ${a.rules_file}`);
-      }
-    } else {
-      if (!options.dryRun) {
-        if (!existsSync18(destDir))
-          mkdirSync11(destDir, { recursive: true });
-        writeFileSync13(destFile, readFileSync19(srcFile));
-        console.log(`  \x1B[32mCREATE:\x1B[0m ${a.rules_file}`);
-      } else {
-        console.log(`  \x1B[36m[DRY-RUN] WOULD CREATE:\x1B[0m ${a.rules_file}`);
-      }
-    }
-  });
-  console.log();
-}
-function selectMenu(title, items, callback) {
-  let cursor = 0;
-  const draw = () => {
-    console.clear();
-    console.log(`
-\xF0\u0178\xA7\xA0 \x1B[36m${title}\x1B[0m`);
-    console.log("==================================================");
-    items.forEach((item, index) => {
-      if (index === cursor) {
-        console.log(`  \x1B[32m\xE2\x9D\xAF ${item.name}\x1B[0m`);
-      } else {
-        console.log(`    ${item.name}`);
-      }
-    });
-    console.log("\n\x1B[90m(Use Arrow keys to navigate, Enter to select, Esc/Ctrl+C to exit)\x1B[0m\n");
-  };
-  readline.emitKeypressEvents(process.stdin);
-  if (process.stdin.isTTY) {
-    process.stdin.setRawMode(true);
-  }
-  process.stdin.resume();
-  const onKeypress = (str, key) => {
-    if (!key)
-      return;
-    if (key.name === "up") {
-      cursor = (cursor - 1 + items.length) % items.length;
-      draw();
-    } else if (key.name === "down") {
-      cursor = (cursor + 1) % items.length;
-      draw();
-    } else if (key.name === "return") {
-      cleanup();
-      callback(items[cursor]);
-    } else if (key.name === "escape" || key.ctrl && key.name === "c") {
-      cleanup();
-      process.exit(0);
-    }
-  };
-  const cleanup = () => {
-    process.stdin.removeListener("keypress", onKeypress);
-    if (process.stdin.isTTY) {
-      process.stdin.setRawMode(false);
-    }
-    process.stdin.pause();
-  };
-  process.stdin.on("keypress", onKeypress);
-  draw();
-}
-function handleDashboard(options) {
-  const mainMenu = [
-    { name: "Active Workspace Status", action: "command", command: "status" },
-    { name: "Codebase Scan Analysis", action: "command", command: "scan" },
-    { name: "Onboarding Operations...", action: "submenu", menu: "onboard" },
-    { name: "Adapter Synchronization...", action: "submenu", menu: "adapter" },
-    { name: "Memory & Intelligence...", action: "submenu", menu: "memory" },
-    { name: "Developer Feedback Loops...", action: "submenu", menu: "feedback" },
-    { name: "Workflow Marketplace Catalog...", action: "submenu", menu: "catalog" },
-    { name: "Registry Sources & Cache...", action: "submenu", menu: "registry" },
-    { name: "Quality Gates & Diagnostics...", action: "submenu", menu: "quality" },
-    { name: "Plugins Status Overview", action: "command", command: "plugin status" },
-    { name: "Exit Command Center", action: "exit" }
-  ];
-  const submenus = {
-    onboard: [
-      { name: "\xE2\u2020\x90 Back to Main Menu", action: "back" },
-      { name: "Onboard: Analyze Repository", action: "command", command: "onboard analyze" },
-      { name: "Onboard: Recommendation Summary", action: "command", command: "onboard recommend" },
-      { name: "Onboard: Generate Integration Plan", action: "command", command: "onboard plan" },
-      { name: "Onboard: Apply Configs (Dry Run)", action: "command", command: "onboard apply --dry-run" },
-      { name: "Onboard: View Status Heuristics", action: "command", command: "onboard status" }
-    ],
-    adapter: [
-      { name: "\xE2\u2020\x90 Back to Main Menu", action: "back" },
-      { name: "Adapters: Check Sync Status", action: "command", command: "adapter status" },
-      { name: "Adapters: Sync All rule files (Dry Run)", action: "command", command: "adapter sync all --dry-run" },
-      { name: "Adapters: Diff Cursor rules", action: "command", command: "adapter diff cursor" },
-      { name: "Adapters: Diff Claude rules", action: "command", command: "adapter diff claude" }
-    ],
-    memory: [
-      { name: "\xE2\u2020\x90 Back to Main Menu", action: "back" },
-      { name: "Memory: Build index", action: "command", command: "memory build" },
-      { name: "Memory: Refresh changes", action: "command", command: "memory refresh" },
-      { name: "Memory: Diff index status", action: "command", command: "memory diff" },
-      { name: "Handoff: Build session summary", action: "command", command: "handoff build" },
-      { name: "Handoff: Print summary to terminal", action: "command", command: "handoff show" }
-    ],
-    feedback: [
-      { name: "\xE2\u2020\x90 Back to Main Menu", action: "back" },
-      { name: "Feedback: List developer corrections", action: "command", command: "feedback list" },
-      { name: "Feedback: Summarize to learning rules", action: "command", command: "feedback summarize" },
-      { name: "Proposals: Propose improvement proposal", action: "command", command: "improve propose" },
-      { name: "Proposals: Review active proposals list", action: "command", command: "improve review" }
-    ],
-    catalog: [
-      { name: "\xE2\u2020\x90 Back to Main Menu", action: "back" },
-      { name: "Catalog: List bundled plugins", action: "command", command: "catalog list" },
-      { name: "Catalog: Recommend for current repo", action: "command", command: "catalog recommend" },
-      { name: "Catalog: Show installed catalog status", action: "command", command: "catalog status" }
-    ],
-    quality: [
-      { name: "\xE2\u2020\x90 Back to Main Menu", action: "back" },
-      { name: "Doctor: Run Advisory Diagnostics", action: "command", command: "doctor" },
-      { name: "Validate: Strict Schema Compliance", action: "command", command: "validate" },
-      { name: "Verify: Run Release verification tests", action: "command", command: "verify" }
-    ],
-    registry: [
-      { name: "\xE2\u2020\x90 Back to Main Menu", action: "back" },
-      { name: "Registry: List configured sources", action: "command", command: "registry list" },
-      { name: "Registry: Show sync status", action: "command", command: "registry status" },
-      { name: "Registry: Verify cache integrity", action: "command", command: "registry verify bundled" },
-      { name: "Registry: Show policy status", action: "command", command: "registry status" }
-    ]
-  };
-  if (!process.stdout.isTTY || !process.stdin.isTTY || options.dryRun || options.listActions) {
-    console.log(`
-\xF0\u0178\u201C\u0160 \x1B[36mMultiModel Dev OS Command Center (Headless/CI Preview)\x1B[0m`);
-    console.log(`Target Workspace: \x1B[32m${options.target}\x1B[0m`);
-    console.log("==================================================");
-    const targetFlag = options.target === process.cwd() ? "" : ` --target "${options.target}"`;
-    mainMenu.forEach((item) => {
-      if (item.action === "command") {
-        console.log(`  \x1B[33m\xE2\u20AC\xA2\x1B[0m ${item.name.padEnd(30)} \xE2\u2020\u2019 \x1B[36mnpx multimodel-dev-os ${item.command}${targetFlag}\x1B[0m`);
-      } else if (item.action === "submenu") {
-        console.log(`
-  \x1B[35m[${item.name.replace("...", "")}]\x1B[0m`);
-        submenus[item.menu].forEach((sub) => {
-          if (sub.action === "command") {
-            console.log(`    \xE2\u201D\u201D\xE2\u201D\u20AC ${sub.name.padEnd(35)} \xE2\u2020\u2019 \x1B[36mnpx multimodel-dev-os ${sub.command}${targetFlag}\x1B[0m`);
-          }
-        });
-      }
-    });
-    console.log("\n\x1B[90m(Run with -t or --target to specify another workspace directory)\x1B[0m\n");
-    return;
-  }
-  const runCommandWrapper = (cmdStr) => {
-    console.clear();
-    const targetFlag = options.target === process.cwd() ? "" : ` --target "${options.target}"`;
-    console.log(`
-\x1B[36mRunning Command:\x1B[0m npx multimodel-dev-os ${cmdStr}${targetFlag}`);
-    console.log("--------------------------------------------------\n");
-    try {
-      const cliPath = join18(sourceRoot, "bin", "multimodel-dev-os.js");
-      execSync(`node "${cliPath}" ${cmdStr} --target "${options.target}"`, { stdio: "inherit" });
-    } catch (e) {
-      console.error(`
-\x1B[31mCommand failed with error: ${e.message}\x1B[0m`);
-    }
-    console.log("\n--------------------------------------------------");
-    console.log("Press any key to return to menu...");
-    if (process.stdin.isTTY) {
-      process.stdin.setRawMode(true);
-    }
-    process.stdin.resume();
-    return new Promise((resolve8) => {
-      process.stdin.once("keypress", () => {
-        resolve8();
-      });
-    });
-  };
-  const showMenu = (menuItems, title) => {
-    selectMenu(title, menuItems, async (selected) => {
-      if (selected.action === "exit") {
-        process.exit(0);
-      } else if (selected.action === "back") {
-        showMenu(mainMenu, "MultiModel Dev OS Command Center");
-      } else if (selected.action === "submenu") {
-        showMenu(submenus[selected.menu], selected.name);
-      } else if (selected.action === "command") {
-        await runCommandWrapper(selected.command);
-        showMenu(menuItems, title);
-      }
-    });
-  };
-  showMenu(mainMenu, "MultiModel Dev OS Command Center");
 }

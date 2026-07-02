@@ -7,7 +7,9 @@ import {
   saveSigningKey,
   signPayload,
   verifySignature,
-  getSigningKeyPath
+  getSigningKeyPath,
+  verifyGpgSignature,
+  verifySignatureBlock
 } from '../../src/registry/signing.js';
 
 const tempDir = join(process.cwd(), 'temp-signing-test');
@@ -189,5 +191,73 @@ describe('Registry Signing — verifySignature', () => {
     const sig = signPayload(key, payload);
     const fakeMatchLength = 'e'.repeat(64); // Same 64-char hex length, wrong value
     expect(verifySignature(key, payload, fakeMatchLength)).toBe(false);
+  });
+});
+
+describe('Registry Signing — GPG Signatures', () => {
+  const mockPublicKey = '-----BEGIN PGP PUBLIC KEY BLOCK-----\nmock-key-data\n-----END PGP PUBLIC KEY BLOCK-----';
+  const mockPayload = 'test-payload';
+  const mockSignature = '-----BEGIN PGP SIGNATURE-----\nmock-sig-data\n-----END PGP SIGNATURE-----';
+
+  it('verifies GPG signatures successfully in mock environment', () => {
+    const oldMock = process.env.MMDO_TEST_MOCK_GPG;
+    process.env.MMDO_TEST_MOCK_GPG = 'true';
+    try {
+      const verified = verifyGpgSignature(mockPublicKey, mockPayload, mockSignature);
+      expect(verified).toBe(true);
+    } finally {
+      process.env.MMDO_TEST_MOCK_GPG = oldMock;
+    }
+  });
+
+  it('fails GPG verification in mock mode with invalid signature data', () => {
+    const oldMock = process.env.MMDO_TEST_MOCK_GPG;
+    process.env.MMDO_TEST_MOCK_GPG = 'true';
+    try {
+      expect(verifyGpgSignature(mockPublicKey, mockPayload, 'INVALID_SIG')).toBe(false);
+      expect(verifyGpgSignature('INVALID_KEY', mockPayload, mockSignature)).toBe(false);
+    } finally {
+      process.env.MMDO_TEST_MOCK_GPG = oldMock;
+    }
+  });
+
+  it('verifies via verifySignatureBlock using gpg algorithm in mock mode', () => {
+    const oldMock = process.env.MMDO_TEST_MOCK_GPG;
+    process.env.MMDO_TEST_MOCK_GPG = 'true';
+    try {
+      const manifest = {
+        registry_name: 'enterprise',
+        version: '2.0.0',
+        catalog_hash: 'sha256:123',
+        signature: {
+          algorithm: 'gpg',
+          key_id: 'enterprise-key',
+          signature: mockSignature,
+          signed_fields: ['registry_name', 'version', 'catalog_hash']
+        }
+      };
+
+      const trustedKeys = [
+        {
+          key_id: 'enterprise-key',
+          name: 'Enterprise Inc',
+          algorithm: 'gpg',
+          public_key: mockPublicKey,
+          scopes: ['registry', 'catalog'],
+          status: 'active'
+        }
+      ];
+
+      const res = verifySignatureBlock({
+        manifest,
+        trustedKeys,
+        policy: { allowed_signature_algorithms: ['gpg'] }
+      });
+
+      expect(res.verified).toBe(true);
+      expect(res.status).toBe('verified');
+    } finally {
+      process.env.MMDO_TEST_MOCK_GPG = oldMock;
+    }
   });
 });

@@ -29,7 +29,7 @@ describe('Registry Policy Engine', () => {
     expect(policy.allow_unsigned_remote).toBe(false);
     expect(policy.require_trusted_publisher).toBe(false);
     expect(policy.provenance_required).toBe(true);
-    expect(policy.allowed_signature_algorithms).toEqual(['ed25519', 'hmac-sha256']);
+    expect(policy.allowed_signature_algorithms).toEqual(['ed25519', 'hmac-sha256', 'gpg']);
   });
 
   it('should override default fields with written policy configurations', () => {

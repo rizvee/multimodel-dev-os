@@ -118,7 +118,7 @@ export function addTrustedKey(targetDir, keyEntry, policy) {
     }
   }
 
-  const validAlgorithms = ['ed25519', 'hmac-sha256'];
+  const validAlgorithms = ['ed25519', 'hmac-sha256', 'gpg'];
   if (!validAlgorithms.includes(keyEntry.algorithm)) {
     return { added: false, error: `Unsupported algorithm '${keyEntry.algorithm}'. Allowed: ${validAlgorithms.join(', ')}.` };
   }
@@ -277,4 +277,57 @@ export function fetchRemotePublicKey(url, options = {}) {
     req.on('error', err => reject(new Error(`Request error for '${url}': ${err.message}`)));
     req.end();
   });
+}
+
+/**
+ * Sync trusted keys that have a remote_source_url.
+ * For each key with remote_source_url, fetches the latest public key content.
+ * If the content changed, updates the public key in the trust store.
+ * Returns a list of updated key records.
+ *
+ * @param {string} targetDir   Absolute path to the project root.
+ * @param {Object} [options]
+ * @param {boolean} [options.dryRun] If true, does not write changes to disk.
+ * @param {boolean} [options.allowHttp] Allow HTTP localhost (default false).
+ * @returns {Promise<{ updated: Object[], errors: Object[], checkedCount: number }>}
+ */
+export async function syncRemoteKeys(targetDir, options = {}) {
+  const pol = loadRegistryPolicy(targetDir);
+  const filePath = getTrustStorePath(targetDir, pol);
+  const publishers = loadTrustedKeys(targetDir, pol);
+
+  const updated = [];
+  const errors = [];
+  let checkedCount = 0;
+
+  const newPublishers = [...publishers];
+
+  for (let i = 0; i < newPublishers.length; i++) {
+    const p = newPublishers[i];
+    if (!p.remote_source_url) {
+      continue;
+    }
+
+    checkedCount++;
+    try {
+      const newKey = await fetchRemotePublicKey(p.remote_source_url, { allowHttp: options.allowHttp });
+      if (newKey && newKey !== p.public_key.trim()) {
+        const updatedRecord = {
+          ...p,
+          public_key: newKey,
+          added_at: new Date().toISOString()
+        };
+        newPublishers[i] = updatedRecord;
+        updated.push({ key_id: p.key_id, oldKey: p.public_key, newKey });
+      }
+    } catch (err) {
+      errors.push({ key_id: p.key_id, error: err.message });
+    }
+  }
+
+  if (updated.length > 0 && !options.dryRun) {
+    serializeTrustedKeys(filePath, newPublishers);
+  }
+
+  return { updated, errors, checkedCount };
 }

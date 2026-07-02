@@ -11,8 +11,10 @@
  */
 
 import { generateKeyPairSync, sign, verify, createHmac, timingSafeEqual, randomBytes } from 'crypto';
-import { existsSync, readFileSync, writeFileSync, mkdirSync, chmodSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, chmodSync, rmSync } from 'fs';
 import { join, dirname } from 'path';
+import { execFileSync } from 'child_process';
+import os from 'os';
 
 const SIGNING_KEY_FILENAME = 'registry-signing-key';
 
@@ -255,6 +257,76 @@ export function verifyEd25519Payload(publicKey, payload, signature) {
 }
 
 /**
+ * Verify a GPG/PGP signature of a payload.
+ * Spawns the system `gpg` command to perform the verification.
+ * Supports a test mock mode when process.env.MMDO_TEST_MOCK_GPG === 'true'.
+ *
+ * @param {string} publicKey PGP public key PEM/armored block.
+ * @param {string} payload   Payload that was signed.
+ * @param {string} signature PGP signature armored block.
+ * @returns {boolean}        true if valid, false if invalid or GPG is not installed.
+ */
+export function verifyGpgSignature(publicKey, payload, signature) {
+  if (typeof publicKey !== 'string' || typeof payload !== 'string' || typeof signature !== 'string') {
+    return false;
+  }
+
+  if (process.env.MMDO_TEST_MOCK_GPG === 'true') {
+    if (signature.includes('INVALID') || publicKey.includes('INVALID')) {
+      return false;
+    }
+    return true;
+  }
+
+  // Verify GPG executable exists
+  try {
+    const gpgCmd = process.platform === 'win32' ? 'gpg.exe' : 'gpg';
+    execFileSync(gpgCmd, ['--version'], { stdio: 'ignore' });
+  } catch (err) {
+    throw new Error("GPG command-line utility ('gpg') is not installed or not found on PATH.");
+  }
+
+  const tempHomedir = join(os.tmpdir(), `mmdo-gpg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`);
+  try {
+    mkdirSync(tempHomedir, { recursive: true });
+
+    const keyPath = join(tempHomedir, 'pubkey.asc');
+    const payloadPath = join(tempHomedir, 'payload.txt');
+    const sigPath = join(tempHomedir, 'signature.asc');
+
+    writeFileSync(keyPath, publicKey, 'utf8');
+    writeFileSync(payloadPath, payload, 'utf8');
+    writeFileSync(sigPath, signature, 'utf8');
+
+    // Import public key
+    execFileSync('gpg', [
+      '--homedir', tempHomedir,
+      '--batch',
+      '--yes',
+      '--import', keyPath
+    ], { stdio: 'ignore' });
+
+    // Verify signature
+    execFileSync('gpg', [
+      '--homedir', tempHomedir,
+      '--batch',
+      '--yes',
+      '--verify', sigPath, payloadPath
+    ], { stdio: 'ignore' });
+
+    return true;
+  } catch (_e) {
+    return false;
+  } finally {
+    if (existsSync(tempHomedir)) {
+      try {
+        rmSync(tempHomedir, { recursive: true, force: true });
+      } catch (_e) {}
+    }
+  }
+}
+
+/**
  * Detect the signature algorithm from a signature block object.
  *
  * @param {Object} signatureBlock  The signature block.
@@ -309,7 +381,7 @@ export function verifySignatureBlock({ manifest, trustedKeys, policy = {}, hmacK
 
   let verifiedCount = 0;
   const errors = [];
-  const allowedAlgs = policy.allowed_signature_algorithms || ['ed25519', 'hmac-sha256'];
+  const allowedAlgs = policy.allowed_signature_algorithms || ['ed25519', 'hmac-sha256', 'gpg'];
 
   for (const sigBlock of signatureBlocks) {
     const alg = sigBlock.algorithm;
@@ -370,6 +442,34 @@ export function verifySignatureBlock({ manifest, trustedKeys, policy = {}, hmacK
         }
       } catch (err) {
         errors.push(`Ed25519 signature verification failed: ${err.message}`);
+      }
+    } else if (alg === 'gpg') {
+      const trustedKey = trustedKeys ? trustedKeys.find(k => k.key_id === keyId) : null;
+      if (!trustedKey) {
+        errors.push(`Key ID '${keyId}' not found in trust store.`);
+        continue;
+      }
+
+      if (trustedKey.status !== 'active') {
+        errors.push(`Key ID '${keyId}' is ${trustedKey.status} (must be active).`);
+        continue;
+      }
+
+      const scopes = trustedKey.scopes || [];
+      if (!scopes.includes('registry') && !scopes.includes('catalog')) {
+        errors.push(`Key ID '${keyId}' does not have required scope 'registry' or 'catalog' (scopes: ${scopes.join(', ')}).`);
+        continue;
+      }
+
+      try {
+        const payload = createCanonicalPayload(manifest, signedFields);
+        if (verifyGpgSignature(trustedKey.public_key, payload, signature)) {
+          verifiedCount++;
+        } else {
+          errors.push(`Invalid GPG signature for key_id '${keyId}'.`);
+        }
+      } catch (err) {
+        errors.push(`GPG signature verification failed: ${err.message}`);
       }
     } else {
       errors.push(`Unsupported signature algorithm '${alg}' for key_id '${keyId}'.`);

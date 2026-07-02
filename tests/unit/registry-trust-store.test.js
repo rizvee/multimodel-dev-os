@@ -1,6 +1,22 @@
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import { existsSync, mkdirSync, rmSync, writeFileSync, readFileSync } from 'fs';
 import { join } from 'path';
+import https from 'https';
+
+let mockHttpsRequest = null;
+
+vi.mock('https', async (importOriginal) => {
+  const original = await importOriginal();
+  return {
+    ...original,
+    request: (options, cb) => {
+      if (mockHttpsRequest) {
+        return mockHttpsRequest(options, cb);
+      }
+      return original.request(options, cb);
+    }
+  };
+});
 import {
   loadTrustedKeys,
   getTrustStorePath,
@@ -8,6 +24,7 @@ import {
   addTrustedKey,
   removeTrustedKey,
   fetchRemotePublicKey,
+  syncRemoteKeys,
 } from '../../src/registry/trust-store.js';
 import { verifySignatureBlock } from '../../src/registry/signing.js';
 
@@ -305,5 +322,117 @@ describe('Registry Trust Store — fetchRemotePublicKey (URL validation)', () =>
 
   it('rejects ftp:// protocol', async () => {
     await expect(fetchRemotePublicKey('ftp://example.com/key.pub')).rejects.toThrow(/HTTPS/);
+  });
+});
+
+describe('Registry Trust Store — syncRemoteKeys', () => {
+  const syncDir = join(tempDir, 'sync-test');
+  const syncKeysDir = join(syncDir, '.ai', 'registries');
+  const syncFile = join(syncKeysDir, 'trusted-keys.yaml');
+
+  beforeEach(() => {
+    mkdirSync(syncKeysDir, { recursive: true });
+    if (existsSync(syncFile)) rmSync(syncFile);
+  });
+
+  it('syncs keys that have remote_source_url and updates them if changed', async () => {
+    const originalKey = 'MCowBQYDK2VwAyEA9vWwyE5+fY0dvEzl9S1UcvtoMkOAIDhDCzZAkP+CVNo=';
+    const newKey = 'MCowBQYDK2VwAyEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+
+    const localKeys = [
+      {
+        key_id: 'sync-key',
+        name: 'Sync Publisher',
+        algorithm: 'ed25519',
+        public_key: originalKey,
+        scopes: ['registry'],
+        status: 'active',
+        remote_source_url: 'https://example.com/sync-key.pub'
+      }
+    ];
+    serializeTrustedKeys(syncFile, localKeys);
+
+    const mockRequest = {
+      on: vi.fn().mockReturnThis(),
+      end: vi.fn(),
+    };
+    const mockResponse = {
+      statusCode: 200,
+      setEncoding: vi.fn(),
+      on: (event, cb) => {
+        if (event === 'data') {
+          cb(Buffer.from(newKey));
+        }
+        if (event === 'end') {
+          cb();
+        }
+      }
+    };
+
+    mockHttpsRequest = (options, cb) => {
+      cb(mockResponse);
+      return mockRequest;
+    };
+
+    try {
+      const res = await syncRemoteKeys(syncDir);
+      expect(res.checkedCount).toBe(1);
+      expect(res.updated).toHaveLength(1);
+      expect(res.updated[0].key_id).toBe('sync-key');
+      expect(res.updated[0].oldKey).toBe(originalKey);
+      expect(res.updated[0].newKey).toBe(newKey);
+
+      const loaded = loadTrustedKeys(syncDir);
+      expect(loaded[0].public_key).toBe(newKey);
+    } finally {
+      mockHttpsRequest = null;
+    }
+  });
+
+  it('does not write changes to disk in dryRun mode', async () => {
+    const originalKey = 'MCowBQYDK2VwAyEA9vWwyE5+fY0dvEzl9S1UcvtoMkOAIDhDCzZAkP+CVNo=';
+    const newKey = 'MCowBQYDK2VwAyEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+
+    const localKeys = [
+      {
+        key_id: 'sync-key',
+        name: 'Sync Publisher',
+        algorithm: 'ed25519',
+        public_key: originalKey,
+        scopes: ['registry'],
+        status: 'active',
+        remote_source_url: 'https://example.com/sync-key.pub'
+      }
+    ];
+    serializeTrustedKeys(syncFile, localKeys);
+
+    const mockRequest = {
+      on: vi.fn().mockReturnThis(),
+      end: vi.fn(),
+    };
+    const mockResponse = {
+      statusCode: 200,
+      setEncoding: vi.fn(),
+      on: (event, cb) => {
+        if (event === 'data') cb(Buffer.from(newKey));
+        if (event === 'end') cb();
+      }
+    };
+
+    mockHttpsRequest = (options, cb) => {
+      cb(mockResponse);
+      return mockRequest;
+    };
+
+    try {
+      const res = await syncRemoteKeys(syncDir, { dryRun: true });
+      expect(res.checkedCount).toBe(1);
+      expect(res.updated).toHaveLength(1);
+
+      const loaded = loadTrustedKeys(syncDir);
+      expect(loaded[0].public_key).toBe(originalKey);
+    } finally {
+      mockHttpsRequest = null;
+    }
   });
 });

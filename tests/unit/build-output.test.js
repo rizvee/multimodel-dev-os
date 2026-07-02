@@ -29,7 +29,7 @@ describe('Build Output Verification', () => {
     const hasUnsafeSync = content.includes("mod.get('${targetUrl}'") || (content.includes('execSync(`node -e "') && content.includes('${targetUrl}'));
     expect(hasUnsafeSync).toBe(false);
     
-    expect(content).toContain('execFileSync(process.execPath');
+    expect(content).toMatch(/execFileSync\d*\(process\.execPath/);
   });
 
   it('should be completely fresh and match the source modules', () => {

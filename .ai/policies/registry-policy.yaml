@@ -71,6 +71,7 @@ trusted_keys_file: ".ai/registries/trusted-keys.yaml"
 allowed_signature_algorithms:
   - "ed25519"
   - "hmac-sha256"
+  - "gpg"
 
 # Require signature to be from a trusted publisher in the trust store.
 require_trusted_publisher: false

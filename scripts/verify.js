@@ -682,7 +682,7 @@ try {
   }
   
   const hasUnsafeSync = binContent.includes("mod.get('${targetUrl}'") || (binContent.includes('execSync(`node -e "') && binContent.includes('${targetUrl}'));
-  if (!hasUnsafeSync && binContent.includes('execFileSync(process.execPath')) {
+  if (!hasUnsafeSync && /execFileSync\d*\(process\.execPath/.test(binContent)) {
     console.log(`  ${GREEN}✓${NC} generated bin is free of unsafe URL interpolation and uses execFileSync`);
     pass++;
   } else {
@@ -1383,7 +1383,7 @@ try {
   
   // Check for mod.get('${targetUrl}') or similar interpolation in node -e
   const hasUnsafeSync = cliCode.includes("mod.get('${targetUrl}'") || (cliCode.includes('execSync(`node -e "') && cliCode.includes('${targetUrl}'));
-  const usesExecFileSync = cliCode.includes('execFileSync(process.execPath');
+  const usesExecFileSync = /execFileSync\d*\(process\.execPath/.test(cliCode);
   
   if (!hasUnsafeSync && usesExecFileSync) {
     console.log(`  ${GREEN}✓${NC} fetch helper uses execFileSync and does not use shell-based URL interpolation`);

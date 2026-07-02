@@ -20,7 +20,7 @@ import {
   verifySignatureBlock,
   normalizePublicKey
 } from '../../registry/signing.js';
-import { loadTrustedKeys, addTrustedKey, removeTrustedKey, fetchRemotePublicKey, getTrustStorePath } from '../../registry/trust-store.js';
+import { loadTrustedKeys, addTrustedKey, removeTrustedKey, fetchRemotePublicKey, getTrustStorePath, syncRemoteKeys } from '../../registry/trust-store.js';
 import { createTrustVerdict } from '../../registry/verdict.js';
 import { sourceRoot, version } from '../../core/globals.js';
 
@@ -1047,6 +1047,62 @@ export function handleRegistryTrustRemove(keyId, options) {
   console.log(`\nWarning: Registries signed by this key will no longer verify.`);
   console.log(`  Run 'registry verify <name>' to check affected registries.`);
   console.log(`  Commit .ai/registries/trusted-keys.yaml to propagate the change.\n`);
+}
+
+export async function handleRegistryTrustSync(options) {
+  const projectDir = options.target || process.cwd();
+
+  if (!options.approved) {
+    console.error('\x1b[31mError: Syncing trusted keys requires --approved.\x1b[0m');
+    console.log('To sync remote trusted keys, run:');
+    console.log('  npx multimodel-dev-os registry trust sync --approved');
+    process.exit(1);
+  }
+
+  const dryRun = !!options['dry-run'] || !!options.dryRun;
+  const policy = loadRegistryPolicy(projectDir);
+  const allowHttp = policy.allow_http_localhost || false;
+
+  console.log(`\n🔑 \x1b[36mRegistry Trust Store — Syncing Remote Keys\x1b[0m`);
+  console.log('==================================================');
+  if (dryRun) {
+    console.log('  Mode: Dry Run (No changes will be written to disk)\n');
+  }
+
+  try {
+    const result = await syncRemoteKeys(projectDir, { dryRun, allowHttp });
+    console.log(`  Checked keys: ${result.checkedCount}`);
+    console.log(`  Updated keys: ${result.updated.length}`);
+    console.log(`  Errors:       ${result.errors.length}\n`);
+
+    if (result.updated.length > 0) {
+      console.log('\x1b[32mUpdated Keys:\x1b[0m');
+      result.updated.forEach(u => {
+        console.log(`  * \x1b[33m${u.key_id}\x1b[0m`);
+        console.log(`    Old key preview: ${u.oldKey.trim().slice(0, 40)}...`);
+        console.log(`    New key preview: ${u.newKey.trim().slice(0, 40)}...`);
+      });
+      console.log('');
+    }
+
+    if (result.errors.length > 0) {
+      console.error('\x1b[31mErrors encountered during sync:\x1b[0m');
+      result.errors.forEach(e => {
+        console.error(`  * \x1b[33m${e.key_id}\x1b[0m: ${e.error}`);
+      });
+      console.log('');
+    }
+
+    if (result.updated.length > 0 && !dryRun) {
+      console.log(`\x1b[32m✔ Trust store remote keys synced successfully.\x1b[0m`);
+      console.log(`  Commit ${policy.trusted_keys_file || '.ai/registries/trusted-keys.yaml'} to propagate these key updates.\n`);
+    } else if (result.updated.length === 0) {
+      console.log(`\x1b[32m✔ All remote keys are already up to date.\x1b[0m\n`);
+    }
+  } catch (err) {
+    console.error(`\x1b[31mError: Failed to sync remote keys: ${err.message}\x1b[0m\n`);
+    process.exit(1);
+  }
 }
 
 export function handleRegistryShow(name, options) {

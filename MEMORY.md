@@ -19,6 +19,8 @@
 | 2026-06-20 | Canonical payload via recursive sorting (v3.5.0-prep) | Guarantees stable JSON representations independent of property order. |
 | 2026-06-20 | Structured Verdict Reporting (v3.5.0-prep Sprint 3) | Standardizes verification status output across CLI, lockfile, and audit logs. |
 | 2026-06-20 | Offline E2E Signed Fixtures (v3.5.0-prep Sprint 3) | Validates edge cases without hitting live remote servers. |
+| 2026-07-02 | GPG signature verification (v3.5.0-prep Sprint 4) | Extends policy engine to verify GPG signatures in isolated temp directories |
+| 2026-07-02 | Remote Key Sync subcommand (v3.5.0-prep Sprint 4) | Enables CLI-driven automatic synchronization of remote-sourced trusted public keys |
 
 ## Key Patterns
 
@@ -50,6 +52,12 @@
 ## Session Notes
 
 <!-- Recent session summaries — newest first, keep last 5 -->
+
+### Session: v3.5.0-prep Sprint 4 — Trust Store Remote Key Sync & GPG Signatures
+**Date:** 2026-07-02
+**Agent:** Antigravity
+**Summary:** Implemented remote key synchronization (`registry trust sync` CLI subcommand) and integrated GPG signature verification into the policy and signing engine. Added GPG parsing and system execution wrapper with isolated local homedirs and environment test mocking. Resolved ESM static named import mocking collision in Vitest by introducing global `vi.mock('https')` setup and mocked request/response stubs. Updated build safety verification script to support esbuild variable/named-import renaming (e.g. `execFileSync` to `execFileSync3`). Verified that all 141 tests and 305 verification audit checks pass cleanly.
+**Files changed:** src/registry/signing.js, src/registry/trust-store.js, src/cli/handlers/registry.js, src/cli/main.js, src/cli/help.js, scripts/verify.js, tests/unit/registry-policy.test.js, tests/unit/build-output.test.js, tests/unit/registry-signing.test.js, tests/unit/registry-trust-store.test.js
 
 ### Session: v3.5.0-prep Sprint 3 — Signed Registry E2E Fixtures + Release Readiness
 **Date:** 2026-06-20

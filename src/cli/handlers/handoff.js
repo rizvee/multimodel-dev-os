@@ -1,8 +1,13 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { parseYaml } from '../../core/yaml.js';
+import {
+  scanTarget as defaultScanTarget,
+  detectFrameworkSignals as defaultDetectFrameworkSignals,
+  detectDependencySignals as defaultDetectDependencySignals
+} from '../../core/analysis.js';
 
-export function handleHandoffBuild(options, { scanTarget, detectFrameworkSignals, detectDependencySignals, diffMemory } = {}) {
+export function handleHandoffBuild(options, { scanTarget = defaultScanTarget, detectFrameworkSignals = defaultDetectFrameworkSignals, detectDependencySignals = defaultDetectDependencySignals, diffMemory } = {}) {
   const intelDir = join(options.target, '.ai', 'intelligence');
   if (!existsSync(intelDir)) {
     mkdirSync(intelDir, { recursive: true });
@@ -158,7 +163,7 @@ ${recs}
   }
 }
 
-export function handleHandoffShow(options, { scanTarget, detectFrameworkSignals, detectDependencySignals, diffMemory } = {}) {
+export function handleHandoffShow(options, { scanTarget = defaultScanTarget, detectFrameworkSignals = defaultDetectFrameworkSignals, detectDependencySignals = defaultDetectDependencySignals, diffMemory } = {}) {
   const handoffPath = join(options.target, '.ai', 'intelligence', 'handoff.md');
   if (!existsSync(handoffPath)) {
     console.log('No compiled handoff file exists. Building first...');

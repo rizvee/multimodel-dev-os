@@ -18,7 +18,7 @@ export function showHelp() {
   console.log('  adapter <subcmd>  Manage and sync rule/settings files for IDE adapters (subcmd: status, diff, sync)');
   console.log('  plugin <subcmd>   Manage declarative plugins (subcmd: list, show, validate, install, status)');
   console.log('  catalog <subcmd>  Manage Workflow Marketplace & Plugin Catalog (subcmd: list, search, show, categories, recommend, install, status)');
-  console.log('  registry <subcmd> Manage trusted remote catalog registries (subcmd: list, add, remove, sync, status, verify, show, cache, keygen, lock, trust list/show/verify/add/remove)');
+  console.log('  registry <subcmd> Manage trusted remote catalog registries (subcmd: list, add, remove, sync, status, verify, show, cache, keygen, lock, trust list/show/verify/add/remove/sync)');
   console.log('  verify            Validate structural integrity of an existing project');
   console.log('  templates         List all built-in template profiles with details');
   console.log('  list-templates    Alias for templates command');

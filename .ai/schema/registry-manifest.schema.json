@@ -52,7 +52,7 @@
       "type": ["object", "null"],
       "description": "Cryptographic signature block of the manifest.",
       "properties": {
-        "algorithm": { "type": "string", "enum": ["ed25519", "hmac-sha256"] },
+        "algorithm": { "type": "string", "enum": ["ed25519", "hmac-sha256", "gpg"] },
         "key_id": { "type": "string" },
         "signature": { "type": "string" },
         "signed_fields": {
@@ -69,7 +69,7 @@
       "items": {
         "type": "object",
         "properties": {
-          "algorithm": { "type": "string", "enum": ["ed25519", "hmac-sha256"] },
+          "algorithm": { "type": "string", "enum": ["ed25519", "hmac-sha256", "gpg"] },
           "key_id": { "type": "string" },
           "signature": { "type": "string" },
           "signed_fields": {

@@ -1,8 +1,15 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { hashFile } from '../../core/hashes.js';
+import {
+  scanTarget as defaultScanTarget,
+  detectFrameworkSignals as defaultDetectFrameworkSignals,
+  detectDependencySignals as defaultDetectDependencySignals,
+  detectAiDevOsSignals as defaultDetectAiDevOsSignals,
+  detectRisks as defaultDetectRisks
+} from '../../core/analysis.js';
 
-export function buildMemoryIndex(targetDir, { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks } = {}) {
+export function buildMemoryIndex(targetDir, { scanTarget = defaultScanTarget, detectFrameworkSignals = defaultDetectFrameworkSignals, detectDependencySignals = defaultDetectDependencySignals, detectAiDevOsSignals = defaultDetectAiDevOsSignals, detectRisks = defaultDetectRisks } = {}) {
   const { files, ignoredCount } = scanTarget(targetDir);
   const framework_signals = detectFrameworkSignals(files, targetDir);
   const dependency_signals = detectDependencySignals(files, targetDir);
@@ -89,7 +96,7 @@ export function writeMemoryFiles(targetDir, index) {
   writeFileSync(summaryMdPath, md, 'utf8');
 }
 
-export function diffMemory(targetDir, { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks } = {}) {
+export function diffMemory(targetDir, { scanTarget = defaultScanTarget, detectFrameworkSignals = defaultDetectFrameworkSignals, detectDependencySignals = defaultDetectDependencySignals, detectAiDevOsSignals = defaultDetectAiDevOsSignals, detectRisks = defaultDetectRisks } = {}) {
   const hashJsonPath = join(targetDir, '.ai', 'intelligence', 'memory.hash.json');
   if (!existsSync(hashJsonPath)) {
     return null;
@@ -131,7 +138,7 @@ export function diffMemory(targetDir, { scanTarget, detectFrameworkSignals, dete
   return { added, removed, changed, unchangedCount, currentScan };
 }
 
-export function handleMemoryBuild(options, { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks } = {}) {
+export function handleMemoryBuild(options, { scanTarget = defaultScanTarget, detectFrameworkSignals = defaultDetectFrameworkSignals, detectDependencySignals = defaultDetectDependencySignals, detectAiDevOsSignals = defaultDetectAiDevOsSignals, detectRisks = defaultDetectRisks } = {}) {
   console.log(`\n🧠 \x1b[36mBuilding Codebase Memory in: ${options.target}\x1b[0m`);
   console.log('==================================================');
   
@@ -147,7 +154,7 @@ export function handleMemoryBuild(options, { scanTarget, detectFrameworkSignals,
   console.log();
 }
 
-export function handleMemoryRefresh(options, { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks } = {}) {
+export function handleMemoryRefresh(options, { scanTarget = defaultScanTarget, detectFrameworkSignals = defaultDetectFrameworkSignals, detectDependencySignals = defaultDetectDependencySignals, detectAiDevOsSignals = defaultDetectAiDevOsSignals, detectRisks = defaultDetectRisks } = {}) {
   console.log(`\n🧠 \x1b[36mRefreshing Codebase Memory in: ${options.target}\x1b[0m`);
   console.log('==================================================');
   
@@ -171,7 +178,7 @@ export function handleMemoryRefresh(options, { scanTarget, detectFrameworkSignal
   console.log();
 }
 
-export function handleMemoryDiff(options, { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks } = {}) {
+export function handleMemoryDiff(options, { scanTarget = defaultScanTarget, detectFrameworkSignals = defaultDetectFrameworkSignals, detectDependencySignals = defaultDetectDependencySignals, detectAiDevOsSignals = defaultDetectAiDevOsSignals, detectRisks = defaultDetectRisks } = {}) {
   console.log(`\n🧠 \x1b[36mDiffing Codebase State against Memory in: ${options.target}\x1b[0m`);
   console.log('==================================================');
   

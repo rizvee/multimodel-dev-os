@@ -2,6 +2,14 @@ import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { parseYaml } from '../../core/yaml.js';
 import { sourceRoot } from '../../core/globals.js';
+import {
+  scanTarget as defaultScanTarget,
+  detectFrameworkSignals as defaultDetectFrameworkSignals,
+  detectDependencySignals as defaultDetectDependencySignals,
+  detectAiDevOsSignals as defaultDetectAiDevOsSignals,
+  detectRisks as defaultDetectRisks,
+  getAnalysis as defaultGetAnalysis
+} from '../../core/analysis.js';
 import { handleScan, handleDoctor, handleVerify } from './inspection.js';
 import { handleMemoryDiff, handleMemoryRefresh, handleMemoryBuild } from './memory.js';
 import { handleFeedbackList, handleFeedbackSummarize } from './feedback.js';
@@ -124,7 +132,7 @@ export function handleWorkflowPlan(wName, options) {
   }
 }
 
-export function handleWorkflowRun(wName, options, { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks, getAnalysis, boundDiffMemory } = {}) {
+export function handleWorkflowRun(wName, options, { scanTarget = defaultScanTarget, detectFrameworkSignals = defaultDetectFrameworkSignals, detectDependencySignals = defaultDetectDependencySignals, detectAiDevOsSignals = defaultDetectAiDevOsSignals, detectRisks = defaultDetectRisks, getAnalysis = defaultGetAnalysis, boundDiffMemory } = {}) {
   const { workflowsPath, usingFallback } = getWorkflowsPath(options.target);
   if (!existsSync(workflowsPath)) {
     console.log('No workflows registry found.');

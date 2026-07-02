@@ -2,6 +2,14 @@ import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, mkdirSy
 import { join, dirname, relative, resolve, basename } from 'path';
 import { sourceRoot, version, loadTemplates, loadAdapters } from '../../core/globals.js';
 import { parseYaml } from '../../core/yaml.js';
+import {
+  scanTarget as defaultScanTarget,
+  detectFrameworkSignals as defaultDetectFrameworkSignals,
+  detectDependencySignals as defaultDetectDependencySignals,
+  detectAiDevOsSignals as defaultDetectAiDevOsSignals,
+  detectRisks as defaultDetectRisks,
+  getAnalysis as defaultGetAnalysis
+} from '../../core/analysis.js';
 
 /**
  * Strict verification of crucial context files presence.
@@ -67,7 +75,7 @@ export function handleVerify(options) {
  * @param {object} options 
  * @param {object} dependencies 
  */
-export function handleDoctor(options, { scanTarget, detectDependencySignals, getAnalysis, diffMemory } = {}) {
+export function handleDoctor(options, { scanTarget = defaultScanTarget, detectDependencySignals = defaultDetectDependencySignals, getAnalysis = defaultGetAnalysis, diffMemory } = {}) {
   if (options.tokens) {
     handleDoctorTokens(options);
     return;
@@ -650,7 +658,7 @@ export function handleDoctorRelease(options) {
   }
 }
 
-export function handleScan(options, { scanTarget, detectFrameworkSignals, detectDependencySignals, detectAiDevOsSignals, detectRisks } = {}) {
+export function handleScan(options, { scanTarget = defaultScanTarget, detectFrameworkSignals = defaultDetectFrameworkSignals, detectDependencySignals = defaultDetectDependencySignals, detectAiDevOsSignals = defaultDetectAiDevOsSignals, detectRisks = defaultDetectRisks } = {}) {
   console.log(`\n🔍 \x1b[36mCodebase Scan target: ${options.target}\x1b[0m`);
   console.log('==================================================');
   
@@ -687,7 +695,7 @@ export function handleScan(options, { scanTarget, detectFrameworkSignals, detect
   console.log();
 }
 
-export function handleStatus(options, { scanTarget, detectFrameworkSignals, detectDependencySignals, diffMemory } = {}) {
+export function handleStatus(options, { scanTarget = defaultScanTarget, detectFrameworkSignals = defaultDetectFrameworkSignals, detectDependencySignals = defaultDetectDependencySignals, diffMemory } = {}) {
   console.log(`\n📊 \x1b[36mRepository Intelligence Status: ${options.target}\x1b[0m`);
   console.log('==================================================');
 
@@ -920,7 +928,7 @@ export function handleDoctorIntelligence(options, { diffMemory } = {}) {
   }
 }
 
-export function handleDoctorOnboarding(options, { scanTarget, detectDependencySignals } = {}) {
+export function handleDoctorOnboarding(options, { scanTarget = defaultScanTarget, detectDependencySignals = defaultDetectDependencySignals } = {}) {
   console.log(`\n🩺 \x1b[36mRunning advisory onboarding doctor checkup in: ${options.target}\x1b[0m\n`);
 
   let warnings = 0;

@@ -22,7 +22,7 @@ export function loadRegistryPolicy(targetDir) {
     allow_unsigned_bundled: true,
     allow_unsigned_remote: false,
     trusted_keys_file: '.ai/registries/trusted-keys.yaml',
-    allowed_signature_algorithms: ['ed25519', 'hmac-sha256'],
+    allowed_signature_algorithms: ['ed25519', 'hmac-sha256', 'gpg'],
     require_trusted_publisher: false,
     provenance_required: true
   };
