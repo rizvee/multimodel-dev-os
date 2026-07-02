@@ -53,6 +53,12 @@
 
 <!-- Recent session summaries — newest first, keep last 5 -->
 
+### Session: Sprint B Phase 6 — final CLI Decomposition & Architecture Hardening (Sprint C & D)
+**Date:** 2026-07-02
+**Agent:** Antigravity
+**Summary:** Decomposed the remaining large handler monoliths: registry.js (1,336 LOC) and inspection.js (998 LOC). Extracted their commands into modular handlers (registry/crud.js, registry/sync.js, registry/signing.js, registry/trust.js, inspection/verify.js, inspection/doctor.js, inspection/validate.js, inspection/scan.js). Refactored original handlers into clean re-export barrel files to maintain 100% backward compatibility. Verified build freshness and ran full test/verification suites (141 tests, 305 checks passed).
+**Files changed:** src/cli/handlers/registry.js, src/cli/handlers/inspection.js, src/cli/handlers/registry/crud.js, src/cli/handlers/registry/sync.js, src/cli/handlers/registry/signing.js, src/cli/handlers/registry/trust.js, src/cli/handlers/inspection/verify.js, src/cli/handlers/inspection/doctor.js, src/cli/handlers/inspection/validate.js, src/cli/handlers/inspection/scan.js
+
 ### Session: v3.5.0-prep Sprint 4 — Trust Store Remote Key Sync & GPG Signatures
 **Date:** 2026-07-02
 **Agent:** Antigravity
