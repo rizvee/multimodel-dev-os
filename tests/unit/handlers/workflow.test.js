@@ -1,0 +1,136 @@
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
+import { existsSync, mkdirSync, writeFileSync, rmSync } from 'fs';
+import { join } from 'path';
+
+const tempDir = join(process.cwd(), 'temp-workflow-handler-test');
+
+vi.mock('../../../src/core/globals.js', async (importOriginal) => {
+  const original = await importOriginal();
+  const path = require('path');
+  return {
+    ...original,
+    sourceRoot: path.join(process.cwd(), 'temp-workflow-handler-test')
+  };
+});
+
+import {
+  handleWorkflowList,
+  handleWorkflowShow,
+  handleWorkflowPlan,
+  handleWorkflowRun
+} from '../../../src/cli/handlers/workflow.js';
+
+describe('Workflow Handlers Suite', () => {
+  const originalExit = process.exit;
+  const originalLog = console.log;
+  const originalError = console.error;
+  const originalWarn = console.warn;
+
+  let logOutput = [];
+  let errorOutput = [];
+  let warnOutput = [];
+  let exitCode = null;
+
+  beforeAll(() => {
+    if (existsSync(tempDir)) {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+    mkdirSync(tempDir, { recursive: true });
+
+    mkdirSync(join(tempDir, '.ai', 'registries'), { recursive: true });
+
+    // Write a mock workflows.yaml
+    writeFileSync(join(tempDir, '.ai', 'registries', 'workflows.yaml'), `
+workflows:
+  test-workflow:
+    name: "Test Workflow"
+    description: "A workflow for testing"
+    risk_level: "low"
+    steps:
+      - name: "Scan target"
+        command: "scan"
+      - name: "Run doctor"
+        command: "doctor"
+      - name: "Run manual command"
+        command: "custom-cmd"
+        expected_output: "something"
+`, 'utf8');
+  });
+
+  afterAll(() => {
+    if (existsSync(tempDir)) {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  beforeEach(() => {
+    logOutput = [];
+    errorOutput = [];
+    warnOutput = [];
+    exitCode = null;
+
+    console.log = (...args) => { logOutput.push(args.join(' ')); };
+    console.error = (...args) => { errorOutput.push(args.join(' ')); };
+    console.warn = (...args) => { warnOutput.push(args.join(' ')); };
+    process.exit = (code) => {
+      exitCode = code;
+      throw new Error(`process.exit: ${code}`);
+    };
+  });
+
+  afterEach(() => {
+    console.log = originalLog;
+    console.error = originalError;
+    console.warn = originalWarn;
+    process.exit = originalExit;
+  });
+
+  it('handleWorkflowList should print registered workflows', () => {
+    handleWorkflowList({ target: tempDir });
+    const out = logOutput.join('\n');
+    expect(out).toContain('Registered Workflows');
+    expect(out).toContain('Test Workflow');
+  });
+
+  it('handleWorkflowShow should display workflow details', () => {
+    handleWorkflowShow('test-workflow', { target: tempDir });
+    const out = logOutput.join('\n');
+    expect(out).toContain('Workflow Spec: Test Workflow');
+    expect(out).toContain('Scan target');
+  });
+
+  it('handleWorkflowShow should exit 1 if workflow not found', () => {
+    try {
+      handleWorkflowShow('unknown-workflow', { target: tempDir });
+    } catch (e) {
+      expect(e.message).toContain('process.exit: 1');
+    }
+    expect(exitCode).toBe(1);
+  });
+
+  it('handleWorkflowPlan should display execution plan dry-run', () => {
+    handleWorkflowPlan('test-workflow', { target: tempDir });
+    const out = logOutput.join('\n');
+    expect(out).toContain('Execution Plan for Workflow: Test Workflow');
+    expect(out).toContain('DRY-RUN/PLAN ONLY');
+  });
+
+  it('handleWorkflowRun should execute workflow steps', () => {
+    const mockScan = vi.fn();
+    const mockDoctor = vi.fn();
+    const mockVerify = vi.fn();
+
+    // Mock internal sub-handlers by overriding in dependencies injection
+    // Wait, let's pass mock functions in options or dependencies injection if supported by handleWorkflowRun
+    // Let's check handleWorkflowRun signature:
+    // handleWorkflowRun(wName, options, { scanTarget, detectFrameworkSignals, ... } = {})
+    // Wait, the steps themselves invoke handleScan, handleDoctor, handleVerify.
+    // Let's just run it, which runs the real ones on tempDir.
+    handleWorkflowRun('test-workflow', { target: tempDir });
+    const out = logOutput.join('\n');
+    expect(out).toContain('Running Workflow: Test Workflow');
+    expect(out).toContain('[Step 1/3] Running: Scan target');
+    expect(out).toContain('[Step 2/3] Running: Run doctor');
+    expect(out).toContain('MANUAL ACTION NEEDED'); // for custom-cmd
+  });
+});
