@@ -30,8 +30,8 @@ The timeline maps the progress from a fresh install to automated pull request ve
 ### Day 2: Fill Project Memory (Core Workspace Contracts)
 - **Objective:** Author the central single source of truth files.
 - **Tasks:**
-  1. Edit [AGENTS.md](file:///f:/multimodel-dev-os/AGENTS.md) — detail your project overview, technology stack, build commands, and strict directory boundaries (`no-touch` blocks).
-  2. Edit [MEMORY.md](file:///f:/multimodel-dev-os/MEMORY.md) — log architectural decisions, third-party credentials rules, and project milestones.
+  1. Edit [AGENTS.md](../AGENTS.md) — detail your project overview, technology stack, build commands, and strict directory boundaries (`no-touch` blocks).
+  2. Edit [MEMORY.md](../MEMORY.md) — log architectural decisions, third-party credentials rules, and project milestones.
   3. Verify file placement is correct inside the root folder.
 
 ---
@@ -39,9 +39,9 @@ The timeline maps the progress from a fresh install to automated pull request ve
 ### Day 3: Configure Skills & Checks (Custom Prompt Packs)
 - **Objective:** Assemble reusable instructions for common development routines.
 - **Tasks:**
-  1. Author specific command workflows inside [.ai/skills/](file:///f:/multimodel-dev-os/.ai/skills/) (e.g. database setup scripts, feature-specific build guidelines).
-  2. Define validation constraints in [.ai/checks/](file:///f:/multimodel-dev-os/.ai/checks/) (e.g. regression checks, test coverage parameters).
-  3. Edit [.ai/prompts/](file:///f:/multimodel-dev-os/.ai/prompts/) to establish output formatting expectations.
+  1. Author specific command workflows inside [.ai/skills/](../.ai/skills/) (e.g. database setup scripts, feature-specific build guidelines).
+  2. Define validation constraints in [.ai/checks/](../.ai/checks/) (e.g. regression checks, test coverage parameters).
+  3. Edit [.ai/prompts/](../.ai/prompts/) to establish output formatting expectations.
 
 ---
 

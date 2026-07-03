@@ -48,7 +48,7 @@ Your workspace now has a **single source of truth** that every AI coding tool re
 | 🧠 | **Intelligence Engine** | Hash-compressed memory, feedback learning, self-improvement proposals with HITL safety gates |
 | 📁 | **Repo Onboarding** | Analyze existing projects, recommend templates, and bootstrap configs without breaking anything |
 | 🔧 | **Zero Dependencies** | Pure Node.js CLI — no runtime, no build step, no package manager lock-in |
-| 🛡️ | **248+ Quality Gates** | Built-in `validate`, `doctor`, and `verify` commands with strict structural assertions |
+| 🛡️ | **289 Quality Gates** | Built-in `validate`, `doctor`, and `verify` commands with strict structural assertions |
 
 ---
 
@@ -134,11 +134,12 @@ npx multimodel-dev-os@latest handoff build
 
 ---
 
-## What's New in v3.0
+## What's New in v3.5
 
-- 🛡️ **Trusted Remote Registries & Governance** — Manage and synchronize remote catalog indexes safely via `registry` command suite.
-- 🎛️ **Policy Engine** — Configurable safety rules whitelisting destination directories, allowed extensions, and blocking sensitive file paths.
-- 🔒 **Zero Trust Integrity Chain** — SHA256 checksum verification for all downloaded remote catalog assets.
+- 🔑 **Ed25519 Registry Signatures** — Sign and verify remote catalog manifests with asymmetric keypairs via `registry keygen` and `registry verify`.
+- 🛡️ **Trusted Key Store** — Manage publisher public keys with scope, status, and date constraints via `registry trust list/show`.
+- 📋 **Provenance Lockfile** — Tamper-evident `.ai/registry-lock.json` records every sync with hash + signature audit trail.
+- 🔬 **Verification Engine Decomposed** — `scripts/verify/` is now a modular engine with isolated, independently testable sub-modules.
 
 **[Full Changelog →](CHANGELOG.md)**
 

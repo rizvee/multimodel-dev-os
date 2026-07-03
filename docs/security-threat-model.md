@@ -10,7 +10,7 @@ This document outlines the security architecture, threat model using the STRIDE 
 - **Description**: An attacker compromises the remote host or storage bucket containing the registry manifest file (`manifest.json`) and attempts to alter its contents.
 - **Mitigation**: 
   - Every sync operation retrieves the manifest. 
-  - The client verifies the manifest's cryptographic signature against the local trust store ([`trusted-keys.yaml`](file:///.ai/registries/trusted-keys.yaml)). 
+  - The client verifies the manifest's cryptographic signature against the local trust store ([`trusted-keys.yaml`](../.ai/registries/trusted-keys.yaml)). 
   - If the manifest's contents are modified by an attacker, the signature verification check fails, halting verification and refusing cache sync.
 
 ### Threat: Attacker Modifies Catalog Contents
@@ -46,7 +46,7 @@ This document outlines the security architecture, threat model using the STRIDE 
 ### Threat: Stale/Replay Registry Data
 - **Description**: An attacker serves a valid, signed registry manifest from the past (e.g. version 1.0.0 containing an older, vulnerable plugin) to roll back updates.
 - **Mitigation**: 
-  - The local lockfile ([`registry-lock.json`](file:///.ai/registry-lock.json)) records the last synchronized manifest hash, version, and sync timestamp. 
+  - The local lockfile (`` `registry-lock.json` ``) records the last synchronized manifest hash, version, and sync timestamp. 
   - Replays or attempts to downgrade manifest versions can be detected via local history comparison.
 
 ### Threat: Unknown/Revoked Signing Keys

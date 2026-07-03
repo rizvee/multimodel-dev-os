@@ -7,7 +7,7 @@ This ensures that agentic coding workflows are future-proof, allowing developers
 ---
 
 ## Central Registry File
-The core system registry resides in [.ai/models/registry.yaml](file:///F:/multimodel-dev-os/.ai/models/registry.yaml):
+The core system registry resides in [.ai/models/registry.yaml](../.ai/models/registry.yaml):
 
 ```yaml
 models:
@@ -46,7 +46,7 @@ models:
 
 | Property | Type | Description |
 | :--- | :--- | :--- |
-| `provider` | String | Matches identifier in [providers.yaml](file:///F:/multimodel-dev-os/.ai/models/providers.yaml). |
+| `provider` | String | Matches identifier in [providers.yaml](../.ai/models/providers.yaml). |
 | `alias` | String | Common developer name or shortcut (e.g. `gpt-4o`). |
 | `official_id` | String | Precise API endpoint identifier string. |
 | `context_window` | Integer | Maximum token capacity of the model. |

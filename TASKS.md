@@ -7,11 +7,20 @@
 
 <!-- Active work items — agents pick from here -->
 
-- [ ] Sprint 5 Planning — Next release roadmap
+- [x] Sprint G — Developer Experience + Documentation Hardening
+  - [x] Full documentation audit (README, docs/, examples/, MEMORY, TASKS, CHANGELOG)
+  - [x] Fix all broken internal doc links
+  - [x] Eliminate stale version references in README
+  - [x] Add `bugs` and `engines` fields to package.json
+  - [x] Create missing `.ai/prompts/compress-context.md`
+  - [x] Update CHANGELOG with Sprint F and Sprint G entries
+  - [x] Validate: npm run docs:build, npm run verify, npm test
 
 ## Backlog
 
 <!-- Upcoming work — not yet started -->
+
+- [ ] Sprint H Planning — Next release roadmap
 
 ## In Review
 

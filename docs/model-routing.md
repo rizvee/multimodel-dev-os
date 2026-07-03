@@ -5,7 +5,7 @@ To optimize context budgets and API costs, MultiModel Dev OS separates agent rol
 ---
 
 ## Central Routing Configuration
-Routing policies and presets reside in [.ai/models/routing-presets.yaml](file:///F:/multimodel-dev-os/.ai/models/routing-presets.yaml):
+Routing policies and presets reside in [.ai/models/routing-presets.yaml](../.ai/models/routing-presets.yaml):
 
 ```yaml
 presets:

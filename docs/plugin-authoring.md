@@ -6,7 +6,7 @@ MultiModel Dev OS declarative plugins allow you to share templates, rules, custo
 
 ## Plugin Manifest Schema
 
-A plugin is defined by a single YAML or JSON file. The manifest schema structure is enforced by [.ai/schema/plugin.schema.json](file:///f:/multimodel-dev-os/.ai/schema/plugin.schema.json).
+A plugin is defined by a single YAML or JSON file. The manifest schema structure is enforced by [.ai/schema/plugin.schema.json](../.ai/schema/plugin.schema.json).
 
 ### Required Fields
 

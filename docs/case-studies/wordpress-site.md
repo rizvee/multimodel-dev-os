@@ -17,7 +17,7 @@ When developing themes and plugins inside a WordPress directory, coding assistan
 ---
 
 ## 3. MultiModel Dev OS Setup
-The agency defined boundaries inside [AGENTS.md](file:///c:/Users/ADMIN/OneDrive/Desktop/multimodel-dev-os/AGENTS.md):
+The agency defined boundaries inside [AGENTS.md](../../AGENTS.md):
 - Explicit `no-touch` paths listed `/wp-admin/`, `/wp-includes/`, and `wp-config.php`.
 - Centralized custom routines inside `.ai/skills/plugin-boilerplate.md` to guide quick plugin scaffolds.
 - The advisory checkup `doctor` warned developers if local build caches compiled inside theme assets.

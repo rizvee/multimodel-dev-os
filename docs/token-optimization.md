@@ -12,7 +12,7 @@ In agentic coding workflows, token overheads are the single largest source of AP
 ---
 
 ## 2. Context Budget Auditing
-* Define strict context bounds inside [.ai/context/context-budget.md](file:///F:/multimodel-dev-os/.ai/context/context-budget.md).
+* Define strict context bounds inside [.ai/context/context-budget.md](../.ai/context/context-budget.md).
 * **CLI Command**: `node bin/multimodel-dev-os.js doctor --tokens`
   * Checks if build outputs or caches (`node_modules/`, `dist/`, `.next/`, `build/`) are missing from `.gitignore` or are being exposed to LLM scan scopes.
 
@@ -24,4 +24,4 @@ In agentic coding workflows, token overheads are the single largest source of AP
 Use `TASKS.md` exclusively for active sprint tasks. Move completed or historical backlogs to archive directories or logs.
 
 ### Model Handoff Compression
-When switching from reasoning models to quick-fixing models, use [.ai/prompts/compress-context.md](file:///F:/multimodel-dev-os/.ai/prompts/compress-context.md) to distill findings into high-density prompts.
+When switching from reasoning models to quick-fixing models, use [.ai/prompts/compress-context.md](../.ai/prompts/compress-context.md) to distill findings into high-density prompts.

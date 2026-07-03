@@ -1,6 +1,6 @@
 # Production Mobile Android Setup (Expo + React Native)
 
-MultiModel Dev OS v1.2.0 adds a dedicated production-ready template for mobile Android clients under [examples/expo-react-native-android/](file:///F:/multimodel-dev-os/examples/expo-react-native-android/).
+MultiModel Dev OS v1.2.0 adds a dedicated production-ready template for mobile Android clients under [examples/expo-react-native-android/](../examples/expo-react-native-android/).
 
 This guide describes how to customize and deploy this template using Expo EAS Build pipelines.
 
@@ -69,7 +69,7 @@ EAS credentials errors usually occur when the `projectId` or `owner` in `app.con
 3. Generate a project ID on your Expo dashboard and update the `projectId` placeholder in `app.config.ts`.
 
 ### Q: How do I test the API client's retry mechanism locally?
-You can toggle offline mock responses by setting `useMockData: true` inside [api-client.ts](file:///f:/multimodel-dev-os/examples/expo-react-native-android/src/services/api-client.ts) constructor, or you can temporarily disconnect your development server to watch the console log warning attempts:
+You can toggle offline mock responses by setting `useMockData: true` inside [api-client.ts](../examples/expo-react-native-android/src/services/api-client.ts) constructor, or you can temporarily disconnect your development server to watch the console log warning attempts:
 `[ApiClient] Attempt 1 failed: fetch failed. Retrying...`
 The client will automatically retry up to 3 times before returning a `Max retries exceeded` error.
 

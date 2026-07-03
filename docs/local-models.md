@@ -5,7 +5,7 @@ MultiModel Dev OS supports offline development workflows utilizing open-weight m
 ---
 
 ## Local Models Configuration
-Local model bindings are defined in [.ai/models/local-models.yaml](file:///F:/multimodel-dev-os/.ai/models/local-models.yaml):
+Local model bindings are defined in [.ai/models/local-models.yaml](../.ai/models/local-models.yaml):
 
 ```yaml
 local_engines:

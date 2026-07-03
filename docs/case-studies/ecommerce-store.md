@@ -17,7 +17,7 @@ When building checkout systems, coding assistants frequently drift on webhook lo
 ---
 
 ## 3. MultiModel Dev OS Setup
-- The team configured checkout specifications inside [.ai/context/architecture.md](file:///c:/Users/ADMIN/OneDrive/Desktop/multimodel-dev-os/.ai/context/architecture.md).
+- The team configured checkout specifications inside [.ai/context/architecture.md](../../.ai/context/architecture.md).
 - Reusable webhook verifications were detailed inside `.ai/skills/webhook-handler.md`.
 - Strict pre-implementation checks were enforced using standard pre-commit scripts.
 

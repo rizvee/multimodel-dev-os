@@ -5,7 +5,7 @@ MultiModel Dev OS acts as an interoperability layer across modern developer agen
 ---
 
 ## Agent Registry Mapping
-Compatible configurations and destination files are detailed in [.ai/adapters/registry.yaml](file:///F:/multimodel-dev-os/.ai/adapters/registry.yaml):
+Compatible configurations and destination files are detailed in [.ai/adapters/registry.yaml](../.ai/adapters/registry.yaml):
 
 ```yaml
 adapters:

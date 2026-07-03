@@ -17,7 +17,7 @@ Developers frequently switch between terminal assistants (Claude Code) to run bu
 ---
 
 ## 3. MultiModel Dev OS Setup
-- The team deployed standard session logs under [.ai/session-logs/](file:///c:/Users/ADMIN/OneDrive/Desktop/multimodel-dev-os/.ai/session-logs/).
+- The team deployed standard session logs under [.ai/session-logs/](../../.ai/session-logs/).
 - Handoff checklists were configured inside `.ai/prompts/handoff-to-next-model.md`.
 - Structured summaries mapped exact code diffs and validation logs.
 

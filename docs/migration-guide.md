@@ -14,7 +14,7 @@ The `v0.5` release introduced the pure-Node local CLI and template scaffolding d
    mkdir -p .ai/context .ai/skills .ai/session-logs
    ```
 2. **Move Custom Rules:** Scrape old system prompt snippets from `.cursorrules` and modularize them into isolated files inside `.ai/context/` (e.g. `project-brief.md`, `architecture.md`).
-3. **Configure Adapters Settings:** Create [.ai/config.yaml](file:///c:/Users/ADMIN/OneDrive/Desktop/multimodel-dev-os/.ai/config.yaml) and configure adapter mappings:
+3. **Configure Adapters Settings:** Create [.ai/config.yaml](../.ai/config.yaml) and configure adapter mappings:
    ```yaml
    version: "0.5.0"
    adapters:
@@ -30,7 +30,7 @@ The `v0.8` release focused on cost/context optimizations, adding the 12 playbook
 
 ### Upgrade Steps:
 1. **Enable Caveman Mode:** Set up Caveman minimal-token files inside `.ai/templates/` to allow rapid chat turns under tight budgets.
-2. **Deploy Session Logs:** Confirm a `session-log-template.md` exists in `.ai/templates/` and create [.ai/session-logs/README.md](file:///c:/Users/ADMIN/OneDrive/Desktop/multimodel-dev-os/.ai/session-logs/README.md) to manage sequential handoffs.
+2. **Deploy Session Logs:** Confirm a `session-log-template.md` exists in `.ai/templates/` and create [.ai/session-logs/README.md](../.ai/session-logs/README.md) to manage sequential handoffs.
 3. **Audit Workspace compliance:** Run the linter to diagnostic environment issues:
    ```bash
    npx multimodel-dev-os doctor

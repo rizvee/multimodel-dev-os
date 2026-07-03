@@ -16,39 +16,39 @@ Below is how the 12 core context optimization strategies are implemented inside 
 
 ### 1. Choose the Right Model
 - **The Strategy:** Deploying premium large models (e.g. Claude 3.5 Sonnet, GPT-4o) only for high-reasoning tasks and lightweight models for simple code syntax editing.
-- **Dev OS Implementation:** [model-map.md](file:///c:/Users/ADMIN/OneDrive/Desktop/multimodel-dev-os/.ai/context/model-map.md) stores clear instructions routing Planner, Auditor, and Scaffolder tasks to their ideal cost-efficient models.
+- **Dev OS Implementation:** [model-map.md](../.ai/context/model-map.md) stores clear instructions routing Planner, Auditor, and Scaffolder tasks to their ideal cost-efficient models.
 
 ### 2. Reduce Input Tokens
 - **The Strategy:** Avoid feeding massive developer rule guides, legacy wikis, or detailed style manuals on simple prompt turns.
-- **Dev OS Implementation:** Toggling **Caveman Mode** (`--caveman`) strips descriptive descriptions and examples to slash prompt rules down to **~340 tokens (saving ~79% of input token context)**. The central [context-budget.md](file:///c:/Users/ADMIN/OneDrive/Desktop/multimodel-dev-os/.ai/context/context-budget.md) details guidelines on context sizes.
+- **Dev OS Implementation:** Toggling **Caveman Mode** (`--caveman`) strips descriptive descriptions and examples to slash prompt rules down to **~340 tokens (saving ~79% of input token context)**. The central [context-budget.md](../.ai/context/context-budget.md) details guidelines on context sizes.
 
 ### 3. Limit Output Tokens
 - **The Strategy:** Prevent models from generating verbose paragraphs, chatty conversational explanations, or redundant code structures.
-- **Dev OS Implementation:** Decoupled prompt guidelines inside [.ai/prompts/](file:///c:/Users/ADMIN/OneDrive/Desktop/multimodel-dev-os/.ai/prompts/) enforce strict prompt output contracts (e.g. "Only output the code diff, no chat").
+- **Dev OS Implementation:** Decoupled prompt guidelines inside [.ai/prompts/](../.ai/prompts/) enforce strict prompt output contracts (e.g. "Only output the code diff, no chat").
 
 ### 4. Leverage Prompt Caching
 - **The Strategy:** Structure system prompts and context buffers to match the exact patterns that cloud providers (like Anthropic, OpenAI) require for prompt caching.
-- **Dev OS Implementation:** Shared workspace session logs under [.ai/session-logs/](file:///c:/Users/ADMIN/OneDrive/Desktop/multimodel-dev-os/.ai/session-logs/) provide reusable, static summaries at the bottom of the prompt buffer to maximize caching hits.
+- **Dev OS Implementation:** Shared workspace session logs under [.ai/session-logs/](../.ai/session-logs/) provide reusable, static summaries at the bottom of the prompt buffer to maximize caching hits.
 
 ### 5. RAG Done Right (Directory Scoping)
 - **The Strategy:** Never feed an entire codebase to the prompt turn; instead, scope read inputs precisely.
-- **Dev OS Implementation:** Modular files within [.ai/context/](file:///c:/Users/ADMIN/OneDrive/Desktop/multimodel-dev-os/.ai/context/) break repository information into isolated briefs (project-brief, architecture, business-rules), allowing agents to load only required profiles.
+- **Dev OS Implementation:** Modular files within [.ai/context/](../.ai/context/) break repository information into isolated briefs (project-brief, architecture, business-rules), allowing agents to load only required profiles.
 
 ### 6. Batch Requests
 - **The Strategy:** Group simple micro-features into single comprehensive execution runs instead of engaging in iterative 3-word conversations.
-- **Dev OS Implementation:** Centralized backlog tracking in [TASKS.md](file:///c:/Users/ADMIN/OneDrive/Desktop/multimodel-dev-os/TASKS.md) structures todo steps so agents can batch scaffold logical units in one message turn.
+- **Dev OS Implementation:** Centralized backlog tracking in [TASKS.md](../TASKS.md) structures todo steps so agents can batch scaffold logical units in one message turn.
 
 ### 7. Enforce Structured Outputs
 - **The Strategy:** Enforce strict parameters to avoid wasting model cycles guessing standard format definitions.
-- **Dev OS Implementation:** Structured template outlines in [.ai/templates/](file:///c:/Users/ADMIN/OneDrive/Desktop/multimodel-dev-os/.ai/templates/) and strict check contracts inside [.ai/checks/](file:///c:/Users/ADMIN/OneDrive/Desktop/multimodel-dev-os/.ai/checks/) guarantee predictable code blocks on the first attempt.
+- **Dev OS Implementation:** Structured template outlines in [.ai/templates/](../.ai/templates/) and strict check contracts inside [.ai/checks/](../.ai/checks/) guarantee predictable code blocks on the first attempt.
 
 ### 8. Prompt and Skill Reuse
 - **The Strategy:** Standardize system prompts and tool commands so developers aren't authoring customized instructions from scratch.
-- **Dev OS Implementation:** Reusable routines under [.ai/prompts/](file:///c:/Users/ADMIN/OneDrive/Desktop/multimodel-dev-os/.ai/prompts/) and custom agent scripts under [.ai/skills/](file:///c:/Users/ADMIN/OneDrive/Desktop/multimodel-dev-os/.ai/skills/) form a shared, plug-and-play prompt library.
+- **Dev OS Implementation:** Reusable routines under [.ai/prompts/](../.ai/prompts/) and custom agent scripts under [.ai/skills/](../.ai/skills/) form a shared, plug-and-play prompt library.
 
 ### 9. Multi-Step Pipelines (Planner/Coder/Reviewer)
 - **The Strategy:** Split high-reasoning tasks from execution runs to avoid loading massive rules files during iterative code writes.
-- **Dev OS Implementation:** Isolated agent specs inside [.ai/agents/](file:///c:/Users/ADMIN/OneDrive/Desktop/multimodel-dev-os/.ai/agents/) deploy a two-step approach where a Planner agent outlines changes, and a Coder agent writes the diff.
+- **Dev OS Implementation:** Isolated agent specs inside [.ai/agents/](../.ai/agents/) deploy a two-step approach where a Planner agent outlines changes, and a Coder agent writes the diff.
 
 ### 10. Monitor Usage & Auditing
 - **The Strategy:** Continuously verify that developers' rules aren't getting cluttered or exceeding token limits.

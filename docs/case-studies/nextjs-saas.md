@@ -19,7 +19,7 @@ The team switched frequently between a command-line assistant (Claude Code) to p
 
 ## 3. MultiModel Dev OS Setup
 The team decoupled rules from tool-specific prompt configurations by defining a single centralized root contract:
-- Root contract [AGENTS.md](file:///c:/Users/ADMIN/OneDrive/Desktop/multimodel-dev-os/AGENTS.md) tracked database frameworks and style guides.
+- Root contract [AGENTS.md](../../AGENTS.md) tracked database frameworks and style guides.
 - Adapters for Claude and Cursor mapped these specifications instantly.
 - Caveman Mode was toggled on during UI-focused sprints to save context token footprints.
 

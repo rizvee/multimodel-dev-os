@@ -6,7 +6,7 @@ MultiModel Dev OS `v2.5.0` features a built-in **Workflow Runner** designed to o
 
 ## 1. CLI Commands
 
-Workflows are registered in [.ai/registries/workflows.yaml](file:///.ai/registries/workflows.yaml) and can be executed via the following subcommands:
+Workflows are registered in [.ai/registries/workflows.yaml](../.ai/registries/workflows.yaml) and can be executed via the following subcommands:
 
 ### List Registered Workflows
 Prints name, risk, and summary of all active workflows:
@@ -33,7 +33,7 @@ npx multimodel-dev-os workflow run repo-health
 ```
 
 > [!TIP]
-> You can also run, plan, and list workflows interactively through the [TUI Dashboard](file:///f:/multimodel-dev-os/docs/dashboard.md) under the **Quality Gates & Diagnostics** or **Memory & Intelligence** menus.
+> You can also run, plan, and list workflows interactively through the [TUI Dashboard](../docs/dashboard.md) under the **Quality Gates & Diagnostics** or **Memory & Intelligence** menus.
 
 ---
 

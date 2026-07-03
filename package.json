@@ -21,6 +21,12 @@
   },
   "license": "MIT",
   "author": "rizvee",
+  "bugs": {
+    "url": "https://github.com/rizvee/multimodel-dev-os/issues"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "type": "module",
   "files": [
     "AGENTS.md",

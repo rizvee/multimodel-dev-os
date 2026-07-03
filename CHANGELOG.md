@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Changed (Sprint F — Verification Engine Decomposition)
+- **Modular Verification Engine** (`scripts/verify/`): Decomposed the monolithic `scripts/verify.js` (900+ lines) into eleven focused sub-modules — `build.js`, `cli.js`, `config.js`, `docs.js`, `files.js`, `format.js`, `package.js`, `policy.js`, `registry.js`, `signing.js`, `utils.js` — each independently auditable and testable.
+- **Thin Orchestrator**: `scripts/verify.js` is now a 20-line entry-point that imports and delegates to `scripts/verify/index.js`.
+- **Zero behaviour change**: All 289 verification checks pass identically after decomposition (`Pass: 289  Fail: 0  Warn: 0`).
+- **206 tests passing** across 24 test files — unchanged by refactor.
+
+### Changed (Sprint G — Developer Experience + Documentation Hardening)
+- **README accuracy**: Updated quality-gate count from stale `248+` to accurate `289`. Updated "What's New" section to reflect v3.5 highlights instead of v3.0.
+- **package.json metadata**: Added `bugs.url` and `engines.node >=20.0.0` fields for better npm discoverability and runtime compatibility signalling.
+- **Broken link resolution**: Fixed all internal documentation hyperlinks — converted runtime-generated `registry-lock.json` link in `docs/security-threat-model.md` to inline code; created missing `.ai/prompts/compress-context.md` referenced by `docs/token-optimization.md`; created `docs/contributing.md` referenced by `docs/faq.md`.
+- **TASKS.md**: Updated current sprint tracking to reflect Sprint G completion.
+
 ## [3.5.0] - 2026-06-21
 
 ### Added

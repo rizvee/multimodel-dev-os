@@ -5,7 +5,7 @@ MultiModel Dev OS supports multi-vendor API routing by centralizing provider pro
 ---
 
 ## Provider Registry Configuration
-Configure base URLs and API environment variables in [.ai/models/providers.yaml](file:///F:/multimodel-dev-os/.ai/models/providers.yaml):
+Configure base URLs and API environment variables in [.ai/models/providers.yaml](../.ai/models/providers.yaml):
 
 ```yaml
 providers:

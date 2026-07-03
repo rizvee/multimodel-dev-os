@@ -9,7 +9,7 @@ MultiModel Dev OS is fully extensible. Developers and teams can build custom ada
 To construct a new adapter:
 
 ### 1. Register the Adapter Metadata
-Open [.ai/adapters/registry.yaml](file:///F:/multimodel-dev-os/.ai/adapters/registry.yaml) and declare the adapter properties:
+Open [.ai/adapters/registry.yaml](../.ai/adapters/registry.yaml) and declare the adapter properties:
 ```yaml
 adapters:
   my-custom-agent:

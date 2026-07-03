@@ -17,7 +17,7 @@ When developing marketing landing pages, developers switched frequently between 
 ---
 
 ## 3. MultiModel Dev OS Setup
-- The team configured speed budgets inside [.ai/context/seo-rules.md](file:///c:/Users/ADMIN/OneDrive/Desktop/multimodel-dev-os/.ai/context/seo-rules.md).
+- The team configured speed budgets inside [.ai/context/seo-rules.md](../../.ai/context/seo-rules.md).
 - Reusable audit routines were defined inside `.ai/skills/seo-audit.md`.
 - Strict pre-deploy compliance verifications were configured in the checks folder.
 
