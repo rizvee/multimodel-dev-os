@@ -62,7 +62,7 @@ Add a new section to `CHANGELOG.md` following the Keep a Changelog format.
 ### 3. Verification Suite
 
 ```bash
-# Run 214+ structural assertions
+# Run 289 structural checks
 npm run verify
 
 # Build docs to catch broken links

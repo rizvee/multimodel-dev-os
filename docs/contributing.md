@@ -9,7 +9,7 @@ Thank you for your interest in contributing! We welcome contributions of all kin
 1. **Fork** the repository and clone your fork
 2. Run `npm install` to install dev dependencies
 3. Make your changes
-4. Run `npm run verify` to ensure all 214+ assertions pass
+4. Run `npm run verify` to ensure all 289 checks pass
 5. Submit a Pull Request
 
 ---

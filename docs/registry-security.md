@@ -70,7 +70,7 @@ For teams deploying MultiModel Dev OS in sensitive environments, we recommend:
 
 ---
 
-## Trusted Registry Signing & Provenance (v3.5.0-prep)
+## Trusted Registry Signing & Provenance (v3.5.0)
 
 MultiModel Dev OS supports optional **HMAC-SHA256 signing** of synced registry catalogs, providing tamper-evident provenance records.
 
@@ -138,4 +138,3 @@ The following fields in `.ai/policies/registry-policy.yaml` control signing and 
 - The **lockfile** (`.ai/registry-lock.json`) should be committed to VCS to provide verifiable tamper-evidence for the team.
 - **HTTPS transport security** secures the delivery, but **signatures and trust store** secure publisher identity, protecting against server-side compromises.
 - **Zero-Dependency Cryptography**: All operations rely strictly on Node's built-in `crypto` library.
-

@@ -207,7 +207,7 @@ npx multimodel-dev-os@latest doctor [options]
 
 ### 13. `verify` — Release Audit
 
-Full release verification suite with **214+ structural assertions**. Checks all files, registries, YAML syntax, CLI version matching, npm pack hygiene, and security boundaries.
+Full release verification suite with **289 structural checks**. Checks all files, registries, YAML syntax, CLI version matching, npm pack hygiene, and security boundaries.
 
 ```bash
 npx multimodel-dev-os@latest verify

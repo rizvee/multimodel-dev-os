@@ -1,8 +1,10 @@
 # Ignore local documentation site cache and dist files in npm packaging
 docs/.vitepress/dist/
 docs/.vitepress/cache/
+docs/.vitepress/.temp/
 .vitepress/dist/
 .vitepress/cache/
+.vitepress/.temp/
 *.tgz
 package-lock.json
 node_modules/

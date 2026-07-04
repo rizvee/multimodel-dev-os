@@ -36,7 +36,7 @@ features:
     title: Caveman Mode (−79% Tokens)
     details: Slash model context footprint by ~79% with compressed shorthand declarations. Save massively on API bills.
   - icon: 🛡️
-    title: 214+ Quality Gates
+    title: 289 Quality Gates
     details: Built-in validate, doctor, and verify commands enforce workspace health with strict structural assertions.
   - icon: 🔧
     title: Zero Dependencies
@@ -200,7 +200,7 @@ You use **Cursor** for autocomplete, **Claude Code** for terminal ops, **Gemini*
   </a>
   <a href="/demos/release-check" class="card-item">
     <div class="card-title">🚀 Release Check</div>
-    <div class="card-desc">Run 214+ verification assertions and package hygiene checks.</div>
+    <div class="card-desc">Run 289 verification checks and package hygiene checks.</div>
     <div class="card-time">~1 min</div>
   </a>
   <a href="/comparison" class="card-item">
@@ -230,7 +230,7 @@ You use **Cursor** for autocomplete, **Claude Code** for terminal ops, **Gemini*
 <div class="safety-grid">
   <div class="safety-item">
     <div class="safety-icon">🛡️</div>
-    <div class="safety-label">214+ Quality Gates</div>
+    <div class="safety-label">289 Quality Gates</div>
     <div class="safety-desc">Strict structural verification on every release</div>
   </div>
   <div class="safety-item">

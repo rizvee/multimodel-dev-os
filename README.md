@@ -126,7 +126,7 @@ npx multimodel-dev-os@latest handoff build
 |:---|:---|:---|
 | **Tool Sync** | Manual copy-paste across tools | ✅ Automated dynamic adapters |
 | **Context Budgets** | Bloats prompts, wastes tokens | ✅ Caveman Mode cuts **~79%** overhead |
-| **Standards** | Easy to drift and corrupt | ✅ CLI `validate` + `doctor` + 214-assertion `verify` |
+| **Standards** | Easy to drift and corrupt | ✅ CLI `validate` + `doctor` + 289-check `verify` |
 | **Templates** | Start from scratch | ✅ 6 production-ready real-world templates |
 | **Model Registry** | Hardcoded model names | ✅ Dynamic capability-scored routing presets |
 | **Self-Improvement** | None | ✅ Feedback → Proposals → Apply with safety gates |

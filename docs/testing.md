@@ -127,7 +127,7 @@ To ensure the npm package functions flawlessly after installation, we run a loca
    ```
 3. **Install the generated tarball locally**:
    ```bash
-   npm install F:\multimodel-dev-os\multimodel-dev-os-3.5.0.tgz --no-audit --no-fund
+   npm install <path-to-repo>\multimodel-dev-os-3.5.0.tgz --no-audit --no-fund
    ```
 4. **Validate npx invocation**:
    ```bash

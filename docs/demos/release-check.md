@@ -19,7 +19,7 @@ You've made changes to your MultiModel Dev OS workspace and want to verify every
 npx multimodel-dev-os@latest verify
 ```
 
-**What happens**: Runs 214+ structural assertions checking:
+**What happens**: Runs 289 structural checks covering:
 - All required files exist (root contracts, adapters, templates, schemas, docs)
 - YAML registries parse correctly with expected root keys
 - Package.json version matches CLI output

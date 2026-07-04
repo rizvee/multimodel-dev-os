@@ -39,6 +39,7 @@
     "docs/",
     "!docs/.vitepress/dist/",
     "!docs/.vitepress/cache/",
+    "!docs/.vitepress/.temp/",
     "examples/",
     "bin/",
     "src/",

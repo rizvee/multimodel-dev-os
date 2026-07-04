@@ -77,7 +77,7 @@ This document outlines the development path, completed milestones, and future pl
 All releases follow this strict publishing checklist:
 
 1. Bump version in `package.json`
-2. Run `npm run verify` (248+ assertions must pass)
+2. Run `npm run verify` (289 checks must pass)
 3. Run `npm run docs:build` to verify documentation
 4. Run `npm pack --dry-run` to review package hygiene
 5. Set `MMDO_ALLOW_PUBLISH=true` and publish manually:

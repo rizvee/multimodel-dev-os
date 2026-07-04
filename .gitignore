@@ -34,8 +34,10 @@ out/
 .next/
 docs/.vitepress/cache/
 docs/.vitepress/dist/
+docs/.vitepress/.temp/
 .vitepress/cache/
 .vitepress/dist/
+.vitepress/.temp/
 
 # === Session logs (session-specific, opt-in to commit) ===
 .ai/session-logs/*.md

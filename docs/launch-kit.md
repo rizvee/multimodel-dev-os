@@ -13,7 +13,7 @@ Ready-to-use promotional copy for sharing MultiModel Dev OS on social platforms,
 >
 > MultiModel Dev OS solves this with a single `AGENTS.md` that auto-syncs to every tool. One command sets it up: `npx multimodel-dev-os@latest init`
 >
-> v2.7 includes guided demo workflows, safe repo onboarding for existing projects, adapter sync across 10+ tools, a self-improvement engine with 12 safety gates, and 214+ quality assertions.
+> The current release includes guided demo workflows, safe repo onboarding for existing projects, adapter sync across 10+ tools, a self-improvement engine with 12 safety gates, and 289 quality checks.
 >
 > Free, MIT licensed, zero dependencies. Works on Windows, macOS, and Linux.
 >
@@ -59,7 +59,7 @@ MultiModel Dev OS creates a single source of truth that auto-syncs to every tool
 2. Edit AGENTS.md with your project rules
 3. Run adapter sync to push to all your tools
 
-v2.7 includes 5 guided demo workflows, safe repo onboarding, a self-improvement engine with 12 safety gates, and 214+ quality assertions.
+The current release includes 5 guided demo workflows, safe repo onboarding, a self-improvement engine with 12 safety gates, and 289 quality checks.
 
 Zero dependencies. MIT licensed. Works everywhere.
 
@@ -113,7 +113,7 @@ Use these when writing about MultiModel Dev OS:
 | **Onboarding** | Safely onboard existing repos: `onboard analyze → recommend → plan → apply` |
 | **Safety** | 12 proposal safety gates, `--approved` flags, auto-backups, SHA-256 audit trails |
 | **Token Savings** | Caveman Mode cuts ~79% token overhead |
-| **Quality** | 214+ verification assertions, `doctor --release` alignment checks |
+| **Quality** | 289 verification checks, `doctor --release` alignment checks |
 | **Trust** | Zero dependencies, MIT license, no runtime, no network calls |
 | **Tools** | Codex, Antigravity, Cursor, Claude Code, Gemini, VS Code, Cline, Aider, Windsurf |
 
