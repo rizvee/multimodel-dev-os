@@ -57,11 +57,7 @@ describe('Registry Trust Store — loadTrustedKeys', () => {
     mkdirSync(keysDir, { recursive: true });
   });
 
-  afterAll(() => {
-    if (existsSync(tempDir)) {
-      rmSync(tempDir, { recursive: true, force: true });
-    }
-  });
+  // Moved cleanup to file-level afterAll below
 
   it('returns empty array when no trusted-keys.yaml exists', () => {
     const noKeysDir = join(tempDir, 'no-keys-dir');
@@ -435,4 +431,10 @@ describe('Registry Trust Store — syncRemoteKeys', () => {
       mockHttpsRequest = null;
     }
   });
+});
+
+afterAll(() => {
+  if (existsSync(tempDir)) {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
 });
