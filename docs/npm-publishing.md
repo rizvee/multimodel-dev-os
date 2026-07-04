@@ -78,11 +78,11 @@ Execute these validation actions strictly in sequence before triggering a releas
 ## 4. Prepublish Safety Guard
 
 > [!IMPORTANT]
-> **v4.0.0 is prepared for release.** npm publish is pending and will be completed manually by a maintainer.
+> **v4.0.0 is released on npmjs.** Future publishes remain protected by the prepublish safety guard.
 
 ### Source vs. Registry Strategy
-* **GitHub main branch (Source)**: Contains the prepared `v4.0.0` codebase after the release commit.
-* **npm latest (Registry)**: Pulled and installed globally or via npx.
+* **GitHub main branch (Source)**: Contains the current source code after release preparation and post-release documentation updates.
+* **npm latest (Registry)**: Pulls the latest published stable package globally or via npx.
 
 ### Prepublish Safety Guard
 To prevent accidental `npm publish` executions on developer environments, a local validation script has been added to package hooks. If you run `npm publish`, it is blocked by default.

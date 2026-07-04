@@ -3,7 +3,7 @@
 This document details the final launch guidelines and distribution routines for the public releases of MultiModel Dev OS.
 
 > [!IMPORTANT]
-> **v4.0.0 is prepared for release.** npm publish is pending and will be completed manually by a maintainer after final tag and release checks.
+> **v4.0.0 is released on npmjs.** Use `npm install -g multimodel-dev-os` or `npx multimodel-dev-os@latest --help` to verify the published package.
 
 ---
 

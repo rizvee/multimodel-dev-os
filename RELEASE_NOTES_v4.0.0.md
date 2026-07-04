@@ -6,10 +6,10 @@
 * Decomposed verification engine
 * Registry signing and provenance hardening
 * Trust store and remote key workflow improvements
-* Handler-level test coverage
+* Handler-level unit test coverage
 * Documentation and developer experience hardening
-* VS Code and Codex-compatible workflow documentation
-* Optional GitHub Packages staging for `@rizvee/multimodel-dev-os`
+* Codex/VS Code-ready workflow documentation
+* Optional GitHub Packages mirror support
 
 ## Validation
 
@@ -20,6 +20,16 @@
 * npm run docs:build
 * npm pack --dry-run
 
-## Manual Step Remaining
+## Package
 
-npm publish is pending and will be completed manually by Hasan.
+npmjs package:
+
+npm install -g multimodel-dev-os
+
+Published version:
+
+4.0.0
+
+GitHub Packages mirror:
+
+Optional/manual workflow-supported mirror as @rizvee/multimodel-dev-os.

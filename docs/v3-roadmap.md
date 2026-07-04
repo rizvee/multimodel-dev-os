@@ -7,18 +7,18 @@ This document outlines the development path, completed milestones, and future pl
 ## 1. Current Status
 
 > [!IMPORTANT]
-> **v4.0.0 is prepared for release.** npm publish is pending and will be completed manually after final tag and release checks.
+> **v4.0.0 is released on npmjs.** The public release completes the modular CLI, verification engine, registry trust, and documentation hardening work.
 
 ---
 
 ## 2. Completed Milestones
 
-### v4.0.0 — Modular CLI + Verification Engine Production Hardening 🚧
+### v4.0.0 — Modular CLI + Verification Engine Production Hardening ✅
 - **CLI Handler Decomposition**: Main routing, registry handlers, and inspection handlers are split into focused internal modules while preserving public commands and outputs.
 - **Verification Engine Decomposition**: The strict release audit is organized under `scripts/verify/` with a thin wrapper at `scripts/verify.js`.
 - **Registry Trust Hardening**: Trust store, remote key workflows, signing, and provenance safety checks are production-hardened.
 - **Handler-Level Tests**: 206 tests across 24 test files protect the decomposed handlers and registry safety behavior.
-- **Manual Publish Pending**: Source release preparation is complete when tagged; npm publication remains a maintainer-operated step.
+- **Published Package**: `multimodel-dev-os@4.0.0` is available on npmjs. The optional GitHub Packages mirror is supported through a manual workflow.
 
 ### v3.5.0 — Trusted Registry Signing + Provenance ✅
 - **Asymmetric Ed25519 Signatures**: Cryptographic verification of remote registry manifests using publisher public keys to secure remote sync.
