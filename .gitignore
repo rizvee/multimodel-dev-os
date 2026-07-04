@@ -60,4 +60,8 @@ docs/.vitepress/dist/
 npm-debug.log*
 
 # === Registry Signing Key (secret — never commit) ===
-.ai/registry-signing-key
+.ai/registry-signing-key
+
+# === Test leftovers ===
+temp-*/
+tests/fixtures/temp-*/

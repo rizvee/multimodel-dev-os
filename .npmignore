@@ -8,3 +8,7 @@ package-lock.json
 node_modules/
 .npmrc
 .env
+
+# Test leftovers
+temp-*/
+tests/fixtures/temp-*/
