@@ -134,12 +134,12 @@ npx multimodel-dev-os@latest handoff build
 
 ---
 
-## What's New in v3.5
+## What's New in v4.0
 
-- 🔑 **Ed25519 Registry Signatures** — Sign and verify remote catalog manifests with asymmetric keypairs via `registry keygen` and `registry verify`.
-- 🛡️ **Trusted Key Store** — Manage publisher public keys with scope, status, and date constraints via `registry trust list/show`.
-- 📋 **Provenance Lockfile** — Tamper-evident `.ai/registry-lock.json` records every sync with hash + signature audit trail.
+- 🧩 **Modular CLI Architecture** — CLI main routing plus registry and inspection handlers are decomposed into focused internal modules while preserving public commands.
 - 🔬 **Verification Engine Decomposed** — `scripts/verify/` is now a modular engine with isolated, independently testable sub-modules.
+- 🛡️ **Registry Trust Hardening** — Trust store, remote key workflows, signing, and provenance checks are production-hardened for registry safety.
+- 🧪 **Handler-Level Test Coverage** — Focused unit coverage protects decomposed command handlers, registry trust behavior, and package hygiene.
 
 **[Full Changelog →](CHANGELOG.md)**
 
@@ -164,6 +164,7 @@ npx multimodel-dev-os@latest handoff build
 | **v3.1.0** | Modular Source Layout + Formal Unit Tests | ✅ Released |
 | **v3.2.0** | Stable Modular Build + Package Governance | ✅ Released |
 | **v3.5.0** | Trusted Registry Signing + Provenance Foundation | ✅ Released |
+| **v4.0.0** | Modular CLI + Verification Engine Production Hardening | 🚧 Prepared; npm publish pending |
 
 **[Full Roadmap →](https://rizvee.github.io/multimodel-dev-os/v3-roadmap)**
 

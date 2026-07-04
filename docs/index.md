@@ -214,12 +214,12 @@ You use **Cursor** for autocomplete, **Claude Code** for terminal ops, **Gemini*
 
 <div class="highlight-box">
 
-### 🆕 What's New in v3.5
+### 🆕 What's New in v4.0
 
-- 🛡️ **Trusted Registry Signatures** — Asymmetric Ed25519 signatures verify remote publisher identity, preventing man-in-the-middle manifest modifications.
-- 🔑 **Trusted Key Store** — Local keys configuration at `.ai/registries/trusted-keys.yaml` manages active publisher public keys, statuses, and scope permissions.
-- 📝 **Registry Provenance Lockfile** — Records synced catalog/manifest SHA-256 hashes, sync times, and verdicts to detect post-sync local tampering.
-- 📊 **Structured Verdicts** — Generates machine-readable trust verdicts covering registry manifests, catalogs, keys, and signatures for auditability.
+- 🧩 **Modular CLI Architecture** — CLI main routing plus registry and inspection handlers are decomposed into focused internal modules.
+- 🔬 **Verification Engine Decomposed** — `scripts/verify/` is now a modular engine with isolated, independently testable sub-modules.
+- 🛡️ **Registry Trust Hardening** — Trust store, remote key workflows, signing, and provenance checks are production-hardened for registry safety.
+- 🧪 **Handler-Level Test Coverage** — Focused unit coverage protects decomposed command handlers, registry trust behavior, and package hygiene.
 
 </div>
 

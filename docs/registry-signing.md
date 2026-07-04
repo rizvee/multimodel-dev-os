@@ -67,4 +67,4 @@ As of the current internal development sprint, the registry signature verificati
 - **Valid signatures** pass verification.
 - **Tampered manifests, wrong keys, and revoked keys** are blocked, reporting precise errors and warning verdicts recorded inside the local provenance lockfile (`registry-lock.json`).
 
-For current status and verification audits, see the [v3.5.0 Release Readiness Checklist](../docs/v3.5.0-readiness.md).
+For historical background on the signing milestone, see the [v3.5.0 Release Readiness Checklist](../docs/v3.5.0-readiness.md). For current release status, see the [Changelog](../CHANGELOG.md).

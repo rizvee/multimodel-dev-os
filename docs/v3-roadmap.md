@@ -7,11 +7,18 @@ This document outlines the development path, completed milestones, and future pl
 ## 1. Current Status
 
 > [!IMPORTANT]
-> **v3.5.0 is the active stable release** on the public npm registry. All features below marked ✅ are shipped and production-ready.
+> **v4.0.0 is prepared for release.** npm publish is pending and will be completed manually after final tag and release checks.
 
 ---
 
 ## 2. Completed Milestones
+
+### v4.0.0 — Modular CLI + Verification Engine Production Hardening 🚧
+- **CLI Handler Decomposition**: Main routing, registry handlers, and inspection handlers are split into focused internal modules while preserving public commands and outputs.
+- **Verification Engine Decomposition**: The strict release audit is organized under `scripts/verify/` with a thin wrapper at `scripts/verify.js`.
+- **Registry Trust Hardening**: Trust store, remote key workflows, signing, and provenance safety checks are production-hardened.
+- **Handler-Level Tests**: 206 tests across 24 test files protect the decomposed handlers and registry safety behavior.
+- **Manual Publish Pending**: Source release preparation is complete when tagged; npm publication remains a maintainer-operated step.
 
 ### v3.5.0 — Trusted Registry Signing + Provenance ✅
 - **Asymmetric Ed25519 Signatures**: Cryptographic verification of remote registry manifests using publisher public keys to secure remote sync.
@@ -87,13 +94,12 @@ All releases follow this strict publishing checklist:
 
 ---
 
-## 4. In Progress: v3.6.0-prep / Sprint 4 — Remote Key Sync & GPG Signatures
-- **Remote Key Sync**: Enable syncing public keys directly from approved remote registries.
-- **GPG Compatibility**: Support GPG signatures for enterprise-controlled repositories.
+## 4. Next Planning Target: v4.1+
+- **Post-release polish**: Continue package footprint review, contributor docs refinement, and optional registry workflow ergonomics after v4.0.0 is published.
 
 ---
 
-## 5. Future Plan: v4.0.0 — Unified Autonomous Co-Pilot Ecosystem
+## 5. Future Plan: v4.1+ — Unified Autonomous Co-Pilot Ecosystem
 
 *   **Full Multi-Agent Orchestration**: Dynamic task handoffs between specialized agents.
 *   **Real-Time Collaboration**: Live workspace state sharing between agents and developers.

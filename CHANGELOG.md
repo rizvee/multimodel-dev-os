@@ -2,17 +2,31 @@
 
 ## [Unreleased]
 
-### Changed (Sprint F — Verification Engine Decomposition)
-- **Modular Verification Engine** (`scripts/verify/`): Decomposed the monolithic `scripts/verify.js` (900+ lines) into eleven focused sub-modules — `build.js`, `cli.js`, `config.js`, `docs.js`, `files.js`, `format.js`, `package.js`, `policy.js`, `registry.js`, `signing.js`, `utils.js` — each independently auditable and testable.
-- **Thin Orchestrator**: `scripts/verify.js` is now a 20-line entry-point that imports and delegates to `scripts/verify/index.js`.
-- **Zero behaviour change**: All 289 verification checks pass identically after decomposition (`Pass: 289  Fail: 0  Warn: 0`).
-- **206 tests passing** across 24 test files — unchanged by refactor.
+## [4.0.0] - 2026-07-05
 
-### Changed (Sprint G — Developer Experience + Documentation Hardening)
-- **README accuracy**: Updated quality-gate count from stale `248+` to accurate `289`. Updated "What's New" section to reflect v3.5 highlights instead of v3.0.
-- **package.json metadata**: Added `bugs.url` and `engines.node >=20.0.0` fields for better npm discoverability and runtime compatibility signalling.
-- **Broken link resolution**: Fixed all internal documentation hyperlinks — converted runtime-generated `registry-lock.json` link in `docs/security-threat-model.md` to inline code; created missing `.ai/prompts/compress-context.md` referenced by `docs/token-optimization.md`; created `docs/contributing.md` referenced by `docs/faq.md`.
-- **TASKS.md**: Updated current sprint tracking to reflect Sprint G completion.
+### Added
+- **Registry trust management**: Added registry trust add/remove workflow coverage and remote key fetch support for signed registry publisher key workflows.
+- **Handler-level test coverage**: Expanded focused unit tests for decomposed CLI handlers and registry trust-store behavior, keeping 206 tests passing across 24 test files.
+- **Codex/VS Code release workflow documentation**: Hardened public docs for Codex-ready contributor setup, release validation, package safety, and GitHub Pages documentation publishing.
+
+### Changed
+- **Modular CLI entrypoint**: Decomposed CLI main routing into clearer internal modules while preserving command names, public outputs, and exit-code behavior.
+- **Registry handler decomposition**: Split registry command handling into focused CRUD, sync, signing, and trust modules with stable backward-compatible exports.
+- **Inspection handler decomposition**: Split verify, doctor, validate, and scan handling into focused modules while preserving public command compatibility.
+- **Modular verification engine**: Decomposed the monolithic `scripts/verify.js` into focused modules under `scripts/verify/`, with `scripts/verify.js` retained as a thin wrapper.
+- **Developer experience hardening**: Updated README and docs navigation, stale quality-gate counts, broken internal links, npm metadata, and release validation guidance.
+- **Final package hygiene**: Excluded generated VitePress `.temp` build output from Git tracking and npm pack contents; dry-run package output remains at 435 files.
+
+### Validation
+- `npm run build`
+- `npm run check:build`
+- `npm test`
+- `npm run verify`
+- `npm run docs:build`
+- `npm pack --dry-run`
+
+### Release Notes
+- npm publish is pending and will be completed manually after tag and draft GitHub release preparation.
 
 ## [3.5.0] - 2026-06-21
 

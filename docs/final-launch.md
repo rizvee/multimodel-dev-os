@@ -1,16 +1,16 @@
-# Final Launch Guidelines (v2.0.0 Target)
+# Final Launch Guidelines
 
 This document details the final launch guidelines and distribution routines for the public releases of MultiModel Dev OS.
 
 > [!IMPORTANT]
-> **v2.0.0 is the active stable release.** NPM publishing is no longer paused. All Template Galaxy and Model Compatibility features are now available on the public registry.
+> **v4.0.0 is prepared for release.** npm publish is pending and will be completed manually by a maintainer after final tag and release checks.
 
 ---
 
 ## 1. Local Pre-flight Verification
 
 Prior to pushing files or preparing a release, ensure that:
-- The exact target version starts with `2.` (e.g. `2.0.0`) in `package.json` for publishing, or remains at `1.2.0` for local development.
+- The exact target version in `package.json` matches the release being prepared.
 - The cross-platform verify script completes cleanly:
   ```bash
   npm run verify
