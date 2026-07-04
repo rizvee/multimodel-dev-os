@@ -39,6 +39,20 @@ Your workspace now has a **single source of truth** that every AI coding tool re
 
 ---
 
+## Packages
+
+The primary public package is published on npm:
+
+```bash
+npm install -g multimodel-dev-os
+```
+
+An optional GitHub Packages mirror is prepared under the scoped name `@rizvee/multimodel-dev-os`. It uses `https://npm.pkg.github.com` and is available only after the maintainer runs the manual GitHub Packages workflow.
+
+The root npm package name remains `multimodel-dev-os`.
+
+---
+
 ## Key Features
 
 | | Feature | What It Does |
@@ -164,7 +178,7 @@ npx multimodel-dev-os@latest handoff build
 | **v3.1.0** | Modular Source Layout + Formal Unit Tests | ✅ Released |
 | **v3.2.0** | Stable Modular Build + Package Governance | ✅ Released |
 | **v3.5.0** | Trusted Registry Signing + Provenance Foundation | ✅ Released |
-| **v4.0.0** | Modular CLI + Verification Engine Production Hardening | 🚧 Prepared; npm publish pending |
+| **v4.0.0** | Modular CLI + Verification Engine Production Hardening | 🚧 Release prepared |
 
 **[Full Roadmap →](https://rizvee.github.io/multimodel-dev-os/v3-roadmap)**
 

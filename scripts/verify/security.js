@@ -121,7 +121,7 @@ export function checkSecurityHygiene() {
     const hasProvenanceRequired = policySrc.includes('provenance_required');
     
     if (hasLockfileField && hasUnsignedLocal && hasUnsignedBundled && hasUnsignedRemote && hasTrustedKeysFile && hasAllowedAlgs && hasRequireTrustedPublisher && hasProvenanceRequired) {
-      console.log(`  ${GREEN}✓${NC} src/core/policy.js includes all Sprint 2 policy defaults`);
+      console.log(`  ${GREEN}✓${NC} src/core/policy.js includes all registry signing policy defaults`);
       stats.pass++;
     } else {
       console.error(`  ${RED}✗${NC} src/core/policy.js is missing required policy defaults`);

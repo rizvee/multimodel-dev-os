@@ -53,7 +53,7 @@ Execute these validation actions strictly in sequence before triggering a releas
 4. **Trigger publication:**
    Once metadata and file exclusions are verified:
    ```bash
-   npm publish --access public
+   npm publish --provenance --access public
    ```
 
 ---
@@ -93,9 +93,19 @@ To bypass this check during approved release windows:
    ```powershell
    # PowerShell
    $env:MMDO_ALLOW_PUBLISH="true"
-   npm publish --access public
+   npm publish --provenance --access public
    ```
    ```bash
    # Bash
-   MMDO_ALLOW_PUBLISH=true npm publish --access public
+   MMDO_ALLOW_PUBLISH=true npm publish --provenance --access public
    ```
+
+## 5. Optional GitHub Packages Mirror
+
+The npmjs package name must remain `multimodel-dev-os`. GitHub Packages requires a scoped name, so the optional mirror is prepared in a staging directory:
+
+```bash
+node scripts/prepare-github-package.js
+```
+
+The staged package is named `@rizvee/multimodel-dev-os` and is published only through the manual `publish-github-package.yml` workflow. See [GitHub Packages Mirror](./github-packages.md).

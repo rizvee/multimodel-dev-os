@@ -37,7 +37,7 @@ No package shall be merged or released without:
 ## 4. Release Strategy & Staging Controls
 
 To ensure developer stability and avoid package version fatigue, MultiModel Dev OS enforces the following distribution strategy:
-- **Internal Stabilization Sprints**: Patch-level work (e.g. bug fixes, refactoring, test stability, documentation formatting) is treated as internal by default and committed directly to `main` without bumping versions or publishing to npm.
+- **Internal Stabilization Work**: Patch-level work (e.g. bug fixes, refactoring, test stability, documentation formatting) is treated as internal by default and committed directly to `main` without bumping versions or publishing to npm.
 - **Batched Milestone Releases**: Public npm and GitHub releases are batched into stable milestone releases (e.g., `v3.5.0`, `v3.6.0`, `v4.0.0`).
 - **Security Hotfix Exceptions**: Critical security hotfixes (e.g., remote execution, command injection remediations) bypass the batching policy and are published immediately as public patch releases.
 - **Staging Verification**: To test new configurations prior to publishing, package the bundle locally (`npm pack`) and run CLI checkups in clean test directories (`C:\mmdo-smoke`).

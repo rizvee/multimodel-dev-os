@@ -21,7 +21,7 @@ The team switched frequently between a command-line assistant (Claude Code) to p
 The team decoupled rules from tool-specific prompt configurations by defining a single centralized root contract:
 - Root contract [AGENTS.md](../../AGENTS.md) tracked database frameworks and style guides.
 - Adapters for Claude and Cursor mapped these specifications instantly.
-- Caveman Mode was toggled on during UI-focused sprints to save context token footprints.
+- Caveman Mode was enabled during UI-focused implementation work to reduce context token footprint.
 
 ---
 

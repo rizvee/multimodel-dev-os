@@ -461,7 +461,7 @@ export function checkSecurityHotfixRegressions() {
 }
 
 export function checkSignedRegistryE2E() {
-  console.log('\nSprint 3 Signed Registry E2E & Readiness Checks:');
+  console.log('\nSigned Registry E2E & Readiness Checks:');
   checkFile('src/registry/verdict.js');
   checkFile('tests/unit/registry-e2e-signature-fixtures.test.js');
   checkFile('docs/security-threat-model.md');

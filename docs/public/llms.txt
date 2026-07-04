@@ -1,4 +1,4 @@
-# MultiModel Dev OS (v4.0.0 Release Candidate)
+# MultiModel Dev OS (v4.0.0)
 
 Portable, vendor-neutral workspace configuration standard for multi-agent AI pair-programming workflows.
 
@@ -94,6 +94,7 @@ npx multimodel-dev-os@latest improve log
 - **Canonical Website**: https://rizvee.github.io/multimodel-dev-os/
 - **GitHub Repository**: https://github.com/rizvee/multimodel-dev-os
 - **NPM Package**: https://www.npmjs.com/package/multimodel-dev-os
+- **GitHub Packages Mirror**: https://rizvee.github.io/multimodel-dev-os/github-packages
 - **Guided Demo Workflows**: https://rizvee.github.io/multimodel-dev-os/demos/
 - **Stable Protocol Specification**: https://rizvee.github.io/multimodel-dev-os/stable-protocol
 - **Model Compatibility & Routing Guide**: https://rizvee.github.io/multimodel-dev-os/model-compatibility

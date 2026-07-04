@@ -23,6 +23,16 @@ npm install -g multimodel-dev-os
 multimodel-dev-os init
 ```
 
+### GitHub Packages Mirror
+
+The primary package identity is `multimodel-dev-os` on npmjs. A scoped GitHub Packages mirror can be published manually as `@rizvee/multimodel-dev-os`:
+
+```bash
+npm install -g @rizvee/multimodel-dev-os --registry=https://npm.pkg.github.com
+```
+
+See [GitHub Packages Mirror](./github-packages.md) for staging and publication details.
+
 ### Fallback Scripts
 
 **macOS / Linux / WSL:**
@@ -79,7 +89,7 @@ node bin/multimodel-dev-os.js doctor --release
 ```
 
 **Expected results:**
-- `verify`: 213+ pass, 0 fail, 1 expected .npmrc warning
+- `verify`: 289 pass, 0 fail
 - `docs:build`: builds without errors
 - `pack --dry-run`: reports correct version in tarball name
 - CLI `--help`: shows correct version
@@ -106,7 +116,7 @@ export MMDO_ALLOW_PUBLISH=true   # bash
 $env:MMDO_ALLOW_PUBLISH = "true" # PowerShell
 
 # Publish to npm
-npm publish --access public
+npm publish --provenance --access public
 ```
 
 ### Post-Publish Smoke Test
@@ -153,11 +163,7 @@ assets/       → Visual assets
 - `docs/.vitepress/dist/` — built docs (deployed separately via GitHub Pages)
 - `docs/.vitepress/cache/` — build cache
 - `.ai/intelligence/` runtime files — memory, feedback, proposals
-- `.npmrc` — expected warning in verify suite
-
-### The `.npmrc` Warning
-
-The verify suite reports 1 expected warning about `.npmrc` existing in the package root. This file contains only the registry URL and no credentials. It's flagged as a security best practice reminder. This warning is intentional and does not block publishing.
+- `.npmrc` — local registry/auth configuration must not be committed or packaged
 
 ---
 

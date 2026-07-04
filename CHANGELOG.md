@@ -6,8 +6,9 @@
 
 ### Added
 - **Registry trust management**: Added registry trust add/remove workflow coverage and remote key fetch support for signed registry publisher key workflows.
-- **Handler-level test coverage**: Expanded focused unit tests for decomposed CLI handlers and registry trust-store behavior, keeping 206 tests passing across 24 test files.
-- **Codex/VS Code release workflow documentation**: Hardened public docs for Codex-ready contributor setup, release validation, package safety, and GitHub Pages documentation publishing.
+- **Handler-level test coverage**: Expanded focused unit tests for decomposed CLI handlers and registry trust-store behavior.
+- **Contributor workflow documentation**: Hardened public docs for VS Code, Codex, release validation, package safety, and GitHub Pages documentation publishing.
+- **GitHub Packages preparation**: Added a manual-only staging and publishing path for the optional `@rizvee/multimodel-dev-os` GitHub Packages mirror without changing the npm package identity.
 
 ### Changed
 - **Modular CLI entrypoint**: Decomposed CLI main routing into clearer internal modules while preserving command names, public outputs, and exit-code behavior.
@@ -15,7 +16,7 @@
 - **Inspection handler decomposition**: Split verify, doctor, validate, and scan handling into focused modules while preserving public command compatibility.
 - **Modular verification engine**: Decomposed the monolithic `scripts/verify.js` into focused modules under `scripts/verify/`, with `scripts/verify.js` retained as a thin wrapper.
 - **Developer experience hardening**: Updated README and docs navigation, stale quality-gate counts, broken internal links, npm metadata, and release validation guidance.
-- **Final package hygiene**: Excluded generated VitePress `.temp` build output from Git tracking and npm pack contents; dry-run package output remains at 435 files.
+- **Final package hygiene**: Excluded generated VitePress `.temp` build output, local tool folders, scratch markdown, and release staging output from Git tracking and package contents.
 
 ### Validation
 - `npm run build`
@@ -24,9 +25,6 @@
 - `npm run verify`
 - `npm run docs:build`
 - `npm pack --dry-run`
-
-### Release Notes
-- npm publish is pending and will be completed manually after tag and draft GitHub release preparation.
 
 ## [3.5.0] - 2026-06-21
 

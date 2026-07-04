@@ -63,7 +63,7 @@ To verify signatures, the corresponding public key must be registered in `.ai/re
 
 ## Verification & Trust Readiness
 
-As of the current internal development sprint, the registry signature verification pipeline is fully tested end-to-end using dedicated offline E2E fixtures:
+The registry signature verification pipeline is tested end-to-end using dedicated offline E2E fixtures:
 - **Valid signatures** pass verification.
 - **Tampered manifests, wrong keys, and revoked keys** are blocked, reporting precise errors and warning verdicts recorded inside the local provenance lockfile (`registry-lock.json`).
 

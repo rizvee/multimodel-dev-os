@@ -74,7 +74,7 @@ checkSecurityHotfixRegressions();
 // 15. Registry Signing & Provenance Checks
 checkSecurityHygiene();
 
-// 16. Sprint 3 Signed Registry E2E & Readiness Checks
+// 16. Signed Registry E2E & Readiness Checks
 checkSignedRegistryE2E();
 
 // 17. Final report

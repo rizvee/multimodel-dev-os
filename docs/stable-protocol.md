@@ -35,7 +35,7 @@ MultiModel Dev OS enforces a three-tier design to decouple core workspace contex
 ## 2. Layer 1: Root Contracts
 
 The following root files serve as the workspace single source of truth and are completely frozen:
-- **`AGENTS.md`**: Defines team structures, boundaries, and model configurations (Codex project memory / Antigravity AI workflow).
+- **`AGENTS.md`**: Defines team structures, boundaries, and adapter-specific project instructions.
 - **`MEMORY.md`**: Preserves key context decisions, codebase state, and repository milestones.
 - **`TASKS.md`**: Tracks current active goals and backlog.
 - **`RUNBOOK.md`**: Operational scripts and workspace verify procedures.

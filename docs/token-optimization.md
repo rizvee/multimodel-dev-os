@@ -21,7 +21,7 @@ In agentic coding workflows, token overheads are the single largest source of AP
 ## 3. Policy Guidelines
 
 ### Keep Checklist Files Short
-Use `TASKS.md` exclusively for active sprint tasks. Move completed or historical backlogs to archive directories or logs.
+Use `TASKS.md` exclusively for active release or maintenance tasks. Move completed or historical backlogs to archive directories or logs.
 
 ### Model Handoff Compression
 When switching from reasoning models to quick-fixing models, use [.ai/prompts/compress-context.md](../.ai/prompts/compress-context.md) to distill findings into high-density prompts.
