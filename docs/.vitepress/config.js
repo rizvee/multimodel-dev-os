@@ -192,11 +192,13 @@ export default {
         text: 'Distribution & Release',
         items: [
           { text: 'Distribution Guide', link: '/distribution' },
+          { text: 'Release State', link: '/release-state' },
           { text: 'NPM Publishing Runbook', link: '/npm-publishing' },
           { text: 'GitHub Packages', link: '/github-packages' },
           { text: 'Release Playbook Template', link: '/release-template' },
           { text: 'Public Launch Checklist', link: '/launch-checklist' },
           { text: 'Launch & Sharing Kit', link: '/launch-kit' },
+          { text: 'Future AI OS Roadmap', link: '/future-ai-os-roadmap' },
           { text: 'CLI Roadmap', link: '/cli-roadmap' },
           { text: 'v3 Roadmap', link: '/v3-roadmap' },
           { text: 'v3.5.0 Release Readiness', link: '/v3.5.0-readiness' },

@@ -184,6 +184,10 @@ Patch note: v4.0.1 updates npm package-page documentation after the v4.0.0 publi
 
 **[Full Roadmap →](https://rizvee.github.io/multimodel-dev-os/v3-roadmap)**
 
+Future roadmap:
+**[Release state](docs/release-state.md)** ·
+**[AI OS roadmap](docs/future-ai-os-roadmap.md)**
+
 ---
 
 ## Documentation & Resources
