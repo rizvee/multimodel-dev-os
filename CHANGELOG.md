@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [4.0.1] - 2026-07-05
+
+### Fixed
+- Corrected the npm README roadmap/status text after the v4.0.0 publication.
+
+### Changed
+- Updated package metadata for the v4.0.1 documentation/package-page polish release.
+
+### Notes
+- No runtime behavior changes.
+- No CLI behavior changes.
+
 ## [4.0.0] - 2026-07-05
 
 ### Added

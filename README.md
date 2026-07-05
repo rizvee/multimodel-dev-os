@@ -155,6 +155,8 @@ npx multimodel-dev-os@latest handoff build
 - 🛡️ **Registry Trust Hardening** — Trust store, remote key workflows, signing, and provenance checks are production-hardened for registry safety.
 - 🧪 **Handler-Level Test Coverage** — Focused unit coverage protects decomposed command handlers, registry trust behavior, and package hygiene.
 
+Patch note: v4.0.1 updates npm package-page documentation after the v4.0.0 publication. It does not change runtime behavior or CLI behavior.
+
 **[Full Changelog →](CHANGELOG.md)**
 
 ---
@@ -178,7 +180,7 @@ npx multimodel-dev-os@latest handoff build
 | **v3.1.0** | Modular Source Layout + Formal Unit Tests | ✅ Released |
 | **v3.2.0** | Stable Modular Build + Package Governance | ✅ Released |
 | **v3.5.0** | Trusted Registry Signing + Provenance Foundation | ✅ Released |
-| **v4.0.0** | Modular CLI + Verification Engine Production Hardening | ✅ Released |
+| **v4.0.0** | Modular CLI, verification engine, registry trust, handler tests, docs/DX hardening | ✅ Released |
 
 **[Full Roadmap →](https://rizvee.github.io/multimodel-dev-os/v3-roadmap)**
 

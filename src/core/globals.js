@@ -10,7 +10,7 @@ const __dirname = dirname(__filename);
 // So resolving '..' will give the project root directory
 export const sourceRoot = resolve(__dirname, '..');
 
-let pkgVersion = '4.0.0';
+let pkgVersion = '4.0.1';
 try {
   const pkgData = JSON.parse(readFileSync(resolve(sourceRoot, 'package.json'), 'utf8'));
   pkgVersion = pkgData.version;

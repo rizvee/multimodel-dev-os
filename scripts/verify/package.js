@@ -76,7 +76,7 @@ export function verifyPackage() {
       }
     }
 
-    // Test 2: Allows version 4.0.0 with MMDO_ALLOW_PUBLISH=true
+    // Test 2: Allows the current package version with MMDO_ALLOW_PUBLISH=true
     try {
       const output = execSync('node scripts/prepublish-guard.js', { 
         cwd: projectRoot, 
@@ -84,7 +84,7 @@ export function verifyPackage() {
         encoding: 'utf8' 
       });
       if (output.includes('Prepublish guard passed')) {
-        console.log(`  ${GREEN}✓${NC} prepublish guard allows version 4.0.0 when MMDO_ALLOW_PUBLISH=true`);
+        console.log(`  ${GREEN}✓${NC} prepublish guard allows version ${expectedVersion} when MMDO_ALLOW_PUBLISH=true`);
         stats.pass++;
       } else {
         console.error(`  ${RED}✗${NC} prepublish guard passed but stdout missing success indicator`);
@@ -92,7 +92,7 @@ export function verifyPackage() {
       }
     } catch (err) {
       const errText = err.stderr ? err.stderr.toString() : '';
-      console.error(`  ${RED}✗${NC} prepublish guard blocked version 4.0.0: ${errText || err.message}`);
+      console.error(`  ${RED}✗${NC} prepublish guard blocked version ${expectedVersion}: ${errText || err.message}`);
       stats.fail++;
     }
 
@@ -106,12 +106,12 @@ export function verifyPackage() {
       stats.pass++;
     }
 
-    // Test 4: Package.json version is exactly 4.0.0
-    if (expectedVersion === '4.0.0') {
-      console.log(`  ${GREEN}✓${NC} package.json version is exactly 4.0.0`);
+    // Test 4: Package.json version is exactly the prepared patch release.
+    if (expectedVersion === '4.0.1') {
+      console.log(`  ${GREEN}✓${NC} package.json version is exactly 4.0.1`);
       stats.pass++;
     } else {
-      console.error(`  ${RED}✗${NC} package.json version is not 4.0.0 (found ${expectedVersion})`);
+      console.error(`  ${RED}✗${NC} package.json version is not 4.0.1 (found ${expectedVersion})`);
       stats.fail++;
     }
   } catch (e) {
