@@ -1,0 +1,105 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MultiModel Dev OS Skill Registry Schema",
+  "description": "Schema for optional Skill OS skill registry metadata. Sprint A provides examples only; enforcement is planned for a later sprint.",
+  "type": "object",
+  "required": ["skills"],
+  "properties": {
+    "skills": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/skill"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "skill": {
+      "type": "object",
+      "required": ["id", "name", "version", "description", "category", "risk_level", "permissions", "skill_file"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+(?:[-+][0-9A-Za-z.-]+)?$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "triggers": {
+          "type": "object",
+          "properties": {
+            "explicit": { "type": "array", "items": { "type": "string" } },
+            "intent": { "type": "array", "items": { "type": "string" } },
+            "files": { "type": "array", "items": { "type": "string" } },
+            "workflows": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": false
+        },
+        "required_context": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/relativePath" }
+        },
+        "provided_outputs": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "risk_level": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "restricted"]
+        },
+        "permissions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["read-only", "draft-only", "write-with-confirmation", "restricted-admin"]
+          },
+          "minItems": 1
+        },
+        "recommended_models": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "token_budget": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "skill_file": {
+          "$ref": "#/definitions/relativePath"
+        },
+        "checks": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/relativePath" }
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string" },
+              "prompt": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "relativePath": {
+      "type": "string",
+      "pattern": "^(?![A-Za-z]:)(?!/)(?!.*(^|[\\\\/])\\.\\.([\\\\/]|$)).+"
+    }
+  }
+}

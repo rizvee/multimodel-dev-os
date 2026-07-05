@@ -15,10 +15,10 @@ Implement reusable RACE+ templates for consistent, inspectable prompts:
 - Verification
 - Next action
 
-Potential files:
+Sprint A foundation files:
 
 - `.ai/prompts/race-plus.md`
-- `.ai/templates/prompt-template.yaml`
+- `.ai/registries/prompt-templates.yaml`
 - `.ai/schema/prompt-template.schema.json`
 
 ## Skill-First Workflow System
@@ -45,11 +45,10 @@ Define tool permission classes so connected tools can be routed through predicta
 - Write-with-confirmation
 - Restricted-admin
 
-Potential files:
+Sprint A foundation files:
 
-- `.ai/context/ops-command-center-rules.md`
-- `.ai/checks/ops-write-safety.md`
 - `.ai/registries/tool-permissions.yaml`
+- `.ai/schema/tool-permission.schema.json`
 
 ## Hooks and Guardrails
 

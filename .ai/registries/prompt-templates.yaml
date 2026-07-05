@@ -1,0 +1,142 @@
+# MultiModel Dev OS - RACE+ Prompt Template Examples
+# Sprint A foundation: declarative examples only. No prompt execution is implied.
+
+prompt_templates:
+  release-audit:
+    id: release-audit
+    name: "Release Audit"
+    version: "1.0.0"
+    description: "Audit whether a prepared release is safe to publish or finalize."
+    race_plus:
+      role: "Release engineer"
+      action: "Audit release state, package metadata, tags, draft releases, and validation results."
+      context:
+        required_files:
+          - "package.json"
+          - "CHANGELOG.md"
+          - "docs/release-state.md"
+        state_inputs:
+          - "npm latest version"
+          - "git status"
+          - "GitHub release draft state"
+      expectation: "Produce a blocker-first release report with exact manual next commands."
+      constraints:
+        - "Do not publish npm unless explicitly approved."
+        - "Do not move existing tags."
+        - "Do not publish draft GitHub releases before npmjs confirms the version."
+      output_format: "markdown-report"
+      verification:
+        - "npm view multimodel-dev-os version"
+        - "npm run verify"
+      next_action: "Wait for maintainer approval or manual npm publish."
+    variables:
+      version:
+        description: "Version under review."
+        required: true
+      package_name:
+        description: "npm package name."
+        required: true
+    compatible_agents:
+      - "codex"
+      - "claude"
+      - "gemini"
+      - "cursor"
+      - "vscode"
+    examples:
+      - "Audit whether v4.0.1 is npm-published before publishing the GitHub release."
+
+  code-review:
+    id: code-review
+    name: "Code Review"
+    version: "1.0.0"
+    description: "Review code changes with a findings-first output contract."
+    race_plus:
+      role: "Senior code reviewer"
+      action: "Inspect the diff for bugs, regressions, missing tests, and maintainability risks."
+      context:
+        required_files:
+          - "src/"
+          - "tests/"
+      expectation: "List actionable findings first, then summarize residual risk."
+      constraints:
+        - "Do not rewrite unrelated code."
+        - "Do not reduce coverage."
+      output_format: "findings-first-markdown"
+      verification:
+        - "npm test"
+        - "npm run verify"
+      next_action: "Implement only approved fixes or report no findings."
+    variables:
+      diff_scope:
+        description: "Files or commits under review."
+        required: true
+    compatible_agents:
+      - "codex"
+      - "claude"
+      - "cursor"
+    examples:
+      - "Review the current branch for release blocker regressions."
+
+  seo-content-brief:
+    id: seo-content-brief
+    name: "SEO Content Brief"
+    version: "1.0.0"
+    description: "Draft a neutral, public-facing content brief for documentation or landing pages."
+    race_plus:
+      role: "SEO content strategist"
+      action: "Create a content brief with audience, search intent, outline, and acceptance criteria."
+      context:
+        required_files:
+          - ".ai/context/seo-rules.md"
+          - ".ai/context/business-rules.md"
+      expectation: "Produce a concise content brief suitable for review before writing."
+      constraints:
+        - "Do not include private business details."
+        - "Do not claim unreleased behavior."
+      output_format: "content-brief"
+      verification:
+        - "Check terminology against public docs."
+      next_action: "Review the brief before drafting content."
+    variables:
+      topic:
+        description: "Topic or page to brief."
+        required: true
+      audience:
+        description: "Target audience."
+        required: false
+    compatible_agents:
+      - "codex"
+      - "gemini"
+      - "claude"
+    examples:
+      - "Draft a brief for a skill-registry documentation page."
+
+  business-ops-summary:
+    id: business-ops-summary
+    name: "Business Ops Summary"
+    version: "1.0.0"
+    description: "Summarize operational state into a draft-only report."
+    race_plus:
+      role: "Business operations assistant"
+      action: "Summarize provided status notes into decisions, blockers, risks, and next actions."
+      context:
+        required_files:
+          - ".ai/context/project-brief.md"
+      expectation: "Produce a clear draft summary without external writes."
+      constraints:
+        - "Do not send messages or update external systems."
+        - "Do not include private examples in public templates."
+      output_format: "ops-summary"
+      verification:
+        - "Confirm all action items have owners or open questions."
+      next_action: "Ask for confirmation before any external action."
+    variables:
+      source_notes:
+        description: "Notes, transcript, or status source to summarize."
+        required: true
+    compatible_agents:
+      - "codex"
+      - "claude"
+      - "gemini"
+    examples:
+      - "Summarize a weekly project update into decisions and next actions."

@@ -1,0 +1,161 @@
+# MultiModel Dev OS - Tool Permission Registry Examples
+# Sprint A foundation: declarative classes only. No enforcement is active yet.
+
+tool_permissions:
+  filesystem-read:
+    tool_id: filesystem-read
+    display_name: "Filesystem Read"
+    class: read-only
+    allowed_operations:
+      - "read files"
+      - "list directories"
+      - "search repository text"
+    blocked_operations:
+      - "write files"
+      - "delete files"
+      - "move files"
+    requires_confirmation: false
+    requires_clean_worktree: false
+    requires_validation: false
+    audit_log: false
+
+  filesystem-write:
+    tool_id: filesystem-write
+    display_name: "Filesystem Write"
+    class: write-with-confirmation
+    allowed_operations:
+      - "create files"
+      - "edit files"
+      - "apply patches"
+    blocked_operations:
+      - "write secrets"
+      - "edit package version without release approval"
+      - "edit generated binaries directly"
+    requires_confirmation: true
+    requires_clean_worktree: false
+    requires_validation: true
+    audit_log: true
+
+  git-commit:
+    tool_id: git-commit
+    display_name: "Git Commit"
+    class: write-with-confirmation
+    allowed_operations:
+      - "stage approved files"
+      - "create local commit"
+    blocked_operations:
+      - "commit unrelated changes"
+      - "amend without approval"
+    requires_confirmation: true
+    requires_clean_worktree: false
+    requires_validation: true
+    audit_log: true
+
+  git-push:
+    tool_id: git-push
+    display_name: "Git Push"
+    class: write-with-confirmation
+    allowed_operations:
+      - "push current branch"
+      - "push approved tag"
+    blocked_operations:
+      - "force push"
+      - "move existing tags"
+      - "push unrelated branches"
+    requires_confirmation: true
+    requires_clean_worktree: true
+    requires_validation: true
+    audit_log: true
+
+  npm-publish:
+    tool_id: npm-publish
+    display_name: "npm Publish"
+    class: restricted-admin
+    allowed_operations:
+      - "publish approved package version"
+    blocked_operations:
+      - "publish without explicit maintainer approval"
+      - "publish when package version is unverified"
+      - "publish when release state is blocked"
+    requires_confirmation: true
+    requires_clean_worktree: true
+    requires_validation: true
+    audit_log: true
+
+  github-release:
+    tool_id: github-release
+    display_name: "GitHub Release Draft"
+    class: draft-only
+    allowed_operations:
+      - "create draft release notes"
+      - "inspect release metadata"
+      - "create draft release after approved tag"
+    blocked_operations:
+      - "publish public release"
+      - "mark latest"
+    requires_confirmation: true
+    requires_clean_worktree: true
+    requires_validation: true
+    audit_log: true
+
+  github-release-publish:
+    tool_id: github-release-publish
+    display_name: "GitHub Release Publish"
+    class: restricted-admin
+    allowed_operations:
+      - "publish approved draft release"
+      - "mark release latest after npmjs confirmation"
+    blocked_operations:
+      - "publish before npmjs version exists"
+      - "publish stale release notes"
+      - "move release tag"
+    requires_confirmation: true
+    requires_clean_worktree: true
+    requires_validation: true
+    audit_log: true
+
+  dns-change:
+    tool_id: dns-change
+    display_name: "DNS Change"
+    class: restricted-admin
+    allowed_operations:
+      - "prepare DNS change plan"
+      - "draft DNS record updates"
+    blocked_operations:
+      - "apply DNS changes without explicit approval"
+      - "delete production records"
+    requires_confirmation: true
+    requires_clean_worktree: false
+    requires_validation: true
+    audit_log: true
+
+  ad-spend-change:
+    tool_id: ad-spend-change
+    display_name: "Ad Spend Change"
+    class: restricted-admin
+    allowed_operations:
+      - "draft campaign budget recommendation"
+      - "review spend settings"
+    blocked_operations:
+      - "increase spend without explicit approval"
+      - "launch campaigns automatically"
+    requires_confirmation: true
+    requires_clean_worktree: false
+    requires_validation: true
+    audit_log: true
+
+  secret-rotation:
+    tool_id: secret-rotation
+    display_name: "Secret Rotation"
+    class: restricted-admin
+    allowed_operations:
+      - "draft rotation checklist"
+      - "identify references to rotate"
+    blocked_operations:
+      - "print secret values"
+      - "dump environment variables"
+      - "rotate production secrets without explicit approval"
+    requires_confirmation: true
+    requires_clean_worktree: false
+    requires_validation: true
+    audit_log: true

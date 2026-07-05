@@ -1,0 +1,164 @@
+# MultiModel Dev OS - Agent Cluster Registry Examples
+# Sprint A foundation: declarative routing examples only. No autonomous cluster execution is active.
+
+agent_clusters:
+  core-technical:
+    id: core-technical
+    name: "Core Technical"
+    description: "Coding, review, testing, architecture, and release validation workflows."
+    scope:
+      - "source code"
+      - "tests"
+      - "build and verification"
+      - "release readiness"
+    typical_skills:
+      - release-governance
+      - security-audit
+      - code-review
+    allowed_tool_classes:
+      - read-only
+      - draft-only
+      - write-with-confirmation
+    required_context:
+      - "AGENTS.md"
+      - "README.md"
+      - "docs/release-state.md"
+    outputs:
+      - "implementation plan"
+      - "code review findings"
+      - "validation report"
+    validation_expectations:
+      - "Run focused tests for source changes."
+      - "Run npm run verify before release-sensitive commits."
+
+  growth-marketing:
+    id: growth-marketing
+    name: "Growth Marketing"
+    description: "SEO, competitor intelligence, content planning, and campaign brief workflows."
+    scope:
+      - "public docs"
+      - "SEO guidance"
+      - "content briefs"
+      - "market-facing positioning"
+    typical_skills:
+      - seo-audit
+      - content-brief
+    allowed_tool_classes:
+      - read-only
+      - draft-only
+    required_context:
+      - ".ai/context/seo-rules.md"
+      - ".ai/context/business-rules.md"
+    outputs:
+      - "SEO findings"
+      - "content brief"
+      - "positioning notes"
+    validation_expectations:
+      - "Do not claim unreleased behavior."
+      - "Keep public-facing language neutral and accurate."
+
+  business-ops:
+    id: business-ops
+    name: "Business Ops"
+    description: "Operational summaries, meeting recap drafts, KPI snapshots, and weekly reviews."
+    scope:
+      - "status summaries"
+      - "weekly review"
+      - "project pulse"
+      - "SOP drafts"
+    typical_skills:
+      - business-ops
+      - document-production
+    allowed_tool_classes:
+      - read-only
+      - draft-only
+    required_context:
+      - ".ai/context/project-brief.md"
+      - ".ai/context/context-budget.md"
+    outputs:
+      - "summary"
+      - "next action list"
+      - "SOP draft"
+    validation_expectations:
+      - "Do not send messages or update external systems without approval."
+      - "Keep examples generic in public templates."
+
+  devops-security:
+    id: devops-security
+    name: "DevOps Security"
+    description: "Deployment safety, registry trust, secrets review, and incident-readiness workflows."
+    scope:
+      - "deployment rules"
+      - "registry trust"
+      - "package safety"
+      - "secret handling"
+    typical_skills:
+      - security-audit
+      - release-governance
+    allowed_tool_classes:
+      - read-only
+      - draft-only
+      - write-with-confirmation
+      - restricted-admin
+    required_context:
+      - ".ai/context/deployment-rules.md"
+      - "docs/security-threat-model.md"
+      - "docs/tui-safety.md"
+    outputs:
+      - "risk report"
+      - "deployment checklist"
+      - "mitigation plan"
+    validation_expectations:
+      - "Restricted-admin actions require explicit confirmation."
+      - "Never print secrets or environment dumps."
+
+  document-production:
+    id: document-production
+    name: "Document Production"
+    description: "Reports, proposals, briefs, SOPs, and structured handoff documents."
+    scope:
+      - "draft documents"
+      - "handoffs"
+      - "reports"
+      - "templates"
+    typical_skills:
+      - document-production
+      - content-brief
+    allowed_tool_classes:
+      - read-only
+      - draft-only
+    required_context:
+      - ".ai/prompts/implement-safely.md"
+      - ".ai/templates/session-log-template.md"
+    outputs:
+      - "draft report"
+      - "outline"
+      - "handoff summary"
+    validation_expectations:
+      - "Separate facts, assumptions, and open questions."
+      - "Ask before writing to external systems."
+
+  academic-execution:
+    id: academic-execution
+    name: "Academic Execution"
+    description: "Research planning, citation-aware outlines, study guides, and structured writing workflows."
+    scope:
+      - "research planning"
+      - "study guides"
+      - "structured writing"
+      - "citation planning"
+    typical_skills:
+      - document-production
+      - content-brief
+    allowed_tool_classes:
+      - read-only
+      - draft-only
+    required_context:
+      - ".ai/context/project-brief.md"
+    outputs:
+      - "research plan"
+      - "study guide"
+      - "structured draft"
+    validation_expectations:
+      - "Label unsupported claims."
+      - "Keep source and citation requirements explicit."

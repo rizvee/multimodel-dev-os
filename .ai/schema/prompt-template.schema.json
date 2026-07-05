@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MultiModel Dev OS Prompt Template Registry Schema",
+  "description": "Schema for optional RACE+ prompt template metadata. Sprint A provides examples only; enforcement is planned for a later sprint.",
+  "type": "object",
+  "required": ["prompt_templates"],
+  "properties": {
+    "prompt_templates": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/promptTemplate"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "promptTemplate": {
+      "type": "object",
+      "required": ["id", "name", "version", "description", "race_plus"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+(?:[-+][0-9A-Za-z.-]+)?$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "race_plus": {
+          "type": "object",
+          "required": ["role", "action", "context", "expectation", "constraints", "output_format", "verification", "next_action"],
+          "properties": {
+            "role": { "type": "string" },
+            "action": { "type": "string" },
+            "context": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "expectation": { "type": "string" },
+            "constraints": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "output_format": { "type": "string" },
+            "verification": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "next_action": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "variables": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "description": { "type": "string" },
+              "required": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "compatible_agents": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "examples": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

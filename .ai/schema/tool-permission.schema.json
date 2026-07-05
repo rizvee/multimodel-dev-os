@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MultiModel Dev OS Tool Permission Registry Schema",
+  "description": "Schema for optional tool permission classes. Sprint A is declarative only and does not enforce permissions.",
+  "type": "object",
+  "required": ["tool_permissions"],
+  "properties": {
+    "tool_permissions": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/toolPermission"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "toolPermission": {
+      "type": "object",
+      "required": ["tool_id", "display_name", "class", "allowed_operations", "blocked_operations", "requires_confirmation", "requires_clean_worktree", "requires_validation", "audit_log"],
+      "properties": {
+        "tool_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "class": {
+          "type": "string",
+          "enum": ["read-only", "draft-only", "write-with-confirmation", "restricted-admin"]
+        },
+        "allowed_operations": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "blocked_operations": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "requires_confirmation": {
+          "type": "boolean"
+        },
+        "requires_clean_worktree": {
+          "type": "boolean"
+        },
+        "requires_validation": {
+          "type": "boolean"
+        },
+        "audit_log": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

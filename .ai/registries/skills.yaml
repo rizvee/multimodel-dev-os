@@ -1,0 +1,263 @@
+# MultiModel Dev OS - Skill Registry Examples
+# Sprint A foundation: declarative metadata only. Existing markdown skills remain valid.
+
+skills:
+  release-governance:
+    id: release-governance
+    name: "Release Governance"
+    version: "1.0.0"
+    description: "Plan, audit, and report package release states without publishing automatically."
+    category: release-governance
+    triggers:
+      explicit:
+        - "release governance"
+        - "release audit"
+      intent:
+        - "prepare release"
+        - "check release state"
+        - "post-publish validation"
+      files:
+        - "package.json"
+        - "CHANGELOG.md"
+        - "docs/release-state.md"
+      workflows:
+        - release-check
+    required_context:
+      - "docs/release-state.md"
+      - "CHANGELOG.md"
+      - "package.json"
+    provided_outputs:
+      - "release-state-report"
+      - "blocker-list"
+      - "manual-next-commands"
+    risk_level: high
+    permissions:
+      - read-only
+      - draft-only
+    recommended_models:
+      - "reasoning"
+      - "code-review"
+    token_budget: 1800
+    skill_file: ".ai/plugins/catalog/.ai/skills/release-ops.md"
+    checks:
+      - ".ai/checks/pre-deploy.md"
+      - ".ai/checks/regression-checklist.md"
+    examples:
+      - title: "Prepared release audit"
+        prompt: "Confirm whether a tagged draft release is npm-published yet."
+
+  security-audit:
+    id: security-audit
+    name: "Security Audit"
+    version: "1.0.0"
+    description: "Review repository, registry, and package boundaries for security risks."
+    category: security-audit
+    triggers:
+      explicit:
+        - "security audit"
+      intent:
+        - "check secrets"
+        - "review package safety"
+        - "audit permissions"
+      files:
+        - ".ai/policies/registry-policy.yaml"
+        - "docs/security-threat-model.md"
+      workflows:
+        - security-audit
+    required_context:
+      - "docs/security-threat-model.md"
+      - "docs/tui-safety.md"
+      - ".ai/policies/registry-policy.yaml"
+    provided_outputs:
+      - "risk-report"
+      - "mitigation-list"
+    risk_level: high
+    permissions:
+      - read-only
+      - draft-only
+    recommended_models:
+      - "security-review"
+      - "reasoning"
+    token_budget: 2200
+    skill_file: ".ai/skills/bug-fix.md"
+    checks:
+      - ".ai/checks/pre-commit.md"
+      - ".ai/checks/regression-checklist.md"
+    examples:
+      - title: "Package safety audit"
+        prompt: "Review package contents for secrets, local paths, and publish blockers."
+
+  seo-audit:
+    id: seo-audit
+    name: "SEO Audit"
+    version: "1.0.0"
+    description: "Review public content structure, metadata, and search-facing documentation."
+    category: seo-audit
+    triggers:
+      explicit:
+        - "seo audit"
+      intent:
+        - "review page metadata"
+        - "prepare content optimization"
+      files:
+        - "docs/"
+        - "README.md"
+      workflows:
+        - seo-audit
+    required_context:
+      - ".ai/context/seo-rules.md"
+      - "docs/seo-landing-page.md"
+    provided_outputs:
+      - "seo-findings"
+      - "content-recommendations"
+    risk_level: low
+    permissions:
+      - read-only
+      - draft-only
+    recommended_models:
+      - "content-review"
+    token_budget: 1500
+    skill_file: ".ai/plugins/catalog/.ai/skills/seo-audit-ops.md"
+    checks:
+      - ".ai/checks/pre-implementation.md"
+    examples:
+      - title: "Docs search review"
+        prompt: "Audit a documentation page for headings, titles, and discoverability."
+
+  content-brief:
+    id: content-brief
+    name: "Content Brief"
+    version: "1.0.0"
+    description: "Draft structured content briefs for public-facing pages and campaigns."
+    category: content-brief
+    triggers:
+      explicit:
+        - "content brief"
+      intent:
+        - "plan article"
+        - "draft page outline"
+    required_context:
+      - ".ai/context/business-rules.md"
+      - ".ai/context/seo-rules.md"
+    provided_outputs:
+      - "brief"
+      - "outline"
+      - "acceptance-criteria"
+    risk_level: low
+    permissions:
+      - draft-only
+    recommended_models:
+      - "writing"
+    token_budget: 1400
+    skill_file: ".ai/skills/landing-page-optimization.md"
+    checks:
+      - ".ai/checks/context-budget.md"
+    examples:
+      - title: "Landing page brief"
+        prompt: "Draft a concise content brief for a public documentation page."
+
+  document-production:
+    id: document-production
+    name: "Document Production"
+    version: "1.0.0"
+    description: "Create structured drafts for reports, SOPs, briefs, and handoff documents."
+    category: document-production
+    triggers:
+      explicit:
+        - "document production"
+      intent:
+        - "draft report"
+        - "write SOP"
+        - "prepare handoff"
+    required_context:
+      - ".ai/prompts/implement-safely.md"
+      - ".ai/templates/session-log-template.md"
+    provided_outputs:
+      - "draft-document"
+      - "review-checklist"
+    risk_level: low
+    permissions:
+      - draft-only
+    recommended_models:
+      - "writing"
+      - "reasoning"
+    token_budget: 1600
+    skill_file: ".ai/skills/example-skill.md"
+    checks:
+      - ".ai/checks/context-budget.md"
+    examples:
+      - title: "SOP draft"
+        prompt: "Draft an SOP from a process summary and expected output format."
+
+  business-ops:
+    id: business-ops
+    name: "Business Ops Summary"
+    version: "1.0.0"
+    description: "Prepare read-only or draft-only operational summaries such as weekly reviews and project pulses."
+    category: business-ops
+    triggers:
+      explicit:
+        - "business ops"
+        - "weekly review"
+      intent:
+        - "summarize project state"
+        - "prepare KPI snapshot"
+    required_context:
+      - ".ai/context/project-brief.md"
+      - ".ai/context/context-budget.md"
+    provided_outputs:
+      - "summary"
+      - "next-actions"
+    risk_level: medium
+    permissions:
+      - read-only
+      - draft-only
+    recommended_models:
+      - "reasoning"
+      - "writing"
+    token_budget: 1700
+    skill_file: ".ai/skills/context-routing.md"
+    checks:
+      - ".ai/checks/context-budget.md"
+    examples:
+      - title: "Project pulse"
+        prompt: "Summarize current project state and next recommended actions."
+
+  code-review:
+    id: code-review
+    name: "Code Review"
+    version: "1.0.0"
+    description: "Review changes for regressions, missing tests, and maintainability risks."
+    category: code-review
+    triggers:
+      explicit:
+        - "code review"
+        - "review diff"
+      intent:
+        - "inspect changes"
+        - "find regressions"
+      files:
+        - "src/"
+        - "tests/"
+    required_context:
+      - ".ai/prompts/review-diff.md"
+      - ".ai/checks/pre-commit.md"
+    provided_outputs:
+      - "findings"
+      - "risk-summary"
+      - "test-gaps"
+    risk_level: medium
+    permissions:
+      - read-only
+      - draft-only
+    recommended_models:
+      - "code-review"
+      - "reasoning"
+    token_budget: 2000
+    skill_file: ".ai/skills/refactor.md"
+    checks:
+      - ".ai/checks/pre-commit.md"
+      - ".ai/checks/regression-checklist.md"
+    examples:
+      - title: "Diff review"
+        prompt: "Review the current diff for correctness risks and missing tests."

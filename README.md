@@ -186,7 +186,8 @@ Patch note: v4.0.1 updates npm package-page documentation after the v4.0.0 publi
 
 Future roadmap:
 **[Release state](docs/release-state.md)** ·
-**[AI OS roadmap](docs/future-ai-os-roadmap.md)**
+**[AI OS roadmap](docs/future-ai-os-roadmap.md)** ·
+**[v4.1 Skill OS plan](docs/v4.1-skill-os-foundation-plan.md)**
 
 ---
 

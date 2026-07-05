@@ -104,6 +104,10 @@ export default {
           { text: 'Custom Adapters Guide', link: '/adapter-authoring' },
           { text: 'Template Authoring Guide', link: '/template-authoring' },
           { text: 'Skill Authoring Guide', link: '/skill-authoring' },
+          { text: 'Structured Prompts', link: '/structured-prompts' },
+          { text: 'Skill Registry', link: '/skill-registry' },
+          { text: 'Tool Permissions', link: '/tool-permissions' },
+          { text: 'Agent Clusters', link: '/agent-clusters' },
           { text: 'Registry Contribution Guide', link: '/registry-contribution' }
         ]
       },
@@ -199,6 +203,7 @@ export default {
           { text: 'Public Launch Checklist', link: '/launch-checklist' },
           { text: 'Launch & Sharing Kit', link: '/launch-kit' },
           { text: 'Future AI OS Roadmap', link: '/future-ai-os-roadmap' },
+          { text: 'v4.1 Skill OS Plan', link: '/v4.1-skill-os-foundation-plan' },
           { text: 'CLI Roadmap', link: '/cli-roadmap' },
           { text: 'v3 Roadmap', link: '/v3-roadmap' },
           { text: 'v3.5.0 Release Readiness', link: '/v3.5.0-readiness' },
