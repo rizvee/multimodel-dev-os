@@ -72,7 +72,7 @@ Add a new section to `CHANGELOG.md` following the Keep a Changelog format.
 ### 3. Verification Suite
 
 ```bash
-# Run 289 structural checks
+# Run 300+ structural checks
 npm run verify
 
 # Build docs to catch broken links
@@ -89,7 +89,7 @@ node bin/multimodel-dev-os.js doctor --release
 ```
 
 **Expected results:**
-- `verify`: 289 pass, 0 fail
+- `verify`: 300+ pass, 0 fail
 - `docs:build`: builds without errors
 - `pack --dry-run`: reports correct version in tarball name
 - CLI `--help`: shows correct version

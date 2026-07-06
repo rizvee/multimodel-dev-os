@@ -14,7 +14,7 @@ Selecting how to manage AI instructions inside a codebase impacts developer spee
 | **Structural validation** | ❌ None | ❌ None | ❌ None | ✅ **validate + doctor + verify** |
 | **Templates** | ❌ Start from scratch | ❌ Start from scratch | ⚠️ Generic starters | ✅ **6 production-ready templates** |
 | **Memory & learning** | ❌ None | ❌ None | ❌ None | ✅ **Hash-compressed memory + feedback loops** |
-| **CI/CD integration** | ❌ None | ❌ None | ❌ None | ✅ **289-check verification suite** |
+| **CI/CD integration** | ❌ None | ❌ None | ❌ None | ✅ **300+ check verification suite** |
 | **Onboarding existing repos** | ❌ Manual setup | ❌ Manual setup | ❌ Manual setup | ✅ **`onboard analyze` workflow** |
 | **Interactive TUI Dashboard** | ❌ None | ❌ None | ❌ None | ✅ **Zero-dependency TUI Menu** |
 | **Declarative Plugins** | ❌ None | ❌ None | ❌ None | ✅ **Safe whitelist YAML plugins** |

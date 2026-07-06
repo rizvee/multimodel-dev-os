@@ -34,7 +34,7 @@ Before publishing, always test the built package locally by compiling a compress
 Execute these validation actions strictly in sequence before triggering a release:
 
 1. **Verify structural health:**
-   Ensure all 289 checks in our verification script pass successfully:
+   Ensure all current verification checks pass successfully:
    ```bash
    npm run verify
    ```
