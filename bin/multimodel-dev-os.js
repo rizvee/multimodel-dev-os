@@ -265,7 +265,7 @@ function parseYaml(content) {
 var __filename = fileURLToPath(import.meta.url);
 var __dirname = dirname(__filename);
 var sourceRoot = resolve2(__dirname, "..");
-var pkgVersion = "4.0.1";
+var pkgVersion = "4.1.0-dev.0";
 try {
   const pkgData = JSON.parse(readFileSync(resolve2(sourceRoot, "package.json"), "utf8"));
   pkgVersion = pkgData.version;

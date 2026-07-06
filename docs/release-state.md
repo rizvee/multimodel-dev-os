@@ -30,11 +30,16 @@ The GitHub release should remain draft until npmjs confirms the version is publi
 ### v4.0.1
 
 - Prepared.
-- Pushed to `main`.
 - Tagged as `v4.0.1`.
 - Draft GitHub release exists.
 - npmjs publish is pending.
-- Not fully released until Hasan manually publishes npmjs and the post-publish checks pass.
+- v4.0.1 remains pending manual npm publish from the `v4.0.1` tag only.
+
+### main (v4.1 development lane)
+
+- main has been moved to the v4.1 development lane (`4.1.0-dev.0`).
+- main must not be published as v4.0.1.
+- npm publish from main is blocked unless explicitly preparing a v4.1 release.
 
 ## Manual Publish Command
 
