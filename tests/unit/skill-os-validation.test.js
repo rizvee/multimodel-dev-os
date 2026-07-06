@@ -17,6 +17,7 @@ function writeJsonSchemas() {
     '.ai/schema/prompt-template.schema.json',
     '.ai/schema/tool-permission.schema.json',
     '.ai/schema/agent-cluster.schema.json',
+    '.ai/schema/guardrail.schema.json',
   ]) {
     writeFile(relPath, '{"type":"object"}\n');
   }
@@ -26,6 +27,12 @@ function writeReferencedFiles() {
   for (const relPath of [
     '.ai/skills/release.md',
     '.ai/checks/pre.md',
+    '.ai/checks/pre-tool.md',
+    '.ai/checks/pre-write.md',
+    '.ai/checks/pre-external-write.md',
+    '.ai/checks/post-change-validation.md',
+    '.ai/checks/session-summary.md',
+    '.ai/checks/ops-write-safety.md',
     '.ai/context/project.md',
     'README.md',
   ]) {
@@ -141,6 +148,27 @@ function validAgentClustersYaml(overrides = '') {
 ${overrides}`;
 }
 
+function validGuardrailsYaml(overrides = '') {
+  return `guardrails:
+  - id: block-destructive-git
+    name: "Block destructive Git operations"
+    version: 1.0.0
+    type: pre_tool
+    severity: restricted
+    applies_to:
+      tool_classes:
+        - restricted-admin
+      operations:
+        - git-reset-hard
+    check_file: .ai/checks/pre-tool.md
+    requires_confirmation: true
+    requires_clean_worktree: true
+    validation:
+      deterministic: true
+      advisory_only: true
+${overrides}`;
+}
+
 function writeValidProject() {
   writeJsonSchemas();
   writeReferencedFiles();
@@ -148,6 +176,7 @@ function writeValidProject() {
   writeFile('.ai/registries/prompt-templates.yaml', validPromptTemplatesYaml());
   writeFile('.ai/registries/tool-permissions.yaml', validToolPermissionsYaml());
   writeFile('.ai/registries/agent-clusters.yaml', validAgentClustersYaml());
+  writeFile('.ai/registries/guardrails.yaml', validGuardrailsYaml());
 }
 
 describe('Skill OS validation', () => {
@@ -173,6 +202,7 @@ describe('Skill OS validation', () => {
     expect(result.summary.promptTemplates).toBeGreaterThan(0);
     expect(result.summary.toolPermissions).toBeGreaterThan(0);
     expect(result.summary.agentClusters).toBeGreaterThan(0);
+    expect(result.summary.guardrails).toBeGreaterThan(0);
   });
 
   it('fails when a required skill field is missing', () => {
@@ -257,4 +287,96 @@ describe('Skill OS validation', () => {
     expect(result.success).toBe(false);
     expect(result.errors).toContain("agent cluster 'core-technical' references invalid tool class: unrestricted-root");
   });
+
+  it('fails when guardrail type is invalid', () => {
+    writeFile('.ai/registries/guardrails.yaml', validGuardrailsYaml().replace('type: pre_tool', 'type: invalid_type'));
+    const result = validateSkillOs(tempDir);
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain("guardrail 'block-destructive-git' has invalid type: invalid_type");
+  });
+
+  it('fails when guardrail severity is invalid', () => {
+    writeFile('.ai/registries/guardrails.yaml', validGuardrailsYaml().replace('severity: restricted', 'severity: invalid_severity'));
+    const result = validateSkillOs(tempDir);
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain("guardrail 'block-destructive-git' has invalid severity: invalid_severity");
+  });
+
+  it('fails when check_file uses path traversal', () => {
+    writeFile('.ai/registries/guardrails.yaml', validGuardrailsYaml().replace('check_file: .ai/checks/pre-tool.md', 'check_file: ../pre-tool.md'));
+    const result = validateSkillOs(tempDir);
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain("guardrail 'block-destructive-git' check_file must be a safe relative path: ../pre-tool.md");
+  });
+
+  it('fails when check_file is missing', () => {
+    writeFile('.ai/registries/guardrails.yaml', validGuardrailsYaml().replace('check_file: .ai/checks/pre-tool.md', 'check_file: .ai/checks/missing.md'));
+    const result = validateSkillOs(tempDir);
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain("guardrail 'block-destructive-git' check_file references missing file or directory: .ai/checks/missing.md");
+  });
+
+  it('fails when restricted severity guardrail does not require confirmation', () => {
+    writeFile('.ai/registries/guardrails.yaml', validGuardrailsYaml().replace('requires_confirmation: true', 'requires_confirmation: false'));
+    const result = validateSkillOs(tempDir);
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain("guardrail 'block-destructive-git' with restricted severity must require confirmation");
+  });
+
+  it('fails when pre_external_write type guardrail does not require confirmation', () => {
+    writeFile('.ai/registries/guardrails.yaml', `guardrails:
+  - id: confirm-external-write
+    name: "Verify external write"
+    version: 1.0.0
+    type: pre_external_write
+    severity: high
+    applies_to:
+      operations:
+        - npm-publish
+    check_file: .ai/checks/pre-external-write.md
+    requires_confirmation: false
+    requires_clean_worktree: true
+    validation:
+      deterministic: true
+      advisory_only: true`);
+    const result = validateSkillOs(tempDir);
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain("guardrail 'confirm-external-write' of type pre_external_write must require confirmation");
+  });
+
+  it('fails when restricted-admin tool class guardrail does not require confirmation', () => {
+    writeFile('.ai/registries/guardrails.yaml', `guardrails:
+  - id: restricted-admin-ops
+    name: "Admin operations"
+    version: 1.0.0
+    type: pre_tool
+    severity: high
+    applies_to:
+      tool_classes:
+        - restricted-admin
+    check_file: .ai/checks/ops-write-safety.md
+    requires_confirmation: false
+    requires_clean_worktree: true
+    validation:
+      deterministic: true
+      advisory_only: true`);
+    const result = validateSkillOs(tempDir);
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain("guardrail 'restricted-admin-ops' applying to restricted-admin must require confirmation");
+  });
+
+  it('fails when advisory_only is false for v4.1', () => {
+    writeFile('.ai/registries/guardrails.yaml', validGuardrailsYaml().replace('advisory_only: true', 'advisory_only: false'));
+    const result = validateSkillOs(tempDir);
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain("guardrail 'block-destructive-git' advisory_only must be true for this sprint");
+  });
+
+  it('fails when deterministic flag is missing or invalid', () => {
+    writeFile('.ai/registries/guardrails.yaml', validGuardrailsYaml().replace('deterministic: true\n', ''));
+    const result = validateSkillOs(tempDir);
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain("guardrail 'block-destructive-git' missing or invalid deterministic flag");
+  });
 });
+

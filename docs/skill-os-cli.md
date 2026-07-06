@@ -59,9 +59,13 @@ multimodel-dev-os skill-os show permission npm-publish
 multimodel-dev-os skill-os show cluster core-technical
 ```
 
+## Sprint D - Declarative Guardrail Validation
+
+Sprint D extends the `skill-os validate` engine to audit the declarative guardrails registry (`.ai/registries/guardrails.yaml`) against `.ai/schema/guardrail.schema.json`. It checks check-file paths, confirmation rules, and advisory constraint declarations.
+
 ## Safety Boundaries
 
-Sprint C is inspection-only:
+Sprint D is advisory and declarative:
 
 - No automation is executed.
 - No permission enforcement is active.

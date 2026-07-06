@@ -87,6 +87,26 @@ Define minimum guardrails for higher-trust automation:
 - Post-change validation reminders
 - Session summary capture
 
+Sprint D foundation files:
+
+- `.ai/registries/guardrails.yaml`
+- `.ai/schema/guardrail.schema.json`
+- `.ai/checks/pre-tool.md`
+- `.ai/checks/pre-write.md`
+- `.ai/checks/pre-external-write.md`
+- `.ai/checks/post-change-validation.md`
+- `.ai/checks/session-summary.md`
+- `.ai/checks/ops-write-safety.md`
+- `docs/hooks-and-guardrails.md`
+
+Sprint D validation:
+
+- JSON schema files parse.
+- Guardrail registry files parse.
+- Required fields are present.
+- Confirmation flags verified for restricted/admin/external operations.
+- Advisory-only mode is declared.
+
 ## Agent Clusters
 
 Define future clusters around recurring work modes:

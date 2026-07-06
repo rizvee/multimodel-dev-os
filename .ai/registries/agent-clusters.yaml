@@ -1,5 +1,6 @@
 # MultiModel Dev OS - Agent Cluster Registry Examples
 # Sprint A foundation: declarative routing examples only. No autonomous cluster execution is active.
+# Sprint D integration: agent clusters are verified against safety guardrails.
 
 agent_clusters:
   core-technical:

@@ -43,7 +43,7 @@ describe('Skill OS Handlers Suite', () => {
     handleSkillOsStatus({ target: process.cwd() });
     const out = logOutput.join('\n');
     expect(out).toContain('Skill OS Status');
-    expect(out).toContain('Schemas: 4');
+    expect(out).toContain('Schemas: 5');
     expect(out).toContain('Skills: 7');
     expect(out).toContain('Prompt templates: 4');
     expect(out).toContain('Tool permissions: 10');

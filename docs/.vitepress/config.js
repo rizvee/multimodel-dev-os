@@ -109,6 +109,7 @@ export default {
           { text: 'Skill OS CLI', link: '/skill-os-cli' },
           { text: 'Tool Permissions', link: '/tool-permissions' },
           { text: 'Agent Clusters', link: '/agent-clusters' },
+          { text: 'Hooks and Guardrails', link: '/hooks-and-guardrails' },
           { text: 'Registry Contribution Guide', link: '/registry-contribution' }
         ]
       },

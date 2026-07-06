@@ -17,6 +17,7 @@ export const SKILL_OS_SCHEMA_FILES = [
   '.ai/schema/prompt-template.schema.json',
   '.ai/schema/tool-permission.schema.json',
   '.ai/schema/agent-cluster.schema.json',
+  '.ai/schema/guardrail.schema.json',
 ];
 
 export const SKILL_OS_REGISTRY_FILES = {
@@ -24,7 +25,11 @@ export const SKILL_OS_REGISTRY_FILES = {
   promptTemplates: '.ai/registries/prompt-templates.yaml',
   toolPermissions: '.ai/registries/tool-permissions.yaml',
   agentClusters: '.ai/registries/agent-clusters.yaml',
+  guardrails: '.ai/registries/guardrails.yaml',
 };
+
+export const VALID_GUARDRAIL_TYPES = ['pre_tool', 'pre_write', 'pre_external_write', 'post_change', 'session_end'];
+export const VALID_GUARDRAIL_SEVERITIES = ['info', 'low', 'medium', 'high', 'restricted'];
 
 const REQUIRED_RACE_PLUS_FIELDS = [
   'role',
@@ -150,9 +155,16 @@ function parseYamlFile(root, relPath, rootKey, result) {
       addError(result, `${relPath} failed to parse as YAML object`);
       return null;
     }
-    if (!isObject(parsed[rootKey])) {
-      addError(result, `${relPath} missing root key: ${rootKey}`);
-      return null;
+    if (rootKey === 'guardrails') {
+      if (!Array.isArray(parsed[rootKey])) {
+        addError(result, `${relPath} missing root key: ${rootKey} (must be an array)`);
+        return null;
+      }
+    } else {
+      if (!isObject(parsed[rootKey])) {
+        addError(result, `${relPath} missing root key: ${rootKey}`);
+        return null;
+      }
     }
     result.parsed.registries[rootKey] = parsed[rootKey];
     return parsed[rootKey];
@@ -345,6 +357,83 @@ function validateAgentClusters(root, clusters, knownSkillIds, knownPermissionCla
   }
 }
 
+function validateGuardrails(root, guardrails, result) {
+  if (!guardrails) return;
+
+  for (const entry of (Array.isArray(guardrails) ? guardrails : [])) {
+    const label = `guardrail '${entry.id || 'unknown'}'`;
+    hasRequiredFields(entry, [
+      'id',
+      'name',
+      'version',
+      'type',
+      'severity',
+      'applies_to',
+      'check_file',
+      'requires_confirmation',
+      'requires_clean_worktree',
+      'validation',
+    ], label, result);
+
+    if (entry.id) {
+      if (!isSlugSafe(entry.id)) addError(result, `${label} has invalid slug id: ${entry.id}`);
+    }
+    if (entry.version) {
+      if (!isSemverLike(entry.version)) addError(result, `${label} has invalid semver-like version: ${entry.version}`);
+    }
+    if (entry.type) {
+      if (!VALID_GUARDRAIL_TYPES.includes(entry.type)) addError(result, `${label} has invalid type: ${entry.type}`);
+    }
+    if (entry.severity) {
+      if (!VALID_GUARDRAIL_SEVERITIES.includes(entry.severity)) addError(result, `${label} has invalid severity: ${entry.severity}`);
+    }
+
+    if (entry.applies_to) {
+      if (!isObject(entry.applies_to)) {
+        addError(result, `${label} applies_to must be an object`);
+      } else {
+        if (entry.applies_to.tool_classes) {
+          validateStringArray(entry.applies_to.tool_classes, `${label} applies_to.tool_classes`, result);
+        }
+        if (entry.applies_to.operations) {
+          validateStringArray(entry.applies_to.operations, `${label} applies_to.operations`, result);
+        }
+      }
+    }
+
+    if (entry.check_file !== undefined) {
+      validateRelativePath(root, entry.check_file, `${label} check_file`, result);
+    }
+
+    if (entry.validation) {
+      if (!isObject(entry.validation)) {
+        addError(result, `${label} validation must be an object`);
+      } else {
+        if (entry.validation.deterministic === undefined || entry.validation.deterministic === null || typeof entry.validation.deterministic !== 'boolean') {
+          addError(result, `${label} missing or invalid deterministic flag`);
+        }
+        if (entry.validation.advisory_only !== true) {
+          addError(result, `${label} advisory_only must be true for this sprint`);
+        }
+      }
+    }
+
+    if (entry.severity === 'restricted' && entry.requires_confirmation !== true) {
+      addError(result, `${label} with restricted severity must require confirmation`);
+    }
+
+    if (entry.type === 'pre_external_write' && entry.requires_confirmation !== true) {
+      addError(result, `${label} of type pre_external_write must require confirmation`);
+    }
+
+    if (entry.applies_to && Array.isArray(entry.applies_to.tool_classes) && entry.applies_to.tool_classes.includes('restricted-admin')) {
+      if (entry.requires_confirmation !== true) {
+        addError(result, `${label} applying to restricted-admin must require confirmation`);
+      }
+    }
+  }
+}
+
 export function loadSkillOsRegistries(root = getDefaultRoot()) {
   const result = createResult();
   const registries = {
@@ -352,6 +441,7 @@ export function loadSkillOsRegistries(root = getDefaultRoot()) {
     promptTemplates: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.promptTemplates, 'prompt_templates', result),
     toolPermissions: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.toolPermissions, 'tool_permissions', result),
     agentClusters: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.agentClusters, 'agent_clusters', result),
+    guardrails: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.guardrails, 'guardrails', result),
   };
   return { ...result, registries };
 }
@@ -365,11 +455,13 @@ export function validateSkillOs(root = getDefaultRoot()) {
   const promptTemplates = parseYamlFile(root, SKILL_OS_REGISTRY_FILES.promptTemplates, 'prompt_templates', result) || {};
   const toolPermissions = parseYamlFile(root, SKILL_OS_REGISTRY_FILES.toolPermissions, 'tool_permissions', result) || {};
   const agentClusters = parseYamlFile(root, SKILL_OS_REGISTRY_FILES.agentClusters, 'agent_clusters', result) || {};
+  const guardrails = parseYamlFile(root, SKILL_OS_REGISTRY_FILES.guardrails, 'guardrails', result) || [];
 
   const knownPermissionClasses = validateToolPermissions(toolPermissions, result);
   const knownSkillIds = validateSkills(root, skills, knownPermissionClasses, result);
   validatePromptTemplates(root, promptTemplates, result);
   validateAgentClusters(root, agentClusters, knownSkillIds, knownPermissionClasses, result);
+  validateGuardrails(root, guardrails, result);
 
   result.summary = {
     schemas: SKILL_OS_SCHEMA_FILES.length,
@@ -377,6 +469,7 @@ export function validateSkillOs(root = getDefaultRoot()) {
     promptTemplates: Object.keys(promptTemplates).length,
     toolPermissions: Object.keys(toolPermissions).length,
     agentClusters: Object.keys(agentClusters).length,
+    guardrails: Array.isArray(guardrails) ? guardrails.length : 0,
   };
 
   return result;

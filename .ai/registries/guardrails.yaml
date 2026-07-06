@@ -1,0 +1,100 @@
+# MultiModel Dev OS - Guardrails Registry
+# Sprint D foundation: declarative checks only. Advisory in v4.1.
+
+guardrails:
+  - id: block-destructive-git
+    name: "Block destructive Git operations"
+    version: 1.0.0
+    type: pre_tool
+    severity: restricted
+    applies_to:
+      tool_classes:
+        - restricted-admin
+      operations:
+        - git-reset-hard
+        - git-clean-force
+        - force-push
+    check_file: .ai/checks/pre-tool.md
+    requires_confirmation: true
+    requires_clean_worktree: true
+    validation:
+      deterministic: true
+      advisory_only: true
+
+  - id: validate-source-write
+    name: "Validate local file write operations"
+    version: 1.0.0
+    type: pre_write
+    severity: medium
+    applies_to:
+      operations:
+        - write-file
+        - edit-file
+    check_file: .ai/checks/pre-write.md
+    requires_confirmation: false
+    requires_clean_worktree: false
+    validation:
+      deterministic: true
+      advisory_only: true
+
+  - id: confirm-external-write
+    name: "Verify and confirm external network writes"
+    version: 1.0.0
+    type: pre_external_write
+    severity: high
+    applies_to:
+      operations:
+        - npm-publish
+        - git-push
+    check_file: .ai/checks/pre-external-write.md
+    requires_confirmation: true
+    requires_clean_worktree: true
+    validation:
+      deterministic: true
+      advisory_only: true
+
+  - id: post-change-validation
+    name: "Verify changes before completing task"
+    version: 1.0.0
+    type: post_change
+    severity: low
+    applies_to:
+      operations:
+        - run-tests
+        - run-verify
+    check_file: .ai/checks/post-change-validation.md
+    requires_confirmation: false
+    requires_clean_worktree: false
+    validation:
+      deterministic: true
+      advisory_only: true
+
+  - id: session-summary-capture
+    name: "Capture and log developer session summary"
+    version: 1.0.0
+    type: session_end
+    severity: info
+    applies_to:
+      operations:
+        - end-session
+    check_file: .ai/checks/session-summary.md
+    requires_confirmation: false
+    requires_clean_worktree: false
+    validation:
+      deterministic: true
+      advisory_only: true
+
+  - id: restricted-admin-ops
+    name: "Enforce confirmation on restricted administrative operations"
+    version: 1.0.0
+    type: pre_tool
+    severity: restricted
+    applies_to:
+      tool_classes:
+        - restricted-admin
+    check_file: .ai/checks/ops-write-safety.md
+    requires_confirmation: true
+    requires_clean_worktree: true
+    validation:
+      deterministic: true
+      advisory_only: true

@@ -1,5 +1,6 @@
 # MultiModel Dev OS - Tool Permission Registry Examples
 # Sprint A foundation: declarative classes only. No enforcement is active yet.
+# Sprint D integration: tool permissions map to safety guardrails.
 
 tool_permissions:
   filesystem-read:

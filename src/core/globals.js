@@ -14,7 +14,7 @@ let pkgVersion = '4.1.0-dev.0';
 try {
   const pkgData = JSON.parse(readFileSync(resolve(sourceRoot, 'package.json'), 'utf8'));
   pkgVersion = pkgData.version;
-} catch (e) {}
+} catch (e) { }
 
 export const version = pkgVersion;
 
@@ -25,7 +25,7 @@ export function loadTemplates(customPath) {
       const templatesRegistry = parseYaml(readFileSync(path, 'utf8'));
       return templatesRegistry.templates || {};
     }
-  } catch (e) {}
+  } catch (e) { }
   return {
     'general-app': {
       name: 'general-app',
@@ -47,6 +47,6 @@ export function loadAdapters(customPath) {
       const adaptersRegistry = parseYaml(readFileSync(path, 'utf8'));
       return adaptersRegistry.adapters || {};
     }
-  } catch (e) {}
+  } catch (e) { }
   return {};
 }

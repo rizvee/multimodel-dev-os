@@ -35,14 +35,16 @@ export function checkSkillOsValidation() {
   const result = validateSkillOs();
   const summary = result.summary || {};
 
-  if ((summary.schemas || 0) === 4) {
+  if ((summary.schemas || 0) === 5) {
     pass('Skill OS schema files parse');
+    pass('Skill OS guardrail schema parses');
   } else {
     fail(`Skill OS schema files parse count mismatch: ${summary.schemas || 0}`);
   }
 
-  if (summary.skills > 0 && summary.promptTemplates > 0 && summary.toolPermissions > 0 && summary.agentClusters > 0) {
+  if (summary.skills > 0 && summary.promptTemplates > 0 && summary.toolPermissions > 0 && summary.agentClusters > 0 && (summary.guardrails || 0) > 0) {
     pass('Skill OS registries parse');
+    pass('Skill OS guardrail registry parses');
   } else {
     fail('Skill OS registries parse with missing or empty registry');
   }
@@ -69,6 +71,47 @@ export function checkSkillOsValidation() {
     pass(`Agent cluster registry entries are valid (${summary.agentClusters})`);
   } else {
     fail('Agent cluster registry entries are missing');
+  }
+
+  if (summary.guardrails > 0) {
+    pass(`Guardrail registry entries are valid (${summary.guardrails})`);
+    
+    const guardrails = result.parsed.registries.guardrails || [];
+    let checksExist = true;
+    let restrictedConfirm = true;
+    let advisoryOnly = true;
+
+    for (const g of guardrails) {
+      if (!g.check_file) {
+        checksExist = false;
+      }
+      if (g.severity === 'restricted' && g.requires_confirmation !== true) {
+        restrictedConfirm = false;
+      }
+      if (g.validation && g.validation.advisory_only !== true) {
+        advisoryOnly = false;
+      }
+    }
+
+    if (checksExist) {
+      pass('Guardrail check files exist');
+    } else {
+      fail('Guardrail check files are missing or invalid');
+    }
+
+    if (restrictedConfirm) {
+      pass('Restricted guardrails require confirmation');
+    } else {
+      fail('Restricted guardrails do not require confirmation');
+    }
+
+    if (advisoryOnly) {
+      pass('Guardrails are advisory-only in v4.1');
+    } else {
+      fail('Guardrails are not advisory-only in v4.1');
+    }
+  } else {
+    fail('Guardrail registry entries are missing');
   }
 
   for (const warning of result.warnings) {

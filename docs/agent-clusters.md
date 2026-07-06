@@ -45,6 +45,12 @@ Agent clusters remain declarative, and Sprint C adds read-only CLI inspection:
 
 Future sprints may add read-only inspection and validation before any workflow integration.
 
+## Sprint D - Guardrail Association
+
+Agent clusters define `allowed_tool_classes` which are subject to guardrail validation.
+- Agent clusters containing high-risk permissions (e.g. `restricted-admin` class) automatically trigger the associated `restricted-admin-ops` guardrail checks.
+- Advisory validation checks verify that clusters respect the guardrail limits defined in `.ai/registries/guardrails.yaml`.
+
 ## Design Rules
 
 - Keep clusters broad enough to route work, not so broad that they load excessive context.

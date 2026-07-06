@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MultiModel Dev OS Guardrail Registry Schema",
+  "description": "Schema for declarative guardrails and checks in Skill OS.",
+  "type": "object",
+  "required": ["guardrails"],
+  "properties": {
+    "guardrails": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/guardrail"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "guardrail": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "version",
+        "type",
+        "severity",
+        "applies_to",
+        "check_file",
+        "requires_confirmation",
+        "requires_clean_worktree",
+        "validation"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[a-zA-Z0-9.]+)?$"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["pre_tool", "pre_write", "pre_external_write", "post_change", "session_end"]
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["info", "low", "medium", "high", "restricted"]
+        },
+        "applies_to": {
+          "type": "object",
+          "properties": {
+            "tool_classes": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "operations": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "additionalProperties": false
+        },
+        "check_file": {
+          "type": "string",
+          "pattern": "^\\.ai/checks/[a-zA-Z0-9_.-]+\\.md$"
+        },
+        "requires_confirmation": {
+          "type": "boolean"
+        },
+        "requires_clean_worktree": {
+          "type": "boolean"
+        },
+        "validation": {
+          "type": "object",
+          "required": ["deterministic", "advisory_only"],
+          "properties": {
+            "deterministic": {
+              "type": "boolean"
+            },
+            "advisory_only": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

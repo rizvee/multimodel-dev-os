@@ -192,7 +192,8 @@ Future roadmap:
 **[Release state](docs/release-state.md)** ·
 **[AI OS roadmap](docs/future-ai-os-roadmap.md)** ·
 **[v4.1 Skill OS plan](docs/v4.1-skill-os-foundation-plan.md)** ·
-**[Skill OS CLI](docs/skill-os-cli.md)**
+**[Skill OS CLI](docs/skill-os-cli.md)** ·
+**[Hooks and Guardrails](docs/hooks-and-guardrails.md)**
 
 ---
 
