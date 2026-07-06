@@ -2,6 +2,38 @@
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-07-07
+
+### Added
+- **Skill OS foundation**: Added a declarative metadata layer for structured prompts, skill registries, tool permission metadata, advisory guardrails, workflow references, and draft-only operator templates.
+- **RACE+ prompt templates**: Added reusable prompt template schemas, examples, and documentation for Role, Action, Context, Expectation, Constraints, Output format, Verification, and Next action.
+- **Skill registry metadata**: Added YAML-first skill registry examples and JSON schema validation assets for reusable skill definitions.
+- **Tool permission metadata**: Added declarative permission classes for read-only, draft-only, write-with-confirmation, and restricted-admin tool categories.
+- **Advisory guardrails**: Added guardrail schemas, registry examples, checks, and documentation for validation-first safety modeling.
+- **Read-only Skill OS CLI inspection**: Added `skill-os status`, `skill-os validate`, `skill-os list`, and `skill-os show` commands for local registry inspection.
+- **Workflow Skill OS metadata**: Added optional workflow `skill_os` metadata for linking workflows to skills, prompt templates, permissions, guardrails, and required context.
+- **Business operator templates**: Added generic draft-only templates for inbox triage, meeting recap, KPI snapshot, weekly review, SOP builder, project pulse, content brief, and creative intelligence.
+- **Migration and authoring docs**: Added Skill OS migration, adoption checklist, authoring reference, examples, and roadmap documentation.
+
+### Changed
+- Updated release documentation to describe v4.1.0 as a stable Skill OS foundation release.
+- Preserved the zero-runtime-dependency posture while expanding validation and read-only inspection coverage.
+
+### Notes
+- Skill OS metadata is declarative and validation-first.
+- v4.1.0 does not execute automation from Skill OS metadata.
+- v4.1.0 does not enforce tool permissions at runtime.
+- v4.1.0 does not make advisory guardrails block live commands.
+- npm publication is a manual maintainer action after this release preparation.
+
+### Validation
+- `npm run build`
+- `npm run check:build`
+- `npm test`
+- `npm run verify`
+- `npm run docs:build`
+- `npm pack --dry-run`
+
 ## [4.0.1] - 2026-07-05
 
 ### Fixed

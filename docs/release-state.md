@@ -37,9 +37,16 @@ The GitHub release should remain draft until npmjs confirms the version is publi
 
 ### main (v4.1 development lane)
 
-- main has been moved to the v4.1 development lane (`4.1.0-dev.0`).
+- main contains the prepared v4.1.0 release state.
 - main must not be published as v4.0.1.
-- npm publish from main is blocked unless explicitly preparing a v4.1 release.
+- v4.1.0 npm publish is pending manual action by Hasan.
+- The GitHub release for v4.1.0 should remain draft until npmjs confirms publication.
+- v4.1.0 provides declarative Skill OS metadata, validation, documentation, and read-only inspection foundations; it does not execute automation, enforce permissions at runtime, or make advisory guardrails block live commands.
+
+## Release Notes
+
+- v4.0.1 remains unpublished and must only be published from the `v4.0.1` tag if Hasan ever chooses to publish it.
+- v4.1.0 is prepared from `main` and should be published only after validation and draft release preparation are complete.
 
 ## Manual Publish Command
 
@@ -54,7 +61,7 @@ After Hasan publishes npmjs manually, confirm the public package before publishi
 ```bash
 npm view multimodel-dev-os version
 npx -y multimodel-dev-os@latest --help
-gh release edit v4.0.1 --draft=false --latest
+gh release edit v4.1.0 --draft=false --latest
 gh workflow run publish-github-package.yml --ref main
 ```
 

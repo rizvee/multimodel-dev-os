@@ -156,12 +156,13 @@ npx multimodel-dev-os@latest workflow show operator-weekly-review
 
 ---
 
-## What's New in v4.0
+## What's New in v4.1
 
-- 🧩 **Modular CLI Architecture** — CLI main routing plus registry and inspection handlers are decomposed into focused internal modules while preserving public commands.
-- 🔬 **Verification Engine Decomposed** — `scripts/verify/` is now a modular engine with isolated, independently testable sub-modules.
-- 🛡️ **Registry Trust Hardening** — Trust store, remote key workflows, signing, and provenance checks are production-hardened for registry safety.
-- 🧪 **Handler-Level Test Coverage** — Focused unit coverage protects decomposed command handlers, registry trust behavior, and package hygiene.
+- **Skill OS foundation** - Declarative metadata for structured prompts, skill registries, tool permission classes, advisory guardrails, workflow references, and draft-only business operator templates.
+- **RACE+ prompt templates** - Reusable prompt definitions for Role, Action, Context, Expectation, Constraints, Output format, Verification, and Next action.
+- **Read-only Skill OS CLI** - Local inspection and validation through `skill-os status`, `skill-os validate`, `skill-os list`, and `skill-os show`.
+- **Workflow metadata integration** - Optional workflow `skill_os` references connect workflows to skills, prompts, permissions, guardrails, and required context without changing workflow execution.
+- **Validation-first safety model** - Skill OS metadata is declarative only; it does not execute automation, enforce runtime permissions, or make advisory guardrails block live commands.
 
 Patch note: v4.0.1 updates npm package-page documentation after the v4.0.0 publication. It does not change runtime behavior or CLI behavior.
 
@@ -173,7 +174,7 @@ Patch note: v4.0.1 updates npm package-page documentation after the v4.0.0 publi
 
 Skill OS adds a structured, validation-only metadata layer for reusable prompts, skills, permission classes, advisory guardrails, workflow references, and draft-only business operator templates.
 
-Current v4.1 scope on `main` is declarative and local-only:
+The v4.1.0 scope is declarative and local-only:
 
 - RACE+ prompt templates
 - Skill registry metadata
@@ -218,6 +219,7 @@ Start here:
 | **v3.2.0** | Stable Modular Build + Package Governance | ✅ Released |
 | **v3.5.0** | Trusted Registry Signing + Provenance Foundation | ✅ Released |
 | **v4.0.0** | Modular CLI, verification engine, registry trust, handler tests, docs/DX hardening | ✅ Released |
+| **v4.1.0** | Skill OS foundation: RACE+ prompts, skill registries, permissions, guardrails, workflow metadata, and read-only inspection | 🚧 Prepared |
 
 **[Full Roadmap →](https://rizvee.github.io/multimodel-dev-os/v3-roadmap)**
 

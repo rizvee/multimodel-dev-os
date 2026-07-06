@@ -7,12 +7,15 @@
 - [x] Prepare v4.0.0 release candidate
 - [x] Harden package hygiene and public documentation
 - [x] Prepare optional GitHub Packages mirror workflow
-- [ ] Publish v4.0.0 to npm manually
-- [ ] Publish the GitHub draft release after npm availability is confirmed
+- [x] Publish v4.0.0 to npm manually
+- [x] Publish the v4.0.0 GitHub release after npm availability was confirmed
+- [x] Complete v4.1 Skill OS foundation sprints A-H
+- [ ] Publish v4.1.0 to npm manually after release preparation approval
+- [ ] Publish the v4.1.0 GitHub draft release after npm availability is confirmed
 
 ## Backlog
 
-- [ ] Collect post-release feedback and triage v4.1.0 candidates
+- [ ] Collect post-release feedback and triage v4.1.x candidates
 - [ ] Continue improving adapter documentation and template coverage
 - [ ] Review GitHub Packages adoption after npmjs release
 
