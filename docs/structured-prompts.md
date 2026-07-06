@@ -87,3 +87,5 @@ race_plus:
 Sprint F adds RACE+ prompt templates for inbox triage, meeting recap, KPI snapshot, weekly review, SOP builder, project pulse, content brief, and creative intelligence.
 
 These prompts structure provided information only. They do not fetch connector data, send messages, update systems, publish content, or spend money.
+
+For migration steps from raw prompts to RACE+ templates, see [Skill OS Migration Guide](./skill-os-migration-guide.md). For compact field definitions, see [Skill OS Authoring Reference](./skill-os-authoring-reference.md).

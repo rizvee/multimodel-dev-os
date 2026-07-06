@@ -65,7 +65,7 @@ Future sprints should add read-only inspection, then carefully scoped guardrail 
 Sprint D introduces declarative guardrails (`.ai/registries/guardrails.yaml`) that map to specific tool permissions and operations.
 - **Pre-Tool Safety**: Destructive operations like `git-reset-hard` or `force-push` are subject to advisory pre-tool guardrails.
 - **Confirmation Rules**: Guardrails with `restricted` severity, `pre_external_write` type, or those applying to the `restricted-admin` class require confirmation flags.
-- **Validation**: All guardrails are validated against the schema and check files to ensure proper safety mapping before runtime enforcement is built.
+- **Validation**: All guardrails are validated against the schema and check files to ensure proper safety mapping before any future runtime support is designed.
 
 ## Safety Direction
 
@@ -78,3 +78,5 @@ Sprint F adds `operator-draft` as a draft-only permission example for business o
 `operator-draft` allows review-only summaries, briefs, recaps, and SOP drafts from provided input. It blocks sending messages, updating external systems, publishing content, and spending money.
 
 This permission remains declarative. Sprint F does not enforce permissions at runtime.
+
+For classification guidance, see [Skill OS Migration Guide](./skill-os-migration-guide.md) and [Skill OS Authoring Reference](./skill-os-authoring-reference.md).

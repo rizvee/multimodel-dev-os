@@ -36,8 +36,8 @@ features:
     title: Caveman Mode (−79% Tokens)
     details: Slash model context footprint by ~79% with compressed shorthand declarations. Save massively on API bills.
   - icon: 🛡️
-    title: 289 Quality Gates
-    details: Built-in validate, doctor, and verify commands enforce workspace health with strict structural assertions.
+    title: 300+ Quality Gates
+    details: Built-in validate, doctor, verify, and Skill OS checks inspect workspace health with strict structural assertions.
   - icon: 🔧
     title: Zero Dependencies
     details: Pure Node.js CLI — no runtime, no build step, no package manager lock-in. Works on Windows, macOS, and Linux.
@@ -200,7 +200,7 @@ You use **Cursor** for autocomplete, **Claude Code** for terminal ops, **Gemini*
   </a>
   <a href="/demos/release-check" class="card-item">
     <div class="card-title">🚀 Release Check</div>
-    <div class="card-desc">Run 289 verification checks and package hygiene checks.</div>
+    <div class="card-desc">Run 300+ verification checks and package hygiene checks.</div>
     <div class="card-time">~1 min</div>
   </a>
   <a href="/comparison" class="card-item">
@@ -214,12 +214,11 @@ You use **Cursor** for autocomplete, **Claude Code** for terminal ops, **Gemini*
 
 <div class="highlight-box">
 
-### 🆕 What's New in v4.0
+### What's New in v4.1 Development
 
-- 🧩 **Modular CLI Architecture** — CLI main routing plus registry and inspection handlers are decomposed into focused internal modules.
-- 🔬 **Verification Engine Decomposed** — `scripts/verify/` is now a modular engine with isolated, independently testable sub-modules.
-- 🛡️ **Registry Trust Hardening** — Trust store, remote key workflows, signing, and provenance checks are production-hardened for registry safety.
-- 🧪 **Handler-Level Test Coverage** — Focused unit coverage protects decomposed command handlers, registry trust behavior, and package hygiene.
+- **Skill OS foundation** adds RACE+ prompts, skill registries, permission metadata, advisory guardrails, workflow `skill_os` references, and draft-only business operator templates.
+- **Read-only inspection** is available through `skill-os status`, `skill-os validate`, and list/show commands.
+- **Validation-only safety model** means metadata is checked locally without executing automation, enforcing permissions at runtime, or calling external tools.
 
 </div>
 
@@ -230,7 +229,7 @@ You use **Cursor** for autocomplete, **Claude Code** for terminal ops, **Gemini*
 <div class="safety-grid">
   <div class="safety-item">
     <div class="safety-icon">🛡️</div>
-    <div class="safety-label">289 Quality Gates</div>
+    <div class="safety-label">300+ Quality Gates</div>
     <div class="safety-desc">Strict structural verification on every release</div>
   </div>
   <div class="safety-item">
@@ -270,6 +269,14 @@ You use **Cursor** for autocomplete, **Claude Code** for terminal ops, **Gemini*
   <a href="/architecture" class="card-item">
     <div class="card-title">🏗️ Architecture</div>
     <div class="card-desc">4-layer protocol from root contracts through intelligence engine.</div>
+  </a>
+  <a href="/skill-os-migration-guide" class="card-item">
+    <div class="card-title">Skill OS Migration</div>
+    <div class="card-desc">Move from markdown skills and raw prompts to validated Skill OS metadata safely.</div>
+  </a>
+  <a href="/skill-os-authoring-reference" class="card-item">
+    <div class="card-title">Skill OS Authoring</div>
+    <div class="card-desc">Concise field reference for skills, prompts, permissions, guardrails, and workflow metadata.</div>
   </a>
   <a href="/cost-optimization" class="card-item">
     <div class="card-title">⚡ Cost Optimization</div>

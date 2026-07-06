@@ -4,6 +4,8 @@ v4.1 Sprint C adds read-only CLI inspection for the Skill OS schema and registry
 
 The `skill-os` namespace loads local Skill OS registries when present and falls back to the bundled registries shipped with MultiModel Dev OS. Commands are deterministic and local-only.
 
+For adoption guidance, see [Skill OS Migration Guide](./skill-os-migration-guide.md), [Skill OS Adoption Checklist](./skill-os-adoption-checklist.md), and [Skill OS Authoring Reference](./skill-os-authoring-reference.md).
+
 ## Commands
 
 ```bash
@@ -38,6 +40,8 @@ multimodel-dev-os skill-os validate
 Validation checks schemas, YAML registries, required fields, IDs, versions, safe relative paths, permission classes, risk levels, RACE+ fields, declarative guardrail consistency, and optional workflow Skill OS references.
 
 Workflow references remain declarative. `skill-os validate` verifies that referenced skills, prompts, permissions, guardrails, and context files exist, but it does not execute automation or enforce permissions.
+
+Validation passing means the metadata is structurally safe to inspect. It does not mean prompts, skills, permissions, guardrails, or workflows have been executed.
 
 ## List
 

@@ -4,6 +4,8 @@ v4.1 Sprint F adds generic business operator templates to the Skill OS foundatio
 
 This sprint is templates and metadata only. It does not call external tools, send messages, update systems, publish content, spend money, or enforce permissions.
 
+For adoption steps, see [Skill OS Adoption Checklist](./skill-os-adoption-checklist.md). For field-level metadata rules, see [Skill OS Authoring Reference](./skill-os-authoring-reference.md).
+
 ## Purpose
 
 The business operator layer demonstrates how Skill OS can support non-code workflows while staying safe by default. Templates turn provided notes into reviewable drafts for routine operational work.

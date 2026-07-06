@@ -1,5 +1,7 @@
 # Before/After Workflow Case Studies
 
+For v4.1 Skill OS adoption examples, see [Skill OS Examples](./skill-os-examples.md) and [Skill OS Migration Guide](./skill-os-migration-guide.md). Skill OS workflow metadata is declarative and does not change workflow execution behavior.
+
 Explore how `multimodel-dev-os` eliminates instruction drift and saves token budgets across multiple AI programming agents.
 
 ---

@@ -2,6 +2,9 @@
 
 Portable, vendor-neutral workspace configuration standard for multi-agent AI pair-programming workflows.
 
+## Skill OS Foundation (v4.1 development lane)
+Skill OS adds declarative metadata for RACE+ prompts, registered skills, tool permission classes, advisory guardrails, workflow `skill_os` references, and draft-only business operator templates. The current v4.1 foundation is validation-only and read-only for inspection; it does not execute automation, enforce permissions at runtime, call external tools, send messages, or publish content.
+
 ## Fast Setup & Commands (Stable npm @latest)
 ```bash
 # Initialize workspace
@@ -61,6 +64,12 @@ npx multimodel-dev-os@latest workflow run repo-health
 npx multimodel-dev-os@latest workflow list
 npx multimodel-dev-os@latest workflow show repo-health
 
+# Inspect Skill OS metadata locally
+npx multimodel-dev-os@latest skill-os status
+npx multimodel-dev-os@latest skill-os validate
+npx multimodel-dev-os@latest skill-os list skills
+npx multimodel-dev-os@latest skill-os list prompts
+
 # Compile session handoff spec
 npx multimodel-dev-os@latest handoff build
 npx multimodel-dev-os@latest handoff show
@@ -101,6 +110,11 @@ npx multimodel-dev-os@latest improve log
 - **Security Threat Model**: https://rizvee.github.io/multimodel-dev-os/security-threat-model
 - **v3.5.0 Release Readiness**: https://rizvee.github.io/multimodel-dev-os/v3.5.0-readiness
 - **Cost/Context Optimization Playbook**: https://rizvee.github.io/multimodel-dev-os/cost-optimization
+- **Skill OS CLI**: https://rizvee.github.io/multimodel-dev-os/skill-os-cli
+- **Skill OS Migration Guide**: https://rizvee.github.io/multimodel-dev-os/skill-os-migration-guide
+- **Skill OS Adoption Checklist**: https://rizvee.github.io/multimodel-dev-os/skill-os-adoption-checklist
+- **Skill OS Authoring Reference**: https://rizvee.github.io/multimodel-dev-os/skill-os-authoring-reference
+- **Business Operator Layer**: https://rizvee.github.io/multimodel-dev-os/business-operator-layer
 
 ## Standard Templates
 - `nextjs-saas` (App Router, Prisma ORM, Stripe)

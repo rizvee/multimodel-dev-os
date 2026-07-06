@@ -10,6 +10,8 @@ In v4.1, all guardrails are **declarative and advisory only**.
 - **No hidden automation**: Guardrails do not trigger hidden scripts, hooks, or backend automation.
 - **Validation only**: The `skill-os validate` command audits that the guardrail definitions match the JSON schema and satisfy all metadata rules.
 
+Use [Skill OS Migration Guide](./skill-os-migration-guide.md) when attaching advisory guardrails to existing workflows, and [Skill OS Authoring Reference](./skill-os-authoring-reference.md) for guardrail type and severity tables.
+
 ## Future Enforcement
 These advisory definitions lay the groundwork for future releases where:
 - A sandbox environment can intercept and check tool calls against `pre_tool` guardrails.

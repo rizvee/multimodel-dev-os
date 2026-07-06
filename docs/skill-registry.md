@@ -77,3 +77,4 @@ Registry entries should point to safe relative workspace paths and use the share
 
 See [Skill OS CLI](./skill-os-cli.md) for read-only inspection commands.
 See [Business Operator Layer](./business-operator-layer.md) for the Sprint F operator templates.
+See [Skill OS Migration Guide](./skill-os-migration-guide.md) for converting markdown-only skills into registered metadata.

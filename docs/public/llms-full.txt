@@ -4,6 +4,26 @@ MultiModel Dev OS is a repository-level porting specification designed to align 
 
 ---
 
+## Skill OS Foundation (v4.1 development lane)
+
+Skill OS adds declarative metadata for RACE+ prompts, registered skills, tool permission classes, advisory guardrails, workflow `skill_os` references, and draft-only business operator templates.
+
+The current v4.1 foundation is validation-only and read-only for inspection. `skill-os` commands inspect local metadata and validate references. They do not execute automation, enforce permissions at runtime, intercept MCP tools, call external systems, send emails or messages, publish content, or change workflow execution behavior.
+
+Key Skill OS docs:
+- **Skill OS CLI**: https://rizvee.github.io/multimodel-dev-os/skill-os-cli
+- **Structured Prompts**: https://rizvee.github.io/multimodel-dev-os/structured-prompts
+- **Skill Registry**: https://rizvee.github.io/multimodel-dev-os/skill-registry
+- **Tool Permissions**: https://rizvee.github.io/multimodel-dev-os/tool-permissions
+- **Hooks and Guardrails**: https://rizvee.github.io/multimodel-dev-os/hooks-and-guardrails
+- **Business Operator Layer**: https://rizvee.github.io/multimodel-dev-os/business-operator-layer
+- **Skill OS Migration Guide**: https://rizvee.github.io/multimodel-dev-os/skill-os-migration-guide
+- **Skill OS Adoption Checklist**: https://rizvee.github.io/multimodel-dev-os/skill-os-adoption-checklist
+- **Skill OS Authoring Reference**: https://rizvee.github.io/multimodel-dev-os/skill-os-authoring-reference
+- **Skill OS Examples**: https://rizvee.github.io/multimodel-dev-os/skill-os-examples
+
+---
+
 ## 1. Core Architecture Layers
 
 The protocol decouples the centralized workspace context from the individual tool rules:
@@ -72,6 +92,7 @@ All compliant MultiModel Dev OS CLIs strictly enforce the following command cont
   - `apply`: Deterministically apply approved operations to the target codebase (requires `--approved`).
   - `log`: Display Applied Proposals Audit Log execution history.
 - **`workflow`**: Orchestrate read-only development workflows (list, show, plan, run). Steps are restricted to safe, non-destructive CLI functions.
+- **`skill-os`**: Inspect declarative Skill OS registries (status, validate, list, show). Validation checks metadata and references only; it does not execute prompts, skills, permissions, guardrails, workflows, or connector actions.
 - **`handoff`**: Compile token-compressed session context (build, show) at `.ai/intelligence/handoff.md` to transfer state to a new agent or model session.
 - **`dashboard`** (alias **`ui`**): Launches the zero-dependency interactive TUI dashboard. Automatically falls back to a clean list of equivalent commands when stdin/stdout are non-TTY.
 - **`plugin`**: Manage declarative plugins. Subcommands:

@@ -131,7 +131,9 @@ npx multimodel-dev-os@latest handoff build
 
 # Inspect Skill OS registries (read-only)
 npx multimodel-dev-os@latest skill-os status
+npx multimodel-dev-os@latest skill-os validate
 npx multimodel-dev-os@latest skill-os list skills
+npx multimodel-dev-os@latest skill-os list prompts
 npx multimodel-dev-os@latest workflow show release-check
 npx multimodel-dev-os@latest workflow show operator-weekly-review
 ```
@@ -167,6 +169,35 @@ Patch note: v4.0.1 updates npm package-page documentation after the v4.0.0 publi
 
 ---
 
+## Skill OS Foundation
+
+Skill OS adds a structured, validation-only metadata layer for reusable prompts, skills, permission classes, advisory guardrails, workflow references, and draft-only business operator templates.
+
+Current v4.1 scope on `main` is declarative and local-only:
+
+- RACE+ prompt templates
+- Skill registry metadata
+- Tool permission metadata
+- Advisory guardrail metadata
+- Workflow `skill_os` references
+- Read-only `skill-os` CLI inspection
+- Draft-only business operator templates
+
+Skill OS metadata does not execute automation, enforce permissions at runtime, call external tools, send messages, publish content, or change workflow behavior.
+
+Start here:
+**[Skill OS CLI](docs/skill-os-cli.md)** ·
+**[Structured Prompts](docs/structured-prompts.md)** ·
+**[Skill Registry](docs/skill-registry.md)** ·
+**[Tool Permissions](docs/tool-permissions.md)** ·
+**[Hooks and Guardrails](docs/hooks-and-guardrails.md)** ·
+**[Business Operator Layer](docs/business-operator-layer.md)** ·
+**[Migration Guide](docs/skill-os-migration-guide.md)** ·
+**[Adoption Checklist](docs/skill-os-adoption-checklist.md)** ·
+**[Authoring Reference](docs/skill-os-authoring-reference.md)**
+
+---
+
 ## Roadmap
 
 | Version | Focus | Status |
@@ -196,7 +227,8 @@ Future roadmap:
 **[v4.1 Skill OS plan](docs/v4.1-skill-os-foundation-plan.md)** ·
 **[Skill OS CLI](docs/skill-os-cli.md)** ·
 **[Hooks and Guardrails](docs/hooks-and-guardrails.md)** ·
-**[Business Operator Layer](docs/business-operator-layer.md)**
+**[Business Operator Layer](docs/business-operator-layer.md)** ·
+**[Skill OS Migration Guide](docs/skill-os-migration-guide.md)**
 
 ---
 

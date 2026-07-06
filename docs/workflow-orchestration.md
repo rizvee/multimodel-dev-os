@@ -75,6 +75,8 @@ Sprint F also adds draft-only business operator workflow examples:
 
 These examples use `skill_os` metadata to point at generic operator skills and prompts. They do not call inboxes, calendars, drives, CRMs, analytics systems, ad platforms, or publishing systems.
 
+For migration from workflow-only YAML to workflow plus `skill_os` metadata, see [Skill OS Migration Guide](./skill-os-migration-guide.md). For a minimal YAML example, see [Skill OS Examples](./skill-os-examples.md).
+
 ---
 
 ## 3. Strict Safety Gates

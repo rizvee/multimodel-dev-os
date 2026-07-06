@@ -163,3 +163,10 @@ Sprint F template foundation:
 - Does not call connectors, send messages, publish content, or update external systems.
 
 See [Business Operator Layer](./business-operator-layer.md) for the current template boundary.
+
+Sprint G documentation hardening:
+
+- Adds a migration guide for markdown skills, raw prompts, and workflow-only YAML.
+- Adds an adoption checklist for prompt, skill, permission, guardrail, workflow, and operator template hygiene.
+- Adds an authoring reference for field-level registry metadata.
+- Keeps the v4.1 foundation framed as declarative, validation-only, and read-only for inspection.
