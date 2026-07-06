@@ -24,7 +24,7 @@
 - v4.1.0 does not execute automation from Skill OS metadata.
 - v4.1.0 does not enforce tool permissions at runtime.
 - v4.1.0 does not make advisory guardrails block live commands.
-- npm publication is a manual maintainer action after this release preparation.
+- Published to npmjs as `4.1.0`; GitHub release is public/latest, and the optional GitHub Packages mirror workflow has completed.
 
 ### Validation
 - `npm run build`

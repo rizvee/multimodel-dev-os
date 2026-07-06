@@ -29,10 +29,14 @@ This release provides metadata, validation, documentation, and read-only inspect
 * `npm run docs:build`
 * `npm pack --dry-run`
 
-## Manual Step Remaining
+## Package
 
-npm publish is pending and will be completed manually by Hasan.
+npmjs package:
 
 ```bash
-npm publish --access public
+npm install -g multimodel-dev-os
 ```
+
+Published version: `4.1.0`
+
+GitHub Packages mirror: `@rizvee/multimodel-dev-os` via `npm.pkg.github.com`, with visibility and access controlled by GitHub Packages settings.

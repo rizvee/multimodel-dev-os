@@ -47,7 +47,7 @@ The primary public package is published on npm:
 npm install -g multimodel-dev-os
 ```
 
-An optional GitHub Packages mirror is prepared under the scoped name `@rizvee/multimodel-dev-os`. It uses `https://npm.pkg.github.com` and is available only after the maintainer runs the manual GitHub Packages workflow.
+An optional GitHub Packages mirror is maintained under the scoped name `@rizvee/multimodel-dev-os`. It uses `https://npm.pkg.github.com`; visibility and access are controlled by GitHub Packages settings.
 
 The root npm package name remains `multimodel-dev-os`.
 
@@ -219,7 +219,7 @@ Start here:
 | **v3.2.0** | Stable Modular Build + Package Governance | ✅ Released |
 | **v3.5.0** | Trusted Registry Signing + Provenance Foundation | ✅ Released |
 | **v4.0.0** | Modular CLI, verification engine, registry trust, handler tests, docs/DX hardening | ✅ Released |
-| **v4.1.0** | Skill OS foundation: RACE+ prompts, skill registries, permissions, guardrails, workflow metadata, and read-only inspection | 🚧 Prepared |
+| **v4.1.0** | Skill OS foundation: RACE+ prompts, skill registries, permissions, guardrails, workflow metadata, and read-only inspection | ✅ Released |
 
 **[Full Roadmap →](https://rizvee.github.io/multimodel-dev-os/v3-roadmap)**
 
