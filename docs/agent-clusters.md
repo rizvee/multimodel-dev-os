@@ -31,16 +31,17 @@ Each cluster describes:
 - Outputs
 - Validation expectations
 
-## Sprint B Status
+## Sprint C Status
 
-Agent clusters remain declarative, but Sprint B adds validation for the bundled cluster registry:
+Agent clusters remain declarative, and Sprint C adds read-only CLI inspection:
 
 - No autonomous execution.
 - No agent spawning.
-- No CLI command change.
 - No permission enforcement.
 - No runtime behavior change.
 - Validation checks cluster IDs, referenced skill IDs, allowed tool classes, required context paths, outputs, and validation expectations.
+- `multimodel-dev-os skill-os list clusters` prints known cluster IDs.
+- `multimodel-dev-os skill-os show cluster <id>` prints scope and allowed tool classes.
 
 Future sprints may add read-only inspection and validation before any workflow integration.
 

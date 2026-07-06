@@ -343,6 +343,7 @@ function showHelp() {
   console.log("  adapters          List IDE and terminal tool adapters");
   console.log("  show-adapter <a>  Inspect config specifications of adapter <a>");
   console.log("  skills            List active skills custom prompts in target workspace");
+  console.log("  skill-os <subcmd> Inspect Skill OS registries (subcmd: status, validate, list, show)");
   console.log("  show-skill <s>    View prompt contents of target workspace skill <s>\n");
   console.log("Options:");
   console.log("  -t, --target <path>     Target folder destination (default: current working directory)");
@@ -959,7 +960,7 @@ function removeTrustedKey(targetDir, keyId, policy) {
   return { removed: true };
 }
 function fetchRemotePublicKey(url, options = {}) {
-  return new Promise((resolve5, reject) => {
+  return new Promise((resolve6, reject) => {
     let parsedUrl;
     try {
       parsedUrl = new URL(url);
@@ -1012,7 +1013,7 @@ function fetchRemotePublicKey(url, options = {}) {
         if (!trimmed) {
           return reject(new Error(`Remote key fetch returned empty response from '${url}'.`));
         }
-        resolve5(trimmed);
+        resolve6(trimmed);
       });
       res.on("error", (err) => reject(new Error(`Response error from '${url}': ${err.message}`)));
     });
@@ -6578,9 +6579,595 @@ function handleShowSkill(name, options) {
   console.log();
 }
 
+// src/skill-os/registry-loader.js
+import { existsSync as existsSync28 } from "fs";
+import { join as join28 } from "path";
+
+// src/skill-os/validation.js
+import { existsSync as existsSync27, readFileSync as readFileSync26 } from "fs";
+import { join as join27, resolve as resolve5, relative as relative5 } from "path";
+var VALID_PERMISSION_CLASSES = [
+  "read-only",
+  "draft-only",
+  "write-with-confirmation",
+  "restricted-admin"
+];
+var VALID_RISK_LEVELS = ["low", "medium", "high", "restricted"];
+var SKILL_OS_SCHEMA_FILES = [
+  ".ai/schema/skill.schema.json",
+  ".ai/schema/prompt-template.schema.json",
+  ".ai/schema/tool-permission.schema.json",
+  ".ai/schema/agent-cluster.schema.json"
+];
+var SKILL_OS_REGISTRY_FILES = {
+  skills: ".ai/registries/skills.yaml",
+  promptTemplates: ".ai/registries/prompt-templates.yaml",
+  toolPermissions: ".ai/registries/tool-permissions.yaml",
+  agentClusters: ".ai/registries/agent-clusters.yaml"
+};
+var REQUIRED_RACE_PLUS_FIELDS = [
+  "role",
+  "action",
+  "context",
+  "expectation",
+  "constraints",
+  "output_format",
+  "verification",
+  "next_action"
+];
+var DANGEROUS_OPERATION_PATTERN = /\b(publish|deploy|dns|ad spend|secret|token|credential|force push|delete|remove|rotate|billing|production)\b/i;
+function getDefaultRoot() {
+  if (existsSync27(join27(sourceRoot, "package.json"))) {
+    return sourceRoot;
+  }
+  const parentRoot = resolve5(sourceRoot, "..");
+  if (existsSync27(join27(parentRoot, "package.json"))) {
+    return parentRoot;
+  }
+  return sourceRoot;
+}
+function createResult() {
+  return {
+    success: true,
+    errors: [],
+    warnings: [],
+    parsed: {
+      schemas: {},
+      registries: {}
+    }
+  };
+}
+function addError(result, message) {
+  result.errors.push(message);
+  result.success = false;
+}
+function isObject(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+function asObjectEntries(value) {
+  return isObject(value) ? Object.entries(value) : [];
+}
+function hasRequiredFields(entry, fields, label, result) {
+  for (const field of fields) {
+    if (entry[field] === void 0 || entry[field] === null || entry[field] === "") {
+      addError(result, `${label} missing required field: ${field}`);
+    }
+  }
+}
+function isSlugSafe(value) {
+  return typeof value === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
+}
+function isSemverLike(value) {
+  return typeof value === "string" && /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(value);
+}
+function isSafeRelativePath(value) {
+  if (typeof value !== "string" || value.trim() === "")
+    return false;
+  const normalized = value.replace(/\\/g, "/").trim();
+  if (normalized.startsWith("/") || /^[A-Za-z]:/.test(normalized))
+    return false;
+  return !normalized.split("/").includes("..");
+}
+function pathExists(root, relPath) {
+  if (!isSafeRelativePath(relPath))
+    return false;
+  const resolved = resolve5(root, relPath);
+  const rel = relative5(root, resolved);
+  if (rel.startsWith("..") || resolve5(root) === resolved && relPath !== ".")
+    return false;
+  return existsSync27(resolved);
+}
+function validateRelativePath(root, relPath, label, result, { mustExist = true } = {}) {
+  if (!isSafeRelativePath(relPath)) {
+    addError(result, `${label} must be a safe relative path: ${relPath}`);
+    return;
+  }
+  if (mustExist && !pathExists(root, relPath)) {
+    addError(result, `${label} references missing file or directory: ${relPath}`);
+  }
+}
+function validateStringArray(value, label, result) {
+  if (!Array.isArray(value)) {
+    addError(result, `${label} must be an array`);
+    return;
+  }
+  for (const item of value) {
+    if (typeof item !== "string" || item.trim() === "") {
+      addError(result, `${label} contains a non-string item`);
+    }
+  }
+}
+function parseJsonFile(root, relPath, result) {
+  const fullPath = join27(root, relPath);
+  try {
+    const parsed = JSON.parse(readFileSync26(fullPath, "utf8"));
+    result.parsed.schemas[relPath] = parsed;
+    return parsed;
+  } catch (error) {
+    addError(result, `${relPath} failed to parse as JSON: ${error.message}`);
+    return null;
+  }
+}
+function parseYamlFile(root, relPath, rootKey, result) {
+  const fullPath = join27(root, relPath);
+  try {
+    const parsed = parseYaml(readFileSync26(fullPath, "utf8"));
+    if (!isObject(parsed)) {
+      addError(result, `${relPath} failed to parse as YAML object`);
+      return null;
+    }
+    if (!isObject(parsed[rootKey])) {
+      addError(result, `${relPath} missing root key: ${rootKey}`);
+      return null;
+    }
+    result.parsed.registries[rootKey] = parsed[rootKey];
+    return parsed[rootKey];
+  } catch (error) {
+    addError(result, `${relPath} failed to parse as YAML: ${error.message}`);
+    return null;
+  }
+}
+function validateSchemas(root, result) {
+  for (const relPath of SKILL_OS_SCHEMA_FILES) {
+    validateRelativePath(root, relPath, relPath, result);
+    if (pathExists(root, relPath)) {
+      parseJsonFile(root, relPath, result);
+    }
+  }
+}
+function validateToolPermissions(toolPermissions, result) {
+  if (!toolPermissions)
+    return /* @__PURE__ */ new Set();
+  const knownClasses = new Set(VALID_PERMISSION_CLASSES);
+  const declaredClasses = /* @__PURE__ */ new Set();
+  for (const [key, entry] of asObjectEntries(toolPermissions)) {
+    const label = `tool permission '${key}'`;
+    hasRequiredFields(entry, [
+      "tool_id",
+      "display_name",
+      "class",
+      "allowed_operations",
+      "blocked_operations",
+      "requires_confirmation",
+      "requires_clean_worktree",
+      "requires_validation",
+      "audit_log"
+    ], label, result);
+    if (!isSlugSafe(entry.tool_id))
+      addError(result, `${label} has invalid slug id: ${entry.tool_id}`);
+    if (entry.tool_id !== key)
+      addError(result, `${label} key must match tool_id`);
+    if (!knownClasses.has(entry.class))
+      addError(result, `${label} has invalid class: ${entry.class}`);
+    declaredClasses.add(entry.class);
+    validateStringArray(entry.allowed_operations, `${label} allowed_operations`, result);
+    validateStringArray(entry.blocked_operations, `${label} blocked_operations`, result);
+    if ((entry.class === "restricted-admin" || entry.class === "write-with-confirmation") && entry.requires_confirmation !== true) {
+      addError(result, `${label} must require confirmation for class ${entry.class}`);
+    }
+    if (entry.class === "read-only") {
+      const operations = [
+        ...Array.isArray(entry.allowed_operations) ? entry.allowed_operations : []
+      ].join(" ");
+      if (DANGEROUS_OPERATION_PATTERN.test(operations)) {
+        addError(result, `${label} marks dangerous operations as read-only`);
+      }
+    }
+  }
+  for (const permissionClass of VALID_PERMISSION_CLASSES) {
+    if (declaredClasses.has(permissionClass))
+      continue;
+  }
+  return knownClasses;
+}
+function validateSkills(root, skills, knownPermissionClasses, result) {
+  const knownSkillIds = new Set(Object.keys(skills || {}));
+  for (const [key, entry] of asObjectEntries(skills)) {
+    const label = `skill '${key}'`;
+    hasRequiredFields(entry, [
+      "id",
+      "name",
+      "version",
+      "description",
+      "category",
+      "risk_level",
+      "permissions",
+      "skill_file"
+    ], label, result);
+    if (!isSlugSafe(entry.id))
+      addError(result, `${label} has invalid slug id: ${entry.id}`);
+    if (entry.id !== key)
+      addError(result, `${label} key must match id`);
+    if (!isSemverLike(entry.version))
+      addError(result, `${label} has invalid semver-like version: ${entry.version}`);
+    if (!isSlugSafe(entry.category))
+      addError(result, `${label} has invalid category slug: ${entry.category}`);
+    if (!VALID_RISK_LEVELS.includes(entry.risk_level))
+      addError(result, `${label} has invalid risk_level: ${entry.risk_level}`);
+    if (!Array.isArray(entry.permissions) || entry.permissions.length === 0) {
+      addError(result, `${label} permissions must be a non-empty array`);
+    } else {
+      for (const permission of entry.permissions) {
+        if (!knownPermissionClasses.has(permission)) {
+          addError(result, `${label} permission does not map to known tool permission class: ${permission}`);
+        }
+      }
+    }
+    validateRelativePath(root, entry.skill_file, `${label} skill_file`, result);
+    for (const relPath of entry.checks || []) {
+      validateRelativePath(root, relPath, `${label} check`, result);
+    }
+    for (const relPath of entry.required_context || []) {
+      validateRelativePath(root, relPath, `${label} required_context`, result);
+    }
+  }
+  return knownSkillIds;
+}
+function validatePromptTemplates(root, promptTemplates, result) {
+  for (const [key, entry] of asObjectEntries(promptTemplates)) {
+    const label = `prompt template '${key}'`;
+    hasRequiredFields(entry, ["id", "name", "version", "description", "race_plus"], label, result);
+    if (!isSlugSafe(entry.id))
+      addError(result, `${label} has invalid slug id: ${entry.id}`);
+    if (entry.id !== key)
+      addError(result, `${label} key must match id`);
+    if (!isSemverLike(entry.version))
+      addError(result, `${label} has invalid semver-like version: ${entry.version}`);
+    if (!isObject(entry.race_plus)) {
+      addError(result, `${label} race_plus must be an object`);
+      continue;
+    }
+    for (const field of REQUIRED_RACE_PLUS_FIELDS) {
+      if (entry.race_plus[field] === void 0 || entry.race_plus[field] === null || entry.race_plus[field] === "") {
+        addError(result, `${label} missing RACE+ field: ${field}`);
+      }
+    }
+    if (!Array.isArray(entry.race_plus.constraints)) {
+      addError(result, `${label} race_plus.constraints must be an array`);
+    }
+    if (!Array.isArray(entry.race_plus.verification)) {
+      addError(result, `${label} race_plus.verification must be an array`);
+    }
+    const requiredFiles = entry.race_plus.context && entry.race_plus.context.required_files;
+    if (Array.isArray(requiredFiles)) {
+      for (const relPath of requiredFiles) {
+        validateRelativePath(root, relPath, `${label} required_file`, result);
+      }
+    }
+  }
+}
+function validateAgentClusters(root, clusters, knownSkillIds, knownPermissionClasses, result) {
+  for (const [key, entry] of asObjectEntries(clusters)) {
+    const label = `agent cluster '${key}'`;
+    hasRequiredFields(entry, [
+      "id",
+      "name",
+      "description",
+      "scope",
+      "typical_skills",
+      "allowed_tool_classes",
+      "required_context",
+      "outputs",
+      "validation_expectations"
+    ], label, result);
+    if (!isSlugSafe(entry.id))
+      addError(result, `${label} has invalid slug id: ${entry.id}`);
+    if (entry.id !== key)
+      addError(result, `${label} key must match id`);
+    validateStringArray(entry.scope, `${label} scope`, result);
+    validateStringArray(entry.typical_skills, `${label} typical_skills`, result);
+    validateStringArray(entry.allowed_tool_classes, `${label} allowed_tool_classes`, result);
+    validateStringArray(entry.required_context, `${label} required_context`, result);
+    validateStringArray(entry.outputs, `${label} outputs`, result);
+    validateStringArray(entry.validation_expectations, `${label} validation_expectations`, result);
+    for (const permissionClass of entry.allowed_tool_classes || []) {
+      if (!knownPermissionClasses.has(permissionClass)) {
+        addError(result, `${label} references invalid tool class: ${permissionClass}`);
+      }
+    }
+    for (const skillId of entry.typical_skills || []) {
+      if (!knownSkillIds.has(skillId)) {
+        result.warnings.push(`${label} references planned skill id not present in skills registry: ${skillId}`);
+      }
+    }
+    for (const relPath of entry.required_context || []) {
+      validateRelativePath(root, relPath, `${label} required_context`, result);
+    }
+  }
+}
+function loadSkillOsRegistries(root = getDefaultRoot()) {
+  const result = createResult();
+  const registries = {
+    skills: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.skills, "skills", result),
+    promptTemplates: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.promptTemplates, "prompt_templates", result),
+    toolPermissions: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.toolPermissions, "tool_permissions", result),
+    agentClusters: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.agentClusters, "agent_clusters", result)
+  };
+  return { ...result, registries };
+}
+function validateSkillOs(root = getDefaultRoot()) {
+  const result = createResult();
+  validateSchemas(root, result);
+  const skills = parseYamlFile(root, SKILL_OS_REGISTRY_FILES.skills, "skills", result) || {};
+  const promptTemplates = parseYamlFile(root, SKILL_OS_REGISTRY_FILES.promptTemplates, "prompt_templates", result) || {};
+  const toolPermissions = parseYamlFile(root, SKILL_OS_REGISTRY_FILES.toolPermissions, "tool_permissions", result) || {};
+  const agentClusters = parseYamlFile(root, SKILL_OS_REGISTRY_FILES.agentClusters, "agent_clusters", result) || {};
+  const knownPermissionClasses = validateToolPermissions(toolPermissions, result);
+  const knownSkillIds = validateSkills(root, skills, knownPermissionClasses, result);
+  validatePromptTemplates(root, promptTemplates, result);
+  validateAgentClusters(root, agentClusters, knownSkillIds, knownPermissionClasses, result);
+  result.summary = {
+    schemas: SKILL_OS_SCHEMA_FILES.length,
+    skills: Object.keys(skills).length,
+    promptTemplates: Object.keys(promptTemplates).length,
+    toolPermissions: Object.keys(toolPermissions).length,
+    agentClusters: Object.keys(agentClusters).length
+  };
+  return result;
+}
+
+// src/skill-os/registry-loader.js
+function hasAllSkillOsFiles(root) {
+  const requiredFiles = [
+    ...SKILL_OS_SCHEMA_FILES,
+    ...Object.values(SKILL_OS_REGISTRY_FILES)
+  ];
+  return requiredFiles.every((relPath) => existsSync28(join28(root, relPath)));
+}
+function resolveSkillOsRoot(target = process.cwd()) {
+  if (target && hasAllSkillOsFiles(target)) {
+    return { root: target, usingFallback: false };
+  }
+  return { root: getDefaultRoot(), usingFallback: true };
+}
+function getSkillOsFileManifest(root) {
+  return {
+    schemas: SKILL_OS_SCHEMA_FILES.map((relPath) => ({
+      path: relPath,
+      exists: existsSync28(join28(root, relPath))
+    })),
+    registries: Object.values(SKILL_OS_REGISTRY_FILES).map((relPath) => ({
+      path: relPath,
+      exists: existsSync28(join28(root, relPath))
+    }))
+  };
+}
+function loadSkillOsData(options = {}) {
+  const { root, usingFallback } = resolveSkillOsRoot(options.target || process.cwd());
+  const loaded = loadSkillOsRegistries(root);
+  const validation = validateSkillOs(root);
+  return {
+    root,
+    usingFallback,
+    files: getSkillOsFileManifest(root),
+    registries: loaded.registries,
+    validation,
+    loadErrors: loaded.errors,
+    loadWarnings: loaded.warnings
+  };
+}
+
+// src/cli/handlers/skill-os.js
+var LIST_TYPES = {
+  skills: {
+    title: "Skills",
+    registryKey: "skills",
+    label: "skill"
+  },
+  prompts: {
+    title: "Prompt Templates",
+    registryKey: "promptTemplates",
+    label: "prompt"
+  },
+  permissions: {
+    title: "Tool Permissions",
+    registryKey: "toolPermissions",
+    label: "permission"
+  },
+  clusters: {
+    title: "Agent Clusters",
+    registryKey: "agentClusters",
+    label: "cluster"
+  }
+};
+var SHOW_TYPES = {
+  skill: LIST_TYPES.skills,
+  prompt: LIST_TYPES.prompts,
+  permission: LIST_TYPES.permissions,
+  cluster: LIST_TYPES.clusters
+};
+function printNotice(data) {
+  if (data.usingFallback) {
+    console.log("Notice: Local Skill OS registries not found. Using bundled Skill OS registries.");
+  }
+}
+function printList(values, indent = "") {
+  for (const value of values || []) {
+    console.log(`${indent}- ${value}`);
+  }
+}
+function getRegistry(data, registryKey) {
+  return data.registries[registryKey] || {};
+}
+function getData(options, deps) {
+  const loadSkillOsDataFn = deps.loadSkillOsDataFn || loadSkillOsData;
+  return loadSkillOsDataFn(options);
+}
+function handleSkillOsStatus(options, deps = {}) {
+  const data = getData(options, deps);
+  const summary = data.validation.summary || {};
+  console.log("\nSkill OS Status");
+  console.log("==================================================");
+  printNotice(data);
+  console.log(`Schemas: ${summary.schemas || data.files.schemas.length}`);
+  console.log(`Registries: ${data.files.registries.length}`);
+  console.log(`Skills: ${summary.skills || 0}`);
+  console.log(`Prompt templates: ${summary.promptTemplates || 0}`);
+  console.log(`Tool permissions: ${summary.toolPermissions || 0}`);
+  console.log(`Agent clusters: ${summary.agentClusters || 0}`);
+  console.log(`Validation: ${data.validation.success ? "passed" : "failed"}`);
+  console.log("\nRegistry files:");
+  for (const file of data.files.registries) {
+    console.log(`- ${file.path}`);
+  }
+  console.log();
+}
+function handleSkillOsValidate(options, deps = {}) {
+  const data = getData(options, deps);
+  console.log("\nSkill OS Validation");
+  console.log("==================================================");
+  printNotice(data);
+  if (data.validation.success) {
+    console.log("Validation: passed");
+  } else {
+    console.log("Validation: failed");
+  }
+  for (const warning of data.validation.warnings || []) {
+    console.warn(`Warning: ${warning}`);
+  }
+  for (const error of data.validation.errors || []) {
+    console.error(`Error: ${error}`);
+  }
+  if (!data.validation.success) {
+    process.exit(1);
+  }
+  console.log();
+}
+function handleSkillOsList(type, options, deps = {}) {
+  const config = LIST_TYPES[type];
+  if (!config) {
+    console.error("\x1B[31mError: Please specify a Skill OS list type: skills, prompts, permissions, or clusters.\x1B[0m");
+    process.exit(1);
+  }
+  const data = getData(options, deps);
+  const registry = getRegistry(data, config.registryKey);
+  console.log(`
+${config.title}`);
+  console.log("==================================================");
+  printNotice(data);
+  const ids = Object.keys(registry);
+  if (ids.length === 0) {
+    console.log(`No ${config.title.toLowerCase()} found.`);
+  } else {
+    printList(ids);
+  }
+  console.log();
+}
+function handleSkillOsShow(type, id, options, deps = {}) {
+  const config = SHOW_TYPES[type];
+  if (!config) {
+    console.error("\x1B[31mError: Please specify a Skill OS show type: skill, prompt, permission, or cluster.\x1B[0m");
+    process.exit(1);
+  }
+  if (!id || id.startsWith("-")) {
+    console.error(`\x1B[31mError: Please specify a ${config.label} ID.\x1B[0m`);
+    process.exit(1);
+  }
+  const data = getData(options, deps);
+  const registry = getRegistry(data, config.registryKey);
+  const item = registry[id];
+  if (!item) {
+    console.error(`\x1B[31mError: Skill OS ${config.label} '${id}' not found.\x1B[0m`);
+    process.exit(1);
+  }
+  if (type === "skill") {
+    printSkill(id, item, data);
+  } else if (type === "prompt") {
+    printPrompt(id, item, data);
+  } else if (type === "permission") {
+    printPermission(id, item, data);
+  } else {
+    printCluster(id, item, data);
+  }
+}
+function printSkill(id, skill, data) {
+  console.log(`
+Skill: ${id}`);
+  console.log("==================================================");
+  printNotice(data);
+  console.log(`Name: ${skill.name || id}`);
+  console.log(`Category: ${skill.category || "unknown"}`);
+  console.log(`Risk: ${skill.risk_level || "unknown"}`);
+  console.log("Permissions:");
+  printList(skill.permissions, "");
+  console.log(`Skill file: ${skill.skill_file || "N/A"}`);
+  if (skill.description)
+    console.log(`Description: ${skill.description}`);
+  console.log();
+}
+function printPrompt(id, prompt, data) {
+  const race = prompt.race_plus || {};
+  console.log(`
+Prompt: ${id}`);
+  console.log("==================================================");
+  printNotice(data);
+  console.log(`Name: ${prompt.name || id}`);
+  console.log(`Role: ${race.role || "N/A"}`);
+  console.log(`Action: ${race.action || "N/A"}`);
+  console.log(`Expectation: ${race.expectation || "N/A"}`);
+  console.log(`Output format: ${race.output_format || "N/A"}`);
+  console.log("Constraints:");
+  printList(race.constraints, "");
+  console.log("Verification:");
+  printList(race.verification, "");
+  console.log(`Next action: ${race.next_action || "N/A"}`);
+  console.log();
+}
+function printPermission(id, permission, data) {
+  console.log(`
+Permission: ${id}`);
+  console.log("==================================================");
+  printNotice(data);
+  console.log(`Display name: ${permission.display_name || id}`);
+  console.log(`Class: ${permission.class || "unknown"}`);
+  console.log(`Requires confirmation: ${permission.requires_confirmation === true}`);
+  console.log(`Requires clean worktree: ${permission.requires_clean_worktree === true}`);
+  console.log(`Requires validation: ${permission.requires_validation === true}`);
+  console.log("Allowed operations:");
+  printList(permission.allowed_operations, "");
+  console.log("Blocked operations:");
+  printList(permission.blocked_operations, "");
+  console.log();
+}
+function printCluster(id, cluster, data) {
+  console.log(`
+Cluster: ${id}`);
+  console.log("==================================================");
+  printNotice(data);
+  console.log(`Name: ${cluster.name || id}`);
+  console.log(`Description: ${cluster.description || "N/A"}`);
+  console.log("Scope:");
+  printList(cluster.scope, "");
+  console.log("Typical skills:");
+  printList(cluster.typical_skills, "");
+  console.log("Allowed tool classes:");
+  printList(cluster.allowed_tool_classes, "");
+  console.log();
+}
+
 // src/cli/handlers/onboard.js
-import { existsSync as existsSync27, mkdirSync as mkdirSync11, readFileSync as readFileSync26, writeFileSync as writeFileSync15, readdirSync as readdirSync12 } from "fs";
-import { join as join27, dirname as dirname9 } from "path";
+import { existsSync as existsSync29, mkdirSync as mkdirSync11, readFileSync as readFileSync27, writeFileSync as writeFileSync15, readdirSync as readdirSync12 } from "fs";
+import { join as join29, dirname as dirname9 } from "path";
 function getRecommendation(analysis) {
   const scores = {
     "nextjs-saas": 0,
@@ -6659,8 +7246,8 @@ function handleOnboardPlan(options) {
   console.log("==================================================");
   const analysis = getAnalysis(options.target);
   const rec = getRecommendation(analysis);
-  const planPath = join27(options.target, ".ai", "intelligence", "onboarding.plan.json");
-  const reportPath = join27(options.target, ".ai", "intelligence", "onboarding.report.md");
+  const planPath = join29(options.target, ".ai", "intelligence", "onboarding.plan.json");
+  const reportPath = join29(options.target, ".ai", "intelligence", "onboarding.report.md");
   const plannedFiles = [
     { action: "CREATE", path: "AGENTS.md", source_template: `examples/${rec.template}/AGENTS.md` },
     { action: "CREATE", path: "MEMORY.md", source_template: `examples/${rec.template}/MEMORY.md` },
@@ -6736,8 +7323,8 @@ function handleOnboardPlan(options) {
   reportMd += `\`\`\`
 `;
   try {
-    const intelDir = join27(options.target, ".ai", "intelligence");
-    if (!options.dryRun && !existsSync27(intelDir)) {
+    const intelDir = join29(options.target, ".ai", "intelligence");
+    if (!options.dryRun && !existsSync29(intelDir)) {
       mkdirSync11(intelDir, { recursive: true });
     }
     if (!options.dryRun) {
@@ -6760,14 +7347,14 @@ function handleOnboardApply(options) {
     console.log("Example: node bin/multimodel-dev-os.js onboard apply --approved");
     process.exit(1);
   }
-  const planPath = join27(options.target, ".ai", "intelligence", "onboarding.plan.json");
-  if (!existsSync27(planPath)) {
+  const planPath = join29(options.target, ".ai", "intelligence", "onboarding.plan.json");
+  if (!existsSync29(planPath)) {
     console.error('\x1B[31mError: Onboarding plan not found. Run "npx multimodel-dev-os onboard plan" first.\x1B[0m');
     process.exit(1);
   }
   let plan;
   try {
-    plan = JSON.parse(readFileSync26(planPath, "utf8"));
+    plan = JSON.parse(readFileSync27(planPath, "utf8"));
   } catch (e) {
     console.error(`\x1B[31mError reading plan JSON: ${e.message}\x1B[0m`);
     process.exit(1);
@@ -6781,23 +7368,23 @@ function handleOnboardApply(options) {
   plan.planned_files.forEach((f) => {
     let srcFile;
     if (f.source_template === "RUNBOOK.md") {
-      srcFile = join27(sourceRoot, "RUNBOOK.md");
+      srcFile = join29(sourceRoot, "RUNBOOK.md");
     } else {
-      srcFile = join27(sourceRoot, f.source_template);
+      srcFile = join29(sourceRoot, f.source_template);
     }
     operations.push({ dest: f.path, src: srcFile });
   });
-  const templateDir = join27(sourceRoot, "examples", template);
-  const templateAiDir = join27(templateDir, ".ai");
-  if (existsSync27(templateAiDir) && !options.caveman) {
+  const templateDir = join29(sourceRoot, "examples", template);
+  const templateAiDir = join29(templateDir, ".ai");
+  if (existsSync29(templateAiDir) && !options.caveman) {
     const subdirs = ["context", "skills"];
     subdirs.forEach((sub) => {
-      const subPath = join27(templateAiDir, sub);
-      if (existsSync27(subPath)) {
+      const subPath = join29(templateAiDir, sub);
+      if (existsSync29(subPath)) {
         readdirSync12(subPath).forEach((file) => {
           operations.push({
-            dest: join27(".ai", sub, file),
-            src: join27(subPath, file)
+            dest: join29(".ai", sub, file),
+            src: join29(subPath, file)
           });
         });
       }
@@ -6805,17 +7392,17 @@ function handleOnboardApply(options) {
   }
   const globalAiSubdirs = ["context", "agents", "skills", "prompts", "checks", "templates", "session-logs", "registries", "proposals", "intelligence"];
   globalAiSubdirs.forEach((sub) => {
-    const globalPath = join27(sourceRoot, ".ai", sub);
-    if (existsSync27(globalPath)) {
+    const globalPath = join29(sourceRoot, ".ai", sub);
+    if (existsSync29(globalPath)) {
       readdirSync12(globalPath).forEach((file) => {
-        const destRel = join27(".ai", sub, file);
+        const destRel = join29(".ai", sub, file);
         if (!operations.some((op) => op.dest === destRel)) {
           if (options.caveman && (sub === "context" || sub === "skills" || sub === "prompts" || sub === "checks")) {
             return;
           }
           operations.push({
             dest: destRel,
-            src: join27(globalPath, file)
+            src: join29(globalPath, file)
           });
         }
       });
@@ -6825,16 +7412,16 @@ function handleOnboardApply(options) {
   let skippedCount = 0;
   let updatedCount = 0;
   operations.forEach((op) => {
-    const destPath = join27(options.target, op.dest);
+    const destPath = join29(options.target, op.dest);
     const destDir = dirname9(destPath);
-    if (existsSync27(destPath)) {
+    if (existsSync29(destPath)) {
       if (options.force) {
         if (!options.dryRun) {
           const backupPath = destPath + ".bak";
-          writeFileSync15(backupPath, readFileSync26(destPath));
-          if (!existsSync27(destDir))
+          writeFileSync15(backupPath, readFileSync27(destPath));
+          if (!existsSync29(destDir))
             mkdirSync11(destDir, { recursive: true });
-          writeFileSync15(destPath, readFileSync26(op.src));
+          writeFileSync15(destPath, readFileSync27(op.src));
           console.log(`  \x1B[33mOVERWRITE (BACKUP CREATED):\x1B[0m ${op.dest} -> ${op.dest}.bak`);
         } else {
           console.log(`  \x1B[36m[DRY-RUN] WOULD OVERWRITE & BACKUP:\x1B[0m ${op.dest}`);
@@ -6846,9 +7433,9 @@ function handleOnboardApply(options) {
       }
     } else {
       if (!options.dryRun) {
-        if (!existsSync27(destDir))
+        if (!existsSync29(destDir))
           mkdirSync11(destDir, { recursive: true });
-        writeFileSync15(destPath, readFileSync26(op.src));
+        writeFileSync15(destPath, readFileSync27(op.src));
         console.log(`  \x1B[32mCREATE:\x1B[0m ${op.dest}`);
       } else {
         console.log(`  \x1B[36m[DRY-RUN] WOULD CREATE:\x1B[0m ${op.dest}`);
@@ -6873,8 +7460,8 @@ function handleOnboardStatus(options) {
   ];
   let presentCount = 0;
   crucialFiles.forEach((f) => {
-    const fullPath = join27(options.target, f);
-    const exists = existsSync27(fullPath);
+    const fullPath = join29(options.target, f);
+    const exists = existsSync29(fullPath);
     if (exists)
       presentCount++;
     console.log(`  [${exists ? "\u2714" : " "}] ${f}`);
@@ -6892,7 +7479,7 @@ function handleOnboardStatus(options) {
 }
 
 // src/cli/handlers/dashboard.js
-import { join as join28 } from "path";
+import { join as join30 } from "path";
 import readline from "readline";
 import { execSync } from "child_process";
 function selectMenu(title, items, callback) {
@@ -7037,7 +7624,7 @@ function handleDashboard(options) {
 \x1B[36mRunning Command:\x1B[0m npx multimodel-dev-os ${cmdStr}${targetFlag}`);
     console.log("--------------------------------------------------\n");
     try {
-      const cliPath = join28(sourceRoot, "bin", "multimodel-dev-os.js");
+      const cliPath = join30(sourceRoot, "bin", "multimodel-dev-os.js");
       execSync(`node "${cliPath}" ${cmdStr} --target "${options.target}"`, { stdio: "inherit" });
     } catch (e) {
       console.error(`
@@ -7049,9 +7636,9 @@ function handleDashboard(options) {
       process.stdin.setRawMode(true);
     }
     process.stdin.resume();
-    return new Promise((resolve5) => {
+    return new Promise((resolve6) => {
       process.stdin.once("keypress", () => {
-        resolve5();
+        resolve6();
       });
     });
   };
@@ -7235,6 +7822,25 @@ if (COMMAND === "init") {
     process.exit(1);
   }
   handleShowSkill(sName, params);
+} else if (COMMAND === "skill-os") {
+  const positional = getPositionalArgs(ARGS);
+  const sub = positional[1];
+  if (sub === "status") {
+    handleSkillOsStatus(params);
+  } else if (sub === "validate") {
+    handleSkillOsValidate(params);
+  } else if (sub === "list") {
+    const type = positional[2];
+    handleSkillOsList(type, params);
+  } else if (sub === "show") {
+    const type = positional[2];
+    const id = positional[3];
+    handleSkillOsShow(type, id, params);
+  } else {
+    console.error("\x1B[31mError: Please specify a skill-os subcommand: status, validate, list, or show.\x1B[0m");
+    console.log("Example: node bin/multimodel-dev-os.js skill-os status");
+    process.exit(1);
+  }
 } else if (COMMAND === "status") {
   handleStatus(params, { scanTarget, detectFrameworkSignals, detectDependencySignals, diffMemory: boundDiffMemory });
 } else if (COMMAND === "workflow") {

@@ -106,6 +106,7 @@ export default {
           { text: 'Skill Authoring Guide', link: '/skill-authoring' },
           { text: 'Structured Prompts', link: '/structured-prompts' },
           { text: 'Skill Registry', link: '/skill-registry' },
+          { text: 'Skill OS CLI', link: '/skill-os-cli' },
           { text: 'Tool Permissions', link: '/tool-permissions' },
           { text: 'Agent Clusters', link: '/agent-clusters' },
           { text: 'Registry Contribution Guide', link: '/registry-contribution' }

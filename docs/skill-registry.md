@@ -21,17 +21,18 @@ The registry provides example metadata for reusable skills such as:
 - Business ops
 - Code review
 
-## Sprint B Status
+## Sprint C Status
 
-The registry remains declarative, but Sprint B adds validation for its schema and bundled examples:
+The registry remains declarative, and Sprint C adds read-only CLI inspection:
 
 - No runtime behavior change.
-- No CLI command change.
 - No automatic skill triggering.
 - No permission enforcement.
 - Validation checks required fields, slug-safe IDs, semver-like versions, risk levels, permission classes, safe relative paths, and referenced files.
+- `multimodel-dev-os skill-os list skills` prints known skill IDs.
+- `multimodel-dev-os skill-os show skill <id>` prints selected metadata.
 
-Future sprints are expected to add read-only inspection before any workflow integration.
+Future sprints may add richer inspection before any workflow integration.
 
 ## Metadata Shape
 
@@ -71,3 +72,5 @@ Registry entries should point to safe relative workspace paths and use the share
 3. Use low-risk or draft-only permissions by default.
 4. Add checks for skills that may lead to writes or release operations.
 5. Treat validation as a safety net, not as automation or permission enforcement.
+
+See [Skill OS CLI](./skill-os-cli.md) for read-only inspection commands.

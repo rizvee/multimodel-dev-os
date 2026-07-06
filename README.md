@@ -62,7 +62,7 @@ The root npm package name remains `multimodel-dev-os`.
 | 🧠 | **Intelligence Engine** | Hash-compressed memory, feedback learning, self-improvement proposals with HITL safety gates |
 | 📁 | **Repo Onboarding** | Analyze existing projects, recommend templates, and bootstrap configs without breaking anything |
 | 🔧 | **Zero Dependencies** | Pure Node.js CLI — no runtime, no build step, no package manager lock-in |
-| 🛡️ | **289 Quality Gates** | Built-in `validate`, `doctor`, and `verify` commands with strict structural assertions |
+| 🛡️ | **295+ Quality Gates** | Built-in `validate`, `doctor`, `verify`, and Skill OS registry checks with strict structural assertions |
 
 ---
 
@@ -128,6 +128,10 @@ npx multimodel-dev-os@latest adapter sync all --approved
 # Run Workflows & Handoffs
 npx multimodel-dev-os@latest workflow run repo-health
 npx multimodel-dev-os@latest handoff build
+
+# Inspect Skill OS registries (read-only)
+npx multimodel-dev-os@latest skill-os status
+npx multimodel-dev-os@latest skill-os list skills
 ```
 
 📖 **[Full CLI Reference →](https://rizvee.github.io/multimodel-dev-os/CLI)**
@@ -140,7 +144,7 @@ npx multimodel-dev-os@latest handoff build
 |:---|:---|:---|
 | **Tool Sync** | Manual copy-paste across tools | ✅ Automated dynamic adapters |
 | **Context Budgets** | Bloats prompts, wastes tokens | ✅ Caveman Mode cuts **~79%** overhead |
-| **Standards** | Easy to drift and corrupt | ✅ CLI `validate` + `doctor` + 289-check `verify` |
+| **Standards** | Easy to drift and corrupt | ✅ CLI `validate` + `doctor` + 295+ check `verify` |
 | **Templates** | Start from scratch | ✅ 6 production-ready real-world templates |
 | **Model Registry** | Hardcoded model names | ✅ Dynamic capability-scored routing presets |
 | **Self-Improvement** | None | ✅ Feedback → Proposals → Apply with safety gates |
@@ -187,7 +191,8 @@ Patch note: v4.0.1 updates npm package-page documentation after the v4.0.0 publi
 Future roadmap:
 **[Release state](docs/release-state.md)** ·
 **[AI OS roadmap](docs/future-ai-os-roadmap.md)** ·
-**[v4.1 Skill OS plan](docs/v4.1-skill-os-foundation-plan.md)**
+**[v4.1 Skill OS plan](docs/v4.1-skill-os-foundation-plan.md)** ·
+**[Skill OS CLI](docs/skill-os-cli.md)**
 
 ---
 

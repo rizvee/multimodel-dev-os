@@ -106,6 +106,12 @@ import {
   handleShowSkill
 } from './handlers/skills.js';
 import {
+  handleSkillOsList,
+  handleSkillOsShow,
+  handleSkillOsStatus,
+  handleSkillOsValidate
+} from './handlers/skill-os.js';
+import {
   handleOnboardAnalyze,
   handleOnboardRecommend,
   handleOnboardPlan,
@@ -291,6 +297,25 @@ if (COMMAND === 'init') {
     process.exit(1);
   }
   handleShowSkill(sName, params);
+} else if (COMMAND === 'skill-os') {
+  const positional = getPositionalArgs(ARGS);
+  const sub = positional[1];
+  if (sub === 'status') {
+    handleSkillOsStatus(params);
+  } else if (sub === 'validate') {
+    handleSkillOsValidate(params);
+  } else if (sub === 'list') {
+    const type = positional[2];
+    handleSkillOsList(type, params);
+  } else if (sub === 'show') {
+    const type = positional[2];
+    const id = positional[3];
+    handleSkillOsShow(type, id, params);
+  } else {
+    console.error('\x1b[31mError: Please specify a skill-os subcommand: status, validate, list, or show.\x1b[0m');
+    console.log('Example: node bin/multimodel-dev-os.js skill-os status');
+    process.exit(1);
+  }
 } else if (COMMAND === 'status') {
   handleStatus(params, { scanTarget, detectFrameworkSignals, detectDependencySignals, diffMemory: boundDiffMemory });
 } else if (COMMAND === 'workflow') {

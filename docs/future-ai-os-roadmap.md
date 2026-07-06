@@ -2,7 +2,7 @@
 
 This roadmap outlines neutral, product-facing tracks for scaling MultiModel Dev OS into a broader AI operating layer for technical, operational, and document-heavy workflows. These tracks are directional and do not imply committed release scope.
 
-v4.1 Sprint A added schema and example foundations. v4.1 Sprint B adds validation for those bundled registries only; it does not execute automation or enforce permissions.
+v4.1 Sprint A added schema and example foundations. v4.1 Sprint B adds validation for those bundled registries only. v4.1 Sprint C adds read-only CLI inspection through `skill-os` commands. These sprints do not execute automation or enforce permissions.
 
 ## Structured Prompting Layer
 
@@ -29,6 +29,13 @@ Sprint B validation:
 - RACE+ registry files parse.
 - Required RACE+ fields are present.
 - Referenced files stay inside the workspace.
+
+Sprint C inspection:
+
+- `skill-os status`
+- `skill-os validate`
+- `skill-os list prompts`
+- `skill-os show prompt <id>`
 
 ## Skill-First Workflow System
 
@@ -64,6 +71,11 @@ Sprint B validation:
 - Permission classes are known.
 - Restricted and write-capable tools require confirmation.
 - Dangerous operations cannot be classified as read-only.
+
+Sprint C inspection:
+
+- `skill-os list permissions`
+- `skill-os show permission <id>`
 
 ## Hooks and Guardrails
 

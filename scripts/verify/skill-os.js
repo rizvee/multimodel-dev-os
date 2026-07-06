@@ -1,5 +1,6 @@
 import { validateSkillOs } from '../../src/skill-os/validation.js';
 import { stats, GREEN, RED, YELLOW, NC } from './utils.js';
+import { execFileSync } from 'child_process';
 
 function pass(message) {
   console.log(`  ${GREEN}✓${NC} ${message}`);
@@ -14,6 +15,18 @@ function fail(message) {
 function warn(message) {
   console.log(`  ${YELLOW}!${NC} ${message}`);
   stats.warn++;
+}
+
+function checkCliSmoke(args, label) {
+  try {
+    execFileSync('node', ['bin/multimodel-dev-os.js', ...args], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    pass(label);
+  } catch (error) {
+    fail(`${label}: ${error.message}`);
+  }
 }
 
 export function checkSkillOsValidation() {
@@ -65,4 +78,11 @@ export function checkSkillOsValidation() {
   for (const error of result.errors) {
     fail(error);
   }
+
+  checkCliSmoke(['skill-os', 'status'], 'node bin/multimodel-dev-os.js skill-os status');
+  checkCliSmoke(['skill-os', 'validate'], 'node bin/multimodel-dev-os.js skill-os validate');
+  checkCliSmoke(['skill-os', 'list', 'skills'], 'node bin/multimodel-dev-os.js skill-os list skills');
+  checkCliSmoke(['skill-os', 'list', 'prompts'], 'node bin/multimodel-dev-os.js skill-os list prompts');
+  checkCliSmoke(['skill-os', 'list', 'permissions'], 'node bin/multimodel-dev-os.js skill-os list permissions');
+  checkCliSmoke(['skill-os', 'list', 'clusters'], 'node bin/multimodel-dev-os.js skill-os list clusters');
 }

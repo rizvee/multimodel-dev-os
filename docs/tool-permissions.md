@@ -45,16 +45,17 @@ The following are modeled as `restricted-admin`:
 - Ad spend changes
 - Secret rotation
 
-## Sprint B Status
+## Sprint C Status
 
-Permission classes remain declarative, but Sprint B adds validation for the bundled permission registry:
+Permission classes remain declarative, and Sprint C adds read-only CLI inspection:
 
 - No permission enforcement.
 - No command blocking.
 - No external tool automation.
 - No runtime behavior change.
-- No CLI command change.
 - Validation checks known classes, confirmation requirements, and dangerous operations that cannot be marked read-only.
+- `multimodel-dev-os skill-os list permissions` prints known permission IDs.
+- `multimodel-dev-os skill-os show permission <id>` prints class and guardrail metadata.
 
 Future sprints should add read-only inspection, then carefully scoped guardrail integration.
 

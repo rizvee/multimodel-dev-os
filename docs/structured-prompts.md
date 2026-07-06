@@ -35,18 +35,19 @@ The schema reference lives at:
 .ai/schema/prompt-template.schema.json
 ```
 
-## Sprint B Status
+## Sprint C Status
 
-Prompt templates remain declarative, but Sprint B adds validation for the bundled RACE+ registry:
+Prompt templates remain declarative, and Sprint C adds read-only CLI inspection for bundled and local registries:
 
 - No automation execution.
 - No runtime behavior change.
 - No permission enforcement.
-- No CLI command changes.
 - Existing markdown prompts remain valid.
 - Validation checks IDs, versions, complete RACE+ fields, safe referenced files, constraints, and verification arrays.
+- `multimodel-dev-os skill-os list prompts` prints known prompt template IDs.
+- `multimodel-dev-os skill-os show prompt <id>` prints selected RACE+ fields.
 
-Future sprints are expected to add listing and inspection before any execution workflow is considered.
+Future sprints may add richer listing before any execution workflow is considered.
 
 ## Template Shape
 
@@ -78,3 +79,4 @@ race_plus:
 - Separate instructions from tool execution.
 - Do not claim unreleased runtime support.
 - Prefer small focused templates over broad prompt bundles.
+- Use `skill-os` commands for read-only local inspection.

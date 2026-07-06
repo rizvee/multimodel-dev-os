@@ -12,14 +12,14 @@ export const VALID_PERMISSION_CLASSES = [
 
 export const VALID_RISK_LEVELS = ['low', 'medium', 'high', 'restricted'];
 
-const SCHEMA_FILES = [
+export const SKILL_OS_SCHEMA_FILES = [
   '.ai/schema/skill.schema.json',
   '.ai/schema/prompt-template.schema.json',
   '.ai/schema/tool-permission.schema.json',
   '.ai/schema/agent-cluster.schema.json',
 ];
 
-const REGISTRY_FILES = {
+export const SKILL_OS_REGISTRY_FILES = {
   skills: '.ai/registries/skills.yaml',
   promptTemplates: '.ai/registries/prompt-templates.yaml',
   toolPermissions: '.ai/registries/tool-permissions.yaml',
@@ -39,7 +39,7 @@ const REQUIRED_RACE_PLUS_FIELDS = [
 
 const DANGEROUS_OPERATION_PATTERN = /\b(publish|deploy|dns|ad spend|secret|token|credential|force push|delete|remove|rotate|billing|production)\b/i;
 
-function getDefaultRoot() {
+export function getDefaultRoot() {
   if (existsSync(join(sourceRoot, 'package.json'))) {
     return sourceRoot;
   }
@@ -163,7 +163,7 @@ function parseYamlFile(root, relPath, rootKey, result) {
 }
 
 function validateSchemas(root, result) {
-  for (const relPath of SCHEMA_FILES) {
+  for (const relPath of SKILL_OS_SCHEMA_FILES) {
     validateRelativePath(root, relPath, relPath, result);
     if (pathExists(root, relPath)) {
       parseJsonFile(root, relPath, result);
@@ -348,10 +348,10 @@ function validateAgentClusters(root, clusters, knownSkillIds, knownPermissionCla
 export function loadSkillOsRegistries(root = getDefaultRoot()) {
   const result = createResult();
   const registries = {
-    skills: parseYamlFile(root, REGISTRY_FILES.skills, 'skills', result),
-    promptTemplates: parseYamlFile(root, REGISTRY_FILES.promptTemplates, 'prompt_templates', result),
-    toolPermissions: parseYamlFile(root, REGISTRY_FILES.toolPermissions, 'tool_permissions', result),
-    agentClusters: parseYamlFile(root, REGISTRY_FILES.agentClusters, 'agent_clusters', result),
+    skills: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.skills, 'skills', result),
+    promptTemplates: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.promptTemplates, 'prompt_templates', result),
+    toolPermissions: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.toolPermissions, 'tool_permissions', result),
+    agentClusters: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.agentClusters, 'agent_clusters', result),
   };
   return { ...result, registries };
 }
@@ -361,10 +361,10 @@ export function validateSkillOs(root = getDefaultRoot()) {
 
   validateSchemas(root, result);
 
-  const skills = parseYamlFile(root, REGISTRY_FILES.skills, 'skills', result) || {};
-  const promptTemplates = parseYamlFile(root, REGISTRY_FILES.promptTemplates, 'prompt_templates', result) || {};
-  const toolPermissions = parseYamlFile(root, REGISTRY_FILES.toolPermissions, 'tool_permissions', result) || {};
-  const agentClusters = parseYamlFile(root, REGISTRY_FILES.agentClusters, 'agent_clusters', result) || {};
+  const skills = parseYamlFile(root, SKILL_OS_REGISTRY_FILES.skills, 'skills', result) || {};
+  const promptTemplates = parseYamlFile(root, SKILL_OS_REGISTRY_FILES.promptTemplates, 'prompt_templates', result) || {};
+  const toolPermissions = parseYamlFile(root, SKILL_OS_REGISTRY_FILES.toolPermissions, 'tool_permissions', result) || {};
+  const agentClusters = parseYamlFile(root, SKILL_OS_REGISTRY_FILES.agentClusters, 'agent_clusters', result) || {};
 
   const knownPermissionClasses = validateToolPermissions(toolPermissions, result);
   const knownSkillIds = validateSkills(root, skills, knownPermissionClasses, result);
@@ -372,7 +372,7 @@ export function validateSkillOs(root = getDefaultRoot()) {
   validateAgentClusters(root, agentClusters, knownSkillIds, knownPermissionClasses, result);
 
   result.summary = {
-    schemas: SCHEMA_FILES.length,
+    schemas: SKILL_OS_SCHEMA_FILES.length,
     skills: Object.keys(skills).length,
     promptTemplates: Object.keys(promptTemplates).length,
     toolPermissions: Object.keys(toolPermissions).length,

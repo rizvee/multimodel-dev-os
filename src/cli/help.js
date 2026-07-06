@@ -35,6 +35,7 @@ export function showHelp() {
   console.log('  adapters          List IDE and terminal tool adapters');
   console.log('  show-adapter <a>  Inspect config specifications of adapter <a>');
   console.log('  skills            List active skills custom prompts in target workspace');
+  console.log('  skill-os <subcmd> Inspect Skill OS registries (subcmd: status, validate, list, show)');
   console.log('  show-skill <s>    View prompt contents of target workspace skill <s>\n');
   console.log('Options:');
   console.log('  -t, --target <path>     Target folder destination (default: current working directory)');
