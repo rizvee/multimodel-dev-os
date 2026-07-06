@@ -6089,6 +6089,12 @@ function handleWorkflowList(options) {
   \x1B[34m* ${name}\x1B[0m (\x1B[35m${key}\x1B[0m)`);
       console.log(`    Description: ${wf.description || "No description"}`);
       console.log(`    Risk Level:  ${riskColor}${risk.toUpperCase()}\x1B[0m`);
+      if (wf.skill_os) {
+        const skillCount = Array.isArray(wf.skill_os.skills) ? wf.skill_os.skills.length : 0;
+        const promptCount = Array.isArray(wf.skill_os.prompts) ? wf.skill_os.prompts.length : 0;
+        const guardrailCount = Array.isArray(wf.skill_os.guardrails) ? wf.skill_os.guardrails.length : 0;
+        console.log(`    Skill OS:    ${skillCount} skills, ${promptCount} prompts, ${guardrailCount} guardrails`);
+      }
     });
     console.log();
   } catch (e) {
@@ -6122,6 +6128,7 @@ function handleWorkflowShow(wName, options) {
     console.log(`  Risk Level:              ${riskColor}${risk.toUpperCase()}\x1B[0m`);
     console.log(`  Allowed to write memory: ${wf.allowed_to_write_memory || false}`);
     console.log(`  Allowed to modify code:  ${wf.allowed_to_modify_source || false}`);
+    printWorkflowSkillOs(wf.skill_os);
     console.log(`
   \x1B[33mSteps:\x1B[0m`);
     const steps = wf.steps || [];
@@ -6135,6 +6142,22 @@ function handleWorkflowShow(wName, options) {
   } catch (e) {
     console.error(`\x1B[31mError loading workflow '${wName}': ${e.message}\x1B[0m`);
   }
+}
+function printWorkflowSkillOs(skillOs) {
+  if (!skillOs)
+    return;
+  console.log(`
+  \x1B[33mSkill OS Metadata:\x1B[0m`);
+  printWorkflowSkillOsLine("Skills", skillOs.skills);
+  printWorkflowSkillOsLine("Prompts", skillOs.prompts);
+  printWorkflowSkillOsLine("Permissions", skillOs.permissions);
+  printWorkflowSkillOsLine("Guardrails", skillOs.guardrails);
+  printWorkflowSkillOsLine("Required context", skillOs.required_context);
+}
+function printWorkflowSkillOsLine(label, values) {
+  if (!Array.isArray(values) || values.length === 0)
+    return;
+  console.log(`    ${label}: ${values.join(", ")}`);
 }
 function handleWorkflowPlan(wName, options) {
   const { workflowsPath, usingFallback } = getWorkflowsPath(options.target);
@@ -6598,14 +6621,16 @@ var SKILL_OS_SCHEMA_FILES = [
   ".ai/schema/prompt-template.schema.json",
   ".ai/schema/tool-permission.schema.json",
   ".ai/schema/agent-cluster.schema.json",
-  ".ai/schema/guardrail.schema.json"
+  ".ai/schema/guardrail.schema.json",
+  ".ai/schema/workflow.schema.json"
 ];
 var SKILL_OS_REGISTRY_FILES = {
   skills: ".ai/registries/skills.yaml",
   promptTemplates: ".ai/registries/prompt-templates.yaml",
   toolPermissions: ".ai/registries/tool-permissions.yaml",
   agentClusters: ".ai/registries/agent-clusters.yaml",
-  guardrails: ".ai/registries/guardrails.yaml"
+  guardrails: ".ai/registries/guardrails.yaml",
+  workflows: ".ai/registries/workflows.yaml"
 };
 var VALID_GUARDRAIL_TYPES = ["pre_tool", "pre_write", "pre_external_write", "post_change", "session_end"];
 var VALID_GUARDRAIL_SEVERITIES = ["info", "low", "medium", "high", "restricted"];
@@ -6979,6 +7004,60 @@ function validateGuardrails(root, guardrails, result) {
     }
   }
 }
+function getGuardrailIds(guardrails) {
+  const ids = /* @__PURE__ */ new Set();
+  for (const guardrail of Array.isArray(guardrails) ? guardrails : []) {
+    if (guardrail && typeof guardrail.id === "string") {
+      ids.add(guardrail.id);
+    }
+  }
+  return ids;
+}
+function validateOptionalReferenceArray(entry, field, knownIds, label, result) {
+  const values = entry[field];
+  if (values === void 0 || values === null)
+    return 0;
+  if (!Array.isArray(values)) {
+    addError(result, `${label} skill_os.${field} must be an array`);
+    return 0;
+  }
+  for (const value of values) {
+    if (!isSlugSafe(value)) {
+      addError(result, `${label} skill_os.${field} contains invalid slug id: ${value}`);
+    } else if (!knownIds.has(value)) {
+      addError(result, `${label} skill_os.${field} references unknown id: ${value}`);
+    }
+  }
+  return 1;
+}
+function validateWorkflowSkillOs(root, workflows, knownSkillIds, knownPromptIds, knownPermissionIds, knownGuardrailIds, result) {
+  let workflowsWithSkillOs = 0;
+  for (const [key, workflow] of asObjectEntries(workflows)) {
+    const skillOs = workflow.skill_os;
+    if (skillOs === void 0 || skillOs === null)
+      continue;
+    const label = `workflow '${key}'`;
+    if (!isObject(skillOs)) {
+      addError(result, `${label} skill_os must be an object`);
+      continue;
+    }
+    workflowsWithSkillOs++;
+    validateOptionalReferenceArray(skillOs, "skills", knownSkillIds, label, result);
+    validateOptionalReferenceArray(skillOs, "prompts", knownPromptIds, label, result);
+    validateOptionalReferenceArray(skillOs, "permissions", knownPermissionIds, label, result);
+    validateOptionalReferenceArray(skillOs, "guardrails", knownGuardrailIds, label, result);
+    if (skillOs.required_context !== void 0 && skillOs.required_context !== null) {
+      if (!Array.isArray(skillOs.required_context)) {
+        addError(result, `${label} skill_os.required_context must be an array`);
+      } else {
+        for (const relPath of skillOs.required_context) {
+          validateRelativePath(root, relPath, `${label} skill_os.required_context`, result);
+        }
+      }
+    }
+  }
+  return workflowsWithSkillOs;
+}
 function loadSkillOsRegistries(root = getDefaultRoot()) {
   const result = createResult();
   const registries = {
@@ -6986,7 +7065,8 @@ function loadSkillOsRegistries(root = getDefaultRoot()) {
     promptTemplates: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.promptTemplates, "prompt_templates", result),
     toolPermissions: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.toolPermissions, "tool_permissions", result),
     agentClusters: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.agentClusters, "agent_clusters", result),
-    guardrails: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.guardrails, "guardrails", result)
+    guardrails: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.guardrails, "guardrails", result),
+    workflows: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.workflows, "workflows", result)
   };
   return { ...result, registries };
 }
@@ -6998,18 +7078,33 @@ function validateSkillOs(root = getDefaultRoot()) {
   const toolPermissions = parseYamlFile(root, SKILL_OS_REGISTRY_FILES.toolPermissions, "tool_permissions", result) || {};
   const agentClusters = parseYamlFile(root, SKILL_OS_REGISTRY_FILES.agentClusters, "agent_clusters", result) || {};
   const guardrails = parseYamlFile(root, SKILL_OS_REGISTRY_FILES.guardrails, "guardrails", result) || [];
+  const workflows = parseYamlFile(root, SKILL_OS_REGISTRY_FILES.workflows, "workflows", result) || {};
   const knownPermissionClasses = validateToolPermissions(toolPermissions, result);
   const knownSkillIds = validateSkills(root, skills, knownPermissionClasses, result);
   validatePromptTemplates(root, promptTemplates, result);
   validateAgentClusters(root, agentClusters, knownSkillIds, knownPermissionClasses, result);
   validateGuardrails(root, guardrails, result);
+  const knownPromptIds = new Set(Object.keys(promptTemplates || {}));
+  const knownPermissionIds = new Set(Object.keys(toolPermissions || {}));
+  const knownGuardrailIds = getGuardrailIds(guardrails);
+  const workflowsWithSkillOs = validateWorkflowSkillOs(
+    root,
+    workflows,
+    knownSkillIds,
+    knownPromptIds,
+    knownPermissionIds,
+    knownGuardrailIds,
+    result
+  );
   result.summary = {
     schemas: SKILL_OS_SCHEMA_FILES.length,
     skills: Object.keys(skills).length,
     promptTemplates: Object.keys(promptTemplates).length,
     toolPermissions: Object.keys(toolPermissions).length,
     agentClusters: Object.keys(agentClusters).length,
-    guardrails: Array.isArray(guardrails) ? guardrails.length : 0
+    guardrails: Array.isArray(guardrails) ? guardrails.length : 0,
+    workflows: Object.keys(workflows).length,
+    workflowsWithSkillOs
   };
   return result;
 }
@@ -7113,6 +7208,9 @@ function handleSkillOsStatus(options, deps = {}) {
   console.log(`Prompt templates: ${summary.promptTemplates || 0}`);
   console.log(`Tool permissions: ${summary.toolPermissions || 0}`);
   console.log(`Agent clusters: ${summary.agentClusters || 0}`);
+  console.log(`Guardrails: ${summary.guardrails || 0}`);
+  console.log(`Workflows: ${summary.workflows || 0}`);
+  console.log(`Workflows with Skill OS: ${summary.workflowsWithSkillOs || 0}`);
   console.log(`Validation: ${data.validation.success ? "passed" : "failed"}`);
   console.log("\nRegistry files:");
   for (const file of data.files.registries) {

@@ -46,6 +46,17 @@ workflows:
     name: "Test Workflow"
     description: "A workflow for testing"
     risk_level: "low"
+    skill_os:
+      skills:
+        - release-governance
+      prompts:
+        - release-audit
+      permissions:
+        - filesystem-read
+      guardrails:
+        - block-destructive-git
+      required_context:
+        - "README.md"
     steps:
       - name: "Scan target"
         command: "scan"
@@ -54,6 +65,13 @@ workflows:
       - name: "Run manual command"
         command: "custom-cmd"
         expected_output: "something"
+  legacy-workflow:
+    name: "Legacy Workflow"
+    description: "A workflow without Skill OS metadata"
+    risk_level: "low"
+    steps:
+      - name: "Scan target"
+        command: "scan"
 `, 'utf8');
   });
 
@@ -90,6 +108,7 @@ workflows:
     const out = logOutput.join('\n');
     expect(out).toContain('Registered Workflows');
     expect(out).toContain('Test Workflow');
+    expect(out).toContain('Legacy Workflow');
   });
 
   it('handleWorkflowShow should display workflow details', () => {
@@ -97,6 +116,30 @@ workflows:
     const out = logOutput.join('\n');
     expect(out).toContain('Workflow Spec: Test Workflow');
     expect(out).toContain('Scan target');
+  });
+
+  it('handleWorkflowList should display compact Skill OS metadata counts', () => {
+    handleWorkflowList({ target: tempDir });
+    const out = logOutput.join('\n');
+    expect(out).toContain('Skill OS:');
+    expect(out).toContain('1 skills, 1 prompts, 1 guardrails');
+  });
+
+  it('handleWorkflowShow should display Skill OS metadata when present', () => {
+    handleWorkflowShow('test-workflow', { target: tempDir });
+    const out = logOutput.join('\n');
+    expect(out).toContain('Skill OS Metadata');
+    expect(out).toContain('Skills: release-governance');
+    expect(out).toContain('Prompts: release-audit');
+    expect(out).toContain('Permissions: filesystem-read');
+    expect(out).toContain('Guardrails: block-destructive-git');
+  });
+
+  it('handleWorkflowShow should keep workflows without Skill OS metadata valid', () => {
+    handleWorkflowShow('legacy-workflow', { target: tempDir });
+    const out = logOutput.join('\n');
+    expect(out).toContain('Workflow Spec: Legacy Workflow');
+    expect(out).not.toContain('Skill OS Metadata');
   });
 
   it('handleWorkflowShow should exit 1 if workflow not found', () => {

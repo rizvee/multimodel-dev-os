@@ -21,9 +21,9 @@ The registry provides example metadata for reusable skills such as:
 - Business ops
 - Code review
 
-## Sprint C Status
+## Sprint E Status
 
-The registry remains declarative, and Sprint C adds read-only CLI inspection:
+The registry remains declarative. Sprint C added read-only CLI inspection, and Sprint E allows workflows to reference skill IDs as metadata:
 
 - No runtime behavior change.
 - No automatic skill triggering.
@@ -31,8 +31,9 @@ The registry remains declarative, and Sprint C adds read-only CLI inspection:
 - Validation checks required fields, slug-safe IDs, semver-like versions, risk levels, permission classes, safe relative paths, and referenced files.
 - `multimodel-dev-os skill-os list skills` prints known skill IDs.
 - `multimodel-dev-os skill-os show skill <id>` prints selected metadata.
+- Workflow `skill_os.skills` references are validated, but they do not trigger skill execution.
 
-Future sprints may add richer inspection before any workflow integration.
+Future sprints may add richer inspection before any execution integration.
 
 ## Metadata Shape
 

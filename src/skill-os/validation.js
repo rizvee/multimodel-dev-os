@@ -18,6 +18,7 @@ export const SKILL_OS_SCHEMA_FILES = [
   '.ai/schema/tool-permission.schema.json',
   '.ai/schema/agent-cluster.schema.json',
   '.ai/schema/guardrail.schema.json',
+  '.ai/schema/workflow.schema.json',
 ];
 
 export const SKILL_OS_REGISTRY_FILES = {
@@ -26,6 +27,7 @@ export const SKILL_OS_REGISTRY_FILES = {
   toolPermissions: '.ai/registries/tool-permissions.yaml',
   agentClusters: '.ai/registries/agent-clusters.yaml',
   guardrails: '.ai/registries/guardrails.yaml',
+  workflows: '.ai/registries/workflows.yaml',
 };
 
 export const VALID_GUARDRAIL_TYPES = ['pre_tool', 'pre_write', 'pre_external_write', 'post_change', 'session_end'];
@@ -434,6 +436,68 @@ function validateGuardrails(root, guardrails, result) {
   }
 }
 
+function getGuardrailIds(guardrails) {
+  const ids = new Set();
+  for (const guardrail of Array.isArray(guardrails) ? guardrails : []) {
+    if (guardrail && typeof guardrail.id === 'string') {
+      ids.add(guardrail.id);
+    }
+  }
+  return ids;
+}
+
+function validateOptionalReferenceArray(entry, field, knownIds, label, result) {
+  const values = entry[field];
+  if (values === undefined || values === null) return 0;
+  if (!Array.isArray(values)) {
+    addError(result, `${label} skill_os.${field} must be an array`);
+    return 0;
+  }
+
+  for (const value of values) {
+    if (!isSlugSafe(value)) {
+      addError(result, `${label} skill_os.${field} contains invalid slug id: ${value}`);
+    } else if (!knownIds.has(value)) {
+      addError(result, `${label} skill_os.${field} references unknown id: ${value}`);
+    }
+  }
+
+  return 1;
+}
+
+function validateWorkflowSkillOs(root, workflows, knownSkillIds, knownPromptIds, knownPermissionIds, knownGuardrailIds, result) {
+  let workflowsWithSkillOs = 0;
+
+  for (const [key, workflow] of asObjectEntries(workflows)) {
+    const skillOs = workflow.skill_os;
+    if (skillOs === undefined || skillOs === null) continue;
+
+    const label = `workflow '${key}'`;
+    if (!isObject(skillOs)) {
+      addError(result, `${label} skill_os must be an object`);
+      continue;
+    }
+
+    workflowsWithSkillOs++;
+    validateOptionalReferenceArray(skillOs, 'skills', knownSkillIds, label, result);
+    validateOptionalReferenceArray(skillOs, 'prompts', knownPromptIds, label, result);
+    validateOptionalReferenceArray(skillOs, 'permissions', knownPermissionIds, label, result);
+    validateOptionalReferenceArray(skillOs, 'guardrails', knownGuardrailIds, label, result);
+
+    if (skillOs.required_context !== undefined && skillOs.required_context !== null) {
+      if (!Array.isArray(skillOs.required_context)) {
+        addError(result, `${label} skill_os.required_context must be an array`);
+      } else {
+        for (const relPath of skillOs.required_context) {
+          validateRelativePath(root, relPath, `${label} skill_os.required_context`, result);
+        }
+      }
+    }
+  }
+
+  return workflowsWithSkillOs;
+}
+
 export function loadSkillOsRegistries(root = getDefaultRoot()) {
   const result = createResult();
   const registries = {
@@ -442,6 +506,7 @@ export function loadSkillOsRegistries(root = getDefaultRoot()) {
     toolPermissions: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.toolPermissions, 'tool_permissions', result),
     agentClusters: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.agentClusters, 'agent_clusters', result),
     guardrails: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.guardrails, 'guardrails', result),
+    workflows: parseYamlFile(root, SKILL_OS_REGISTRY_FILES.workflows, 'workflows', result),
   };
   return { ...result, registries };
 }
@@ -456,12 +521,26 @@ export function validateSkillOs(root = getDefaultRoot()) {
   const toolPermissions = parseYamlFile(root, SKILL_OS_REGISTRY_FILES.toolPermissions, 'tool_permissions', result) || {};
   const agentClusters = parseYamlFile(root, SKILL_OS_REGISTRY_FILES.agentClusters, 'agent_clusters', result) || {};
   const guardrails = parseYamlFile(root, SKILL_OS_REGISTRY_FILES.guardrails, 'guardrails', result) || [];
+  const workflows = parseYamlFile(root, SKILL_OS_REGISTRY_FILES.workflows, 'workflows', result) || {};
 
   const knownPermissionClasses = validateToolPermissions(toolPermissions, result);
   const knownSkillIds = validateSkills(root, skills, knownPermissionClasses, result);
   validatePromptTemplates(root, promptTemplates, result);
   validateAgentClusters(root, agentClusters, knownSkillIds, knownPermissionClasses, result);
   validateGuardrails(root, guardrails, result);
+
+  const knownPromptIds = new Set(Object.keys(promptTemplates || {}));
+  const knownPermissionIds = new Set(Object.keys(toolPermissions || {}));
+  const knownGuardrailIds = getGuardrailIds(guardrails);
+  const workflowsWithSkillOs = validateWorkflowSkillOs(
+    root,
+    workflows,
+    knownSkillIds,
+    knownPromptIds,
+    knownPermissionIds,
+    knownGuardrailIds,
+    result,
+  );
 
   result.summary = {
     schemas: SKILL_OS_SCHEMA_FILES.length,
@@ -470,6 +549,8 @@ export function validateSkillOs(root = getDefaultRoot()) {
     toolPermissions: Object.keys(toolPermissions).length,
     agentClusters: Object.keys(agentClusters).length,
     guardrails: Array.isArray(guardrails) ? guardrails.length : 0,
+    workflows: Object.keys(workflows).length,
+    workflowsWithSkillOs,
   };
 
   return result;

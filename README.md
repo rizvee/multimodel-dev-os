@@ -132,6 +132,7 @@ npx multimodel-dev-os@latest handoff build
 # Inspect Skill OS registries (read-only)
 npx multimodel-dev-os@latest skill-os status
 npx multimodel-dev-os@latest skill-os list skills
+npx multimodel-dev-os@latest workflow show release-check
 ```
 
 📖 **[Full CLI Reference →](https://rizvee.github.io/multimodel-dev-os/CLI)**

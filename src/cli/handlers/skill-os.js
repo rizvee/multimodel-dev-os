@@ -64,6 +64,9 @@ export function handleSkillOsStatus(options, deps = {}) {
   console.log(`Prompt templates: ${summary.promptTemplates || 0}`);
   console.log(`Tool permissions: ${summary.toolPermissions || 0}`);
   console.log(`Agent clusters: ${summary.agentClusters || 0}`);
+  console.log(`Guardrails: ${summary.guardrails || 0}`);
+  console.log(`Workflows: ${summary.workflows || 0}`);
+  console.log(`Workflows with Skill OS: ${summary.workflowsWithSkillOs || 0}`);
   console.log(`Validation: ${data.validation.success ? 'passed' : 'failed'}`);
   console.log('\nRegistry files:');
   for (const file of data.files.registries) {

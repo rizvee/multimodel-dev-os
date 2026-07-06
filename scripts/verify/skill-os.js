@@ -35,9 +35,10 @@ export function checkSkillOsValidation() {
   const result = validateSkillOs();
   const summary = result.summary || {};
 
-  if ((summary.schemas || 0) === 5) {
+  if ((summary.schemas || 0) === 6) {
     pass('Skill OS schema files parse');
     pass('Skill OS guardrail schema parses');
+    pass('Workflow schema parses');
   } else {
     fail(`Skill OS schema files parse count mismatch: ${summary.schemas || 0}`);
   }
@@ -112,6 +113,24 @@ export function checkSkillOsValidation() {
     }
   } else {
     fail('Guardrail registry entries are missing');
+  }
+
+  if ((summary.workflows || 0) > 0 && (summary.workflowsWithSkillOs || 0) > 0) {
+    pass(`Skill OS workflow references are valid (${summary.workflowsWithSkillOs})`);
+  } else {
+    fail('Skill OS workflow references are missing');
+  }
+
+  if ((summary.workflows || 0) > (summary.workflowsWithSkillOs || 0)) {
+    pass('Workflow Skill OS metadata is optional');
+  } else {
+    fail('Workflow Skill OS metadata optionality could not be verified');
+  }
+
+  if (result.success) {
+    pass('Workflow required context paths are safe');
+  } else {
+    fail('Workflow required context paths failed validation');
   }
 
   for (const warning of result.warnings) {

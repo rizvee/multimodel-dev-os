@@ -2,7 +2,7 @@
 
 This roadmap outlines neutral, product-facing tracks for scaling MultiModel Dev OS into a broader AI operating layer for technical, operational, and document-heavy workflows. These tracks are directional and do not imply committed release scope.
 
-v4.1 Sprint A added schema and example foundations. v4.1 Sprint B adds validation for those bundled registries only. v4.1 Sprint C adds read-only CLI inspection through `skill-os` commands. These sprints do not execute automation or enforce permissions.
+v4.1 Sprint A added schema and example foundations. v4.1 Sprint B adds validation for those bundled registries only. v4.1 Sprint C adds read-only CLI inspection through `skill-os` commands. Sprint D adds declarative guardrails. Sprint E connects workflows to Skill OS metadata for validation only. These sprints do not execute automation or enforce permissions.
 
 ## Structured Prompting Layer
 
@@ -51,6 +51,14 @@ Convert repeated workflows into reusable skills that can be versioned, reviewed,
 - SOP drafting
 - KPI snapshot
 - Document production
+
+Sprint E workflow metadata:
+
+- Workflows can reference skill IDs.
+- Workflows can reference prompt template IDs.
+- Workflows can reference permission and guardrail IDs.
+- Required context files are validated as safe relative paths.
+- Existing workflows without Skill OS metadata remain valid.
 
 ## MCP Permission Model
 
@@ -106,6 +114,11 @@ Sprint D validation:
 - Required fields are present.
 - Confirmation flags verified for restricted/admin/external operations.
 - Advisory-only mode is declared.
+
+Sprint E integration:
+
+- Workflow `skill_os.guardrails` references are validated.
+- Guardrails remain advisory and are not triggered by workflow execution.
 
 ## Agent Clusters
 

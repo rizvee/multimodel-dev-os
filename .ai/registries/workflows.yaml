@@ -112,6 +112,21 @@ workflows:
     risk_level: "low"
     allowed_to_write_memory: false
     allowed_to_modify_source: false
+    skill_os:
+      skills:
+        - release-governance
+      prompts:
+        - release-audit
+      permissions:
+        - git-push
+        - npm-publish
+      guardrails:
+        - confirm-external-write
+        - restricted-admin-ops
+      required_context:
+        - "docs/release-state.md"
+        - "docs/npm-publishing.md"
+        - "CHANGELOG.md"
     steps:
       - name: "code-hygiene"
         command: "verify"
@@ -141,6 +156,19 @@ workflows:
     risk_level: "high"
     allowed_to_write_memory: true
     allowed_to_modify_source: true
+    skill_os:
+      skills:
+        - code-review
+      prompts:
+        - code-review
+      permissions:
+        - filesystem-write
+      guardrails:
+        - validate-source-write
+        - post-change-validation
+      required_context:
+        - "AGENTS.md"
+        - "docs/testing.md"
     steps:
       - name: planning
         command: "propose"
@@ -199,6 +227,18 @@ workflows:
     risk_level: "high"
     allowed_to_write_memory: false
     allowed_to_modify_source: false
+    skill_os:
+      skills:
+        - security-audit
+      prompts:
+        - code-review
+      permissions:
+        - filesystem-read
+      guardrails:
+        - block-destructive-git
+      required_context:
+        - "docs/security-threat-model.md"
+        - "docs/tui-safety.md"
     steps:
       - name: scanning
         command: "scan"

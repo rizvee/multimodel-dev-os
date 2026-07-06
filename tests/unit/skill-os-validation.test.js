@@ -18,6 +18,7 @@ function writeJsonSchemas() {
     '.ai/schema/tool-permission.schema.json',
     '.ai/schema/agent-cluster.schema.json',
     '.ai/schema/guardrail.schema.json',
+    '.ai/schema/workflow.schema.json',
   ]) {
     writeFile(relPath, '{"type":"object"}\n');
   }
@@ -169,6 +170,29 @@ function validGuardrailsYaml(overrides = '') {
 ${overrides}`;
 }
 
+function validWorkflowsYaml(skillOs = `    skill_os:
+      skills:
+        - release-governance
+      prompts:
+        - release-audit
+      permissions:
+        - filesystem-read
+      guardrails:
+        - block-destructive-git
+      required_context:
+        - "README.md"
+`) {
+  return `workflows:
+  release-check:
+    name: "Release Check"
+    description: "Validate release state"
+    risk_level: "low"
+${skillOs}    steps:
+      - name: "Verify"
+        command: "verify"
+`;
+}
+
 function writeValidProject() {
   writeJsonSchemas();
   writeReferencedFiles();
@@ -177,6 +201,7 @@ function writeValidProject() {
   writeFile('.ai/registries/tool-permissions.yaml', validToolPermissionsYaml());
   writeFile('.ai/registries/agent-clusters.yaml', validAgentClustersYaml());
   writeFile('.ai/registries/guardrails.yaml', validGuardrailsYaml());
+  writeFile('.ai/registries/workflows.yaml', validWorkflowsYaml());
 }
 
 describe('Skill OS validation', () => {
@@ -378,5 +403,61 @@ describe('Skill OS validation', () => {
     expect(result.success).toBe(false);
     expect(result.errors).toContain("guardrail 'block-destructive-git' missing or invalid deterministic flag");
   });
-});
 
+  it('passes workflow Skill OS references when valid', () => {
+    const result = validateSkillOs(tempDir);
+    expect(result.success).toBe(true);
+    expect(result.summary.workflows).toBe(1);
+    expect(result.summary.workflowsWithSkillOs).toBe(1);
+  });
+
+  it('fails workflow references to missing skills', () => {
+    writeFile('.ai/registries/workflows.yaml', validWorkflowsYaml().replace('release-governance', 'missing-skill'));
+    const result = validateSkillOs(tempDir);
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain("workflow 'release-check' skill_os.skills references unknown id: missing-skill");
+  });
+
+  it('fails workflow references to missing prompts', () => {
+    writeFile('.ai/registries/workflows.yaml', validWorkflowsYaml().replace('release-audit', 'missing-prompt'));
+    const result = validateSkillOs(tempDir);
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain("workflow 'release-check' skill_os.prompts references unknown id: missing-prompt");
+  });
+
+  it('fails workflow references to missing permissions', () => {
+    writeFile('.ai/registries/workflows.yaml', validWorkflowsYaml().replace('filesystem-read', 'missing-permission'));
+    const result = validateSkillOs(tempDir);
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain("workflow 'release-check' skill_os.permissions references unknown id: missing-permission");
+  });
+
+  it('fails workflow references to missing guardrails', () => {
+    writeFile('.ai/registries/workflows.yaml', validWorkflowsYaml().replace('block-destructive-git', 'missing-guardrail'));
+    const result = validateSkillOs(tempDir);
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain("workflow 'release-check' skill_os.guardrails references unknown id: missing-guardrail");
+  });
+
+  it('fails workflow required_context path traversal', () => {
+    writeFile('.ai/registries/workflows.yaml', validWorkflowsYaml().replace('README.md', '../README.md'));
+    const result = validateSkillOs(tempDir);
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain("workflow 'release-check' skill_os.required_context must be a safe relative path: ../README.md");
+  });
+
+  it('fails workflow required_context missing files', () => {
+    writeFile('.ai/registries/workflows.yaml', validWorkflowsYaml().replace('README.md', 'MISSING.md'));
+    const result = validateSkillOs(tempDir);
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain("workflow 'release-check' skill_os.required_context references missing file or directory: MISSING.md");
+  });
+
+  it('passes existing workflows without Skill OS metadata', () => {
+    writeFile('.ai/registries/workflows.yaml', validWorkflowsYaml(''));
+    const result = validateSkillOs(tempDir);
+    expect(result.success).toBe(true);
+    expect(result.summary.workflows).toBe(1);
+    expect(result.summary.workflowsWithSkillOs).toBe(0);
+  });
+});

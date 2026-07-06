@@ -72,3 +72,33 @@ When pair programming requires switching between terminal-based execution (**Cla
 3. **Outcome:** Zero context drop, zero redundant questions, and pristine, seamless model hand-offs!
 
 For a detailed, step-by-step walk of this protocol in action, see our [Multi-Model Handoff Case Study](/case-studies/multimodel-handoff).
+
+---
+
+## 5. Skill OS Workflow Metadata
+
+v4.1 Sprint E allows workflow registry entries to declare optional Skill OS references:
+
+- Skill IDs
+- Prompt template IDs
+- Tool permission IDs
+- Guardrail IDs
+- Required context files
+
+These references are validation-only. They help `skill-os validate` and `workflow show` explain the intended workflow context, but they do not execute prompts, trigger skills, enforce permissions, or apply guardrails.
+
+Example:
+
+```yaml
+skill_os:
+  skills:
+    - release-governance
+  prompts:
+    - release-audit
+  permissions:
+    - git-push
+  guardrails:
+    - confirm-external-write
+  required_context:
+    - docs/release-state.md
+```

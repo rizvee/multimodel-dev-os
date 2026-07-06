@@ -50,6 +50,12 @@ export function handleWorkflowList(options) {
       console.log(`\n  \x1b[34m* ${name}\x1b[0m (\x1b[35m${key}\x1b[0m)`);
       console.log(`    Description: ${wf.description || 'No description'}`);
       console.log(`    Risk Level:  ${riskColor}${risk.toUpperCase()}\x1b[0m`);
+      if (wf.skill_os) {
+        const skillCount = Array.isArray(wf.skill_os.skills) ? wf.skill_os.skills.length : 0;
+        const promptCount = Array.isArray(wf.skill_os.prompts) ? wf.skill_os.prompts.length : 0;
+        const guardrailCount = Array.isArray(wf.skill_os.guardrails) ? wf.skill_os.guardrails.length : 0;
+        console.log(`    Skill OS:    ${skillCount} skills, ${promptCount} prompts, ${guardrailCount} guardrails`);
+      }
     });
     console.log();
   } catch (e) {
@@ -83,6 +89,7 @@ export function handleWorkflowShow(wName, options) {
     console.log(`  Risk Level:              ${riskColor}${risk.toUpperCase()}\x1b[0m`);
     console.log(`  Allowed to write memory: ${wf.allowed_to_write_memory || false}`);
     console.log(`  Allowed to modify code:  ${wf.allowed_to_modify_source || false}`);
+    printWorkflowSkillOs(wf.skill_os);
     console.log(`\n  \x1b[33mSteps:\x1b[0m`);
     
     const steps = wf.steps || [];
@@ -96,6 +103,22 @@ export function handleWorkflowShow(wName, options) {
   } catch (e) {
     console.error(`\x1b[31mError loading workflow '${wName}': ${e.message}\x1b[0m`);
   }
+}
+
+function printWorkflowSkillOs(skillOs) {
+  if (!skillOs) return;
+
+  console.log(`\n  \x1b[33mSkill OS Metadata:\x1b[0m`);
+  printWorkflowSkillOsLine('Skills', skillOs.skills);
+  printWorkflowSkillOsLine('Prompts', skillOs.prompts);
+  printWorkflowSkillOsLine('Permissions', skillOs.permissions);
+  printWorkflowSkillOsLine('Guardrails', skillOs.guardrails);
+  printWorkflowSkillOsLine('Required context', skillOs.required_context);
+}
+
+function printWorkflowSkillOsLine(label, values) {
+  if (!Array.isArray(values) || values.length === 0) return;
+  console.log(`    ${label}: ${values.join(', ')}`);
 }
 
 export function handleWorkflowPlan(wName, options) {

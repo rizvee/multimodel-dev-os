@@ -24,3 +24,17 @@ Because enforcement is advisory-only in v4.1, restricted and administrative oper
 
 ## Generic Examples
 The bundled guardrails registry includes generic examples (such as blocking destructive git commands) to demonstrate validation semantics.
+
+## Workflow Metadata
+
+v4.1 Sprint E allows workflows to reference guardrail IDs in optional `skill_os.guardrails` metadata. These references are validated so stale IDs are caught early, but guardrails are not applied during workflow execution.
+
+Example:
+
+```yaml
+skill_os:
+  guardrails:
+    - confirm-external-write
+```
+
+This metadata is advisory only. It documents the intended safety context for a workflow and supports local validation.

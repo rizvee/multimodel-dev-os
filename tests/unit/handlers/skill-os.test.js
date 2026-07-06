@@ -43,11 +43,14 @@ describe('Skill OS Handlers Suite', () => {
     handleSkillOsStatus({ target: process.cwd() });
     const out = logOutput.join('\n');
     expect(out).toContain('Skill OS Status');
-    expect(out).toContain('Schemas: 5');
+    expect(out).toContain('Schemas: 6');
     expect(out).toContain('Skills: 7');
     expect(out).toContain('Prompt templates: 4');
     expect(out).toContain('Tool permissions: 10');
     expect(out).toContain('Agent clusters: 6');
+    expect(out).toContain('Guardrails:');
+    expect(out).toContain('Workflows:');
+    expect(out).toContain('Workflows with Skill OS:');
     expect(out).toContain('Validation: passed');
   });
 
