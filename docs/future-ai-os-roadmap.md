@@ -2,7 +2,7 @@
 
 This roadmap outlines neutral, product-facing tracks for scaling MultiModel Dev OS into a broader AI operating layer for technical, operational, and document-heavy workflows. These tracks are directional and do not imply committed release scope.
 
-v4.1 Sprint A added schema and example foundations. v4.1 Sprint B adds validation for those bundled registries only. v4.1 Sprint C adds read-only CLI inspection through `skill-os` commands. Sprint D adds declarative guardrails. Sprint E connects workflows to Skill OS metadata for validation only. These sprints do not execute automation or enforce permissions.
+v4.1 Sprint A added schema and example foundations. v4.1 Sprint B adds validation for those bundled registries only. v4.1 Sprint C adds read-only CLI inspection through `skill-os` commands. Sprint D adds declarative guardrails. Sprint E connects workflows to Skill OS metadata for validation only. Sprint F adds draft-only business operator templates. These sprints do not execute automation or enforce permissions.
 
 ## Structured Prompting Layer
 
@@ -153,3 +153,13 @@ Future operational skills can extend the same safe workflow model beyond code:
 - Project pulse
 - Creative swipe intelligence
 - Content brief system
+
+Sprint F template foundation:
+
+- Adds generic operator skills and RACE+ prompts under `.ai/skills/` and `.ai/prompts/`.
+- Registers operator templates as `business-operator` skills with `draft-only` permissions.
+- Adds validation-only workflow metadata for weekly review, content brief, and project pulse examples.
+- Keeps all templates public-facing and free of private business data.
+- Does not call connectors, send messages, publish content, or update external systems.
+
+See [Business Operator Layer](./business-operator-layer.md) for the current template boundary.

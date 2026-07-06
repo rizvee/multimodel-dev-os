@@ -34,6 +34,7 @@ The Sprint A registry includes generic examples:
 - `dns-change`
 - `ad-spend-change`
 - `secret-rotation`
+- `operator-draft`
 
 ## Restricted Examples
 
@@ -70,3 +71,10 @@ Sprint D introduces declarative guardrails (`.ai/registries/guardrails.yaml`) th
 
 Restricted-admin operations should require explicit current-turn maintainer approval. They should never be inferred from nearby planning, release-prep, or validation tasks.
 
+## Business Operator Drafts
+
+Sprint F adds `operator-draft` as a draft-only permission example for business operator templates.
+
+`operator-draft` allows review-only summaries, briefs, recaps, and SOP drafts from provided input. It blocks sending messages, updating external systems, publishing content, and spending money.
+
+This permission remains declarative. Sprint F does not enforce permissions at runtime.

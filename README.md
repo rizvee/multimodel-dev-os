@@ -62,7 +62,7 @@ The root npm package name remains `multimodel-dev-os`.
 | 🧠 | **Intelligence Engine** | Hash-compressed memory, feedback learning, self-improvement proposals with HITL safety gates |
 | 📁 | **Repo Onboarding** | Analyze existing projects, recommend templates, and bootstrap configs without breaking anything |
 | 🔧 | **Zero Dependencies** | Pure Node.js CLI — no runtime, no build step, no package manager lock-in |
-| 🛡️ | **295+ Quality Gates** | Built-in `validate`, `doctor`, `verify`, and Skill OS registry checks with strict structural assertions |
+| 🛡️ | **300+ Quality Gates** | Built-in `validate`, `doctor`, `verify`, and Skill OS registry checks with strict structural assertions |
 
 ---
 
@@ -133,6 +133,7 @@ npx multimodel-dev-os@latest handoff build
 npx multimodel-dev-os@latest skill-os status
 npx multimodel-dev-os@latest skill-os list skills
 npx multimodel-dev-os@latest workflow show release-check
+npx multimodel-dev-os@latest workflow show operator-weekly-review
 ```
 
 📖 **[Full CLI Reference →](https://rizvee.github.io/multimodel-dev-os/CLI)**
@@ -145,7 +146,7 @@ npx multimodel-dev-os@latest workflow show release-check
 |:---|:---|:---|
 | **Tool Sync** | Manual copy-paste across tools | ✅ Automated dynamic adapters |
 | **Context Budgets** | Bloats prompts, wastes tokens | ✅ Caveman Mode cuts **~79%** overhead |
-| **Standards** | Easy to drift and corrupt | ✅ CLI `validate` + `doctor` + 295+ check `verify` |
+| **Standards** | Easy to drift and corrupt | ✅ CLI `validate` + `doctor` + 300+ check `verify` |
 | **Templates** | Start from scratch | ✅ 6 production-ready real-world templates |
 | **Model Registry** | Hardcoded model names | ✅ Dynamic capability-scored routing presets |
 | **Self-Improvement** | None | ✅ Feedback → Proposals → Apply with safety gates |
@@ -194,7 +195,8 @@ Future roadmap:
 **[AI OS roadmap](docs/future-ai-os-roadmap.md)** ·
 **[v4.1 Skill OS plan](docs/v4.1-skill-os-foundation-plan.md)** ·
 **[Skill OS CLI](docs/skill-os-cli.md)** ·
-**[Hooks and Guardrails](docs/hooks-and-guardrails.md)**
+**[Hooks and Guardrails](docs/hooks-and-guardrails.md)** ·
+**[Business Operator Layer](docs/business-operator-layer.md)**
 
 ---
 

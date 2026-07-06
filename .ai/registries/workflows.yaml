@@ -255,3 +255,114 @@ workflows:
       - "Security scanning results"
       - "Vulnerabilities summary report"
     next_action: "Mitigate warnings reported by scanner"
+
+  operator-weekly-review:
+    name: "Operator Weekly Review"
+    description: "Drafts a weekly operating review from provided notes; no external systems are updated."
+    risk_level: "low"
+    allowed_to_write_memory: false
+    allowed_to_modify_source: false
+    skill_os:
+      skills:
+        - operator-weekly-review
+        - operator-kpi-snapshot
+      prompts:
+        - operator-weekly-review
+        - operator-kpi-snapshot
+      permissions:
+        - operator-draft
+      guardrails:
+        - post-change-validation
+      required_context:
+        - ".ai/prompts/operator-weekly-review.md"
+        - ".ai/prompts/operator-kpi-snapshot.md"
+    steps:
+      - name: "collect-provided-notes"
+        command: "manual-provided-input"
+        expected_output: "Provided weekly notes"
+        next_action: "draft-review"
+      - name: "draft-review"
+        command: "manual-draft-only"
+        expected_output: "Weekly review draft"
+        next_action: "maintainer-review"
+    commands:
+      - "manual-provided-input"
+      - "manual-draft-only"
+    expected_outputs:
+      - "Provided weekly notes"
+      - "Weekly review draft"
+    next_action: "Review manually before sharing externally"
+
+  operator-content-brief:
+    name: "Operator Content Brief"
+    description: "Drafts a public-facing content brief from provided notes; no content is published."
+    risk_level: "low"
+    allowed_to_write_memory: false
+    allowed_to_modify_source: false
+    skill_os:
+      skills:
+        - operator-content-brief
+        - operator-creative-intelligence
+      prompts:
+        - operator-content-brief
+        - operator-creative-intelligence
+      permissions:
+        - operator-draft
+      guardrails:
+        - post-change-validation
+      required_context:
+        - ".ai/prompts/operator-content-brief.md"
+        - ".ai/context/seo-rules.md"
+    steps:
+      - name: "review-provided-topic"
+        command: "manual-provided-input"
+        expected_output: "Provided topic and source notes"
+        next_action: "draft-brief"
+      - name: "draft-brief"
+        command: "manual-draft-only"
+        expected_output: "Content brief draft"
+        next_action: "editorial-review"
+    commands:
+      - "manual-provided-input"
+      - "manual-draft-only"
+    expected_outputs:
+      - "Provided topic and source notes"
+      - "Content brief draft"
+    next_action: "Review manually before drafting or publishing"
+
+  operator-project-pulse:
+    name: "Operator Project Pulse"
+    description: "Drafts a compact project pulse from provided notes; no project tools are updated."
+    risk_level: "low"
+    allowed_to_write_memory: false
+    allowed_to_modify_source: false
+    skill_os:
+      skills:
+        - operator-project-pulse
+        - operator-meeting-recap
+      prompts:
+        - operator-project-pulse
+        - operator-meeting-recap
+      permissions:
+        - operator-draft
+      guardrails:
+        - post-change-validation
+      required_context:
+        - ".ai/prompts/operator-project-pulse.md"
+        - ".ai/prompts/operator-meeting-recap.md"
+    steps:
+      - name: "review-provided-status"
+        command: "manual-provided-input"
+        expected_output: "Provided project status notes"
+        next_action: "draft-pulse"
+      - name: "draft-pulse"
+        command: "manual-draft-only"
+        expected_output: "Project pulse draft"
+        next_action: "maintainer-review"
+    commands:
+      - "manual-provided-input"
+      - "manual-draft-only"
+    expected_outputs:
+      - "Provided project status notes"
+      - "Project pulse draft"
+    next_action: "Review manually before posting externally"

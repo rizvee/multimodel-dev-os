@@ -261,3 +261,252 @@ skills:
     examples:
       - title: "Diff review"
         prompt: "Review the current diff for correctness risks and missing tests."
+
+  operator-inbox-triage:
+    id: operator-inbox-triage
+    name: "Operator Inbox Triage"
+    version: "1.0.0"
+    description: "Draft inbox triage buckets from provided message excerpts without accessing or modifying mail systems."
+    category: business-operator
+    triggers:
+      explicit:
+        - "inbox triage"
+      intent:
+        - "prioritize messages"
+        - "draft reply queue"
+    required_context:
+      - ".ai/prompts/operator-inbox-triage.md"
+    provided_outputs:
+      - "triage-draft"
+      - "reply-needed-list"
+    risk_level: low
+    permissions:
+      - draft-only
+    recommended_models:
+      - "reasoning"
+      - "writing"
+    token_budget: 1200
+    skill_file: ".ai/skills/operator-inbox-triage.md"
+    checks:
+      - ".ai/checks/context-budget.md"
+    examples:
+      - title: "Message priority draft"
+        prompt: "Sort provided message excerpts into urgent, needs reply, waiting, and FYI buckets."
+
+  operator-meeting-recap:
+    id: operator-meeting-recap
+    name: "Operator Meeting Recap"
+    version: "1.0.0"
+    description: "Draft meeting recaps from provided notes or transcripts without sending updates."
+    category: business-operator
+    triggers:
+      explicit:
+        - "meeting recap"
+      intent:
+        - "summarize meeting"
+        - "draft action items"
+    required_context:
+      - ".ai/prompts/operator-meeting-recap.md"
+    provided_outputs:
+      - "meeting-recap"
+      - "action-items"
+    risk_level: low
+    permissions:
+      - draft-only
+    recommended_models:
+      - "writing"
+      - "reasoning"
+    token_budget: 1400
+    skill_file: ".ai/skills/operator-meeting-recap.md"
+    checks:
+      - ".ai/checks/context-budget.md"
+    examples:
+      - title: "Draft recap"
+        prompt: "Turn provided meeting notes into decisions, action items, and open questions."
+
+  operator-kpi-snapshot:
+    id: operator-kpi-snapshot
+    name: "Operator KPI Snapshot"
+    version: "1.0.0"
+    description: "Draft KPI summaries from provided metric notes without querying analytics systems."
+    category: business-operator
+    triggers:
+      explicit:
+        - "kpi snapshot"
+      intent:
+        - "summarize metrics"
+        - "prepare KPI report"
+    required_context:
+      - ".ai/prompts/operator-kpi-snapshot.md"
+    provided_outputs:
+      - "kpi-snapshot"
+      - "metric-questions"
+    risk_level: low
+    permissions:
+      - draft-only
+    recommended_models:
+      - "reasoning"
+      - "writing"
+    token_budget: 1400
+    skill_file: ".ai/skills/operator-kpi-snapshot.md"
+    checks:
+      - ".ai/checks/context-budget.md"
+    examples:
+      - title: "Metric summary"
+        prompt: "Structure provided metrics into a concise KPI snapshot."
+
+  operator-weekly-review:
+    id: operator-weekly-review
+    name: "Operator Weekly Review"
+    version: "1.0.0"
+    description: "Draft weekly review summaries from provided notes without posting updates."
+    category: business-operator
+    triggers:
+      explicit:
+        - "weekly review"
+      intent:
+        - "summarize week"
+        - "prepare weekly update"
+    required_context:
+      - ".ai/prompts/operator-weekly-review.md"
+    provided_outputs:
+      - "weekly-review"
+      - "next-actions"
+    risk_level: low
+    permissions:
+      - draft-only
+    recommended_models:
+      - "writing"
+      - "reasoning"
+    token_budget: 1500
+    skill_file: ".ai/skills/operator-weekly-review.md"
+    checks:
+      - ".ai/checks/context-budget.md"
+    examples:
+      - title: "Weekly operating draft"
+        prompt: "Turn provided weekly notes into highlights, blockers, risks, and next actions."
+
+  operator-sop-builder:
+    id: operator-sop-builder
+    name: "Operator SOP Builder"
+    version: "1.0.0"
+    description: "Draft standard operating procedures from provided process notes."
+    category: business-operator
+    triggers:
+      explicit:
+        - "sop builder"
+      intent:
+        - "draft SOP"
+        - "structure process"
+    required_context:
+      - ".ai/prompts/operator-sop-builder.md"
+    provided_outputs:
+      - "sop-draft"
+      - "process-checklist"
+    risk_level: low
+    permissions:
+      - draft-only
+    recommended_models:
+      - "writing"
+      - "reasoning"
+    token_budget: 1600
+    skill_file: ".ai/skills/operator-sop-builder.md"
+    checks:
+      - ".ai/checks/context-budget.md"
+    examples:
+      - title: "SOP draft"
+        prompt: "Turn a described recurring process into a draft SOP."
+
+  operator-project-pulse:
+    id: operator-project-pulse
+    name: "Operator Project Pulse"
+    version: "1.0.0"
+    description: "Draft compact project status pulses from provided notes without updating project systems."
+    category: business-operator
+    triggers:
+      explicit:
+        - "project pulse"
+      intent:
+        - "summarize project"
+        - "prepare status update"
+    required_context:
+      - ".ai/prompts/operator-project-pulse.md"
+    provided_outputs:
+      - "project-pulse"
+      - "risk-summary"
+    risk_level: low
+    permissions:
+      - draft-only
+    recommended_models:
+      - "reasoning"
+      - "writing"
+    token_budget: 1400
+    skill_file: ".ai/skills/operator-project-pulse.md"
+    checks:
+      - ".ai/checks/context-budget.md"
+    examples:
+      - title: "Status pulse"
+        prompt: "Summarize provided project notes into status, risks, decisions, and next actions."
+
+  operator-content-brief:
+    id: operator-content-brief
+    name: "Operator Content Brief"
+    version: "1.0.0"
+    description: "Draft content briefs from provided topic, audience, and source notes."
+    category: business-operator
+    triggers:
+      explicit:
+        - "operator content brief"
+      intent:
+        - "draft content brief"
+        - "plan content"
+    required_context:
+      - ".ai/prompts/operator-content-brief.md"
+      - ".ai/context/seo-rules.md"
+    provided_outputs:
+      - "content-brief"
+      - "acceptance-criteria"
+    risk_level: low
+    permissions:
+      - draft-only
+    recommended_models:
+      - "writing"
+      - "content-review"
+    token_budget: 1500
+    skill_file: ".ai/skills/operator-content-brief.md"
+    checks:
+      - ".ai/checks/context-budget.md"
+    examples:
+      - title: "Public content brief"
+        prompt: "Create a content brief from provided topic, audience, goal, and notes."
+
+  operator-creative-intelligence:
+    id: operator-creative-intelligence
+    name: "Operator Creative Intelligence"
+    version: "1.0.0"
+    description: "Draft creative insight summaries from provided examples or campaign notes."
+    category: business-operator
+    triggers:
+      explicit:
+        - "creative intelligence"
+      intent:
+        - "summarize creative patterns"
+        - "draft campaign insights"
+    required_context:
+      - ".ai/prompts/operator-creative-intelligence.md"
+    provided_outputs:
+      - "creative-insights"
+      - "message-angles"
+    risk_level: low
+    permissions:
+      - draft-only
+    recommended_models:
+      - "writing"
+      - "reasoning"
+    token_budget: 1500
+    skill_file: ".ai/skills/operator-creative-intelligence.md"
+    checks:
+      - ".ai/checks/context-budget.md"
+    examples:
+      - title: "Creative pattern summary"
+        prompt: "Summarize provided creative examples into patterns, hypotheses, and review questions."

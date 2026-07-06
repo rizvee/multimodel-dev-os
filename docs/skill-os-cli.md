@@ -1,6 +1,6 @@
 # Skill OS CLI
 
-v4.1 Sprint C adds read-only CLI inspection for the Skill OS schema and registry layer. Sprint E extends validation to optional workflow metadata references.
+v4.1 Sprint C adds read-only CLI inspection for the Skill OS schema and registry layer. Sprint E extends validation to optional workflow metadata references. Sprint F adds draft-only business operator templates that can be inspected through the same commands.
 
 The `skill-os` namespace loads local Skill OS registries when present and falls back to the bundled registries shipped with MultiModel Dev OS. Commands are deterministic and local-only.
 
@@ -68,6 +68,12 @@ Sprint D extends the `skill-os validate` engine to audit the declarative guardra
 ## Sprint E - Workflow Metadata Validation
 
 Sprint E allows `.ai/registries/workflows.yaml` entries to include optional `skill_os` metadata. Validation checks referenced Skill OS IDs and safe required context paths. Workflow commands remain read-only for inspection and unchanged for execution semantics.
+
+## Sprint F - Business Operator Templates
+
+Sprint F adds generic operator skills and prompt templates for inbox triage, meeting recap, KPI snapshot, weekly review, SOP builder, project pulse, content brief, and creative intelligence.
+
+Use `skill-os list skills`, `skill-os list prompts`, and `skill-os show ...` to inspect them. The templates are draft-only and do not call connectors or write to external systems.
 
 ## Safety Boundaries
 

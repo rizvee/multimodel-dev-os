@@ -44,6 +44,8 @@ agent_clusters:
     typical_skills:
       - seo-audit
       - content-brief
+      - operator-content-brief
+      - operator-creative-intelligence
     allowed_tool_classes:
       - read-only
       - draft-only
@@ -70,6 +72,11 @@ agent_clusters:
     typical_skills:
       - business-ops
       - document-production
+      - operator-inbox-triage
+      - operator-meeting-recap
+      - operator-kpi-snapshot
+      - operator-weekly-review
+      - operator-project-pulse
     allowed_tool_classes:
       - read-only
       - draft-only
@@ -125,6 +132,8 @@ agent_clusters:
     typical_skills:
       - document-production
       - content-brief
+      - operator-sop-builder
+      - operator-content-brief
     allowed_tool_classes:
       - read-only
       - draft-only

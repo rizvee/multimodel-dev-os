@@ -67,6 +67,14 @@ skill_os:
 
 These references are declarative. Validation checks that IDs and paths are valid, but workflows do not execute skills, prompts, permissions, or guardrails.
 
+Sprint F also adds draft-only business operator workflow examples:
+
+- `operator-weekly-review`
+- `operator-content-brief`
+- `operator-project-pulse`
+
+These examples use `skill_os` metadata to point at generic operator skills and prompts. They do not call inboxes, calendars, drives, CRMs, analytics systems, ad platforms, or publishing systems.
+
 ---
 
 ## 3. Strict Safety Gates

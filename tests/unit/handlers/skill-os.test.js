@@ -44,9 +44,9 @@ describe('Skill OS Handlers Suite', () => {
     const out = logOutput.join('\n');
     expect(out).toContain('Skill OS Status');
     expect(out).toContain('Schemas: 6');
-    expect(out).toContain('Skills: 7');
-    expect(out).toContain('Prompt templates: 4');
-    expect(out).toContain('Tool permissions: 10');
+    expect(out).toContain('Skills: 15');
+    expect(out).toContain('Prompt templates: 12');
+    expect(out).toContain('Tool permissions: 11');
     expect(out).toContain('Agent clusters: 6');
     expect(out).toContain('Guardrails:');
     expect(out).toContain('Workflows:');

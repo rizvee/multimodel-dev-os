@@ -107,6 +107,7 @@ export default {
           { text: 'Structured Prompts', link: '/structured-prompts' },
           { text: 'Skill Registry', link: '/skill-registry' },
           { text: 'Skill OS CLI', link: '/skill-os-cli' },
+          { text: 'Business Operator Layer', link: '/business-operator-layer' },
           { text: 'Tool Permissions', link: '/tool-permissions' },
           { text: 'Agent Clusters', link: '/agent-clusters' },
           { text: 'Hooks and Guardrails', link: '/hooks-and-guardrails' },

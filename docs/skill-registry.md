@@ -21,9 +21,9 @@ The registry provides example metadata for reusable skills such as:
 - Business ops
 - Code review
 
-## Sprint E Status
+## Sprint F Status
 
-The registry remains declarative. Sprint C added read-only CLI inspection, and Sprint E allows workflows to reference skill IDs as metadata:
+The registry remains declarative. Sprint C added read-only CLI inspection, Sprint E allows workflows to reference skill IDs as metadata, and Sprint F adds draft-only business operator template skills:
 
 - No runtime behavior change.
 - No automatic skill triggering.
@@ -32,6 +32,7 @@ The registry remains declarative. Sprint C added read-only CLI inspection, and S
 - `multimodel-dev-os skill-os list skills` prints known skill IDs.
 - `multimodel-dev-os skill-os show skill <id>` prints selected metadata.
 - Workflow `skill_os.skills` references are validated, but they do not trigger skill execution.
+- Business operator skills use the `business-operator` category and `draft-only` permissions.
 
 Future sprints may add richer inspection before any execution integration.
 
@@ -75,3 +76,4 @@ Registry entries should point to safe relative workspace paths and use the share
 5. Treat validation as a safety net, not as automation or permission enforcement.
 
 See [Skill OS CLI](./skill-os-cli.md) for read-only inspection commands.
+See [Business Operator Layer](./business-operator-layer.md) for the Sprint F operator templates.

@@ -35,9 +35,9 @@ The schema reference lives at:
 .ai/schema/prompt-template.schema.json
 ```
 
-## Sprint C Status
+## Sprint F Status
 
-Prompt templates remain declarative, and Sprint C adds read-only CLI inspection for bundled and local registries:
+Prompt templates remain declarative. Sprint C added read-only CLI inspection for bundled and local registries, and Sprint F adds generic operator prompts for draft-only business workflows:
 
 - No automation execution.
 - No runtime behavior change.
@@ -46,6 +46,7 @@ Prompt templates remain declarative, and Sprint C adds read-only CLI inspection 
 - Validation checks IDs, versions, complete RACE+ fields, safe referenced files, constraints, and verification arrays.
 - `multimodel-dev-os skill-os list prompts` prints known prompt template IDs.
 - `multimodel-dev-os skill-os show prompt <id>` prints selected RACE+ fields.
+- Operator prompt files live under `.ai/prompts/operator-*.md` and remain generic public templates.
 
 Future sprints may add richer listing before any execution workflow is considered.
 
@@ -80,3 +81,9 @@ race_plus:
 - Do not claim unreleased runtime support.
 - Prefer small focused templates over broad prompt bundles.
 - Use `skill-os` commands for read-only local inspection.
+
+## Business Operator Prompts
+
+Sprint F adds RACE+ prompt templates for inbox triage, meeting recap, KPI snapshot, weekly review, SOP builder, project pulse, content brief, and creative intelligence.
+
+These prompts structure provided information only. They do not fetch connector data, send messages, update systems, publish content, or spend money.

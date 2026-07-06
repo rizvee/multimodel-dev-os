@@ -160,3 +160,21 @@ tool_permissions:
     requires_clean_worktree: false
     requires_validation: true
     audit_log: true
+
+  operator-draft:
+    tool_id: operator-draft
+    display_name: "Business Operator Draft"
+    class: draft-only
+    allowed_operations:
+      - "draft summaries"
+      - "structure provided notes"
+      - "prepare review-only templates"
+    blocked_operations:
+      - "send messages"
+      - "update external systems"
+      - "publish content"
+      - "spend money"
+    requires_confirmation: false
+    requires_clean_worktree: false
+    requires_validation: true
+    audit_log: false

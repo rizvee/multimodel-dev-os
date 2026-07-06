@@ -45,6 +45,16 @@ Agent clusters remain declarative, and Sprint C adds read-only CLI inspection:
 
 Future sprints may add read-only inspection and validation before any workflow integration.
 
+## Sprint F - Business Operator Templates
+
+Sprint F extends cluster metadata so:
+
+- `business-ops` references inbox triage, meeting recap, KPI snapshot, weekly review, and project pulse templates.
+- `growth-marketing` references content brief and creative intelligence templates.
+- `document-production` references SOP builder and content brief templates.
+
+These references are routing metadata only. They do not spawn agents, call connectors, or execute workflows.
+
 ## Sprint D - Guardrail Association
 
 Agent clusters define `allowed_tool_classes` which are subject to guardrail validation.

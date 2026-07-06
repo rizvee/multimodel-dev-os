@@ -230,6 +230,73 @@ describe('Skill OS validation', () => {
     expect(result.summary.guardrails).toBeGreaterThan(0);
   });
 
+  it('validates bundled business operator skills as draft-only', () => {
+    const result = validateSkillOs(process.cwd());
+    const skills = result.parsed.registries.skills;
+    const operatorSkillIds = [
+      'operator-inbox-triage',
+      'operator-meeting-recap',
+      'operator-kpi-snapshot',
+      'operator-weekly-review',
+      'operator-sop-builder',
+      'operator-project-pulse',
+      'operator-content-brief',
+      'operator-creative-intelligence',
+    ];
+
+    expect(result.success).toBe(true);
+    for (const id of operatorSkillIds) {
+      expect(skills[id]).toBeTruthy();
+      expect(skills[id].category).toBe('business-operator');
+      expect(skills[id].risk_level).toBe('low');
+      expect(skills[id].permissions).toEqual(['draft-only']);
+    }
+  });
+
+  it('validates bundled business operator prompts with complete RACE+ fields', () => {
+    const result = validateSkillOs(process.cwd());
+    const prompts = result.parsed.registries.prompt_templates;
+    const racePlusFields = [
+      'role',
+      'action',
+      'context',
+      'expectation',
+      'constraints',
+      'output_format',
+      'verification',
+      'next_action',
+    ];
+
+    expect(result.success).toBe(true);
+    for (const [id, prompt] of Object.entries(prompts)) {
+      if (!id.startsWith('operator-')) {
+        continue;
+      }
+
+      for (const field of racePlusFields) {
+        expect(prompt.race_plus[field]).toBeTruthy();
+      }
+    }
+  });
+
+  it('validates bundled business operator workflows as metadata-only examples', () => {
+    const result = validateSkillOs(process.cwd());
+    const workflows = result.parsed.registries.workflows;
+    const workflowIds = [
+      'operator-weekly-review',
+      'operator-content-brief',
+      'operator-project-pulse',
+    ];
+
+    expect(result.success).toBe(true);
+    for (const id of workflowIds) {
+      expect(workflows[id]).toBeTruthy();
+      expect(workflows[id].allowed_to_write_memory).toBe(false);
+      expect(workflows[id].allowed_to_modify_source).toBe(false);
+      expect(workflows[id].skill_os.permissions).toEqual(['operator-draft']);
+    }
+  });
+
   it('fails when a required skill field is missing', () => {
     writeFile('.ai/registries/skills.yaml', validSkillsYaml().replace('    name: "Release Governance"\n', ''));
     const result = validateSkillOs(tempDir);

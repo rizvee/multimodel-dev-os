@@ -133,6 +133,65 @@ export function checkSkillOsValidation() {
     fail('Workflow required context paths failed validation');
   }
 
+  const skills = result.parsed?.registries?.skills || {};
+  const promptTemplates = result.parsed?.registries?.prompt_templates || {};
+  const workflows = result.parsed?.registries?.workflows || {};
+  const operatorSkillIds = [
+    'operator-inbox-triage',
+    'operator-meeting-recap',
+    'operator-kpi-snapshot',
+    'operator-weekly-review',
+    'operator-sop-builder',
+    'operator-project-pulse',
+    'operator-content-brief',
+    'operator-creative-intelligence',
+  ];
+  const operatorWorkflowIds = [
+    'operator-weekly-review',
+    'operator-content-brief',
+    'operator-project-pulse',
+  ];
+
+  const operatorSkillsValid = operatorSkillIds.every((id) => {
+    const skill = skills[id];
+    return skill
+      && skill.category === 'business-operator'
+      && skill.risk_level === 'low'
+      && Array.isArray(skill.permissions)
+      && skill.permissions.length === 1
+      && skill.permissions[0] === 'draft-only';
+  });
+
+  if (operatorSkillsValid) {
+    pass('Business operator skill templates are registered');
+  } else {
+    fail('Business operator skill templates are missing or not draft-only');
+  }
+
+  const operatorPromptsValid = operatorSkillIds.every((id) => promptTemplates[id]);
+
+  if (operatorPromptsValid) {
+    pass('Business operator prompt templates are registered');
+  } else {
+    fail('Business operator prompt templates are missing');
+  }
+
+  const operatorWorkflowsValid = operatorWorkflowIds.every((id) => {
+    const workflow = workflows[id];
+    return workflow
+      && workflow.allowed_to_write_memory === false
+      && workflow.allowed_to_modify_source === false
+      && workflow.skill_os
+      && Array.isArray(workflow.skill_os.permissions)
+      && workflow.skill_os.permissions.includes('operator-draft');
+  });
+
+  if (operatorWorkflowsValid) {
+    pass('Business operator workflows are validation-only');
+  } else {
+    fail('Business operator workflows are missing validation-only metadata');
+  }
+
   for (const warning of result.warnings) {
     warn(warning);
   }

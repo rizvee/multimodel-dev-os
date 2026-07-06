@@ -140,3 +140,255 @@ prompt_templates:
       - "gemini"
     examples:
       - "Summarize a weekly project update into decisions and next actions."
+
+  operator-inbox-triage:
+    id: operator-inbox-triage
+    name: "Operator Inbox Triage"
+    version: "1.0.0"
+    description: "Draft inbox triage buckets from provided message excerpts."
+    race_plus:
+      role: "Business operations assistant"
+      action: "Organize provided message excerpts into draft triage buckets."
+      context:
+        required_files:
+          - ".ai/prompts/operator-inbox-triage.md"
+      expectation: "Produce a draft triage report with urgent, needs reply, waiting, FYI, and open question sections."
+      constraints:
+        - "Do not access inboxes or external systems."
+        - "Do not send, archive, label, forward, or delete messages."
+      output_format: "operator-triage-draft"
+      verification:
+        - "Confirm every item is based on provided text."
+        - "Keep external actions manual."
+      next_action: "Ask the maintainer to review the draft before taking any inbox action."
+    variables:
+      message_notes:
+        description: "Provided message excerpts or summaries."
+        required: true
+    compatible_agents:
+      - "codex"
+      - "claude"
+      - "gemini"
+    examples:
+      - "Sort provided message excerpts into priority buckets."
+
+  operator-meeting-recap:
+    id: operator-meeting-recap
+    name: "Operator Meeting Recap"
+    version: "1.0.0"
+    description: "Draft a meeting recap from provided notes or transcript excerpts."
+    race_plus:
+      role: "Meeting recap assistant"
+      action: "Turn provided meeting notes into decisions, action items, risks, and open questions."
+      context:
+        required_files:
+          - ".ai/prompts/operator-meeting-recap.md"
+      expectation: "Produce a structured draft recap suitable for maintainer review."
+      constraints:
+        - "Do not create calendar events."
+        - "Do not send messages or update task systems."
+      output_format: "meeting-recap-draft"
+      verification:
+        - "Every action item has an owner or owner question."
+        - "Decisions are separated from discussion notes."
+      next_action: "Ask for approval before sharing or storing externally."
+    variables:
+      meeting_notes:
+        description: "Provided notes, agenda, or transcript excerpts."
+        required: true
+    compatible_agents:
+      - "codex"
+      - "claude"
+      - "gemini"
+    examples:
+      - "Draft a recap from provided meeting notes."
+
+  operator-kpi-snapshot:
+    id: operator-kpi-snapshot
+    name: "Operator KPI Snapshot"
+    version: "1.0.0"
+    description: "Draft KPI snapshots from provided metric notes."
+    race_plus:
+      role: "KPI reporting assistant"
+      action: "Structure provided metric notes into a draft KPI snapshot."
+      context:
+        required_files:
+          - ".ai/prompts/operator-kpi-snapshot.md"
+      expectation: "Produce a KPI table, trend notes, risks, and follow-up questions."
+      constraints:
+        - "Do not query analytics systems."
+        - "Do not modify dashboards."
+        - "Do not claim certainty without evidence."
+      output_format: "kpi-snapshot-draft"
+      verification:
+        - "Every metric has a period or missing-period note."
+        - "Missing targets or denominators are flagged."
+      next_action: "Ask for metric-owner review before sharing externally."
+    variables:
+      metric_notes:
+        description: "Provided metrics, targets, periods, and caveats."
+        required: true
+    compatible_agents:
+      - "codex"
+      - "claude"
+      - "gemini"
+    examples:
+      - "Turn provided metric notes into a KPI snapshot."
+
+  operator-weekly-review:
+    id: operator-weekly-review
+    name: "Operator Weekly Review"
+    version: "1.0.0"
+    description: "Draft weekly operating reviews from provided notes."
+    race_plus:
+      role: "Weekly review assistant"
+      action: "Convert provided weekly notes into a draft operating review."
+      context:
+        required_files:
+          - ".ai/prompts/operator-weekly-review.md"
+      expectation: "Produce highlights, metrics, blockers, risks, next actions, and open questions."
+      constraints:
+        - "Do not post updates externally."
+        - "Do not assign work in external systems."
+      output_format: "weekly-review-draft"
+      verification:
+        - "Wins, blockers, and next actions are distinct."
+        - "Dates and owners appear only when provided."
+      next_action: "Ask the maintainer to approve or edit before routing the draft."
+    variables:
+      weekly_notes:
+        description: "Provided weekly notes and observations."
+        required: true
+    compatible_agents:
+      - "codex"
+      - "claude"
+      - "gemini"
+    examples:
+      - "Draft a weekly review from supplied notes."
+
+  operator-sop-builder:
+    id: operator-sop-builder
+    name: "Operator SOP Builder"
+    version: "1.0.0"
+    description: "Draft SOPs from provided recurring process notes."
+    race_plus:
+      role: "SOP drafting assistant"
+      action: "Turn a described recurring process into a draft standard operating procedure."
+      context:
+        required_files:
+          - ".ai/prompts/operator-sop-builder.md"
+      expectation: "Produce a practical SOP draft with steps, checks, roles, and completion criteria."
+      constraints:
+        - "Do not update document systems."
+        - "Do not invent compliance rules."
+      output_format: "sop-draft"
+      verification:
+        - "Trigger, owner, steps, checks, and completion criteria are present."
+        - "Ambiguous steps are flagged."
+      next_action: "Ask for process-owner review before storing or publishing."
+    variables:
+      process_notes:
+        description: "Provided process goals, triggers, roles, and steps."
+        required: true
+    compatible_agents:
+      - "codex"
+      - "claude"
+      - "gemini"
+    examples:
+      - "Draft an SOP from provided process notes."
+
+  operator-project-pulse:
+    id: operator-project-pulse
+    name: "Operator Project Pulse"
+    version: "1.0.0"
+    description: "Draft compact project pulse updates from provided notes."
+    race_plus:
+      role: "Project status assistant"
+      action: "Summarize provided project notes into a concise draft pulse."
+      context:
+        required_files:
+          - ".ai/prompts/operator-project-pulse.md"
+      expectation: "Produce status, changes, risks, decisions needed, and next actions."
+      constraints:
+        - "Do not update project management systems."
+        - "Do not notify stakeholders."
+      output_format: "project-pulse-draft"
+      verification:
+        - "Status, risks, and next actions are separated."
+        - "Missing dates or owners are flagged."
+      next_action: "Ask where, if anywhere, to post the reviewed pulse."
+    variables:
+      project_notes:
+        description: "Provided project status notes."
+        required: true
+    compatible_agents:
+      - "codex"
+      - "claude"
+      - "gemini"
+    examples:
+      - "Draft a project pulse from supplied status notes."
+
+  operator-content-brief:
+    id: operator-content-brief
+    name: "Operator Content Brief"
+    version: "1.0.0"
+    description: "Draft content briefs from provided topic and source notes."
+    race_plus:
+      role: "Content brief assistant"
+      action: "Create a draft content brief from provided topic, audience, goal, and source notes."
+      context:
+        required_files:
+          - ".ai/prompts/operator-content-brief.md"
+          - ".ai/context/seo-rules.md"
+      expectation: "Produce a review-ready brief with intent, outline, key points, and acceptance criteria."
+      constraints:
+        - "Do not publish content."
+        - "Do not include private business data."
+        - "Keep claims grounded in provided context."
+      output_format: "content-brief-draft"
+      verification:
+        - "Audience, goal, outline, and acceptance criteria are present."
+        - "Claims are grounded in source notes."
+      next_action: "Ask for editorial review before drafting or publishing."
+    variables:
+      topic:
+        description: "Provided content topic."
+        required: true
+    compatible_agents:
+      - "codex"
+      - "claude"
+      - "gemini"
+    examples:
+      - "Draft a generic public content brief."
+
+  operator-creative-intelligence:
+    id: operator-creative-intelligence
+    name: "Operator Creative Intelligence"
+    version: "1.0.0"
+    description: "Draft creative insight reports from provided examples or notes."
+    race_plus:
+      role: "Creative intelligence assistant"
+      action: "Structure provided creative examples or campaign notes into draft insights."
+      context:
+        required_files:
+          - ".ai/prompts/operator-creative-intelligence.md"
+      expectation: "Produce observed patterns, hypotheses, message angles, risks, and review questions."
+      constraints:
+        - "Do not scrape external platforms."
+        - "Do not launch campaigns."
+        - "Do not change ad spend."
+      output_format: "creative-intelligence-draft"
+      verification:
+        - "Separate observations from hypotheses."
+        - "Flag missing source context."
+      next_action: "Ask for review before using the draft in campaign planning."
+    variables:
+      creative_notes:
+        description: "Provided creative examples, descriptions, or campaign notes."
+        required: true
+    compatible_agents:
+      - "codex"
+      - "claude"
+      - "gemini"
+    examples:
+      - "Summarize provided creative examples into patterns and hypotheses."
