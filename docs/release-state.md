@@ -29,11 +29,12 @@ The GitHub release should remain draft until npmjs confirms the version is publi
 
 ### v4.0.1
 
-- Prepared.
+- Prepared but not npm-published.
 - Tagged as `v4.0.1`.
 - Draft GitHub release exists.
-- npmjs publish is pending.
-- v4.0.1 remains pending manual npm publish from the `v4.0.1` tag only.
+- Superseded by v4.1.0.
+- v4.0.1 should remain historical/prepared unless Hasan explicitly chooses otherwise.
+- If v4.0.1 is ever published, it must only be published from the existing `v4.0.1` tag.
 
 ### main (v4.1 development lane)
 
@@ -46,7 +47,7 @@ The GitHub release should remain draft until npmjs confirms the version is publi
 
 ## Release Notes
 
-- v4.0.1 remains unpublished and must only be published from the `v4.0.1` tag if Hasan ever chooses to publish it.
+- v4.0.1 remains unpublished and superseded; it should only be revisited if Hasan explicitly chooses to publish from the existing `v4.0.1` tag.
 - v4.1.0 is fully released from `main`.
 
 ## Manual Publish Command
@@ -57,12 +58,12 @@ npm publish --access public
 
 ## Post-Publish Command Sequence
 
-After Hasan publishes npmjs manually, confirm the public package before publishing the GitHub release:
+After any future manual npmjs publish, confirm the public package before publishing the matching GitHub release:
 
 ```bash
 npm view multimodel-dev-os version
 npx -y multimodel-dev-os@latest --help
-gh release edit v4.1.0 --draft=false --latest
+gh release edit <version-tag> --draft=false --latest
 gh workflow run publish-github-package.yml --ref main
 ```
 
