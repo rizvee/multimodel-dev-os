@@ -45,17 +45,18 @@ The following are modeled as `restricted-admin`:
 - Ad spend changes
 - Secret rotation
 
-## Sprint A Status
+## Sprint B Status
 
-Permission classes are declarative in Sprint A:
+Permission classes remain declarative, but Sprint B adds validation for the bundled permission registry:
 
 - No permission enforcement.
 - No command blocking.
 - No external tool automation.
 - No runtime behavior change.
 - No CLI command change.
+- Validation checks known classes, confirmation requirements, and dangerous operations that cannot be marked read-only.
 
-Future sprints should add validation first, then read-only inspection, then carefully scoped guardrail integration.
+Future sprints should add read-only inspection, then carefully scoped guardrail integration.
 
 ## Safety Direction
 

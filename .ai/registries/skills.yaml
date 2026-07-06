@@ -106,7 +106,7 @@ skills:
         - seo-audit
     required_context:
       - ".ai/context/seo-rules.md"
-      - "docs/seo-landing-page.md"
+      - "docs/case-studies/seo-landing-page.md"
     provided_outputs:
       - "seo-findings"
       - "content-recommendations"

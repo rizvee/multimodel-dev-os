@@ -23,6 +23,7 @@ import { checkMemoryBuildMention } from './docs.js';
 import { checkDryRunVerifyCommand } from './tests.js';
 import { checkBuildOutput } from './build.js';
 import { checkYamlParserRegressions, checkRegistryPolicyEngine } from './policies.js';
+import { checkSkillOsValidation } from './skill-os.js';
 import { reportResults } from './reporting.js';
 
 console.log('multimodel-dev-os - Strict Release Audit Verification');
@@ -77,5 +78,8 @@ checkSecurityHygiene();
 // 16. Signed Registry E2E & Readiness Checks
 checkSignedRegistryE2E();
 
-// 17. Final report
+// 17. Skill OS Foundation Verification
+checkSkillOsValidation();
+
+// 18. Final report
 reportResults();

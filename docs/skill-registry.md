@@ -21,17 +21,17 @@ The registry provides example metadata for reusable skills such as:
 - Business ops
 - Code review
 
-## Sprint A Status
+## Sprint B Status
 
-The registry is declarative in Sprint A:
+The registry remains declarative, but Sprint B adds validation for its schema and bundled examples:
 
 - No runtime behavior change.
 - No CLI command change.
 - No automatic skill triggering.
 - No permission enforcement.
-- No registry validation is active yet.
+- Validation checks required fields, slug-safe IDs, semver-like versions, risk levels, permission classes, safe relative paths, and referenced files.
 
-Future sprints are expected to add validation and read-only inspection before any workflow integration.
+Future sprints are expected to add read-only inspection before any workflow integration.
 
 ## Metadata Shape
 
@@ -57,7 +57,7 @@ Skill entries are expected to support:
 
 The registry is an overlay on top of markdown-compatible skills. A workspace can continue using `.ai/skills/*.md` without a registry.
 
-When validation is added later, registry entries should point to relative workspace paths and use the shared tool permission classes:
+Registry entries should point to safe relative workspace paths and use the shared tool permission classes:
 
 - `read-only`
 - `draft-only`
@@ -70,4 +70,4 @@ When validation is added later, registry entries should point to relative worksp
 2. Add metadata only for skills that need discovery or routing.
 3. Use low-risk or draft-only permissions by default.
 4. Add checks for skills that may lead to writes or release operations.
-5. Wait for future validation support before treating the registry as enforced.
+5. Treat validation as a safety net, not as automation or permission enforcement.

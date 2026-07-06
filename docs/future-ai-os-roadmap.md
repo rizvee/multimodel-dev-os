@@ -2,6 +2,8 @@
 
 This roadmap outlines neutral, product-facing tracks for scaling MultiModel Dev OS into a broader AI operating layer for technical, operational, and document-heavy workflows. These tracks are directional and do not imply committed release scope.
 
+v4.1 Sprint A added schema and example foundations. v4.1 Sprint B adds validation for those bundled registries only; it does not execute automation or enforce permissions.
+
 ## Structured Prompting Layer
 
 Implement reusable RACE+ templates for consistent, inspectable prompts:
@@ -20,6 +22,13 @@ Sprint A foundation files:
 - `.ai/prompts/race-plus.md`
 - `.ai/registries/prompt-templates.yaml`
 - `.ai/schema/prompt-template.schema.json`
+
+Sprint B validation:
+
+- JSON schema files parse.
+- RACE+ registry files parse.
+- Required RACE+ fields are present.
+- Referenced files stay inside the workspace.
 
 ## Skill-First Workflow System
 
@@ -49,6 +58,12 @@ Sprint A foundation files:
 
 - `.ai/registries/tool-permissions.yaml`
 - `.ai/schema/tool-permission.schema.json`
+
+Sprint B validation:
+
+- Permission classes are known.
+- Restricted and write-capable tools require confirmation.
+- Dangerous operations cannot be classified as read-only.
 
 ## Hooks and Guardrails
 

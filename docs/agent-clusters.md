@@ -31,15 +31,16 @@ Each cluster describes:
 - Outputs
 - Validation expectations
 
-## Sprint A Status
+## Sprint B Status
 
-Agent clusters are declarative in Sprint A:
+Agent clusters remain declarative, but Sprint B adds validation for the bundled cluster registry:
 
 - No autonomous execution.
 - No agent spawning.
 - No CLI command change.
 - No permission enforcement.
 - No runtime behavior change.
+- Validation checks cluster IDs, referenced skill IDs, allowed tool classes, required context paths, outputs, and validation expectations.
 
 Future sprints may add read-only inspection and validation before any workflow integration.
 

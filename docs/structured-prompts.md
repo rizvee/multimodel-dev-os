@@ -35,17 +35,18 @@ The schema reference lives at:
 .ai/schema/prompt-template.schema.json
 ```
 
-## Sprint A Status
+## Sprint B Status
 
-Prompt templates are declarative in Sprint A:
+Prompt templates remain declarative, but Sprint B adds validation for the bundled RACE+ registry:
 
 - No automation execution.
 - No runtime behavior change.
 - No permission enforcement.
 - No CLI command changes.
 - Existing markdown prompts remain valid.
+- Validation checks IDs, versions, complete RACE+ fields, safe referenced files, constraints, and verification arrays.
 
-Future sprints are expected to add validation, listing, and inspection before any execution workflow is considered.
+Future sprints are expected to add listing and inspection before any execution workflow is considered.
 
 ## Template Shape
 
