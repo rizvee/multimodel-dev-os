@@ -1,0 +1,35 @@
+{
+  "id": "chatcmpl-fixture",
+  "object": "chat.completion",
+  "created": 1800000000,
+  "gateway_version": "2026-07-15.sprint-a",
+  "request_id": "req-fixture",
+  "provider_id": "mock-provider",
+  "model": "mock-chat",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "fixture response"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "input_tokens": 8,
+    "output_tokens": 2,
+    "total_tokens": 10,
+    "cached_input_tokens": 0,
+    "reasoning_tokens": null,
+    "estimated": true,
+    "cost": null,
+    "currency": null,
+    "provider_reported": false,
+    "tokenizer": null,
+    "metadata": {}
+  },
+  "routing": {
+    "strategy": "explicit"
+  }
+}

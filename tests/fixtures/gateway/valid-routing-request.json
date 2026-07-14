@@ -1,0 +1,17 @@
+{
+  "requested_model": "mock-chat",
+  "requested_provider": "mock-provider",
+  "required_capabilities": ["chat"],
+  "preferred_capabilities": ["streaming"],
+  "estimated_input_tokens": 32,
+  "required_context_window": 4096,
+  "privacy_policy": "local-first",
+  "cost_preference": "balanced",
+  "latency_preference": "balanced",
+  "fallback_allowed": false,
+  "excluded_providers": [],
+  "excluded_models": [],
+  "metadata": {
+    "fixture": true
+  }
+}

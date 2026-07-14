@@ -1,0 +1,21 @@
+{
+  "model": "mock-chat",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a deterministic test assistant."
+    },
+    {
+      "role": "user",
+      "content": "Return a short fixture response."
+    }
+  ],
+  "stream": false,
+  "temperature": 0,
+  "top_p": 1,
+  "max_tokens": 64,
+  "metadata": {
+    "fixture": true,
+    "api_key": "fixture-secret"
+  }
+}

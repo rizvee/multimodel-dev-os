@@ -1,0 +1,53 @@
+{
+  "$id": "mmdo.gateway-config",
+  "title": "Gateway Configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "host",
+    "port",
+    "auth",
+    "request_size_limit",
+    "request_timeout_ms",
+    "stream_idle_timeout_ms",
+    "provider_timeout_ms",
+    "retry_limit",
+    "log_level",
+    "redact_prompts",
+    "allow_remote_binding",
+    "allowed_provider_hosts",
+    "allow_private_provider_networks",
+    "default_routing_strategy",
+    "fallback_enabled"
+  ],
+  "properties": {
+    "host": { "type": "string", "minLength": 1 },
+    "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+    "auth": {
+      "type": "object",
+      "required": ["mode", "required_for_remote"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["local-only", "token", "none"] },
+        "required_for_remote": { "type": "boolean" }
+      }
+    },
+    "request_size_limit": { "type": "integer", "minimum": 1 },
+    "request_timeout_ms": { "type": "integer", "minimum": 1 },
+    "stream_idle_timeout_ms": { "type": "integer", "minimum": 1 },
+    "provider_timeout_ms": { "type": "integer", "minimum": 1 },
+    "retry_limit": { "type": "integer", "minimum": 0, "maximum": 3 },
+    "log_level": { "type": "string", "enum": ["debug", "info", "warn", "error"] },
+    "redact_prompts": { "type": "boolean" },
+    "allow_remote_binding": { "type": "boolean" },
+    "allowed_provider_hosts": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "allow_private_provider_networks": { "type": "boolean" },
+    "default_routing_strategy": {
+      "type": "string",
+      "enum": ["explicit", "capability-based", "cost-first", "latency-first", "context-window-aware", "privacy-local-first", "fallback-chain", "balanced", "user-policy"]
+    },
+    "fallback_enabled": { "type": "boolean" }
+  }
+}

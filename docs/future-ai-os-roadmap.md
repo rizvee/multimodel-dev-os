@@ -6,6 +6,8 @@ v4.1 shipped the Skill OS foundation: schemas, examples, validation, read-only C
 
 v4.2 is the Gateway Foundation development lane. It realigns the roadmap toward a local-first, governed, multi-provider AI gateway while keeping v4.1 Skill OS as the control plane. The current `main` package version is `4.2.0-dev.0`; v4.2 is not released. See [v4.2 Gateway Foundation Planning](./v4.2-planning.md).
 
+Sprint A adds gateway contracts, schemas, fixtures, and docs only. No gateway runtime, provider execution, live routing, live fallback, or runtime permission enforcement exists yet.
+
 ## Structured Prompting Layer
 
 Implement reusable RACE+ templates for consistent, inspectable prompts:

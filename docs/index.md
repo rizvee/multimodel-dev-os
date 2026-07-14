@@ -214,11 +214,12 @@ You use **Cursor** for autocomplete, **Claude Code** for terminal ops, **Gemini*
 
 <div class="highlight-box">
 
-### What's New in v4.1 Development
+### What's New in v4.2 Development
 
-- **Skill OS foundation** adds RACE+ prompts, skill registries, permission metadata, advisory guardrails, workflow `skill_os` references, and draft-only business operator templates.
-- **Read-only inspection** is available through `skill-os status`, `skill-os validate`, and list/show commands.
-- **Validation-only safety model** means metadata is checked locally without executing automation, enforcing permissions at runtime, or calling external tools.
+- **Gateway protocol contracts** define a minimal OpenAI-compatible request/response shape for future local gateway work.
+- **Provider adapter contracts** define deterministic metadata and interface expectations without executing provider calls.
+- **Routing contracts** define request, decision, explanation, usage, and normalized error shapes for future routing work.
+- **Safety-first defaults** keep this sprint contracts-only: no HTTP server, no credentials, no provider calls, no live fallback, and no runtime permission enforcement.
 
 </div>
 
@@ -269,6 +270,14 @@ You use **Cursor** for autocomplete, **Claude Code** for terminal ops, **Gemini*
   <a href="/architecture" class="card-item">
     <div class="card-title">🏗️ Architecture</div>
     <div class="card-desc">4-layer protocol from root contracts through intelligence engine.</div>
+  </a>
+  <a href="/gateway-architecture" class="card-item">
+    <div class="card-title">Gateway Architecture</div>
+    <div class="card-desc">Contracts-only foundation for the future local multi-provider gateway.</div>
+  </a>
+  <a href="/gateway-protocol" class="card-item">
+    <div class="card-title">Gateway Protocol</div>
+    <div class="card-desc">Minimal OpenAI-compatible request, response, error, and usage contracts.</div>
   </a>
   <a href="/skill-os-migration-guide" class="card-item">
     <div class="card-title">Skill OS Migration</div>

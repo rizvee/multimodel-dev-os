@@ -1,0 +1,12 @@
+{
+  "selected_provider": "mock-provider",
+  "selected_model": "mock-chat",
+  "strategy": "explicit",
+  "score": 1,
+  "reasons": ["explicit provider and model selected"],
+  "rejected_candidates": [],
+  "fallback_chain": [],
+  "warnings": [],
+  "request_id": "req-fixture",
+  "decision_timestamp": 1800000000
+}

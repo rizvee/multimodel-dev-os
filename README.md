@@ -199,6 +199,21 @@ Start here:
 
 ---
 
+## Gateway Foundation
+
+The v4.2 development lane begins the future multi-provider AI gateway foundation. Sprint A adds deterministic gateway protocol contracts, provider adapter contracts, routing request/decision contracts, normalized error and usage shapes, security defaults, schemas, fixtures, and tests.
+
+This is contract work only. MultiModel Dev OS does not currently start a gateway server, call model providers, load provider credentials, execute routing decisions, run fallback chains, or enforce Skill OS permissions at runtime.
+
+Gateway docs:
+**[Gateway Architecture](docs/gateway-architecture.md)** |
+**[Gateway Protocol](docs/gateway-protocol.md)** |
+**[Provider Adapter Contract](docs/provider-adapter-contract.md)** |
+**[Gateway Security Model](docs/gateway-security-model.md)** |
+**[v4.2 Gateway Planning](docs/v4.2-planning.md)**
+
+---
+
 ## Roadmap
 
 | Version | Focus | Status |

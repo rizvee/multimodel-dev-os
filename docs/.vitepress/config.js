@@ -98,6 +98,16 @@ export default {
         ]
       },
       {
+        text: 'Gateway Foundation',
+        items: [
+          { text: 'Gateway Architecture', link: '/gateway-architecture' },
+          { text: 'Gateway Protocol', link: '/gateway-protocol' },
+          { text: 'Provider Adapter Contract', link: '/provider-adapter-contract' },
+          { text: 'Gateway Security Model', link: '/gateway-security-model' },
+          { text: 'v4.2 Gateway Planning', link: '/v4.2-planning' }
+        ]
+      },
+      {
         text: 'Agent & IDE Extensions',
         items: [
           { text: 'Agent Compatibility Mappings', link: '/agent-compatibility' },

@@ -1,0 +1,19 @@
+{
+  "$id": "mmdo.gateway-usage",
+  "title": "Gateway Usage Metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "input_tokens": { "type": ["integer", "null"], "minimum": 0 },
+    "output_tokens": { "type": ["integer", "null"], "minimum": 0 },
+    "total_tokens": { "type": ["integer", "null"], "minimum": 0 },
+    "cached_input_tokens": { "type": ["integer", "null"], "minimum": 0 },
+    "reasoning_tokens": { "type": ["integer", "null"], "minimum": 0 },
+    "estimated": { "type": "boolean" },
+    "cost": { "type": ["number", "null"], "minimum": 0 },
+    "currency": { "type": ["string", "null"] },
+    "provider_reported": { "type": "boolean" },
+    "tokenizer": { "type": ["string", "null"] },
+    "metadata": { "type": "object" }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "$id": "mmdo.gateway-request",
+  "title": "Gateway Chat Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["model", "messages"],
+  "properties": {
+    "model": { "type": "string", "minLength": 1 },
+    "messages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["role", "content"],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["system", "developer", "user", "assistant", "tool"]
+          },
+          "content": {
+            "anyOf": [
+              { "type": "string" },
+              { "type": "array" },
+              { "type": "null" }
+            ]
+          }
+        }
+      }
+    },
+    "stream": { "type": "boolean" },
+    "temperature": { "type": "number", "minimum": 0, "maximum": 2 },
+    "top_p": { "type": "number", "minimum": 0, "maximum": 1 },
+    "max_tokens": { "type": "integer", "minimum": 1 },
+    "stop": {
+      "anyOf": [
+        { "type": "string", "minLength": 1 },
+        {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      ]
+    },
+    "tools": { "type": "array" },
+    "tool_choice": {
+      "anyOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "object" }
+      ]
+    },
+    "user": { "type": "string", "minLength": 1 },
+    "metadata": { "type": "object" }
+  }
+}

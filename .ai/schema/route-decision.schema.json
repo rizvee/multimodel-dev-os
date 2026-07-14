@@ -1,0 +1,39 @@
+{
+  "$id": "mmdo.route-decision",
+  "title": "Route Decision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "selected_provider",
+    "selected_model",
+    "strategy",
+    "score",
+    "reasons",
+    "rejected_candidates",
+    "fallback_chain",
+    "warnings",
+    "request_id",
+    "decision_timestamp"
+  ],
+  "properties": {
+    "selected_provider": { "type": "string", "minLength": 1 },
+    "selected_model": { "type": "string", "minLength": 1 },
+    "strategy": {
+      "type": "string",
+      "enum": ["explicit", "capability-based", "cost-first", "latency-first", "context-window-aware", "privacy-local-first", "fallback-chain", "balanced", "user-policy"]
+    },
+    "score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "reasons": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "rejected_candidates": { "type": "array" },
+    "fallback_chain": { "type": "array" },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "request_id": { "type": "string", "minLength": 1 },
+    "decision_timestamp": { "type": "integer", "minimum": 1 }
+  }
+}

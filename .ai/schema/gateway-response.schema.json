@@ -1,0 +1,31 @@
+{
+  "$id": "mmdo.gateway-response",
+  "title": "Gateway Response",
+  "type": "object",
+  "required": ["id", "object", "created", "gateway_version"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "object": {
+      "type": "string",
+      "enum": ["chat.completion", "chat.completion.chunk", "list", "gateway.health", "error"]
+    },
+    "created": { "type": "integer", "minimum": 1 },
+    "gateway_version": { "type": "string", "minLength": 1 },
+    "request_id": { "type": "string", "minLength": 1 },
+    "provider_id": { "type": "string", "minLength": 1 },
+    "model": { "type": "string", "minLength": 1 },
+    "choices": { "type": "array" },
+    "usage": {
+      "anyOf": [
+        { "$ref": "mmdo.gateway-usage" },
+        { "type": "null" }
+      ]
+    },
+    "routing": {
+      "anyOf": [
+        { "type": "object" },
+        { "type": "null" }
+      ]
+    }
+  }
+}

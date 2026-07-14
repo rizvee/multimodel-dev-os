@@ -1,0 +1,24 @@
+{
+  "errors": [
+    {
+      "code": "invalid_request",
+      "retryable": false,
+      "status": 400
+    },
+    {
+      "code": "provider_unavailable",
+      "retryable": true,
+      "status": 503
+    },
+    {
+      "code": "rate_limited",
+      "retryable": true,
+      "status": 429
+    },
+    {
+      "code": "policy_denied",
+      "retryable": false,
+      "status": 403
+    }
+  ]
+}

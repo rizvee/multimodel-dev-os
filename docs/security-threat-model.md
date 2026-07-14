@@ -4,6 +4,23 @@ This document outlines the security architecture, threat model using the STRIDE 
 
 ---
 
+## Gateway Security Scope
+
+v4.2 Sprint A adds gateway protocol and architecture contracts only. No gateway server exists yet, no provider calls are made, no credentials are loaded, no routing decisions are executed, and no fallback chains run.
+
+The gateway security model is documented separately in [Gateway Security Model](./gateway-security-model.md). The key Sprint A boundaries are:
+
+- localhost-first configuration defaults
+- prompt redaction by default
+- normalized errors that redact sensitive details
+- provider host validation for future SSRF mitigation
+- no committed provider credentials
+- no runtime permission enforcement until explicitly implemented
+
+Future gateway runtime work must extend this threat model before live provider execution is added.
+
+---
+
 ## 1. Threat Scenarios & Mitigations
 
 ### Threat: Attacker Modifies Remote Registry Manifest

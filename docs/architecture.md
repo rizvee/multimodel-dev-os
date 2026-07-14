@@ -67,6 +67,21 @@
 8. **Proposal engine** drafts improvements, validates safety gates, and applies approved changes
 9. **Handoff compiler** generates token-compressed session context for agent transfers
 
+## v4.2 Gateway Contract Layer
+
+The v4.2 development lane adds a gateway contract layer under `src/gateway/`. Sprint A is contracts-only:
+
+- no HTTP server is started
+- no provider APIs are called
+- no credentials are loaded
+- no routing decision is executed
+- no fallback chain is executed
+- no Skill OS permission is enforced at runtime
+
+The gateway contract layer defines request/response validation, provider adapter interface expectations, routing request and route decision metadata, usage metadata, normalized errors, and safe gateway configuration defaults.
+
+Skill OS remains the control plane. The gateway contracts are the first step toward a future runtime plane that can consume validated Skill OS, workflow, permission, guardrail, and model/provider metadata.
+
 ## File Ownership
 
 | File | Owner | Who Reads | Who Writes |

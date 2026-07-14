@@ -1,0 +1,11 @@
+{
+  "model": "mock-chat",
+  "messages": [
+    {
+      "role": "browser",
+      "content": "Invalid role."
+    }
+  ],
+  "stream": "false",
+  "unexpected": true
+}

@@ -1,0 +1,42 @@
+{
+  "$id": "mmdo.routing-request",
+  "title": "Routing Request",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "requested_model": { "type": ["string", "null"] },
+    "requested_provider": { "type": ["string", "null"] },
+    "required_capabilities": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "preferred_capabilities": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "estimated_input_tokens": { "type": ["integer", "null"], "minimum": 0 },
+    "required_context_window": { "type": ["integer", "null"], "minimum": 1 },
+    "privacy_policy": {
+      "type": "string",
+      "enum": ["standard", "local-first", "local-only", "no-retention-preferred"]
+    },
+    "cost_preference": {
+      "type": "string",
+      "enum": ["none", "low", "balanced", "performance"]
+    },
+    "latency_preference": {
+      "type": "string",
+      "enum": ["none", "low", "balanced", "quality"]
+    },
+    "fallback_allowed": { "type": "boolean" },
+    "excluded_providers": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "excluded_models": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "metadata": { "type": "object" }
+  }
+}

@@ -24,6 +24,7 @@ import { checkDryRunVerifyCommand } from './tests.js';
 import { checkBuildOutput } from './build.js';
 import { checkYamlParserRegressions, checkRegistryPolicyEngine } from './policies.js';
 import { checkSkillOsValidation } from './skill-os.js';
+import { checkGatewayContracts } from './gateway-contracts.js';
 import { reportResults } from './reporting.js';
 
 console.log('multimodel-dev-os - Strict Release Audit Verification');
@@ -81,5 +82,8 @@ checkSignedRegistryE2E();
 // 17. Skill OS Foundation Verification
 checkSkillOsValidation();
 
-// 18. Final report
+// 18. Gateway Protocol Contract Verification
+checkGatewayContracts();
+
+// 19. Final report
 reportResults();

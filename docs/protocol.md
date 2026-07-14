@@ -6,6 +6,24 @@ This document defines the official, stable architectural protocol and design con
 
 ---
 
+## v4.2 Gateway Protocol Note
+
+The v4.2 development lane adds gateway protocol contracts for a future local AI gateway. These contracts live alongside the stable workspace protocol and do not replace it.
+
+Sprint A defines:
+
+- a minimal OpenAI-compatible chat request shape
+- normalized chat completion and stream chunk shapes
+- provider adapter interface metadata
+- routing request and route decision shapes
+- usage metadata
+- normalized gateway errors
+- safe gateway configuration defaults
+
+Sprint A does not start a server, expose live endpoints, call providers, load credentials, execute routing, execute fallback, or claim complete OpenAI API compatibility. See [Gateway Protocol](/gateway-protocol) and [Gateway Security Model](/gateway-security-model).
+
+---
+
 ## 1. Protocol Architecture Layers
 
 The protocol is divided into three distinct decoupled layers to guarantee portability:
