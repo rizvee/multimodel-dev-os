@@ -4,7 +4,7 @@ This roadmap outlines neutral, product-facing tracks for scaling MultiModel Dev 
 
 v4.1 shipped the Skill OS foundation: schemas, examples, validation, read-only CLI inspection, declarative guardrails, workflow metadata, business operator templates, and migration/adoption documentation. These features do not execute automation or enforce permissions.
 
-v4.2 is planned as the Gateway Foundation cycle. It realigns the roadmap toward a local-first, governed, multi-provider AI gateway while keeping v4.1 Skill OS as the control plane. See [v4.2 Gateway Foundation Planning](./v4.2-planning.md).
+v4.2 is the Gateway Foundation development lane. It realigns the roadmap toward a local-first, governed, multi-provider AI gateway while keeping v4.1 Skill OS as the control plane. The current `main` package version is `4.2.0-dev.0`; v4.2 is not released. See [v4.2 Gateway Foundation Planning](./v4.2-planning.md).
 
 ## Structured Prompting Layer
 

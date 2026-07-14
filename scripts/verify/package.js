@@ -110,12 +110,12 @@ export function verifyPackage() {
       stats.pass++;
     }
 
-    // Test 4: Package.json version is exactly the expected release version.
-    if (expectedVersion === '4.1.0') {
-      console.log(`  ${GREEN}✓${NC} package.json version is exactly 4.1.0`);
+    // Test 4: Package.json version is exactly the expected development-lane version.
+    if (expectedVersion === '4.2.0-dev.0') {
+      console.log(`  ${GREEN}✓${NC} package.json version is exactly 4.2.0-dev.0`);
       stats.pass++;
     } else {
-      console.error(`  ${RED}✗${NC} package.json version is not 4.1.0 (found ${expectedVersion})`);
+      console.error(`  ${RED}✗${NC} package.json version is not 4.2.0-dev.0 (found ${expectedVersion})`);
       stats.fail++;
     }
   } catch (e) {

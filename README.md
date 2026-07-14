@@ -220,7 +220,7 @@ Start here:
 | **v3.5.0** | Trusted Registry Signing + Provenance Foundation | ✅ Released |
 | **v4.0.0** | Modular CLI, verification engine, registry trust, handler tests, docs/DX hardening | ✅ Released |
 | **v4.1.0** | Skill OS foundation: RACE+ prompts, skill registries, permissions, guardrails, workflow metadata, and read-only inspection | ✅ Released |
-| **v4.2.0** | Gateway Foundation: local AI gateway contracts, provider/model runtime registries, deterministic routing, fallback simulation, and security design | Planned |
+| **v4.2.0** | Gateway Foundation: local AI gateway contracts, provider/model runtime registries, deterministic routing, fallback simulation, and security design | Development lane |
 
 **[Full Roadmap →](https://rizvee.github.io/multimodel-dev-os/v3-roadmap)**
 

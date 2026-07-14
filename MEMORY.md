@@ -20,6 +20,7 @@
 | 2026-07-02 | Remote key sync subcommand | Enables controlled synchronization of remote-sourced trusted public keys |
 | 2026-07-05 | Optional GitHub Packages staging | Mirrors the npm payload under a scoped package name without changing npm identity |
 | 2026-07-07 | Skill OS foundation | Adds declarative prompt, skill, permission, guardrail, workflow, and operator-template metadata with validation and read-only inspection |
+| 2026-07-15 | v4.2 development lane | Moves `main` to `4.2.0-dev.0` for Gateway Foundation work while v4.1.0 remains npm latest |
 
 ## Key Patterns
 
@@ -36,6 +37,7 @@
 - v4.0.0 prepares the modular CLI architecture, decomposed verification engine, registry signing and provenance hardening, handler-level test coverage, and public documentation cleanup.
 - v4.1.0 prepares the Skill OS foundation: RACE+ prompts, skill registries, tool permission metadata, advisory guardrails, workflow `skill_os` metadata, draft-only business operator templates, read-only CLI inspection, and migration docs.
 - Skill OS metadata remains declarative; it does not execute automation, enforce permissions at runtime, or make advisory guardrails block live commands.
+- v4.2 Gateway Foundation is under development on `main` at `4.2.0-dev.0`; no gateway runtime, provider execution, or live multi-provider fallback exists yet.
 - npm publishing is manual and guarded by `scripts/prepublish-guard.js`.
 - GitHub Packages publishing is optional and manual-only through `publish-github-package.yml`.
 

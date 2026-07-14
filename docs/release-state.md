@@ -38,18 +38,24 @@ The GitHub release should remain draft until npmjs confirms the version is publi
 
 ### main
 
-- main contains the v4.1.0 release state.
+- main is now the v4.2 development lane.
+- main package version is `4.2.0-dev.0`.
 - main must not be published as v4.0.1.
 - v4.1.0 is published on npmjs.
+- v4.1.0 remains the npm latest.
 - The GitHub release for v4.1.0 is public and marked latest.
 - The optional GitHub Packages mirror workflow has completed; package visibility and access are controlled by GitHub Packages settings.
 - v4.1.0 provides declarative Skill OS metadata, validation, documentation, and read-only inspection foundations; it does not execute automation, enforce permissions at runtime, or make advisory guardrails block live commands.
-- v4.2 is in planning only as the Gateway Foundation roadmap. No v4.2 version bump, gateway runtime, provider execution, tag, release, or npm publish has been performed.
+- v4.2 Gateway Foundation is under development, not released.
+- No v4.2 gateway runtime, provider execution, or multi-provider fallback exists yet.
+- main must not be published during development.
+- npm publication remains a manual maintainer action guarded by `scripts/prepublish-guard.js`.
 
 ## Release Notes
 
 - v4.0.1 remains unpublished and superseded; it should only be revisited if Hasan explicitly chooses to publish from the existing `v4.0.1` tag.
 - v4.1.0 is fully released from `main`.
+- v4.2.0-dev.0 is a development-lane version only and must not be published as a stable release.
 
 ## Manual Publish Command
 
