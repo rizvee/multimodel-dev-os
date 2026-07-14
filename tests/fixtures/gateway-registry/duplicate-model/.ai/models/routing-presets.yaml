@@ -1,0 +1,3 @@
+presets:
+  fixture-coding:
+    primary: "duplicate-model"

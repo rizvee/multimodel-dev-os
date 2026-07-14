@@ -1,0 +1,11 @@
+models:
+  duplicate-model:
+    provider: fixture-openai
+    alias: first-alias
+    official_id: fixture-chat-001
+    context_window: 8192
+  duplicate-model:
+    provider: fixture-openai
+    alias: second-alias
+    official_id: fixture-chat-002
+    context_window: 8192

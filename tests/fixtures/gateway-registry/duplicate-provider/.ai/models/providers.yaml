@@ -1,0 +1,9 @@
+providers:
+  duplicate:
+    name: "First"
+    api_endpoint: "https://first.example/v1"
+    env_key: "FIRST_API_KEY"
+  duplicate:
+    name: "Second"
+    api_endpoint: "https://second.example/v1"
+    env_key: "SECOND_API_KEY"

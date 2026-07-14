@@ -8,6 +8,8 @@ v4.2 is the Gateway Foundation development lane. It realigns the roadmap toward 
 
 Sprint A adds gateway contracts, schemas, fixtures, and docs only. No gateway runtime, provider execution, live routing, live fallback, or runtime permission enforcement exists yet.
 
+Sprint B adds deterministic runtime-readable provider/model registry snapshots. These snapshots validate metadata for future routing but still do not execute providers, read credential values, probe local engines, or run routing/fallback logic.
+
 ## Structured Prompting Layer
 
 Implement reusable RACE+ templates for consistent, inspectable prompts:

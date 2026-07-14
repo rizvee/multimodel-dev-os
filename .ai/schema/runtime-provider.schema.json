@@ -1,0 +1,21 @@
+{
+  "$id": "mmdo.runtime-provider",
+  "title": "Runtime Provider Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "type", "enabled", "base_url", "credential_env", "capabilities", "model_ids", "local", "status", "priority", "metadata"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:[-_][a-z0-9]+)*$" },
+    "name": { "type": "string", "minLength": 1 },
+    "type": { "type": "string", "enum": ["openai-compatible", "native", "local", "mock"] },
+    "enabled": { "type": "boolean" },
+    "base_url": { "type": ["string", "null"] },
+    "credential_env": { "type": ["string", "null"], "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "capabilities": { "type": "array", "items": { "type": "string" } },
+    "model_ids": { "type": "array", "items": { "type": "string" } },
+    "local": { "type": "boolean" },
+    "status": { "type": "string" },
+    "priority": { "type": ["integer", "null"], "minimum": 0 },
+    "metadata": { "type": "object" }
+  }
+}

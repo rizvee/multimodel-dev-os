@@ -1,0 +1,10 @@
+providers:
+  fixture-openai:
+    name: "Fixture OpenAI Compatible"
+    api_endpoint: "https://api.fixture.example/v1"
+    env_key: "FIXTURE_API_KEY"
+  fixture-local:
+    name: "Fixture Local"
+    type: local
+    api_endpoint: "http://localhost:11434/v1"
+    env_key: null

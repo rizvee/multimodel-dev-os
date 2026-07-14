@@ -1,0 +1,5 @@
+providers:
+  fixture-openai:
+    name: "Fixture"
+    api_endpoint: "https://api.fixture.example/v1"
+    env_key: "FIXTURE_API_KEY"

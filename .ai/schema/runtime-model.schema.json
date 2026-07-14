@@ -1,0 +1,23 @@
+{
+  "$id": "mmdo.runtime-model",
+  "title": "Runtime Model Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "provider_id", "name", "aliases", "capabilities", "context_window", "max_output_tokens", "input_cost", "output_cost", "currency", "local", "enabled", "status", "metadata"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "provider_id": { "type": ["string", "null"] },
+    "name": { "type": "string", "minLength": 1 },
+    "aliases": { "type": "array", "items": { "type": "string" } },
+    "capabilities": { "type": "array", "items": { "type": "string" } },
+    "context_window": { "type": ["integer", "null"], "minimum": 0 },
+    "max_output_tokens": { "type": ["integer", "null"], "minimum": 0 },
+    "input_cost": { "type": ["number", "null"], "minimum": 0 },
+    "output_cost": { "type": ["number", "null"], "minimum": 0 },
+    "currency": { "type": ["string", "null"] },
+    "local": { "type": "boolean" },
+    "enabled": { "type": "boolean" },
+    "status": { "type": "string" },
+    "metadata": { "type": "object" }
+  }
+}

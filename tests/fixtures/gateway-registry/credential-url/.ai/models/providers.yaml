@@ -1,0 +1,5 @@
+providers:
+  credential-url:
+    name: "Credential URL"
+    api_endpoint: "https://user:pass@api.fixture.example/v1"
+    env_key: "FIXTURE_API_KEY"

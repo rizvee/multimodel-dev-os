@@ -1,0 +1,5 @@
+presets:
+  fixture-coding:
+    primary: "fixture-chat"
+    fallback: "fixture-vision"
+    cost_saving: "fixture-chat"

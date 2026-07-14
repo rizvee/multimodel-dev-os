@@ -1,0 +1,6 @@
+models:
+  fixture-chat:
+    provider: missing-provider
+    alias: fixture-chat-latest
+    official_id: fixture-chat-001
+    context_window: 8192

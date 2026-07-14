@@ -19,6 +19,12 @@ presets:
 
 ---
 
+## Runtime Registry Snapshot
+
+v4.2 Sprint B loads routing presets into deterministic runtime-readable registry snapshots for future routing code. This preserves the existing YAML format and current CLI behavior.
+
+The snapshot layer validates preset references, model IDs, provider IDs, and strategy metadata. It does not score candidates, execute routing decisions, call providers, or invoke fallback chains.
+
 ## Standard Presets Matrix
 
 ### 1. Planning (`planning` Preset)
@@ -38,8 +44,11 @@ presets:
 
 ---
 
-## Fallback Routing Logic
-When executing commands via terminal agents or local adapters:
-1. Verify target provider key exists (e.g. `GEMINI_API_KEY`).
-2. If primary model endpoint fails, check `capabilities.fallback` mapping in `registry.yaml`.
-3. Route queries automatically to fallback options or fallback to `local-coder-model`.
+## Fallback Routing Metadata
+
+Routing presets may declare primary, fallback, and cost-saving model preferences. In the current v4.2 development lane these are metadata only:
+
+1. Provider credential names may be referenced, but credential values are not read.
+2. Preset references are validated locally.
+3. Future routing code can consume the normalized snapshot.
+4. No automatic fallback execution exists yet.

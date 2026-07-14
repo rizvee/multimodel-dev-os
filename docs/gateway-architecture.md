@@ -68,6 +68,12 @@ src/gateway/
 
 The modules are deterministic and dependency-free. They do not read credentials, mutate the environment, write files, open sockets, or make network calls.
 
+## Runtime Registry Layer
+
+v4.2 Sprint B adds a runtime-readable registry layer for existing `.ai/models/` metadata. It loads and validates providers, hosted models, local model metadata, and routing presets into deterministic snapshots.
+
+This layer still does not execute providers, read credential values, start local engines, score routes, or run fallback chains. It only prepares safe metadata for future routing code.
+
 ## Safety Boundary
 
 Gateway architecture work must preserve:

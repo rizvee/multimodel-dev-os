@@ -59,3 +59,7 @@ The test mock provider:
 - makes no network calls
 
 This keeps provider contract tests safe and reproducible.
+
+## Registry Relationship
+
+Provider registry records are metadata inputs for future adapters. Sprint B can normalize provider IDs, base URLs, credential environment variable names, capabilities, and model associations, but it does not instantiate provider clients or call adapter `invoke`/`stream` methods.

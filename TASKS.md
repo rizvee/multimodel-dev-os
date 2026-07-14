@@ -12,11 +12,13 @@
 - [x] Complete v4.1 Skill OS foundation sprints A-H
 - [x] Publish v4.1.0 to npm manually
 - [x] Publish the v4.1.0 GitHub release after npm availability was confirmed
+- [x] Complete v4.2 Sprint A gateway protocol and architecture contracts
+- [x] Complete v4.2 Sprint B runtime provider/model registry snapshots
 - [ ] Maintain `main` as the v4.2 development lane without publishing dev versions
 
 ## Backlog
 
-- [ ] Plan v4.2 Gateway Foundation Sprint A without adding runtime behavior prematurely
+- [ ] Plan v4.2 Sprint C deterministic routing without provider calls
 - [ ] Collect post-release feedback and triage v4.1.x candidates
 - [ ] Continue improving adapter documentation and template coverage
 - [ ] Review GitHub Packages adoption after npmjs release

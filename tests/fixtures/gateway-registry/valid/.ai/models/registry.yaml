@@ -1,0 +1,18 @@
+models:
+  fixture-chat:
+    provider: fixture-openai
+    alias: fixture-chat-latest
+    official_id: fixture-chat-001
+    context_window: 8192
+    capabilities:
+      tool_use: true
+      vision: false
+  fixture-vision:
+    provider: fixture-openai
+    alias: fixture-vision-latest
+    official_id: fixture-vision-001
+    context_window: 16384
+    max_output_tokens: 2048
+    capabilities:
+      vision: true
+      tool_use: true

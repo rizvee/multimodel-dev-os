@@ -1,0 +1,7 @@
+local_engines:
+  ollama:
+    host: "https://remote.fixture.example"
+    models:
+      - alias: "fixture-local-coder"
+        official_id: "qwen2.5-coder:7b"
+        context_window: 32000

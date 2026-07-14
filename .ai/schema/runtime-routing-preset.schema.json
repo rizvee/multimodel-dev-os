@@ -1,0 +1,21 @@
+{
+  "$id": "mmdo.runtime-routing-preset",
+  "title": "Runtime Routing Preset Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "strategy", "provider_ids", "model_ids", "required_capabilities", "preferred_capabilities", "fallback_allowed", "local_first", "cost_preference", "latency_preference", "metadata"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:[-_][a-z0-9]+)*$" },
+    "name": { "type": "string", "minLength": 1 },
+    "strategy": { "type": "string", "enum": ["explicit", "capability", "cost-first", "latency-first", "context-aware", "local-first", "fallback-chain", "balanced", "user-policy"] },
+    "provider_ids": { "type": "array", "items": { "type": "string" } },
+    "model_ids": { "type": "array", "items": { "type": "string" } },
+    "required_capabilities": { "type": "array", "items": { "type": "string" } },
+    "preferred_capabilities": { "type": "array", "items": { "type": "string" } },
+    "fallback_allowed": { "type": "boolean" },
+    "local_first": { "type": "boolean" },
+    "cost_preference": { "type": "string" },
+    "latency_preference": { "type": "string" },
+    "metadata": { "type": "object" }
+  }
+}

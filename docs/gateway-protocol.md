@@ -65,3 +65,7 @@ Sprint A does not provide:
 - complete OpenAI API compatibility
 
 The protocol is intentionally small so future runtime work can be validated before it becomes executable.
+
+## Registry Relationship
+
+The v4.2 runtime registry supplies provider, model, local model, and routing preset metadata that future protocol handlers may consume. Sprint B loads this metadata but does not use it to execute requests, contact providers, or choose live routes.

@@ -29,6 +29,16 @@ providers:
 
 ---
 
+## Runtime Registry Snapshot
+
+v4.2 Sprint B normalizes provider metadata into deterministic runtime-readable records for future gateway routing.
+
+The runtime registry validates provider IDs, `api_endpoint` URL safety, and credential environment variable names. It stores names such as `OPENAI_API_KEY`, but it never reads credential values from the environment and never calls provider endpoints.
+
+Remote providers must use `https:` and must not include embedded URL credentials. Localhost/private-network URLs are only accepted for providers explicitly classified as local.
+
+---
+
 ## API Key Security Rules
 
 To guarantee credential safety during agentic loops:
@@ -41,4 +51,5 @@ To guarantee credential safety during agentic loops:
 ## custom endpoint routing (e.g. proxy/gateways)
 For companies routing traffic through centralized proxy interfaces (such as OpenRouter, Cloudflare AI Gateway, or local mocks):
 * Edit `.ai/models/providers.yaml` and update the `api_endpoint` parameter of the targeted provider.
-* Update `default_headers` to inject custom authentication tokens or routing parameters required by the gateway.
+* Keep authentication values in environment variables or approved local secret stores. Do not put raw tokens in `default_headers`.
+* Use `default_headers` only for non-secret metadata required by the gateway.

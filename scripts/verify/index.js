@@ -25,6 +25,7 @@ import { checkBuildOutput } from './build.js';
 import { checkYamlParserRegressions, checkRegistryPolicyEngine } from './policies.js';
 import { checkSkillOsValidation } from './skill-os.js';
 import { checkGatewayContracts } from './gateway-contracts.js';
+import { checkGatewayRegistry } from './gateway-registry.js';
 import { reportResults } from './reporting.js';
 
 console.log('multimodel-dev-os - Strict Release Audit Verification');
@@ -85,5 +86,8 @@ checkSkillOsValidation();
 // 18. Gateway Protocol Contract Verification
 checkGatewayContracts();
 
-// 19. Final report
+// 19. Gateway Runtime Registry Verification
+checkGatewayRegistry();
+
+// 20. Final report
 reportResults();

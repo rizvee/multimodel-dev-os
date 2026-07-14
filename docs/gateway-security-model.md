@@ -38,6 +38,18 @@ Provider hosts are treated as security-sensitive. Sprint A validation rejects lo
 
 This is a planning and validation boundary, not a live SSRF defense for an HTTP server. Runtime SSRF protections must be implemented before live provider execution is added.
 
+## Runtime Registry Safety
+
+v4.2 Sprint B validates provider and local endpoint metadata without making requests:
+
+- remote providers require `https:`
+- embedded URL credentials are rejected
+- localhost/private-network targets are rejected for non-local providers
+- local endpoints must use approved local hosts
+- credential fields store environment variable names only
+- credential values are never read from the environment
+- routing presets are loaded but not executed
+
 ## Skill OS Integration
 
 Skill OS remains the control plane:

@@ -1,0 +1,8 @@
+models:
+  fixture-chat:
+    provider: duplicate
+    alias: fixture-chat-latest
+    official_id: fixture-chat-001
+    context_window: 8192
+    capabilities:
+      tool_use: true

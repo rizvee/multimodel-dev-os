@@ -20,6 +20,12 @@ local_engines:
 
 ---
 
+## Runtime Registry Snapshot
+
+v4.2 Sprint B normalizes local model metadata into runtime-readable records. Local endpoints must point to approved local hosts such as `localhost`, `127.0.0.1`, or `[::1]`.
+
+This validation does not start Ollama, LM Studio, llama.cpp, vLLM, or any other local engine. It does not probe local ports, inspect installed models, or assume a model is available.
+
 ## Local Setup Instructions
 
 ### 1. Using Ollama

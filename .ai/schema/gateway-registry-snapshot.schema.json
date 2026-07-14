@@ -1,0 +1,35 @@
+{
+  "$id": "mmdo.gateway-registry-snapshot",
+  "title": "Gateway Registry Snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "providers", "models", "local_models", "routing_presets", "indexes", "diagnostics", "source_files"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "gateway-registry.v1" },
+    "providers": { "type": "array", "items": { "$ref": "mmdo.runtime-provider" } },
+    "models": { "type": "array", "items": { "$ref": "mmdo.runtime-model" } },
+    "local_models": { "type": "array", "items": { "$ref": "mmdo.runtime-local-model" } },
+    "routing_presets": { "type": "array", "items": { "$ref": "mmdo.runtime-routing-preset" } },
+    "indexes": {
+      "type": "object",
+      "required": ["providersById", "modelsById", "modelsByAlias", "modelsByProvider", "localModelsById", "routingPresetsById"],
+      "properties": {
+        "providersById": { "type": "object" },
+        "modelsById": { "type": "object" },
+        "modelsByAlias": { "type": "object" },
+        "modelsByProvider": { "type": "object" },
+        "localModelsById": { "type": "object" },
+        "routingPresetsById": { "type": "object" }
+      }
+    },
+    "diagnostics": {
+      "type": "object",
+      "required": ["errors", "warnings"],
+      "properties": {
+        "errors": { "type": "array" },
+        "warnings": { "type": "array" }
+      }
+    },
+    "source_files": { "type": "object" }
+  }
+}

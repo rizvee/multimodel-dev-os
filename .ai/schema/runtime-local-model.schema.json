@@ -1,0 +1,19 @@
+{
+  "$id": "mmdo.runtime-local-model",
+  "title": "Runtime Local Model Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "engine", "endpoint", "model", "capabilities", "context_window", "enabled", "status", "metadata"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "engine": { "type": "string", "minLength": 1 },
+    "endpoint": { "type": ["string", "null"] },
+    "model": { "type": "string", "minLength": 1 },
+    "capabilities": { "type": "array", "items": { "type": "string" } },
+    "context_window": { "type": ["integer", "null"], "minimum": 0 },
+    "enabled": { "type": "boolean" },
+    "status": { "type": "string" },
+    "metadata": { "type": "object" }
+  }
+}
