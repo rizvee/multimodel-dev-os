@@ -36,7 +36,7 @@ The GitHub release should remain draft until npmjs confirms the version is publi
 - v4.0.1 should remain historical/prepared unless Hasan explicitly chooses otherwise.
 - If v4.0.1 is ever published, it must only be published from the existing `v4.0.1` tag.
 
-### main (v4.1 development lane)
+### main
 
 - main contains the v4.1.0 release state.
 - main must not be published as v4.0.1.
@@ -44,6 +44,7 @@ The GitHub release should remain draft until npmjs confirms the version is publi
 - The GitHub release for v4.1.0 is public and marked latest.
 - The optional GitHub Packages mirror workflow has completed; package visibility and access are controlled by GitHub Packages settings.
 - v4.1.0 provides declarative Skill OS metadata, validation, documentation, and read-only inspection foundations; it does not execute automation, enforce permissions at runtime, or make advisory guardrails block live commands.
+- v4.2 is in planning only. No v4.2 version bump, tag, release, or npm publish has been performed.
 
 ## Release Notes
 

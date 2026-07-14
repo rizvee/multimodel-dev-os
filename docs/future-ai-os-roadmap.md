@@ -2,7 +2,9 @@
 
 This roadmap outlines neutral, product-facing tracks for scaling MultiModel Dev OS into a broader AI operating layer for technical, operational, and document-heavy workflows. These tracks are directional and do not imply committed release scope.
 
-v4.1 Sprint A added schema and example foundations. v4.1 Sprint B adds validation for those bundled registries only. v4.1 Sprint C adds read-only CLI inspection through `skill-os` commands. Sprint D adds declarative guardrails. Sprint E connects workflows to Skill OS metadata for validation only. Sprint F adds draft-only business operator templates. These sprints do not execute automation or enforce permissions.
+v4.1 shipped the Skill OS foundation: schemas, examples, validation, read-only CLI inspection, declarative guardrails, workflow metadata, business operator templates, and migration/adoption documentation. These features do not execute automation or enforce permissions.
+
+v4.2 is planned as a safety and usability cycle that builds on v4.1 through stronger inspection, clearer workflow planning, guardrail enforcement design, catalog alignment, and release governance hardening. See [v4.2 Planning](./v4.2-planning.md).
 
 ## Structured Prompting Layer
 
@@ -170,3 +172,14 @@ Sprint G documentation hardening:
 - Adds an adoption checklist for prompt, skill, permission, guardrail, workflow, and operator template hygiene.
 - Adds an authoring reference for field-level registry metadata.
 - Keeps the v4.1 foundation framed as declarative, validation-only, and read-only for inspection.
+
+## v4.2 Direction
+
+Recommended v4.2 tracks:
+
+- Improve `skill-os` CLI inspection with richer show output, filtering, validation summaries, and optional JSON output if consistent with existing CLI style.
+- Design an opt-in guardrail enforcement model before implementing enforcement.
+- Improve workflow safety through clearer dry-run and validation-before-run planning.
+- Expand business operator templates as public, draft-only examples.
+- Align plugin/catalog metadata with Skill OS metadata in a validation-only way.
+- Harden release governance for stable lanes, skipped patch releases, post-release checklists, and GitHub Packages visibility notes.

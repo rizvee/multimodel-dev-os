@@ -32,7 +32,7 @@ export default {
         'license': 'https://opensource.org/licenses/MIT',
         'url': 'https://github.com/rizvee/multimodel-dev-os',
         'downloadUrl': 'https://www.npmjs.com/package/multimodel-dev-os',
-        'softwareVersion': '4.0.0',
+        'softwareVersion': '4.1.0',
         'description': 'Portable, vendor-neutral AI Developer OS for multi-agent coding workflows.'
       })
     ]
@@ -211,6 +211,7 @@ export default {
           { text: 'Launch & Sharing Kit', link: '/launch-kit' },
           { text: 'Future AI OS Roadmap', link: '/future-ai-os-roadmap' },
           { text: 'v4.1 Skill OS Plan', link: '/v4.1-skill-os-foundation-plan' },
+          { text: 'v4.2 Planning', link: '/v4.2-planning' },
           { text: 'CLI Roadmap', link: '/cli-roadmap' },
           { text: 'v3 Roadmap', link: '/v3-roadmap' },
           { text: 'v3.5.0 Release Readiness', link: '/v3.5.0-readiness' },
