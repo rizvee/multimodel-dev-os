@@ -4,7 +4,7 @@ This roadmap outlines neutral, product-facing tracks for scaling MultiModel Dev 
 
 v4.1 shipped the Skill OS foundation: schemas, examples, validation, read-only CLI inspection, declarative guardrails, workflow metadata, business operator templates, and migration/adoption documentation. These features do not execute automation or enforce permissions.
 
-v4.2 is planned as a safety and usability cycle that builds on v4.1 through stronger inspection, clearer workflow planning, guardrail enforcement design, catalog alignment, and release governance hardening. See [v4.2 Planning](./v4.2-planning.md).
+v4.2 is planned as the Gateway Foundation cycle. It realigns the roadmap toward a local-first, governed, multi-provider AI gateway while keeping v4.1 Skill OS as the control plane. See [v4.2 Gateway Foundation Planning](./v4.2-planning.md).
 
 ## Structured Prompting Layer
 
@@ -173,13 +173,16 @@ Sprint G documentation hardening:
 - Adds an authoring reference for field-level registry metadata.
 - Keeps the v4.1 foundation framed as declarative, validation-only, and read-only for inspection.
 
-## v4.2 Direction
+## v4.2 Gateway Foundation Direction
 
 Recommended v4.2 tracks:
 
-- Improve `skill-os` CLI inspection with richer show output, filtering, validation summaries, and optional JSON output if consistent with existing CLI style.
-- Design an opt-in guardrail enforcement model before implementing enforcement.
-- Improve workflow safety through clearer dry-run and validation-before-run planning.
-- Expand business operator templates as public, draft-only examples.
-- Align plugin/catalog metadata with Skill OS metadata in a validation-only way.
-- Harden release governance for stable lanes, skipped patch releases, post-release checklists, and GitHub Packages visibility notes.
+- Define a local OpenAI-compatible gateway contract before adding runtime behavior.
+- Turn existing model, provider, local model, and routing preset metadata into runtime-ready registry inputs.
+- Add deterministic routing design for explicit model selection, capability matching, cost, latency, context window, privacy/local-first policy, and fallback planning.
+- Plan provider adapter contracts for request normalization, response normalization, streaming, errors, usage, and health.
+- Keep Skill OS, workflows, permissions, guardrails, memory, adapters, and validation as the governance/control plane around the future gateway runtime.
+- Design security boundaries for credentials, redacted logs, localhost binding, provider URL validation, request limits, timeouts, and audit records.
+- Keep v4.2 foundation scope small: one generic OpenAI-compatible provider adapter, one mock provider, deterministic routing, fallback simulation, and a local-only gateway.
+
+The v4.2 plan does not claim that a gateway runtime, live provider execution, runtime permission enforcement, or multi-provider fallback already exists.

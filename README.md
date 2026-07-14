@@ -220,7 +220,7 @@ Start here:
 | **v3.5.0** | Trusted Registry Signing + Provenance Foundation | ✅ Released |
 | **v4.0.0** | Modular CLI, verification engine, registry trust, handler tests, docs/DX hardening | ✅ Released |
 | **v4.1.0** | Skill OS foundation: RACE+ prompts, skill registries, permissions, guardrails, workflow metadata, and read-only inspection | ✅ Released |
-| **v4.2.0** | Skill OS CLI improvements, guardrail enforcement design, workflow safety, catalog alignment, and release governance | Planned |
+| **v4.2.0** | Gateway Foundation: local AI gateway contracts, provider/model runtime registries, deterministic routing, fallback simulation, and security design | Planned |
 
 **[Full Roadmap →](https://rizvee.github.io/multimodel-dev-os/v3-roadmap)**
 
@@ -228,7 +228,7 @@ Future roadmap:
 **[Release state](docs/release-state.md)** ·
 **[AI OS roadmap](docs/future-ai-os-roadmap.md)** ·
 **[v4.1 Skill OS plan](docs/v4.1-skill-os-foundation-plan.md)** ·
-**[v4.2 Planning](docs/v4.2-planning.md)** ·
+**[v4.2 Gateway Planning](docs/v4.2-planning.md)** ·
 **[Skill OS CLI](docs/skill-os-cli.md)** ·
 **[Hooks and Guardrails](docs/hooks-and-guardrails.md)** ·
 **[Business Operator Layer](docs/business-operator-layer.md)** ·
