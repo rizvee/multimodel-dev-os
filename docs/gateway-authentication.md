@@ -23,3 +23,5 @@ Rules:
 - authorization headers are not included in diagnostics
 
 Non-local binding requires this mode. Remote exposure remains opt-in and is not the default.
+
+Sprint F generated client plans use environment-variable placeholders such as `${MMDO_GATEWAY_TOKEN}`. They do not include raw bearer-token values.

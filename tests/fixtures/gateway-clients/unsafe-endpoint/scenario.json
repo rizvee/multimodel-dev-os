@@ -1,0 +1,7 @@
+{
+  "client_id": "generic-openai",
+  "endpoint": { "base_url": "http://192.168.1.10:8787/v1" },
+  "model": "mock-chat",
+  "expected_level": "unsupported",
+  "expected_error": "remote_endpoint"
+}

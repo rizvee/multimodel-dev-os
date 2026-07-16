@@ -1,0 +1,15 @@
+{
+  "title": "Gateway Client Validation",
+  "type": "object",
+  "required": ["compatible", "level", "supported_features", "unsupported_features", "required_manual_steps", "warnings", "reasons"],
+  "properties": {
+    "compatible": { "type": "boolean" },
+    "level": { "enum": ["validated-local", "protocol-compatible", "configuration-example", "manual-review", "unsupported"] },
+    "supported_features": { "type": "array", "items": { "type": "string" } },
+    "unsupported_features": { "type": "array", "items": { "type": "string" } },
+    "required_manual_steps": { "type": "array", "items": { "type": "string" } },
+    "warnings": { "type": "array", "items": { "type": "string" } },
+    "reasons": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": true
+}

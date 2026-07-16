@@ -49,3 +49,7 @@ The server does not start on import and does not create a daemon or background p
 ## CLI Boundary
 
 Sprint E does not add gateway CLI startup commands. The runtime is exposed through the JavaScript API and test/docs examples only. This keeps existing CLI behavior unchanged while the security boundary is validated.
+
+## Client Integration Boundary
+
+Sprint F adds preview-only client integration planning on top of this runtime. Generated client plans target the localhost mock gateway and report `writes_performed: false`. They do not install clients, write global settings, or activate external providers.

@@ -1,0 +1,221 @@
+gateway_clients:
+  - id: codex
+    name: Codex
+    category: coding-agent
+    status: needs-manual-review
+    protocol: openai-compatible
+    endpoint_style: base-url
+    supports_base_url: true
+    supports_model_override: true
+    supports_streaming: true
+    supports_tools: false
+    supports_custom_headers: true
+    supports_bearer_token: true
+    configuration_formats: [markdown, json]
+    configuration_locations: [.ai/gateway-clients/codex.md]
+    executable_mock_models: [mock-chat, mock-stream]
+    limitations: [configuration depends on current Codex surface, no third-party client executed]
+    metadata:
+      validated_local: false
+      manual_steps: [review current Codex configuration support before applying]
+  - id: claude-code
+    name: Claude Code
+    category: coding-agent
+    status: needs-manual-review
+    protocol: openai-compatible
+    endpoint_style: provider-proxy
+    supports_base_url: false
+    supports_model_override: true
+    supports_streaming: true
+    supports_tools: false
+    supports_custom_headers: false
+    supports_bearer_token: false
+    configuration_formats: [markdown]
+    configuration_locations: [.ai/gateway-clients/claude-code.md]
+    executable_mock_models: []
+    limitations: [direct OpenAI-compatible gateway support is not asserted, manual review required]
+    metadata:
+      validated_local: false
+      manual_steps: [use as guidance only unless a supported proxy mode is confirmed]
+  - id: cursor
+    name: Cursor
+    category: editor-extension
+    status: example-only
+    protocol: openai-compatible
+    endpoint_style: workspace-settings
+    supports_base_url: true
+    supports_model_override: true
+    supports_streaming: true
+    supports_tools: false
+    supports_custom_headers: true
+    supports_bearer_token: true
+    configuration_formats: [json, markdown]
+    configuration_locations: [.ai/gateway-clients/cursor.json]
+    executable_mock_models: [mock-chat, mock-stream]
+    limitations: [workspace-safe example only, no user-global settings written]
+    metadata:
+      validated_local: false
+  - id: cline
+    name: Cline
+    category: editor-extension
+    status: example-only
+    protocol: openai-compatible
+    endpoint_style: provider-profile
+    supports_base_url: true
+    supports_model_override: true
+    supports_streaming: true
+    supports_tools: true
+    supports_custom_headers: true
+    supports_bearer_token: true
+    configuration_formats: [json, markdown]
+    configuration_locations: [.ai/gateway-clients/cline.json]
+    executable_mock_models: [mock-chat, mock-tools, mock-stream]
+    limitations: [example only, extension is not installed or executed by tests]
+    metadata:
+      validated_local: false
+  - id: continue
+    name: Continue
+    category: editor-extension
+    status: example-only
+    protocol: openai-compatible
+    endpoint_style: provider-profile
+    supports_base_url: true
+    supports_model_override: true
+    supports_streaming: true
+    supports_tools: false
+    supports_custom_headers: true
+    supports_bearer_token: true
+    configuration_formats: [json, yaml, markdown]
+    configuration_locations: [.ai/gateway-clients/continue.json]
+    executable_mock_models: [mock-chat, mock-stream]
+    limitations: [example only, no package installation or global configuration]
+    metadata:
+      validated_local: false
+  - id: roo-code
+    name: Roo Code
+    category: editor-extension
+    status: example-only
+    protocol: openai-compatible
+    endpoint_style: provider-profile
+    supports_base_url: true
+    supports_model_override: true
+    supports_streaming: true
+    supports_tools: true
+    supports_custom_headers: true
+    supports_bearer_token: true
+    configuration_formats: [json, markdown]
+    configuration_locations: [.ai/gateway-clients/roo-code.json]
+    executable_mock_models: [mock-chat, mock-tools, mock-stream]
+    limitations: [example only, extension is not installed or executed by tests]
+    metadata:
+      validated_local: false
+  - id: aider
+    name: Aider
+    category: cli
+    status: example-only
+    protocol: openai-compatible
+    endpoint_style: base-url
+    supports_base_url: true
+    supports_model_override: true
+    supports_streaming: true
+    supports_tools: false
+    supports_custom_headers: false
+    supports_bearer_token: true
+    configuration_formats: [markdown]
+    configuration_locations: [.ai/gateway-clients/aider.md]
+    executable_mock_models: [mock-chat, mock-stream]
+    limitations: [command examples are not executed, raw tokens are not placed on command lines]
+    metadata:
+      validated_local: false
+  - id: antigravity
+    name: Antigravity
+    category: coding-agent
+    status: adapter-ready
+    protocol: openai-compatible
+    endpoint_style: adapter-guidance
+    supports_base_url: true
+    supports_model_override: true
+    supports_streaming: true
+    supports_tools: false
+    supports_custom_headers: true
+    supports_bearer_token: true
+    configuration_formats: [markdown, json]
+    configuration_locations: [.ai/gateway-clients/antigravity.md]
+    executable_mock_models: [mock-chat, mock-stream]
+    limitations: [aligned with bundled adapter guidance, no external credentials changed]
+    metadata:
+      validated_local: false
+  - id: gemini-cli
+    name: Gemini CLI
+    category: cli
+    status: needs-manual-review
+    protocol: openai-compatible
+    endpoint_style: manual-review
+    supports_base_url: false
+    supports_model_override: true
+    supports_streaming: false
+    supports_tools: false
+    supports_custom_headers: false
+    supports_bearer_token: false
+    configuration_formats: [markdown]
+    configuration_locations: [.ai/gateway-clients/gemini-cli.md]
+    executable_mock_models: []
+    limitations: [OpenAI-compatible gateway targeting is not asserted, use only if supported by the client]
+    metadata:
+      validated_local: false
+  - id: mcp
+    name: MCP-based Client
+    category: mcp-client
+    status: example-only
+    protocol: mcp
+    endpoint_style: http-resource
+    supports_base_url: true
+    supports_model_override: false
+    supports_streaming: false
+    supports_tools: false
+    supports_custom_headers: true
+    supports_bearer_token: true
+    configuration_formats: [json, markdown]
+    configuration_locations: [.ai/gateway-clients/mcp.json]
+    executable_mock_models: []
+    limitations: [gateway is not an MCP server in Sprint F, HTTP resource example only]
+    metadata:
+      validated_local: false
+  - id: generic-openai
+    name: Generic OpenAI-Compatible Client
+    category: generic-sdk
+    status: validated
+    protocol: openai-compatible
+    endpoint_style: base-url
+    supports_base_url: true
+    supports_model_override: true
+    supports_streaming: true
+    supports_tools: true
+    supports_custom_headers: true
+    supports_bearer_token: true
+    configuration_formats: [json, markdown]
+    configuration_locations: [.ai/gateway-clients/generic-openai.json]
+    executable_mock_models: [mock-chat, mock-tools, mock-stream]
+    limitations: [validated only against the local mock gateway protocol]
+    metadata:
+      validated_local: true
+      validation_scope: local mock gateway
+  - id: node-client
+    name: Custom Node.js Client
+    category: custom-client
+    status: validated
+    protocol: custom-http
+    endpoint_style: node-http
+    supports_base_url: true
+    supports_model_override: true
+    supports_streaming: true
+    supports_tools: true
+    supports_custom_headers: true
+    supports_bearer_token: true
+    configuration_formats: [javascript, markdown]
+    configuration_locations: [.ai/gateway-clients/node-client.json]
+    executable_mock_models: [mock-chat, mock-tools, mock-stream]
+    limitations: [validated only through Node built-in local HTTP requests]
+    metadata:
+      validated_local: true
+      validation_scope: local mock gateway

@@ -86,6 +86,16 @@ Security boundaries:
 
 Route explanations must not include prompt bodies, credential values, authorization headers, or absolute local machine paths.
 
+## Client Configuration Boundary
+
+Sprint F client plans are preview-only:
+
+- generated paths are workspace-relative
+- token values are represented by environment placeholders
+- diagnostics redact endpoint credentials
+- no global editor or shell configuration is written
+- no third-party client executable is invoked
+
 ## Skill OS Integration
 
 Skill OS remains the control plane:

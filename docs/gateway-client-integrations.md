@@ -1,0 +1,47 @@
+# Gateway Client Integrations
+
+v4.2 Sprint F adds preview-only client integration planning for the localhost mock gateway.
+
+This layer generates package-safe configuration previews for supported client families. It does not install clients, execute third-party tools, write global settings, activate external providers, or read provider credentials.
+
+## Scope
+
+Supported planning targets:
+
+- Codex
+- Claude Code
+- Cursor
+- Cline
+- Continue
+- Roo Code
+- Aider
+- Antigravity
+- Gemini CLI where compatible
+- MCP-based clients
+- generic OpenAI-compatible clients
+- custom Node.js clients
+- curl and PowerShell examples
+
+Only the Sprint E mock provider is executable. Client plans target localhost and mock models.
+
+## Preview-First Model
+
+Generated plans return:
+
+- client profile metadata
+- endpoint configuration
+- preview file entries
+- environment placeholders
+- compatibility result
+- redacted diagnostics
+- `writes_performed: false`
+
+No configuration file is written by Sprint F APIs.
+
+## Compatibility Labels
+
+- `validated-local`: tested against the local mock gateway protocol.
+- `protocol-compatible`: compatible by metadata and adapter guidance, but not executed as a third-party client.
+- `configuration-example`: safe example only.
+- `manual-review`: potentially useful, but current client support must be confirmed manually.
+- `unsupported`: not compatible with the Sprint F localhost gateway plan.

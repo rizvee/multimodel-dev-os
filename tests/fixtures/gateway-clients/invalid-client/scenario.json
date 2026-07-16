@@ -1,0 +1,6 @@
+{
+  "client_id": "missing-client",
+  "endpoint": { "base_url": "http://127.0.0.1:8787/v1" },
+  "model": "mock-chat",
+  "expected_error": "unknown_client"
+}

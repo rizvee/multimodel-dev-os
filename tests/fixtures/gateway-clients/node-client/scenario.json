@@ -1,0 +1,9 @@
+{
+  "client_id": "node-client",
+  "endpoint": { "base_url": "http://127.0.0.1:8787/v1" },
+  "model": "mock-stream",
+  "requested_features": { "streaming": true },
+  "expected_level": "validated-local",
+  "expected_file": ".ai/gateway-clients/node-client.json",
+  "expected_warnings": []
+}

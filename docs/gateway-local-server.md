@@ -28,6 +28,8 @@ Remote binding is rejected unless explicitly enabled and paired with bearer-toke
 
 Only mock models are executable in Sprint E. Registry-backed external providers remain metadata-only.
 
+Sprint F client examples should point at this local server only. They should use mock models and avoid raw tokens in commands or files.
+
 ## Shutdown
 
 `stop()` is idempotent and closes the local server. Active sockets are closed within a bounded shutdown window.

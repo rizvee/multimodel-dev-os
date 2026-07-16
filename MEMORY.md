@@ -25,6 +25,7 @@
 | 2026-07-16 | Deterministic gateway routing | Adds dry-run route planning, scoring, fallback planning, and explanations without provider calls, credential reads, model execution, or fallback execution |
 | 2026-07-16 | Gateway resilience simulation | Adds deterministic failure classification, retry/backoff/timeout planning, fallback transitions, circuit-breaker simulation, rate-limit/quota planning, and failure-chain explanations without provider calls or real waits |
 | 2026-07-16 | Local mock gateway runtime | Adds a localhost-only HTTP runtime for the deterministic mock provider while keeping external providers metadata-only and provider credentials unloaded |
+| 2026-07-16 | Gateway client integration planning | Adds preview-only client profiles, endpoint configuration generation, redacted diagnostics, and local mock compatibility tests without installing clients or writing global settings |
 
 ## Key Patterns
 
@@ -41,7 +42,7 @@
 - v4.0.0 prepares the modular CLI architecture, decomposed verification engine, registry signing and provenance hardening, handler-level test coverage, and public documentation cleanup.
 - v4.1.0 prepares the Skill OS foundation: RACE+ prompts, skill registries, tool permission metadata, advisory guardrails, workflow `skill_os` metadata, draft-only business operator templates, read-only CLI inspection, and migration docs.
 - Skill OS metadata remains declarative; it does not execute automation, enforce permissions at runtime, or make advisory guardrails block live commands.
-- v4.2 Gateway Foundation is under development on `main` at `4.2.0-dev.0`; gateway contracts, runtime-readable registry snapshots, deterministic dry-run route planning, resilience simulation, and a localhost-only mock gateway runtime exist, but external provider calls, provider credential loading, retry execution, and active multi-provider fallback remain disabled.
+- v4.2 Gateway Foundation is under development on `main` at `4.2.0-dev.0`; gateway contracts, runtime-readable registry snapshots, deterministic dry-run route planning, resilience simulation, a localhost-only mock gateway runtime, and preview-only client integration plans exist, but external provider calls, provider credential loading, retry execution, active multi-provider fallback, and third-party client execution remain disabled.
 - npm publishing is manual and guarded by `scripts/prepublish-guard.js`.
 - GitHub Packages publishing is optional and manual-only through `publish-github-package.yml`.
 

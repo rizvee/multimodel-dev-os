@@ -16,6 +16,8 @@ Sprint D adds deterministic resilience planning and simulation for provider fail
 
 Sprint E adds a localhost-only mock gateway runtime with `/health`, `/v1/models`, and `/v1/chat/completions`. Only the mock provider is executable. External providers remain metadata-only, retry/fallback plans remain unexecuted, and no provider credentials are loaded.
 
+Sprint F adds client and agent gateway integration planning. It introduces client profiles, localhost endpoint configuration previews, redacted diagnostics, and local mock compatibility tests. It does not install third-party clients, write global configuration, call external providers, or include API keys.
+
 ## Structured Prompting Layer
 
 Implement reusable RACE+ templates for consistent, inspectable prompts:

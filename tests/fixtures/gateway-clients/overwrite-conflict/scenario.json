@@ -1,0 +1,8 @@
+{
+  "client_id": "generic-openai",
+  "endpoint": { "base_url": "http://127.0.0.1:8787/v1" },
+  "model": "mock-chat",
+  "existing_file": ".ai/gateway-clients/generic-openai.json",
+  "expected_action": "preview",
+  "expected_writes_performed": false
+}

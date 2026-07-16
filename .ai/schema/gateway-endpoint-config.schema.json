@@ -1,0 +1,20 @@
+{
+  "title": "Gateway Endpoint Config",
+  "type": "object",
+  "required": ["base_url", "chat_completions_url", "models_url", "health_url", "host", "port", "protocol", "auth_mode", "token_env", "executable_models", "streaming"],
+  "properties": {
+    "base_url": { "type": "string" },
+    "chat_completions_url": { "type": "string" },
+    "models_url": { "type": "string" },
+    "health_url": { "type": "string" },
+    "host": { "type": "string" },
+    "port": { "type": "integer", "minimum": 0, "maximum": 65535 },
+    "protocol": { "enum": ["openai-compatible"] },
+    "auth_mode": { "enum": ["none-localhost-only", "bearer-token"] },
+    "token_env": { "type": ["string", "null"] },
+    "executable_models": { "type": "array", "items": { "enum": ["mock-chat", "mock-tools", "mock-stream"] } },
+    "streaming": { "type": "boolean" },
+    "metadata": { "type": "object" }
+  },
+  "additionalProperties": false
+}

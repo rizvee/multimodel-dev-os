@@ -30,3 +30,7 @@ Tool requests against `mock-tools` return a deterministic mock tool-call shape.
 `metadata.mode = "error"` produces a normalized mock upstream error for error-path testing.
 
 Prompt text is not echoed in diagnostics by default.
+
+## Client Validation
+
+Sprint F uses this mock provider for client plan validation. Passing a Sprint F compatibility test means the generated plan works against the local mock protocol; it does not mean a named third-party client was installed or executed.

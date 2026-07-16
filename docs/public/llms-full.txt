@@ -136,7 +136,7 @@ All compliant MultiModel Dev OS CLIs strictly enforce the following command cont
 Central registry configuration resides in `.ai/models/`:
 * `registry.yaml`: Maps model aliases to official provider IDs, context windows, and tiers.
 * `providers.yaml`: API base urls and environment variables keys.
-* `routing-presets.yaml`: Multi-model presets for task-oriented routing.
+* `routing-presets.yaml`: Multi-model presets for task based routing.
 * `local-models.yaml`: Endpoint mappings for offline model engines (Ollama, Llama.cpp).
 
 ### IDE/Agent Adapters Registry

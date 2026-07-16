@@ -1,0 +1,31 @@
+{
+  "title": "Gateway Client Config Plan",
+  "type": "object",
+  "required": ["client", "mode", "files", "environment", "instructions", "warnings", "compatible", "validation", "writes_performed"],
+  "properties": {
+    "client": { "type": "object" },
+    "mode": { "enum": ["preview"] },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["relative_path", "format", "content", "overwrite_risk", "contains_secrets", "action"],
+        "properties": {
+          "relative_path": { "type": "string" },
+          "format": { "type": "string" },
+          "content": { "type": "string" },
+          "overwrite_risk": { "type": "string" },
+          "contains_secrets": { "type": "boolean" },
+          "action": { "enum": ["preview"] }
+        }
+      }
+    },
+    "environment": { "type": "object" },
+    "instructions": { "type": "array", "items": { "type": "string" } },
+    "warnings": { "type": "array", "items": { "type": "string" } },
+    "compatible": { "type": "boolean" },
+    "validation": { "type": "object" },
+    "writes_performed": { "const": false }
+  },
+  "additionalProperties": true
+}

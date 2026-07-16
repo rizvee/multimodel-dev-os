@@ -77,3 +77,5 @@ Sprint C consumes routing requests and registry snapshots to produce dry-run rou
 Sprint D consumes route decisions and caller-supplied outcome fixtures to produce resilience simulation records. These records model retry, timeout, fallback, quota, and circuit-breaker decisions without contacting providers or waiting in real time.
 
 Sprint E implements the first local HTTP protocol surface for the mock provider only. The implemented endpoint subset is `GET /health`, `GET /v1/models`, and `POST /v1/chat/completions`.
+
+Sprint F validates generated client plans against this local mock protocol. Compatibility labels distinguish validated local protocol checks from examples that still require manual client review.

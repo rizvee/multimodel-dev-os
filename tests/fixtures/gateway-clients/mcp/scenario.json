@@ -1,0 +1,9 @@
+{
+  "client_id": "mcp",
+  "endpoint": { "base_url": "http://127.0.0.1:8787/v1" },
+  "model": "mock-chat",
+  "requested_features": {},
+  "expected_level": "configuration-example",
+  "expected_file": ".ai/gateway-clients/mcp.json",
+  "expected_warnings": ["not an MCP server"]
+}

@@ -114,6 +114,18 @@ Sprint E supports:
 
 External providers remain metadata-only. Sprint E does not execute real provider requests, execute retry/fallback chains, load provider credentials, or persist request logs.
 
+## Sprint F Client Integration Planning
+
+v4.2 Sprint F adds a client integration layer around the local runtime:
+
+- client capability profiles
+- endpoint configuration normalization
+- preview-only configuration plans
+- redacted diagnostics
+- local mock compatibility tests
+
+It does not install or execute third-party clients, write user-global configuration, enable external providers, or turn the gateway into a production multi-provider service.
+
 ## Safety Boundary
 
 Gateway architecture work must preserve:

@@ -205,6 +205,8 @@ The v4.2 development lane begins the future multi-provider AI gateway foundation
 
 Sprint E introduces a localhost-only mock gateway runtime. It can start a local HTTP server, answer `/health`, list mock models, and serve mock chat/streaming responses. External providers remain metadata-only: MultiModel Dev OS does not currently call model providers, load provider credential values, execute real provider requests, perform retries, perform provider failover, probe local engines, persist circuit-breaker state, or enforce Skill OS permissions at runtime.
 
+Sprint F adds preview-only client and agent gateway integration planning. It can generate local mock gateway configuration previews and validate generic/local clients against the mock protocol, but it does not install or execute third-party clients, write global settings, or activate external providers.
+
 Gateway docs:
 **[Gateway Architecture](docs/gateway-architecture.md)** |
 **[Gateway Protocol](docs/gateway-protocol.md)** |
@@ -221,6 +223,9 @@ Gateway docs:
 **[Gateway Mock Provider](docs/gateway-mock-provider.md)** |
 **[Gateway Streaming](docs/gateway-streaming.md)** |
 **[Gateway Authentication](docs/gateway-authentication.md)** |
+**[Gateway Client Integrations](docs/gateway-client-integrations.md)** |
+**[Gateway Client Compatibility](docs/gateway-client-compatibility.md)** |
+**[Gateway Client Configuration](docs/gateway-client-configuration.md)** |
 **[Provider Adapter Contract](docs/provider-adapter-contract.md)** |
 **[Gateway Security Model](docs/gateway-security-model.md)** |
 **[v4.2 Gateway Planning](docs/v4.2-planning.md)**
