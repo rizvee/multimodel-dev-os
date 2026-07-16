@@ -1,313 +1,342 @@
 # MultiModel Dev OS
 
 <p align="center">
-  <img src="assets/logo.png" alt="MultiModel Dev OS Logo" width="160">
+  <img src="assets/logo.png" alt="MultiModel Dev OS logo" width="150">
 </p>
 
 <p align="center">
-  <b>One workspace config. Every AI coding tool. Zero lock-in.</b><br>
-  <sub>Stop copy-pasting AI rules between Cursor, Claude, Gemini, Codex, and VS Code. Start shipping.</sub>
+  <strong>Portable project contracts, adapter templates, validation, and local gateway tooling for multi-agent coding workflows.</strong>
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/multimodel-dev-os"><img src="https://img.shields.io/npm/v/multimodel-dev-os.svg?color=blue&style=flat-square" alt="NPM Version"></a>
-  <a href="https://www.npmjs.com/package/multimodel-dev-os"><img src="https://img.shields.io/npm/dm/multimodel-dev-os.svg?color=orange&style=flat-square" alt="NPM Downloads"></a>
-  <a href="https://github.com/rizvee/multimodel-dev-os/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/multimodel-dev-os.svg?color=green&style=flat-square" alt="License"></a>
-  <a href="https://github.com/rizvee/multimodel-dev-os/releases"><img src="https://img.shields.io/github/v/release/rizvee/multimodel-dev-os?color=indigo&style=flat-square" alt="GitHub Release"></a>
-  <a href="https://github.com/rizvee/multimodel-dev-os/actions"><img src="https://img.shields.io/github/actions/workflow/status/rizvee/multimodel-dev-os/verify.yml?branch=main&style=flat-square&label=verification" alt="Build Verification"></a>
-  <a href="https://github.com/rizvee/multimodel-dev-os/blob/main/CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-emerald.svg?style=flat-square" alt="PRs Welcome"></a>
+  MultiModel Dev OS is a zero-runtime-dependency Node.js CLI for organizing shared instructions, context, skills, workflows, adapter files, and safety checks inside a repository.
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/multimodel-dev-os"><img src="https://img.shields.io/npm/v/multimodel-dev-os.svg?style=flat-square" alt="npm version"></a>
+  <a href="https://github.com/rizvee/multimodel-dev-os/releases/latest"><img src="https://img.shields.io/github/v/release/rizvee/multimodel-dev-os?style=flat-square" alt="latest GitHub release"></a>
+  <a href="https://github.com/rizvee/multimodel-dev-os/actions/workflows/verify.yml"><img src="https://img.shields.io/github/actions/workflow/status/rizvee/multimodel-dev-os/verify.yml?branch=main&style=flat-square&label=verification" alt="verification workflow"></a>
+  <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-%3E%3D20-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js 20 or newer"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT license"></a>
+</p>
+
+<p align="center">
+  <a href="https://rizvee.github.io/multimodel-dev-os/">Documentation</a> ·
+  <a href="https://rizvee.github.io/multimodel-dev-os/quickstart">Quickstart</a> ·
+  <a href="https://rizvee.github.io/multimodel-dev-os/CLI">CLI reference</a> ·
+  <a href="CHANGELOG.md">Changelog</a>
 </p>
 
 ---
 
-## The Problem
+## Overview
 
-You use **Cursor** for autocomplete, **Claude Code** for terminal ops, **Gemini** for deep audits. Every tool switch loses your context. Every `.cursorrules` / `CLAUDE.md` / `.vscode/settings.json` change drifts out of sync with the others. Prompts bloat, tokens waste, onboarding breaks.
+AI coding tools use different project instruction and configuration formats. MultiModel Dev OS provides a repository-level structure for maintaining those files without treating any single editor, model, or provider as the source of truth.
 
-## The Fix: 30 Seconds
+It can help you:
+
+- scaffold shared project contracts such as `AGENTS.md`, `MEMORY.md`, `TASKS.md`, and `RUNBOOK.md`;
+- add templates for supported editor and assistant adapters;
+- inspect and onboard existing repositories;
+- validate project structure, registries, schemas, and release safety;
+- manage declarative Skill OS metadata and read-only workflow plans;
+- generate memory, feedback, proposal, and handoff artifacts;
+- test the v4.2 Gateway Foundation through a localhost mock runtime.
+
+MultiModel Dev OS does **not** install third-party AI clients, authenticate provider accounts, or make external model providers interchangeable automatically.
+
+---
+
+## Quick Start
+
+### Requirements
+
+- Node.js 20 or newer
+- Windows, macOS, or Linux
+
+### Initialize a workspace
 
 ```bash
 npx multimodel-dev-os@latest init
 ```
 
-Your workspace now has a **single source of truth** that every AI coding tool reads automatically — no config duplication, no context loss, no vendor lock-in.
+Choose a bundled project template:
 
-> Already have a project? Onboard it safely:
-> ```bash
-> npx multimodel-dev-os@latest onboard analyze
-> ```
+```bash
+npx multimodel-dev-os@latest init --template nextjs-saas
+```
 
----
+Available templates include:
 
-## Packages
+- `nextjs-saas`
+- `wordpress-site`
+- `ecommerce-store`
+- `seo-landing-page`
+- `expo-react-native-android`
+- `general-app`
 
-The primary public package is published on npm:
+### Analyze an existing repository
+
+```bash
+npx multimodel-dev-os@latest onboard analyze
+npx multimodel-dev-os@latest onboard recommend
+npx multimodel-dev-os@latest onboard plan
+```
+
+Onboarding analysis and planning are read-only. Applying generated files requires explicit approval.
+
+### Install globally
 
 ```bash
 npm install -g multimodel-dev-os
+multimodel-dev-os --help
 ```
-
-An optional GitHub Packages mirror is maintained under the scoped name `@rizvee/multimodel-dev-os`. It uses `https://npm.pkg.github.com`; visibility and access are controlled by GitHub Packages settings.
-
-The root npm package name remains `multimodel-dev-os`.
 
 ---
 
-## Key Features
+## Core Capabilities
 
-| | Feature | What It Does |
+| Capability | Scope |
+|:---|:---|
+| **Workspace contracts** | Maintains a consistent root structure for instructions, memory, tasks, and operational notes. |
+| **Project templates** | Scaffolds documented examples for common web, commerce, SEO, and mobile project types. |
+| **Adapter templates** | Provides repository templates for Codex, Claude Code, Cursor, Gemini, Antigravity, and VS Code. |
+| **Repository onboarding** | Scans an existing codebase, identifies project signals, and prepares a reviewable onboarding plan. |
+| **Adapter synchronization** | Previews differences and synchronizes selected adapter files only after explicit approval. |
+| **Memory and handoffs** | Builds hash-based repository memory and compact session handoff artifacts. |
+| **Feedback and proposals** | Captures developer feedback and supports reviewable, approval-gated improvement proposals. |
+| **Skill OS metadata** | Validates declarative skills, prompts, permission classes, guardrails, and workflow references. |
+| **Verification** | Audits package structure, schemas, registries, security boundaries, generated output, and repository hygiene. |
+| **Gateway Foundation** | Provides a programmatic localhost mock gateway, dry-run routing, resilience simulation, client previews, and local observability. |
+
+The CLI has no third-party runtime dependencies. Development and documentation tooling remain listed as development dependencies.
+
+---
+
+## Integration Scope
+
+The repository includes adapter templates and configuration guidance. “Bundled” means the project ships the relevant files; it does not imply official endorsement or complete behavioral compatibility with every version of a third-party tool.
+
+| Tool | Bundled project asset | Scope |
 |:---|:---|:---|
-| 🔄 | **Universal Adapter Sync** | Write rules once → auto-syncs to `.cursorrules`, `CLAUDE.md`, `.vscode/`, `.gemini/`, and more |
-| ⚡ | **Caveman Mode** | Slash prompt token overhead by **~79%** for tight API budgets |
-| 🧠 | **Intelligence Engine** | Hash-compressed memory, feedback learning, self-improvement proposals with HITL safety gates |
-| 📁 | **Repo Onboarding** | Analyze existing projects, recommend templates, and bootstrap configs without breaking anything |
-| 🔧 | **Zero Dependencies** | Pure Node.js CLI — no runtime, no build step, no package manager lock-in |
-| 🛡️ | **300+ Quality Gates** | Built-in `validate`, `doctor`, `verify`, and Skill OS registry checks with strict structural assertions |
+| **Codex** | `adapters/codex/AGENTS.md` | Adapter template |
+| **Claude Code** | `adapters/claude/CLAUDE.md` | Adapter template |
+| **Cursor** | `adapters/cursor/.cursorrules` | Adapter template |
+| **Gemini** | `adapters/gemini/GEMINI.md` | Adapter template |
+| **Antigravity** | `adapters/antigravity/` | Adapter and settings templates |
+| **VS Code** | `adapters/vscode/.vscode/settings.json` | Workspace settings template |
+| **Cline, Continue, Roo Code, Aider, and MCP clients** | Client profiles and examples | Preview or manual-review scope |
+| **Generic OpenAI-compatible and Node clients** | Gateway client plans | Locally validated against the mock gateway only |
+
+See the [client compatibility matrix](docs/gateway-client-compatibility-matrix.md) for the tested and untested surface of each integration.
 
 ---
 
-## Supported Tools & Agents
+## How the Workspace Is Organized
 
-| Tool / Agent | Adapter File | Status |
-|:---|:---|:---|
-| **Codex** (OpenAI) | `adapters/codex/AGENTS.md` | ✅ Full support |
-| **Antigravity** (Google DeepMind) | `.gemini/settings.json` | ✅ Full support |
-| **Cursor** | `.cursorrules` | ✅ Full support |
-| **Claude Code** (Anthropic) | `CLAUDE.md` | ✅ Full support |
-| **Gemini** (Google) | `GEMINI.md` | ✅ Full support |
-| **VS Code** (Copilot) | `.vscode/settings.json` | ✅ Full support |
-| **Cline / Continue / Roo Code** | Via adapter registry | 🔌 Adapter-ready |
-| **Aider / Windsurf** | Via adapter registry | 🔌 Adapter-ready |
-| **MCP Tools** (gcloud, Chrome DevTools) | Via tool registry | 🔌 Registry-ready |
-
-> **Zero lock-in.** Switch tools freely — your context, rules, and memory travel with you.
-
----
-
-## How It Works
-
+```text
+project/
+├─ AGENTS.md                 # Shared project instructions
+├─ MEMORY.md                 # Durable project context
+├─ TASKS.md                  # Current work state
+├─ RUNBOOK.md                # Operational procedures
+├─ .ai/
+│  ├─ config.yaml
+│  ├─ context/
+│  ├─ skills/
+│  ├─ prompts/
+│  ├─ checks/
+│  ├─ registries/
+│  └─ schema/
+└─ tool-specific adapter files
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  LAYER 1: Central Root Contracts (Single Source of Truth)   │
-│  AGENTS.md  •  MEMORY.md  •  TASKS.md  •  RUNBOOK.md      │
-└─────────────────────────┬───────────────────────────────────┘
-                          │
-┌─────────────────────────▼───────────────────────────────────┐
-│  LAYER 2: Configuration & Intelligence (.ai/)                │
-│  context/  agents/  skills/  prompts/  checks/  session/    │
-└─────────────────────────┬───────────────────────────────────┘
-                          │
-┌─────────────────────────▼───────────────────────────────────┐
-│  LAYER 3: Engine Workflows & Safety Gates                   │
-│  onboard analyze  •  adapter sync  •  improve apply         │
-└─────────────────────────┬───────────────────────────────────┘
-                          │
-┌─────────────────────────▼───────────────────────────────────┐
-│  LAYER 4: Tool & IDE Adapters                               │
-│  .cursorrules  •  CLAUDE.md  •  .vscode/  •  .gemini/      │
-└─────────────────────────────────────────────────────────────┘
-```
+
+The root contracts remain human-readable. The `.ai/` layer adds machine-readable metadata, templates, registries, and validation rules.
 
 ---
 
 ## Essential Commands
 
 ```bash
-# Initialize & Onboard
+# Initialize or inspect a project
 npx multimodel-dev-os@latest init --template nextjs-saas
-npx multimodel-dev-os@latest onboard analyze
-
-# Scan, Status & Memory
 npx multimodel-dev-os@latest scan
 npx multimodel-dev-os@latest status
+
+# Onboard an existing repository
+npx multimodel-dev-os@latest onboard analyze
+npx multimodel-dev-os@latest onboard recommend
+npx multimodel-dev-os@latest onboard plan
+
+# Inspect and synchronize adapter files
+npx multimodel-dev-os@latest adapter status
+npx multimodel-dev-os@latest adapter diff codex
+npx multimodel-dev-os@latest adapter sync codex --approved
+
+# Memory, feedback, proposals, and handoffs
 npx multimodel-dev-os@latest memory build
-
-# Sync IDE Adapters
-npx multimodel-dev-os@latest adapter sync all --approved
-
-# Run Workflows & Handoffs
-npx multimodel-dev-os@latest workflow run repo-health
+npx multimodel-dev-os@latest feedback list
+npx multimodel-dev-os@latest improve review
 npx multimodel-dev-os@latest handoff build
 
-# Inspect Skill OS registries (read-only)
+# Read-only workflows and Skill OS metadata
+npx multimodel-dev-os@latest workflow list
+npx multimodel-dev-os@latest workflow plan repo-health
 npx multimodel-dev-os@latest skill-os status
 npx multimodel-dev-os@latest skill-os validate
-npx multimodel-dev-os@latest skill-os list skills
-npx multimodel-dev-os@latest skill-os list prompts
-npx multimodel-dev-os@latest workflow show release-check
-npx multimodel-dev-os@latest workflow show operator-weekly-review
+
+# Project and release checks
+npx multimodel-dev-os@latest validate
+npx multimodel-dev-os@latest doctor
+npx multimodel-dev-os@latest verify
 ```
 
-📖 **[Full CLI Reference →](https://rizvee.github.io/multimodel-dev-os/CLI)**
+Write-capable commands use explicit approval flags, and overwriting existing files may require `--force`. Review command output before applying changes.
 
----
-
-## Why Not Just a Manual AGENTS.md?
-
-| Capability | Manual Rules File | MultiModel Dev OS |
-|:---|:---|:---|
-| **Tool Sync** | Manual copy-paste across tools | ✅ Automated dynamic adapters |
-| **Context Budgets** | Bloats prompts, wastes tokens | ✅ Caveman Mode cuts **~79%** overhead |
-| **Standards** | Easy to drift and corrupt | ✅ CLI `validate` + `doctor` + 300+ check `verify` |
-| **Templates** | Start from scratch | ✅ 6 production-ready real-world templates |
-| **Model Registry** | Hardcoded model names | ✅ Dynamic capability-scored routing presets |
-| **Self-Improvement** | None | ✅ Feedback → Proposals → Apply with safety gates |
-| **Onboarding** | Manual setup every time | ✅ `onboard analyze` bootstraps existing repos |
-
----
-
-## What's New in v4.1
-
-- **Skill OS foundation** - Declarative metadata for structured prompts, skill registries, tool permission classes, advisory guardrails, workflow references, and draft-only business operator templates.
-- **RACE+ prompt templates** - Reusable prompt definitions for Role, Action, Context, Expectation, Constraints, Output format, Verification, and Next action.
-- **Read-only Skill OS CLI** - Local inspection and validation through `skill-os status`, `skill-os validate`, `skill-os list`, and `skill-os show`.
-- **Workflow metadata integration** - Optional workflow `skill_os` references connect workflows to skills, prompts, permissions, guardrails, and required context without changing workflow execution.
-- **Validation-first safety model** - Skill OS metadata is declarative only; it does not execute automation, enforce runtime permissions, or make advisory guardrails block live commands.
-
-Patch note: v4.0.1 updates npm package-page documentation after the v4.0.0 publication. It does not change runtime behavior or CLI behavior.
-
-**[Full Changelog →](CHANGELOG.md)**
+Full command documentation: **[CLI reference](https://rizvee.github.io/multimodel-dev-os/CLI)**.
 
 ---
 
 ## Skill OS Foundation
 
-Skill OS adds a structured, validation-only metadata layer for reusable prompts, skills, permission classes, advisory guardrails, workflow references, and draft-only business operator templates.
+Skill OS is a declarative metadata and validation layer for:
 
-The v4.1.0 scope is declarative and local-only:
+- reusable skills and structured prompt templates;
+- tool permission classes;
+- advisory guardrails;
+- workflow-to-skill references;
+- required context declarations;
+- draft-only business operator templates.
 
-- RACE+ prompt templates
-- Skill registry metadata
-- Tool permission metadata
-- Advisory guardrail metadata
-- Workflow `skill_os` references
-- Read-only `skill-os` CLI inspection
-- Draft-only business operator templates
+The current Skill OS layer does not execute external tools, enforce permissions at runtime, send messages, publish content, or turn advisory guardrails into live command blockers.
 
-Skill OS metadata does not execute automation, enforce permissions at runtime, call external tools, send messages, publish content, or change workflow behavior.
+Start with:
 
-Start here:
-**[Skill OS CLI](docs/skill-os-cli.md)** ·
-**[Structured Prompts](docs/structured-prompts.md)** ·
-**[Skill Registry](docs/skill-registry.md)** ·
-**[Tool Permissions](docs/tool-permissions.md)** ·
-**[Hooks and Guardrails](docs/hooks-and-guardrails.md)** ·
-**[Business Operator Layer](docs/business-operator-layer.md)** ·
-**[Migration Guide](docs/skill-os-migration-guide.md)** ·
-**[Adoption Checklist](docs/skill-os-adoption-checklist.md)** ·
-**[Authoring Reference](docs/skill-os-authoring-reference.md)**
+- [Skill OS CLI](docs/skill-os-cli.md)
+- [Structured Prompts](docs/structured-prompts.md)
+- [Skill Registry](docs/skill-registry.md)
+- [Tool Permissions](docs/tool-permissions.md)
+- [Hooks and Guardrails](docs/hooks-and-guardrails.md)
+- [Business Operator Layer](docs/business-operator-layer.md)
 
 ---
 
-## Gateway Foundation
+## Gateway Foundation — v4.2.0
 
-v4.2.0 is the Gateway Foundation release and is published as npm `latest`.
+v4.2.0 introduces a local Gateway Foundation intended for protocol, routing, resilience, compatibility, and observability development.
 
-The release adds deterministic gateway protocol contracts, runtime-readable provider/model registry snapshots, explainable dry-run route planning, resilience simulation, a localhost-only mock gateway runtime, preview-only client configuration plans, and bounded local observability.
+### Implemented
 
-The mock gateway can start a local HTTP server, answer `/health`, list mock models, and serve mock chat/streaming responses. External providers remain metadata-only: MultiModel Dev OS does not currently call model providers, load provider credential values, execute real provider requests, perform retries, perform provider failover, probe local engines, persist circuit-breaker state, or enforce Skill OS permissions at runtime.
+- localhost-first mock HTTP runtime;
+- `GET /health`;
+- `GET /v1/models`;
+- `POST /v1/chat/completions`;
+- deterministic mock chat and SSE streaming;
+- runtime-readable provider and model metadata registries;
+- deterministic route planning and explanations;
+- retry, timeout, quota, rate-limit, fallback, and circuit-breaker simulation;
+- preview-only client configuration plans;
+- bounded in-memory metrics, traces, usage accounting, and static cost estimates;
+- optional token-based authentication for explicitly configured access.
 
-Client integration plans remain preview-only. Observability remains local, bounded, redacted, and in-memory; it does not upload telemetry, persist logs, retain prompts/completions by default, probe external providers, or enable live fallback.
+### Current boundaries
 
-Gateway docs:
-**[Gateway Architecture](docs/gateway-architecture.md)** |
-**[Gateway Protocol](docs/gateway-protocol.md)** |
-**[Gateway OpenAI Compatibility](docs/gateway-openai-compatibility.md)** |
-**[Gateway Runtime Registry](docs/gateway-runtime-registry.md)** |
-**[Gateway Routing Engine](docs/gateway-routing-engine.md)** |
-**[Gateway Routing Strategies](docs/gateway-routing-strategies.md)** |
-**[Gateway Route Explanations](docs/gateway-route-explanations.md)** |
-**[Gateway Resilience](docs/gateway-resilience.md)** |
-**[Gateway Retry Policy](docs/gateway-retry-policy.md)** |
-**[Gateway Circuit Breaker](docs/gateway-circuit-breaker.md)** |
-**[Gateway Resilience Simulation](docs/gateway-resilience-simulation.md)** |
-**[Gateway Runtime](docs/gateway-runtime.md)** |
-**[Gateway Local Server](docs/gateway-local-server.md)** |
-**[Gateway Mock Provider](docs/gateway-mock-provider.md)** |
-**[Gateway Streaming](docs/gateway-streaming.md)** |
-**[Gateway Authentication](docs/gateway-authentication.md)** |
-**[Gateway Observability](docs/gateway-observability.md)** |
-**[Gateway Usage Accounting](docs/gateway-usage-accounting.md)** |
-**[Gateway Cost Estimation](docs/gateway-cost-estimation.md)** |
-**[Gateway Request Tracing](docs/gateway-request-tracing.md)** |
-**[Gateway Provider Health](docs/gateway-provider-health.md)** |
-**[Gateway Audit Events](docs/gateway-audit-events.md)** |
-**[Gateway Client Integrations](docs/gateway-client-integrations.md)** |
-**[Gateway Client Compatibility](docs/gateway-client-compatibility.md)** |
-**[Gateway Client Compatibility Matrix](docs/gateway-client-compatibility-matrix.md)** |
-**[Gateway Client Configuration](docs/gateway-client-configuration.md)** |
-**[Provider Adapter Contract](docs/provider-adapter-contract.md)** |
-**[Gateway API Reference](docs/gateway-api-reference.md)** |
-**[Gateway Security Model](docs/gateway-security-model.md)** |
-**[v4.2 Known Limitations](docs/v4.2-known-limitations.md)** |
-**[v4.2 Release Readiness](docs/v4.2-release-readiness.md)** |
-**[v4.2 Gateway Planning](docs/v4.2-planning.md)**
+- The mock provider is the only executable provider.
+- External providers remain metadata-only.
+- Provider credential values are not loaded.
+- Live provider requests, retry execution, and failover are not enabled.
+- Third-party clients are not installed or executed by compatibility tests.
+- Observability is local, bounded, redacted, and in-memory.
+- The gateway implements a partial OpenAI-compatible subset, not the complete API.
+- There is currently no gateway daemon or public hosted service.
+
+Gateway documentation:
+
+- [Architecture](docs/gateway-architecture.md)
+- [Protocol](docs/gateway-protocol.md)
+- [Runtime](docs/gateway-runtime.md)
+- [OpenAI compatibility](docs/gateway-openai-compatibility.md)
+- [Client compatibility matrix](docs/gateway-client-compatibility-matrix.md)
+- [Observability](docs/gateway-observability.md)
+- [Security model](docs/gateway-security-model.md)
+- [Known limitations](docs/v4.2-known-limitations.md)
+- [API reference](docs/gateway-api-reference.md)
 
 ---
 
-## Roadmap
+## Safety Model
 
-| Version | Focus | Status |
-|:---|:---|:---|
-| **v2.0.0** | Template Galaxy, Model Registry, Stable Protocol | ✅ Released |
-| **v2.2.0** | Codebase Scanner & Hash-Compressed Memory Engine | ✅ Released |
-| **v2.3.0** | Feedback Learning & Proposal Engine | ✅ Released |
-| **v2.4.0** | Approved Proposal Application Engine | ✅ Released |
-| **v2.5.0** | Repository Intelligence Command Center | ✅ Released |
-| **v2.6.0** | Real-Repo Onboarding & Adapter Sync | ✅ Released |
-| **v2.7.0** | Website, Demo & Distribution System | ✅ Released |
-| **v2.8.0 / v2.8.1** | Interactive TUI Dashboard & Plugin Hooks | ✅ Released |
-| **v2.9.0** | Local Workflow Marketplace & Plugin Catalog | ✅ Released |
-| **v3.0.0** | Trusted Remote Catalog & Registry Governance Layer | ✅ Released |
-| **v3.0.1** | Registry UX & Policy Safety Patch | ✅ Released |
-| **v3.0.2** | Registry Sync Security Hotfix | ✅ Released |
-| **v3.1.0** | Modular Source Layout + Formal Unit Tests | ✅ Released |
-| **v3.2.0** | Stable Modular Build + Package Governance | ✅ Released |
-| **v3.5.0** | Trusted Registry Signing + Provenance Foundation | ✅ Released |
-| **v4.0.0** | Modular CLI, verification engine, registry trust, handler tests, docs/DX hardening | ✅ Released |
-| **v4.1.0** | Skill OS foundation: RACE+ prompts, skill registries, permissions, guardrails, workflow metadata, and read-only inspection | ✅ Released |
-| **v4.2.0** | Gateway Foundation: local mock gateway runtime, provider/model registries, deterministic routing, resilience simulation, client previews, observability, and security hardening | ✅ Released |
+MultiModel Dev OS favors preview, validation, and explicit approval over implicit writes.
 
-**[Full Roadmap →](https://rizvee.github.io/multimodel-dev-os/v3-roadmap)**
+- Read-only commands are used for scanning, status, planning, and inspection.
+- Write operations require an approval flag where supported.
+- Existing files are not silently replaced; overwrite paths use explicit controls and backups where documented.
+- Package and repository hygiene checks reject private workflow artifacts and common secret patterns.
+- Registry and gateway inputs are validated before use.
+- Release publication remains a manual maintainer action.
 
-Future roadmap:
-**[Release state](docs/release-state.md)** ·
-**[AI OS roadmap](docs/future-ai-os-roadmap.md)** ·
-**[v4.1 Skill OS plan](docs/v4.1-skill-os-foundation-plan.md)** ·
-**[v4.2 Gateway Planning](docs/v4.2-planning.md)** ·
-**[Skill OS CLI](docs/skill-os-cli.md)** ·
-**[Hooks and Guardrails](docs/hooks-and-guardrails.md)** ·
-**[Business Operator Layer](docs/business-operator-layer.md)** ·
-**[Skill OS Migration Guide](docs/skill-os-migration-guide.md)**
+Review [Security](SECURITY.md), the [gateway security model](docs/gateway-security-model.md), and the [package safety guide](docs/package-safety.md) for the documented boundaries.
 
 ---
 
-## Documentation & Resources
+## Release Status
+
+The current npm release is **v4.2.0**.
+
+- npm package: [`multimodel-dev-os`](https://www.npmjs.com/package/multimodel-dev-os)
+- GitHub release: [`v4.2.0`](https://github.com/rizvee/multimodel-dev-os/releases/tag/v4.2.0)
+- detailed release notes: [docs/releases/v4.2.0.md](docs/releases/v4.2.0.md)
+- release-state policy: [docs/release-state.md](docs/release-state.md)
+- complete history: [CHANGELOG.md](CHANGELOG.md)
+
+The optional GitHub Packages mirror is separate from the npm package and may have different visibility or access settings.
+
+---
+
+## Documentation
 
 | Resource | Link |
 |:---|:---|
-| 📖 Documentation Portal | **[rizvee.github.io/multimodel-dev-os](https://rizvee.github.io/multimodel-dev-os/)** |
-| 🐙 GitHub Repository | **[github.com/rizvee/multimodel-dev-os](https://github.com/rizvee/multimodel-dev-os)** |
-| 📦 NPM Registry | **[npmjs.com/package/multimodel-dev-os](https://www.npmjs.com/package/multimodel-dev-os)** |
-| 🤖 AI Discoverability | **[llms.txt](https://rizvee.github.io/multimodel-dev-os/llms.txt)** |
-| 🚀 Quick Start | **[Quickstart Guide](https://rizvee.github.io/multimodel-dev-os/quickstart)** |
-| 🏗️ Architecture | **[Architecture Deep Dive](https://rizvee.github.io/multimodel-dev-os/architecture)** |
-| ⚔️ Comparison | **[vs Alternatives](https://rizvee.github.io/multimodel-dev-os/comparison)** |
-| 🛡️ Stable Protocol | **[Protocol Specification](https://rizvee.github.io/multimodel-dev-os/stable-protocol)** |
+| Documentation portal | [rizvee.github.io/multimodel-dev-os](https://rizvee.github.io/multimodel-dev-os/) |
+| Quickstart | [Quickstart guide](https://rizvee.github.io/multimodel-dev-os/quickstart) |
+| CLI commands | [CLI reference](https://rizvee.github.io/multimodel-dev-os/CLI) |
+| Architecture | [Architecture overview](https://rizvee.github.io/multimodel-dev-os/architecture) |
+| Templates | [Template guide](https://rizvee.github.io/multimodel-dev-os/templates-guide) |
+| Adapter system | [Adapter documentation](https://rizvee.github.io/multimodel-dev-os/adapters) |
+| Skill OS | [Skill OS CLI](https://rizvee.github.io/multimodel-dev-os/skill-os-cli) |
+| Gateway | [Gateway architecture](https://rizvee.github.io/multimodel-dev-os/gateway-architecture) |
+| Security | [Security threat model](https://rizvee.github.io/multimodel-dev-os/security-threat-model) |
 
 ---
 
-## Contributing & Community
+## Project Development
 
-We welcome contributions! Propose new adapters, request templates, improve docs, or report issues.
+```bash
+git clone https://github.com/rizvee/multimodel-dev-os.git
+cd multimodel-dev-os
+npm ci
+npm run build
+npm test
+npm run verify
+npm run docs:build
+```
 
-- 📖 **[Contributing Guidelines](CONTRIBUTING.md)**
-- 🐛 **[Report a Bug](https://github.com/rizvee/multimodel-dev-os/issues/new)**
-- 💡 **[Request a Feature](https://github.com/rizvee/multimodel-dev-os/issues/new)**
-- ⭐ **[Star us on GitHub](https://github.com/rizvee/multimodel-dev-os)** — it helps others discover this project
+The project uses development dependencies for building, testing, and documentation, while the published CLI has zero third-party runtime dependencies.
+
+---
+
+## Contributing
+
+Contributions are welcome for adapters, templates, documentation, tests, registries, and validation rules.
+
+- [Contributing guidelines](CONTRIBUTING.md)
+- [Report a bug](https://github.com/rizvee/multimodel-dev-os/issues/new)
+- [Request a feature](https://github.com/rizvee/multimodel-dev-os/issues/new)
+
+Please keep compatibility claims evidence-based and document whether an integration is locally validated, protocol-compatible, example-only, or requires manual review.
 
 ---
 
 ## License
 
-MIT License. Copyright (c) 2026-present MultiModel Dev OS team.
+MultiModel Dev OS is available under the [MIT License](LICENSE).
