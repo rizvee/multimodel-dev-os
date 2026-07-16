@@ -8,8 +8,8 @@ maintainer-only checklists, and local execution notes outside the public tree.
 
 ## Current Work
 
-- [ ] Complete manual npm publication for v4.2.0 when the maintainer is ready.
-- [ ] Finalize the public release record only after npm confirms v4.2.0.
+- [ ] Keep public release-state documentation accurate for users.
+- [ ] Track future gateway improvements as public, contributor-safe issues.
 
 ## Backlog
 
@@ -19,6 +19,7 @@ maintainer-only checklists, and local execution notes outside the public tree.
 ## Done
 
 - [x] Initialize the workspace task tracker.
+- [x] Publish v4.2.0 as the Gateway Foundation release.
 
 ## Hygiene Rules
 

@@ -25,7 +25,7 @@ personal notes, credentials, and local machine paths.
 
 - Record user-facing release decisions here only when they remain useful after the release.
 - Keep detailed release execution logs outside the public repository.
-- v4.2.0 is prepared as the Gateway Foundation release; npm publication remains manual and v4.1.0 remains npm `latest` until publication is confirmed.
+- v4.2.0 is published as the Gateway Foundation release and is npm `latest`; the corrected `v4.2.0` tag aligns with npm artifact provenance commit `dbda023`.
 
 ## Known Issues
 

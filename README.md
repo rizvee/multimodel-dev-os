@@ -201,7 +201,7 @@ Start here:
 
 ## Gateway Foundation
 
-v4.2.0 prepares the Gateway Foundation release. It is not npm-published yet; v4.1.0 remains npm `latest` until the maintainer completes the manual publication step.
+v4.2.0 is the Gateway Foundation release and is published as npm `latest`.
 
 The release adds deterministic gateway protocol contracts, runtime-readable provider/model registry snapshots, explainable dry-run route planning, resilience simulation, a localhost-only mock gateway runtime, preview-only client configuration plans, and bounded local observability.
 
@@ -266,7 +266,7 @@ Gateway docs:
 | **v3.5.0** | Trusted Registry Signing + Provenance Foundation | ✅ Released |
 | **v4.0.0** | Modular CLI, verification engine, registry trust, handler tests, docs/DX hardening | ✅ Released |
 | **v4.1.0** | Skill OS foundation: RACE+ prompts, skill registries, permissions, guardrails, workflow metadata, and read-only inspection | ✅ Released |
-| **v4.2.0** | Gateway Foundation: local mock gateway runtime, provider/model registries, deterministic routing, resilience simulation, client previews, observability, and security hardening | Prepared, npm publish pending |
+| **v4.2.0** | Gateway Foundation: local mock gateway runtime, provider/model registries, deterministic routing, resilience simulation, client previews, observability, and security hardening | ✅ Released |
 
 **[Full Roadmap →](https://rizvee.github.io/multimodel-dev-os/v3-roadmap)**
 

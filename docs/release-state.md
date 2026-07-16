@@ -41,20 +41,18 @@ The GitHub release should remain draft until npmjs confirms the version is publi
 | State | Status |
 |---|---|
 | Prepared | Yes |
-| Pushed | Yes after push |
-| Tagged | Yes after tag push |
-| Draft GitHub release | Yes |
-| npmjs published | No |
-| GitHub release published | No |
+| Pushed | Yes |
+| Tagged | Yes |
+| Draft GitHub release | Completed before publication |
+| npmjs published | Yes |
+| GitHub release published | Yes |
 | GitHub Packages mirrored | No |
-| Fully released | No |
+| Fully released | Yes |
 
-- v4.2.0 is prepared for stable release from `main`.
-- v4.2.0 is not npm-published yet.
-- The GitHub release must remain draft until npmjs confirms v4.2.0 is published.
-- GitHub Packages mirroring must wait until after npmjs publication.
-- npm latest remains `4.1.0` during preparation.
-- v4.2.0 must not be marked fully released before npm publication.
+- v4.2.0 is published on npmjs and is the npm latest.
+- The public GitHub release for `v4.2.0` is published and marked latest.
+- The corrected annotated `v4.2.0` tag resolves to npm artifact provenance commit `dbda023`.
+- GitHub Packages mirroring has not been run for v4.2.0.
 - npm publication remains a manual maintainer action guarded by `scripts/prepublish-guard.js`.
 
 ### main
@@ -62,11 +60,11 @@ The GitHub release should remain draft until npmjs confirms the version is publi
 - main package version is `4.2.0`.
 - main must not be published as v4.0.1.
 - v4.1.0 is published on npmjs.
-- v4.1.0 remains the npm latest.
+- v4.2.0 is the npm latest.
 - The GitHub release for v4.1.0 is public and marked latest.
 - The optional GitHub Packages mirror workflow has completed; package visibility and access are controlled by GitHub Packages settings.
 - v4.1.0 provides declarative Skill OS metadata, validation, documentation, and read-only inspection foundations; it does not execute automation, enforce permissions at runtime, or make advisory guardrails block live commands.
-- v4.2.0 provides the Gateway Foundation release candidate, but it is not fully released until manual npm publication and public GitHub release finalization are complete.
+- v4.2.0 provides the Gateway Foundation release.
 - The mock provider is the only executable provider.
 - External providers remain metadata-only.
 - Live fallback and retry execution are not enabled.
@@ -77,7 +75,7 @@ The GitHub release should remain draft until npmjs confirms the version is publi
 
 - v4.0.1 remains unpublished and superseded; it should only be revisited if Hasan explicitly chooses to publish from the existing `v4.0.1` tag.
 - v4.1.0 is fully released from `main`.
-- v4.2.0 is prepared for release but must not be marked fully released until npmjs confirms publication.
+- v4.2.0 is fully released from corrected tag `v4.2.0`, aligned with npm artifact provenance commit `dbda023`.
 
 ## Manual Publish Command
 

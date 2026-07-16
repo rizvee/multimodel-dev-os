@@ -222,7 +222,7 @@ You use **Cursor** for autocomplete, **Claude Code** for terminal ops, **Gemini*
 - **Local mock gateway runtime** serves `/health`, `/v1/models`, and mock chat completions on localhost only.
 - **Safety-first defaults** keep external providers metadata-only: no provider credentials, no external provider calls, no live fallback, and no runtime permission enforcement.
 
-v4.2.0 is prepared for release but not npm-published yet. v4.1.0 remains npm `latest` until manual publication is complete.
+v4.2.0 is published on npm and the public GitHub release is marked latest.
 
 </div>
 
