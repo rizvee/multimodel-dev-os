@@ -164,7 +164,8 @@ export function checkGatewayContracts() {
     fail('Prompt redaction defaults to enabled');
   }
 
-  checkNoNetworkPrimitives('src/gateway', 'No provider API calls exist in Sprint A modules');
+  checkNoNetworkPrimitives('src/gateway/protocol', 'No provider API calls exist in gateway protocol modules');
+  checkNoNetworkPrimitives('src/gateway/contracts', 'No provider API calls exist in gateway contract modules');
 
   const packageJson = readJson('package.json');
   if (!packageJson.dependencies || Object.keys(packageJson.dependencies).length === 0) {

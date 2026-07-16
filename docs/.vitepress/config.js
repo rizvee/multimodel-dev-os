@@ -110,6 +110,11 @@ export default {
           { text: 'Gateway Retry Policy', link: '/gateway-retry-policy' },
           { text: 'Gateway Circuit Breaker', link: '/gateway-circuit-breaker' },
           { text: 'Gateway Resilience Simulation', link: '/gateway-resilience-simulation' },
+          { text: 'Gateway Runtime', link: '/gateway-runtime' },
+          { text: 'Gateway Local Server', link: '/gateway-local-server' },
+          { text: 'Gateway Mock Provider', link: '/gateway-mock-provider' },
+          { text: 'Gateway Streaming', link: '/gateway-streaming' },
+          { text: 'Gateway Authentication', link: '/gateway-authentication' },
           { text: 'Provider Adapter Contract', link: '/provider-adapter-contract' },
           { text: 'Gateway Security Model', link: '/gateway-security-model' },
           { text: 'v4.2 Gateway Planning', link: '/v4.2-planning' }

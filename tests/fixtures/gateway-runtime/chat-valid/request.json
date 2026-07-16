@@ -1,0 +1,6 @@
+{
+  "model": "mock-chat",
+  "messages": [
+    { "role": "user", "content": "hello" }
+  ]
+}

@@ -16,11 +16,12 @@
 - [x] Complete v4.2 Sprint B runtime provider/model registry snapshots
 - [x] Complete v4.2 Sprint C deterministic routing without provider calls
 - [x] Complete v4.2 Sprint D fallback, retry, timeout, and resilience simulation contracts
+- [x] Complete v4.2 Sprint E localhost-only mock gateway runtime
 - [ ] Maintain `main` as the v4.2 development lane without publishing dev versions
 
 ## Backlog
 
-- [ ] Prepare v4.2 Sprint E localhost-only mock gateway runtime plan
+- [ ] Prepare v4.2 Sprint F client and agent configuration against the local mock gateway
 - [ ] Collect post-release feedback and triage v4.1.x candidates
 - [ ] Continue improving adapter documentation and template coverage
 - [ ] Review GitHub Packages adoption after npmjs release

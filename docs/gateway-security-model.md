@@ -67,6 +67,23 @@ Sprint D resilience planning is also non-executing:
 
 Resilience explanations must not include prompt bodies, credential values, authorization headers, or local absolute paths.
 
+## Local Runtime Boundary
+
+Sprint E adds a real local HTTP server with a mock provider only.
+
+Security boundaries:
+
+- default bind host is loopback
+- remote binding is disabled by default
+- non-local binding requires bearer-token authentication
+- forwarded headers are not trusted
+- wildcard CORS is not enabled
+- provider credential environment variables are not read
+- external provider URLs are not contacted
+- request bodies are bounded
+- timeout timers are bounded and cleared
+- no request logs, PID files, or runtime state files are written
+
 Route explanations must not include prompt bodies, credential values, authorization headers, or absolute local machine paths.
 
 ## Skill OS Integration

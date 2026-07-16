@@ -1,0 +1,7 @@
+{
+  "model": "mock-chat",
+  "messages": [
+    { "role": "user", "content": "error" }
+  ],
+  "metadata": { "mode": "error" }
+}

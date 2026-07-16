@@ -1,0 +1,7 @@
+{
+  "model": "mock-stream",
+  "stream": true,
+  "messages": [
+    { "role": "user", "content": "stream" }
+  ]
+}

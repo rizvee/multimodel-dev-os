@@ -14,6 +14,8 @@ Sprint C adds deterministic route planning and dry-run explanations over those s
 
 Sprint D adds deterministic resilience planning and simulation for provider failure classification, retry budgets, backoff schedules, timeout budgets, fallback transitions, circuit-breaker state, rate-limit/quota responses, and failure-chain explanations. It still does not contact providers, perform retries, perform provider failover, wait on timeouts, persist circuit state, or read credentials.
 
+Sprint E adds a localhost-only mock gateway runtime with `/health`, `/v1/models`, and `/v1/chat/completions`. Only the mock provider is executable. External providers remain metadata-only, retry/fallback plans remain unexecuted, and no provider credentials are loaded.
+
 ## Structured Prompting Layer
 
 Implement reusable RACE+ templates for consistent, inspectable prompts:
@@ -192,6 +194,6 @@ Recommended v4.2 tracks:
 - Plan provider adapter contracts for request normalization, response normalization, streaming, errors, usage, and health.
 - Keep Skill OS, workflows, permissions, guardrails, memory, adapters, and validation as the governance/control plane around the future gateway runtime.
 - Design security boundaries for credentials, redacted logs, localhost binding, provider URL validation, request limits, timeouts, and audit records.
-- Keep v4.2 foundation scope small: one generic OpenAI-compatible provider adapter, one mock provider, deterministic routing, fallback simulation, and a local-only gateway.
+- Keep v4.2 foundation scope small: one generic OpenAI-compatible provider adapter design, one executable mock provider, deterministic routing, fallback simulation, and a local-only gateway.
 
-The v4.2 plan does not claim that a gateway runtime, live provider execution, runtime permission enforcement, or live multi-provider fallback already exists.
+The v4.2 plan does not claim that external provider calls, runtime permission enforcement, or active multi-provider fallback already exists.

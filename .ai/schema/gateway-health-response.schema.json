@@ -1,0 +1,17 @@
+{
+  "$id": "mmdo.gateway-health-response",
+  "title": "Gateway Health Response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["object", "status", "gateway_version", "runtime", "provider", "state", "uptime_ms", "request_id"],
+  "properties": {
+    "object": { "type": "string", "const": "gateway.health" },
+    "status": { "type": "string", "const": "ok" },
+    "gateway_version": { "type": "string", "minLength": 1 },
+    "runtime": { "type": "string", "const": "mock-local" },
+    "provider": { "type": "string", "const": "mock" },
+    "state": { "type": "string", "enum": ["created", "starting", "running", "stopping", "stopped", "failed"] },
+    "uptime_ms": { "type": "integer", "minimum": 0 },
+    "request_id": { "type": "string", "minLength": 1 }
+  }
+}

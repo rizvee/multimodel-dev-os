@@ -28,6 +28,7 @@ import { checkGatewayContracts } from './gateway-contracts.js';
 import { checkGatewayRegistry } from './gateway-registry.js';
 import { checkGatewayRouter } from './gateway-router.js';
 import { checkGatewayResilience } from './gateway-resilience.js';
+import { checkGatewayRuntime } from './gateway-runtime.js';
 import { reportResults } from './reporting.js';
 
 console.log('multimodel-dev-os - Strict Release Audit Verification');
@@ -97,5 +98,8 @@ checkGatewayRouter();
 // 21. Gateway Resilience Planning Verification
 checkGatewayResilience();
 
-// 22. Final report
+// 22. Gateway Local Runtime Verification
+await checkGatewayRuntime();
+
+// 23. Final report
 reportResults();

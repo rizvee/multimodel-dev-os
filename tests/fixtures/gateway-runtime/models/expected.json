@@ -1,0 +1,4 @@
+{
+  "object": "list",
+  "models": ["mock-chat", "mock-tools", "mock-stream"]
+}

@@ -78,4 +78,4 @@ It does not change Sprint C route selection.
 
 ## Next Scope
 
-Sprint E is expected to introduce the first localhost-only gateway runtime with a mock provider. Real provider execution remains outside Sprint D.
+Sprint E introduces the first localhost-only gateway runtime with a mock provider. External provider calls remain disabled in Sprint E.

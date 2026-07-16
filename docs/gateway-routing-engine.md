@@ -74,3 +74,5 @@ Sprint C supports:
 - fallback-chain planning without execution
 
 Sprint D adds simulation contracts for retry, timeout, fallback transition, rate-limit, quota, and circuit-breaker planning. Provider invocation remains reserved for later gateway runtime work.
+
+Sprint E uses only mock-provider execution. It does not execute Sprint C fallback chains or route to external registry providers.

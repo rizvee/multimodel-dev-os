@@ -1,0 +1,24 @@
+{
+  "$id": "mmdo.gateway-model-list",
+  "title": "Gateway Model List",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["object", "data"],
+  "properties": {
+    "object": { "type": "string", "const": "list" },
+    "data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "object", "created", "owned_by"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "object": { "type": "string", "const": "model" },
+          "created": { "type": "integer", "minimum": 1 },
+          "owned_by": { "type": "string", "const": "mock" }
+        }
+      }
+    }
+  }
+}

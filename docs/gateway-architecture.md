@@ -97,6 +97,23 @@ v4.2 Sprint D adds deterministic resilience planning contracts on top of Sprint 
 
 Sprint D remains simulation-only. It does not contact providers, perform retries, perform provider failover, wait on timeout budgets, persist circuit-breaker state, or read credentials.
 
+## Sprint E Local Mock Runtime
+
+v4.2 Sprint E introduces the first local HTTP runtime. It binds to localhost by default and serves a minimal OpenAI-compatible subset through a deterministic mock provider.
+
+Sprint E supports:
+
+- `GET /health`
+- `GET /v1/models`
+- `POST /v1/chat/completions`
+- non-streaming mock chat
+- deterministic mock SSE streaming
+- request limits and timeouts
+- bearer-token authentication for explicit non-local configurations
+- clean server start/stop lifecycle
+
+External providers remain metadata-only. Sprint E does not execute real provider requests, execute retry/fallback chains, load provider credentials, or persist request logs.
+
 ## Safety Boundary
 
 Gateway architecture work must preserve:

@@ -2,7 +2,7 @@
 
 Provider adapters are planned as the boundary between the future gateway runtime and model providers. v4.2 Sprint A defines and validates the interface only.
 
-No real provider adapter is executed in Sprint A. The bundled mock provider used by tests is deterministic and local-only.
+No external provider adapter is executed in Sprint A. The bundled mock provider used by tests is deterministic and local-only.
 
 ## Adapter Metadata
 
@@ -45,7 +45,7 @@ Adapters must expose these methods:
 - `health(context)`
 - `redact(value)`
 
-Sprint A validates that these methods exist. It does not call live providers, open sockets, load credentials, or execute real model requests.
+Sprint A validates that these methods exist. It does not call live providers, open sockets, load credentials, or execute external model requests.
 
 ## Mock Provider
 
@@ -67,3 +67,7 @@ Provider registry records are metadata inputs for future adapters. Sprint B can 
 ## Routing Relationship
 
 Sprint C route planning does not call adapter `invoke`, `stream`, `health`, or credential-loading paths. Provider adapter records remain metadata and contract inputs only.
+
+## Runtime Boundary
+
+Sprint E executes only the built-in mock provider through the localhost runtime. External provider adapter contracts remain design and validation assets until a later sprint explicitly introduces provider execution.

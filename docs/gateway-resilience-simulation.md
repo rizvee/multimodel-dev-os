@@ -50,6 +50,8 @@ Simulation records can include:
 
 Events are planning records. They intentionally avoid wording that implies a provider was contacted.
 
+Sprint E does not execute Sprint D retry, fallback, quota, or circuit-breaker plans. Those records remain simulation outputs.
+
 ## Explanation
 
 The explanation includes:

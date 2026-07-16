@@ -1,0 +1,6 @@
+{
+  "$id": "mmdo.gateway-runtime-state",
+  "title": "Gateway Runtime State",
+  "type": "string",
+  "enum": ["created", "starting", "running", "stopping", "stopped", "failed"]
+}

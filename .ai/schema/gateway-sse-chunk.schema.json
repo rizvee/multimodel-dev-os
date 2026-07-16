@@ -1,0 +1,16 @@
+{
+  "$id": "mmdo.gateway-sse-chunk",
+  "title": "Gateway SSE Chunk",
+  "type": "object",
+  "required": ["id", "object", "created", "gateway_version", "request_id", "provider_id", "model", "choices"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "object": { "type": "string", "const": "chat.completion.chunk" },
+    "created": { "type": "integer", "minimum": 1 },
+    "gateway_version": { "type": "string", "minLength": 1 },
+    "request_id": { "type": "string", "minLength": 1 },
+    "provider_id": { "type": "string", "const": "mock" },
+    "model": { "type": "string", "minLength": 1 },
+    "choices": { "type": "array" }
+  }
+}

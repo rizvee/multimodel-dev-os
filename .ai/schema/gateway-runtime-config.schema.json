@@ -1,0 +1,23 @@
+{
+  "$id": "mmdo.gateway-runtime-config",
+  "title": "Gateway Runtime Configuration",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["host", "port", "auth_mode", "request_size_limit_bytes", "request_timeout_ms", "stream_idle_timeout_ms", "stream_total_timeout_ms", "provider_timeout_ms", "log_level", "redact_prompts", "allow_remote_binding", "fallback_enabled"],
+  "properties": {
+    "host": { "type": "string", "minLength": 1 },
+    "port": { "type": "integer", "minimum": 0, "maximum": 65535 },
+    "auth_mode": { "type": "string", "enum": ["none-localhost-only", "bearer-token"] },
+    "auth_token": { "type": ["string", "null"] },
+    "request_size_limit_bytes": { "type": "integer", "minimum": 1 },
+    "request_timeout_ms": { "type": "integer", "minimum": 1 },
+    "stream_idle_timeout_ms": { "type": "integer", "minimum": 1 },
+    "stream_total_timeout_ms": { "type": "integer", "minimum": 1 },
+    "provider_timeout_ms": { "type": "integer", "minimum": 1 },
+    "shutdown_timeout_ms": { "type": "integer", "minimum": 1 },
+    "log_level": { "type": "string", "enum": ["debug", "info", "warn", "error"] },
+    "redact_prompts": { "type": "boolean" },
+    "allow_remote_binding": { "type": "boolean" },
+    "fallback_enabled": { "type": "boolean" }
+  }
+}

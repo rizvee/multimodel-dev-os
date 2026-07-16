@@ -1,0 +1,12 @@
+{
+  "model": "mock-tools",
+  "messages": [
+    { "role": "user", "content": "tool" }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": { "name": "mock_tool", "parameters": {} }
+    }
+  ]
+}
