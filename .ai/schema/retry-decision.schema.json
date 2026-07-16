@@ -1,0 +1,17 @@
+{
+  "$id": "mmdo.retry-decision",
+  "title": "Gateway Retry Decision",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["eligible", "reason_codes", "next_attempt", "remaining_attempts", "remaining_delay_budget_ms"],
+  "properties": {
+    "eligible": { "type": "boolean" },
+    "reason_codes": { "type": "array", "items": { "type": "string" } },
+    "next_attempt": { "type": "integer", "minimum": 1 },
+    "remaining_attempts": { "type": "integer", "minimum": 0 },
+    "remaining_delay_budget_ms": { "type": "integer", "minimum": 0 },
+    "same_provider_allowed": { "type": "boolean" },
+    "same_model_allowed": { "type": "boolean" },
+    "warnings": { "type": "array", "items": { "type": "string" } }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "$id": "mmdo.timeout-budget",
+  "title": "Gateway Timeout Budget",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["remaining_operation_ms", "provider_budget_ms", "stream_idle_budget_ms", "stream_total_budget_ms", "retry_possible", "fallback_possible"],
+  "properties": {
+    "remaining_operation_ms": { "type": "integer", "minimum": 0 },
+    "provider_budget_ms": { "type": "integer", "minimum": 0 },
+    "stream_idle_budget_ms": { "type": "integer", "minimum": 0 },
+    "stream_total_budget_ms": { "type": "integer", "minimum": 0 },
+    "retry_possible": { "type": "boolean" },
+    "fallback_possible": { "type": "boolean" },
+    "warnings": { "type": "array", "items": { "type": "string" } }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "primary": { "provider_id": "alpha", "model_id": "alpha-fast" },
+  "fallbackChain": [
+    { "provider_id": "alpha", "model_id": "alpha-fast", "rank": 1 },
+    { "provider_id": "beta", "model_id": "beta-cheap", "rank": 2 }
+  ],
+  "failure": { "category": "timeout", "fallback_eligible": true },
+  "retryDecision": { "eligible": false },
+  "transitionHistory": [{ "to": { "provider_id": "beta", "model_id": "beta-cheap" } }],
+  "expected": { "transition_allowed": false, "reason": "no-fallback-candidate" }
+}

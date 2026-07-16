@@ -1,0 +1,7 @@
+{
+  "state": { "state": "closed", "failure_count": 1, "success_count": 0 },
+  "event": { "result": "failure", "failure": { "category": "timeout" } },
+  "policy": { "enabled": true, "failure_threshold": 2, "success_threshold": 1, "open_duration_ms": 1000, "half_open_max_attempts": 1, "tracked_categories": ["timeout"], "scope": "provider" },
+  "currentTime": 100,
+  "expected": { "next_state": "open" }
+}

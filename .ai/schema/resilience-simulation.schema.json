@@ -1,0 +1,21 @@
+{
+  "$id": "mmdo.resilience-simulation",
+  "title": "Gateway Resilience Simulation",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["mode", "executed", "final_status", "selected_route", "final_route", "attempts", "retries", "fallback_transitions", "timeline", "explanation"],
+  "properties": {
+    "mode": { "type": "string", "const": "simulation" },
+    "executed": { "type": "boolean", "const": false },
+    "final_status": { "type": "string", "enum": ["planned-success", "exhausted", "denied", "invalid-simulation", "user-action-required"] },
+    "selected_route": { "type": ["object", "null"] },
+    "final_route": { "type": ["object", "null"] },
+    "attempts": { "type": "array" },
+    "retries": { "type": "array" },
+    "fallback_transitions": { "type": "array" },
+    "circuit_events": { "type": "array" },
+    "timeline": { "type": "array" },
+    "explanation": { "type": "object" },
+    "warnings": { "type": "array", "items": { "type": "string" } }
+  }
+}

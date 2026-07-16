@@ -1,0 +1,7 @@
+{
+  "state": { "state": "open", "failure_count": 2, "success_count": 0, "opened_at": 100 },
+  "event": { "result": "attempt" },
+  "policy": { "enabled": true, "failure_threshold": 2, "success_threshold": 1, "open_duration_ms": 1000, "half_open_max_attempts": 1, "tracked_categories": ["timeout"], "scope": "provider" },
+  "currentTime": 1200,
+  "expected": { "next_state": "half-open", "allows_attempt": true }
+}

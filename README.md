@@ -201,9 +201,9 @@ Start here:
 
 ## Gateway Foundation
 
-The v4.2 development lane begins the future multi-provider AI gateway foundation. Sprint A adds deterministic gateway protocol contracts, provider adapter contracts, routing request/decision contracts, normalized error and usage shapes, security defaults, schemas, fixtures, and tests. Sprint B adds deterministic runtime-readable provider/model registry snapshots from existing `.ai/models/` metadata. Sprint C adds deterministic route planning, scoring, fallback planning, and dry-run explanations.
+The v4.2 development lane begins the future multi-provider AI gateway foundation. Sprint A adds deterministic gateway protocol contracts, provider adapter contracts, routing request/decision contracts, normalized error and usage shapes, security defaults, schemas, fixtures, and tests. Sprint B adds deterministic runtime-readable provider/model registry snapshots from existing `.ai/models/` metadata. Sprint C adds deterministic route planning, scoring, fallback planning, and dry-run explanations. Sprint D adds deterministic resilience planning and simulation for failure classification, retry budgets, backoff schedules, timeout budgets, fallback transitions, circuit-breaker state, rate-limit/quota responses, and failure-chain explanations.
 
-This is metadata, contract, and planning work only. MultiModel Dev OS does not currently start a gateway server, call model providers, load provider credential values, execute model requests, execute fallback attempts, probe local engines, or enforce Skill OS permissions at runtime.
+This is metadata, contract, planning, and simulation work only. MultiModel Dev OS does not currently start a gateway server, call model providers, load provider credential values, execute model requests, perform retries, perform provider failover, wait on timeouts, probe local engines, persist circuit-breaker state, or enforce Skill OS permissions at runtime.
 
 Gateway docs:
 **[Gateway Architecture](docs/gateway-architecture.md)** |
@@ -212,6 +212,10 @@ Gateway docs:
 **[Gateway Routing Engine](docs/gateway-routing-engine.md)** |
 **[Gateway Routing Strategies](docs/gateway-routing-strategies.md)** |
 **[Gateway Route Explanations](docs/gateway-route-explanations.md)** |
+**[Gateway Resilience](docs/gateway-resilience.md)** |
+**[Gateway Retry Policy](docs/gateway-retry-policy.md)** |
+**[Gateway Circuit Breaker](docs/gateway-circuit-breaker.md)** |
+**[Gateway Resilience Simulation](docs/gateway-resilience-simulation.md)** |
 **[Provider Adapter Contract](docs/provider-adapter-contract.md)** |
 **[Gateway Security Model](docs/gateway-security-model.md)** |
 **[v4.2 Gateway Planning](docs/v4.2-planning.md)**

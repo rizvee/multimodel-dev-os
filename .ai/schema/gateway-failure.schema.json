@@ -1,0 +1,20 @@
+{
+  "$id": "mmdo.gateway-failure",
+  "title": "Gateway Failure Classification",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["category", "code", "retryable", "fallback_eligible", "provider_fault", "request_fault", "policy_fault", "status", "reasons", "warnings"],
+  "properties": {
+    "category": { "type": "string" },
+    "code": { "type": "string" },
+    "retryable": { "type": "boolean" },
+    "fallback_eligible": { "type": "boolean" },
+    "provider_fault": { "type": "boolean" },
+    "request_fault": { "type": "boolean" },
+    "policy_fault": { "type": "boolean" },
+    "status": { "type": "integer" },
+    "retry_after_ms": { "type": ["integer", "null"], "minimum": 0 },
+    "reasons": { "type": "array", "items": { "type": "string" } },
+    "warnings": { "type": "array", "items": { "type": "string" } }
+  }
+}

@@ -73,3 +73,5 @@ The v4.2 runtime registry supplies provider, model, local model, and routing pre
 ## Routing Relationship
 
 Sprint C consumes routing requests and registry snapshots to produce dry-run route decisions. These decisions are protocol-compatible planning records only: no selected provider is contacted and no model request is executed.
+
+Sprint D consumes route decisions and caller-supplied outcome fixtures to produce resilience simulation records. These records model retry, timeout, fallback, quota, and circuit-breaker decisions without contacting providers or waiting in real time.

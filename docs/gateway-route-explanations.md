@@ -43,3 +43,5 @@ Explanations must not include:
 ## Determinism
 
 Equivalent inputs produce equivalent explanations when the caller supplies the same request ID and decision timestamp.
+
+Sprint D adds resilience explanations for simulated failure chains. They keep the same redaction and planning-language boundaries.

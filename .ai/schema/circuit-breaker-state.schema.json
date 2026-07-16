@@ -1,0 +1,17 @@
+{
+  "$id": "mmdo.circuit-breaker-state",
+  "title": "Gateway Circuit Breaker State",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["previous_state", "next_state", "failure_count", "success_count", "allows_attempt", "reasons"],
+  "properties": {
+    "previous_state": { "type": "string", "enum": ["closed", "open", "half-open"] },
+    "next_state": { "type": "string", "enum": ["closed", "open", "half-open"] },
+    "failure_count": { "type": "integer", "minimum": 0 },
+    "success_count": { "type": "integer", "minimum": 0 },
+    "opened_at": { "type": ["number", "null"] },
+    "eligible_for_half_open_at": { "type": ["number", "null"] },
+    "allows_attempt": { "type": "boolean" },
+    "reasons": { "type": "array", "items": { "type": "string" } }
+  }
+}

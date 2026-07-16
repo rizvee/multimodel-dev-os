@@ -1,0 +1,15 @@
+{
+  "$id": "mmdo.quota-state",
+  "title": "Gateway Quota State",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["exhausted", "scope", "provider_reported"],
+  "properties": {
+    "exhausted": { "type": "boolean" },
+    "remaining": { "type": ["number", "null"], "minimum": 0 },
+    "reset_at": { "type": ["number", "null"] },
+    "scope": { "type": "string" },
+    "provider_reported": { "type": "boolean" },
+    "metadata": { "type": "object" }
+  }
+}

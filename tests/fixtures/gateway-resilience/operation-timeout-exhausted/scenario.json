@@ -1,0 +1,6 @@
+{
+  "policy": { "total_operation_timeout_ms": 1000, "provider_timeout_ms": 500, "timeout_retryable": true },
+  "elapsedMs": 900,
+  "plannedDelayMs": 200,
+  "expected": { "remaining_operation_ms": 0, "retry_possible": false }
+}

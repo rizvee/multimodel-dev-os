@@ -1,0 +1,22 @@
+{
+  "$id": "mmdo.resilience-explanation",
+  "title": "Gateway Resilience Explanation",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["summary", "final_status", "deterministic", "executed"],
+  "properties": {
+    "summary": { "type": "string" },
+    "final_status": { "type": "string" },
+    "initial_route": { "type": ["object", "null"] },
+    "attempts_planned": { "type": "array" },
+    "retry_decisions": { "type": "array" },
+    "fallback_decisions": { "type": "array" },
+    "timeout_budget": { "type": ["object", "null"] },
+    "circuit_breaker_decisions": { "type": "array" },
+    "rate_limit_decisions": { "type": "array" },
+    "quota_decisions": { "type": "array" },
+    "warnings": { "type": "array", "items": { "type": "string" } },
+    "deterministic": { "type": "boolean", "const": true },
+    "executed": { "type": "boolean", "const": false }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "routeDecision": {
+    "selected_provider": "alpha",
+    "selected_model": "alpha-fast",
+    "strategy": "balanced",
+    "score": 0.9,
+    "reasons": ["fixture route"],
+    "rejected_candidates": [],
+    "fallback_chain": [],
+    "warnings": [],
+    "request_id": "res-auth",
+    "decision_timestamp": 1800000000
+  },
+  "outcomes": [{ "result": "failure", "error": { "code": "authentication_failed" } }],
+  "retryPolicy": { "enabled": true, "max_attempts": 3, "max_total_delay_ms": 1000 },
+  "timeoutPolicy": { "total_operation_timeout_ms": 5000, "provider_timeout_ms": 1000 },
+  "expected": { "final_status": "user-action-required" }
+}

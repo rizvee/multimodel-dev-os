@@ -12,6 +12,8 @@ Sprint B adds deterministic runtime-readable provider/model registry snapshots. 
 
 Sprint C adds deterministic route planning and dry-run explanations over those snapshots. It still does not contact providers, execute model requests, execute fallback attempts, read credentials, tokenize prompts, or perform live pricing/latency lookups.
 
+Sprint D adds deterministic resilience planning and simulation for provider failure classification, retry budgets, backoff schedules, timeout budgets, fallback transitions, circuit-breaker state, rate-limit/quota responses, and failure-chain explanations. It still does not contact providers, perform retries, perform provider failover, wait on timeouts, persist circuit state, or read credentials.
+
 ## Structured Prompting Layer
 
 Implement reusable RACE+ templates for consistent, inspectable prompts:
@@ -186,9 +188,10 @@ Recommended v4.2 tracks:
 - Define a local OpenAI-compatible gateway contract before adding runtime behavior.
 - Turn existing model, provider, local model, and routing preset metadata into runtime-ready registry inputs.
 - Add deterministic routing design for explicit model selection, capability matching, cost, latency, context window, privacy/local-first policy, and fallback planning.
+- Add deterministic resilience simulation for retry, timeout, rate-limit, quota, circuit-breaker, and fallback transition planning.
 - Plan provider adapter contracts for request normalization, response normalization, streaming, errors, usage, and health.
 - Keep Skill OS, workflows, permissions, guardrails, memory, adapters, and validation as the governance/control plane around the future gateway runtime.
 - Design security boundaries for credentials, redacted logs, localhost binding, provider URL validation, request limits, timeouts, and audit records.
 - Keep v4.2 foundation scope small: one generic OpenAI-compatible provider adapter, one mock provider, deterministic routing, fallback simulation, and a local-only gateway.
 
-The v4.2 plan does not claim that a gateway runtime, live provider execution, runtime permission enforcement, or multi-provider fallback already exists.
+The v4.2 plan does not claim that a gateway runtime, live provider execution, runtime permission enforcement, or live multi-provider fallback already exists.

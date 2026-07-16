@@ -1,0 +1,25 @@
+{
+  "$id": "mmdo.retry-policy",
+  "title": "Gateway Retry Policy",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["enabled", "max_attempts", "max_total_delay_ms", "backoff_strategy"],
+  "properties": {
+    "enabled": { "type": "boolean" },
+    "max_attempts": { "type": "integer", "minimum": 1, "maximum": 10 },
+    "max_total_delay_ms": { "type": "integer", "minimum": 0, "maximum": 3600000 },
+    "retryable_categories": { "type": "array", "items": { "type": "string" } },
+    "retryable_codes": { "type": "array", "items": { "type": "string" } },
+    "same_provider_retry_limit": { "type": "integer", "minimum": 0, "maximum": 10 },
+    "same_model_retry_limit": { "type": "integer", "minimum": 0, "maximum": 10 },
+    "respect_retry_after": { "type": "boolean" },
+    "backoff_strategy": { "type": "string", "enum": ["none", "fixed", "linear", "exponential", "retry-after", "bounded-exponential"] },
+    "base_delay_ms": { "type": "integer", "minimum": 0 },
+    "max_delay_ms": { "type": "integer", "minimum": 0 },
+    "multiplier": { "type": "number", "minimum": 1 },
+    "jitter_mode": { "type": "string", "enum": ["none", "deterministic"] },
+    "retry_on_timeout": { "type": "boolean" },
+    "retry_on_rate_limit": { "type": "boolean" },
+    "metadata": { "type": "object" }
+  }
+}

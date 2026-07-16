@@ -59,3 +59,5 @@ Latency-first planning uses static metadata hints only. It does not probe provid
 ## Fallback Planning
 
 Fallback-chain planning returns an ordered fallback plan. It does not execute retries, failover, provider calls, or fallback attempts.
+
+Sprint D resilience simulation can consume this fallback plan with caller-supplied failures. It does not change the deterministic route ranking.

@@ -73,4 +73,4 @@ Sprint C supports:
 - user-policy weights
 - fallback-chain planning without execution
 
-Live retries, timeout handling, provider invocation, and fallback execution are reserved for later gateway runtime work.
+Sprint D adds simulation contracts for retry, timeout, fallback transition, rate-limit, quota, and circuit-breaker planning. Provider invocation remains reserved for later gateway runtime work.

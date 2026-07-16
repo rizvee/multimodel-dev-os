@@ -1,0 +1,17 @@
+{
+  "$id": "mmdo.timeout-policy",
+  "title": "Gateway Timeout Policy",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["request_timeout_ms", "provider_timeout_ms", "total_operation_timeout_ms", "timeout_retryable"],
+  "properties": {
+    "request_timeout_ms": { "type": "integer", "minimum": 0, "maximum": 3600000 },
+    "provider_timeout_ms": { "type": "integer", "minimum": 0, "maximum": 3600000 },
+    "connect_timeout_ms": { "type": "integer", "minimum": 0, "maximum": 3600000 },
+    "stream_idle_timeout_ms": { "type": "integer", "minimum": 0, "maximum": 3600000 },
+    "stream_total_timeout_ms": { "type": "integer", "minimum": 0, "maximum": 3600000 },
+    "total_operation_timeout_ms": { "type": "integer", "minimum": 0, "maximum": 3600000 },
+    "timeout_retryable": { "type": "boolean" },
+    "metadata": { "type": "object" }
+  }
+}

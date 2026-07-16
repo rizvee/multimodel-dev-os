@@ -14,12 +14,13 @@
 - [x] Publish the v4.1.0 GitHub release after npm availability was confirmed
 - [x] Complete v4.2 Sprint A gateway protocol and architecture contracts
 - [x] Complete v4.2 Sprint B runtime provider/model registry snapshots
+- [x] Complete v4.2 Sprint C deterministic routing without provider calls
+- [x] Complete v4.2 Sprint D fallback, retry, timeout, and resilience simulation contracts
 - [ ] Maintain `main` as the v4.2 development lane without publishing dev versions
 
 ## Backlog
 
-- [x] Complete v4.2 Sprint C deterministic routing without provider calls
-- [ ] Plan v4.2 Sprint D fallback, retry, timeout, and resilience simulation contracts
+- [ ] Prepare v4.2 Sprint E localhost-only mock gateway runtime plan
 - [ ] Collect post-release feedback and triage v4.1.x candidates
 - [ ] Continue improving adapter documentation and template coverage
 - [ ] Review GitHub Packages adoption after npmjs release

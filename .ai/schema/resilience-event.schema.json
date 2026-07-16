@@ -1,0 +1,24 @@
+{
+  "$id": "mmdo.resilience-event",
+  "title": "Gateway Resilience Event",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["event_id", "request_id", "type", "attempt", "timestamp"],
+  "properties": {
+    "event_id": { "type": "string" },
+    "request_id": { "type": "string" },
+    "type": {
+      "type": "string",
+      "enum": ["attempt-planned", "attempt-failed", "retry-planned", "retry-rejected", "fallback-planned", "fallback-rejected", "circuit-opened", "circuit-half-open", "circuit-closed", "operation-aborted", "simulation-complete"]
+    },
+    "attempt": { "type": "integer", "minimum": 1 },
+    "provider_id": { "type": ["string", "null"] },
+    "model_id": { "type": ["string", "null"] },
+    "failure": { "type": ["object", "null"] },
+    "retry_decision": { "type": ["object", "null"] },
+    "fallback_transition": { "type": ["object", "null"] },
+    "circuit_breaker": { "type": ["object", "null"] },
+    "timestamp": { "type": "number" },
+    "metadata": { "type": "object" }
+  }
+}

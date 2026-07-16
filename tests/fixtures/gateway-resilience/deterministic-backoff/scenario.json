@@ -1,0 +1,15 @@
+{
+  "policy": {
+    "enabled": true,
+    "max_attempts": 3,
+    "max_total_delay_ms": 5000,
+    "backoff_strategy": "bounded-exponential",
+    "base_delay_ms": 100,
+    "max_delay_ms": 1000,
+    "multiplier": 2,
+    "jitter_mode": "deterministic"
+  },
+  "attempt": 3,
+  "seed": "fixed-seed",
+  "expected": { "strategy": "bounded-exponential", "jitter_applied": true }
+}

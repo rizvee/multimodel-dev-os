@@ -1,0 +1,7 @@
+{
+  "failure": { "category": "timeout", "code": "timeout", "retryable": true },
+  "policy": { "enabled": true, "max_attempts": 3, "max_total_delay_ms": 1000, "same_provider_retry_limit": 3, "same_model_retry_limit": 1, "retryable_categories": ["timeout"], "retryable_codes": ["timeout"], "retry_on_timeout": true },
+  "history": [{ "provider_id": "alpha", "model_id": "alpha-fast", "planned_delay_ms": 100 }],
+  "candidate": { "provider_id": "alpha", "model_id": "alpha-fast" },
+  "expected": { "eligible": false, "reason": "same-model-limit-exhausted" }
+}

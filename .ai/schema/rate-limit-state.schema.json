@@ -1,0 +1,16 @@
+{
+  "$id": "mmdo.rate-limit-state",
+  "title": "Gateway Rate Limit State",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["retry_after_ms", "scope", "provider_reported"],
+  "properties": {
+    "retry_after_ms": { "type": ["integer", "null"], "minimum": 0 },
+    "limit": { "type": ["number", "null"], "minimum": 0 },
+    "remaining": { "type": ["number", "null"], "minimum": 0 },
+    "reset_at": { "type": ["number", "null"] },
+    "scope": { "type": "string" },
+    "provider_reported": { "type": "boolean" },
+    "metadata": { "type": "object" }
+  }
+}

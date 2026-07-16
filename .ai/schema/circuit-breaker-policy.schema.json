@@ -1,0 +1,17 @@
+{
+  "$id": "mmdo.circuit-breaker-policy",
+  "title": "Gateway Circuit Breaker Policy",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["enabled", "failure_threshold", "success_threshold", "open_duration_ms", "half_open_max_attempts", "scope"],
+  "properties": {
+    "enabled": { "type": "boolean" },
+    "failure_threshold": { "type": "integer", "minimum": 1 },
+    "success_threshold": { "type": "integer", "minimum": 1 },
+    "open_duration_ms": { "type": "integer", "minimum": 0 },
+    "half_open_max_attempts": { "type": "integer", "minimum": 1 },
+    "tracked_categories": { "type": "array", "items": { "type": "string" } },
+    "scope": { "type": "string", "enum": ["provider", "model", "provider-model"] },
+    "metadata": { "type": "object" }
+  }
+}

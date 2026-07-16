@@ -1,0 +1,20 @@
+{
+  "$id": "mmdo.fallback-transition",
+  "title": "Gateway Fallback Transition",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["transition_allowed", "from", "to", "reason_codes", "skipped_candidates", "remaining_fallbacks"],
+  "properties": {
+    "transition_allowed": { "type": "boolean" },
+    "from": { "type": ["object", "null"] },
+    "to": { "type": ["object", "null"] },
+    "fallback_rank": { "type": ["integer", "null"], "minimum": 1 },
+    "trigger": { "type": "string" },
+    "reason_codes": { "type": "array", "items": { "type": "string" } },
+    "skipped_candidates": { "type": "array" },
+    "remaining_fallbacks": { "type": "integer", "minimum": 0 },
+    "provider_changed": { "type": "boolean" },
+    "model_changed": { "type": "boolean" },
+    "warnings": { "type": "array", "items": { "type": "string" } }
+  }
+}

@@ -80,6 +80,23 @@ v4.2 Sprint C adds pure route planning on top of the runtime registry snapshot. 
 
 Sprint C still does not contact providers, execute model requests, execute fallback attempts, start a gateway server, read provider credential values, or enforce Skill OS permissions at runtime.
 
+## Sprint D Resilience Simulation
+
+v4.2 Sprint D adds deterministic resilience planning contracts on top of Sprint C route decisions:
+
+- failure classification
+- retry eligibility
+- retry-budget planning
+- deterministic backoff schedules
+- timeout budget planning
+- fallback transition planning
+- circuit-breaker state simulation
+- rate-limit and quota response planning
+- resilience events
+- full failure-chain simulation
+
+Sprint D remains simulation-only. It does not contact providers, perform retries, perform provider failover, wait on timeout budgets, persist circuit-breaker state, or read credentials.
+
 ## Safety Boundary
 
 Gateway architecture work must preserve:

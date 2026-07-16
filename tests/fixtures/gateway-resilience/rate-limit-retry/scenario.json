@@ -1,0 +1,21 @@
+{
+  "routeDecision": {
+    "selected_provider": "alpha",
+    "selected_model": "alpha-fast",
+    "strategy": "balanced",
+    "score": 0.9,
+    "reasons": ["fixture route"],
+    "rejected_candidates": [],
+    "fallback_chain": [],
+    "warnings": [],
+    "request_id": "res-rate-retry",
+    "decision_timestamp": 1800000000
+  },
+  "outcomes": [
+    { "result": "failure", "error": { "code": "rate_limited", "details": { "retry_after_ms": 200 } }, "rate_limit": { "retry_after_ms": 200, "scope": "provider", "provider_reported": true } },
+    { "result": "success" }
+  ],
+  "retryPolicy": { "enabled": true, "max_attempts": 2, "max_total_delay_ms": 1000, "same_provider_retry_limit": 1, "same_model_retry_limit": 1, "retry_on_rate_limit": true, "backoff_strategy": "retry-after" },
+  "timeoutPolicy": { "total_operation_timeout_ms": 5000, "provider_timeout_ms": 1000, "timeout_retryable": true },
+  "expected": { "final_status": "planned-success", "planned_delay_ms": 200 }
+}

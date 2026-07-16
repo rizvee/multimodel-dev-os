@@ -54,6 +54,19 @@ v4.2 Sprint B validates provider and local endpoint metadata without making requ
 
 Sprint C route planning is dry-run only. It uses static registry metadata and caller-supplied estimates to select a recommended candidate. It does not send prompts, load API keys, call provider endpoints, run health probes, execute fallback attempts, or write routing logs.
 
+## Resilience Simulation Boundary
+
+Sprint D resilience planning is also non-executing:
+
+- failure records are caller-supplied
+- retry and backoff values are planned only
+- timeout budgets do not start timers
+- fallback transitions are selected as metadata only
+- circuit-breaker state is not persisted
+- rate-limit and quota metadata is not fetched from providers
+
+Resilience explanations must not include prompt bodies, credential values, authorization headers, or local absolute paths.
+
 Route explanations must not include prompt bodies, credential values, authorization headers, or absolute local machine paths.
 
 ## Skill OS Integration
