@@ -1,43 +1,27 @@
 # Tasks
 
-> Lightweight public task tracking for maintainers and contributors.
+> Public task template for MultiModel Dev OS workspaces.
+
+Use this file for active, shareable project work that is appropriate for the
+repository audience. Keep private sprint prompts, session transcripts,
+maintainer-only checklists, and local execution notes outside the public tree.
 
 ## Current Work
 
-- [x] Prepare v4.0.0 release candidate
-- [x] Harden package hygiene and public documentation
-- [x] Prepare optional GitHub Packages mirror workflow
-- [x] Publish v4.0.0 to npm manually
-- [x] Publish the v4.0.0 GitHub release after npm availability was confirmed
-- [x] Complete v4.1 Skill OS foundation sprints A-H
-- [x] Publish v4.1.0 to npm manually
-- [x] Publish the v4.1.0 GitHub release after npm availability was confirmed
-- [x] Complete v4.2 Sprint A gateway protocol and architecture contracts
-- [x] Complete v4.2 Sprint B runtime provider/model registry snapshots
-- [x] Complete v4.2 Sprint C deterministic routing without provider calls
-- [x] Complete v4.2 Sprint D fallback, retry, timeout, and resilience simulation contracts
-- [x] Complete v4.2 Sprint E localhost-only mock gateway runtime
-- [x] Complete v4.2 Sprint F client and agent gateway integration planning
-- [x] Complete v4.2 Sprint G local observability, usage accounting, cost estimation, and audit events
-- [x] Complete v4.2 Sprint H security, compatibility, documentation, and release hardening
-- [ ] Maintain `main` as the v4.2 development lane without publishing dev versions
+- [ ] Define the next user-facing task.
+- [ ] Confirm validation commands before merging.
 
 ## Backlog
 
-- [ ] Prepare an explicit v4.2 stable release-prep sprint when requested
-- [ ] Collect post-release feedback and triage v4.1.x candidates
-- [ ] Continue improving adapter documentation and template coverage
-- [ ] Review GitHub Packages adoption after npmjs release
+- [ ] Add future improvements that are safe for public contributors to see.
+- [ ] Move private planning or local maintainer notes to an ignored workspace.
 
 ## Done
 
-- [x] Modularized CLI routing, registry handlers, and inspection handlers
-- [x] Decomposed the verification engine into focused modules
-- [x] Added registry trust add/remove coverage and remote key fetch support
-- [x] Added GPG-compatible signature verification in the policy engine
-- [x] Deployed offline signed-registry fixtures and regression tests
-- [x] Implemented structured trust verdict reporting
-- [x] Added Ed25519 public-key registry signatures and trust-store validation
-- [x] Added registry provenance lockfile support
-- [x] Expanded handler-level unit coverage
-- [x] Published public security, registry, package, and release documentation
+- [x] Initialize the workspace task tracker.
+
+## Hygiene Rules
+
+- Do not store access tokens, credentials, or account details here.
+- Do not paste chat transcripts or raw prompts here.
+- Do not use this file as a private session log.

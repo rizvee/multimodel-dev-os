@@ -1,7 +1,9 @@
 # Agent Instructions
 
-> This file is the **source of truth** for all AI coding agents working on this project.
-> Tool-specific adapters in `adapters/` read from this file. Do not duplicate instructions there.
+> Public workspace instruction template for MultiModel Dev OS projects.
+> Tool-specific adapters in `adapters/` can reference this file as the shared
+> source of truth. Keep private prompts, transcripts, credentials, and local
+> maintainer notes out of this file.
 
 ## Project Overview
 
@@ -28,11 +30,11 @@ verify: node scripts/verify.js (runs strict audit checks)
 ## File Structure Rules
 
 ```
-src/       → Application source code
-bin/       → Standalone built binary (do not edit bin/ directly, edit src/)
-tests/     → Unit test files and mock fixtures
-docs/      → Developer manuals and architecture documentation
-scripts/   → Packaging, compilation, and validation scripts
+src/       -> Application source code
+bin/       -> Standalone built binary (do not edit bin/ directly; edit src/)
+tests/     -> Unit test files and mock fixtures
+docs/      -> Developer manuals and architecture documentation
+scripts/   -> Packaging, compilation, and validation scripts
 ```
 
 ## Boundaries
@@ -69,7 +71,7 @@ no-touch:
 
 ## Additional Context
 
-- See `MEMORY.md` for project history and decisions
-- See `TASKS.md` for current work items
-- See `RUNBOOK.md` for operational procedures
-
+- See `MEMORY.md` for durable public project decisions.
+- See `TASKS.md` for public task tracking.
+- See `RUNBOOK.md` for repeatable setup, validation, and packaging procedures.
+- Keep private workflow state in ignored local folders such as `.local-ai/`.

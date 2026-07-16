@@ -17,6 +17,11 @@ node_modules/
 .cursor/
 .gemini/
 .antigravity/
+.local-ai/
+.ai-private/
+.dev-workspace/
+.codex-local/
+.antigravity-local/
 .vscode/settings.local.json
 .ai/session-logs/
 .ai/intelligence/*
@@ -49,3 +54,28 @@ tests/fixtures/temp-*/
 implementation_plan.md
 walkthrough.md
 task.md
+**/private-prompts/
+**/private-context/
+**/scratchpad/
+**/work-notes/
+**/implementation-notes/
+*.session.md
+*.scratch.md
+*.prompt.local.md
+*.context.local.md
+*.planning.local.md
+*.handoff.local.md
+*.memory.local.md
+*.tasks.local.md
+chat-export*
+conversation-export*
+codex-transcript*
+agent-transcript*
+pasted-chat*
+Pasted text*
+Pasted markdown*
+.gateway-data/
+.gateway-logs/
+.gateway-traces/
+.gateway-metrics/
+*.pid

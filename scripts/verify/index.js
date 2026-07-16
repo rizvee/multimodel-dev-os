@@ -32,6 +32,7 @@ import { checkGatewayRuntime } from './gateway-runtime.js';
 import { checkGatewayClients } from './gateway-clients.js';
 import { checkGatewayObservability } from './gateway-observability.js';
 import { checkGatewayReleaseReadiness } from './gateway-release-readiness.js';
+import { checkRepositoryHygiene } from './repository-hygiene.js';
 import { reportResults } from './reporting.js';
 
 console.log('multimodel-dev-os - Strict Release Audit Verification');
@@ -113,5 +114,8 @@ await checkGatewayObservability();
 // 25. Gateway Release Readiness Verification
 await checkGatewayReleaseReadiness();
 
-// 26. Final report
+// 26. Public Repository Hygiene Verification
+checkRepositoryHygiene();
+
+// 27. Final report
 reportResults();

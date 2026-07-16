@@ -17,6 +17,46 @@ Desktop.ini
 .gemini/
 .antigravity/
 
+# === Private AI development workspace ===
+.local-ai/
+.ai-private/
+.dev-workspace/
+.codex-local/
+.antigravity-local/
+
+# === Private AI sessions and planning ===
+**/session-logs/
+!.ai/session-logs/README.md
+**/private-prompts/
+**/private-context/
+**/scratchpad/
+**/work-notes/
+**/implementation-notes/
+*.session.md
+*.scratch.md
+*.prompt.local.md
+*.context.local.md
+*.planning.local.md
+*.handoff.local.md
+*.memory.local.md
+*.tasks.local.md
+
+# === Chat and transcript exports ===
+chat-export*
+conversation-export*
+codex-transcript*
+agent-transcript*
+pasted-chat*
+Pasted text*
+Pasted markdown*
+
+# === Local runtime state ===
+.gateway-data/
+.gateway-logs/
+.gateway-traces/
+.gateway-metrics/
+*.pid
+
 # === Node ===
 node_modules/
 npm-debug.log*
@@ -49,7 +89,6 @@ docs/.vitepress/.temp/
 # === Session logs (session-specific, opt-in to commit) ===
 .ai/session-logs/
 !.ai/session-logs/README.md
-!.ai/session-logs/.gitkeep
 
 # === Intelligence Runtime Files ===
 .ai/intelligence/*
