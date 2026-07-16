@@ -48,7 +48,7 @@ v4.2 Sprint C adds deterministic route planning over the normalized snapshot. Th
 
 ## Fallback Routing Metadata
 
-Routing presets may declare primary, fallback, and cost-saving model preferences. In the current v4.2 development lane these are metadata only:
+Routing presets may declare primary, fallback, and cost-saving model preferences. In v4.2.0 these are metadata and dry-run planning inputs only:
 
 1. Provider credential names may be referenced, but credential values are not read.
 2. Preset references are validated locally.

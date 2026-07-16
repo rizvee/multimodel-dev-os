@@ -220,6 +220,6 @@ export async function checkGatewayReleaseReadiness() {
   checkNoPattern(docsSource, /fully OpenAI compatible|all clients supported|external providers enabled|automatic failover active|live retry enabled|gateway[^.\n]{0,80}production-ready|production-ready[^.\n]{0,80}gateway/i, 'Public docs avoid false gateway readiness claims');
 
   const packageJson = readJson('package.json');
-  check(packageJson.version === '4.2.0-dev.0', 'Package version remains 4.2.0-dev.0');
+  check(packageJson.version === '4.2.0', 'Package version remains 4.2.0');
   check(!packageJson.dependencies || Object.keys(packageJson.dependencies).length === 0, 'Runtime dependencies remain zero');
 }

@@ -8,9 +8,9 @@ This document defines the official, stable architectural protocol and design con
 
 ## v4.2 Gateway Protocol Note
 
-The v4.2 development lane adds gateway protocol contracts for a future local AI gateway. These contracts live alongside the stable workspace protocol and do not replace it.
+v4.2.0 adds gateway protocol contracts for the local mock gateway foundation. These contracts live alongside the stable workspace protocol and do not replace it.
 
-Sprint A defines:
+The gateway protocol foundation defines:
 
 - a minimal OpenAI-compatible chat request shape
 - normalized chat completion and stream chunk shapes
@@ -20,7 +20,7 @@ Sprint A defines:
 - normalized gateway errors
 - safe gateway configuration defaults
 
-Sprint A does not start a server, expose live endpoints, call providers, load credentials, execute routing, execute fallback, or claim complete OpenAI API compatibility. See [Gateway Protocol](/gateway-protocol) and [Gateway Security Model](/gateway-security-model).
+The current implementation exposes only the local mock runtime. It does not call external providers, load provider credentials, execute live provider fallback, or claim complete OpenAI API compatibility. See [Gateway Protocol](/gateway-protocol) and [Gateway Security Model](/gateway-security-model).
 
 ---
 

@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-07-17
+
+### Gateway Foundation
+- **Local mock gateway runtime**: Added a localhost-first OpenAI-compatible subset with health checks, model listing, chat completions, deterministic mock responses, and deterministic SSE streaming.
+- **Runtime-readable registries**: Added deterministic provider, model, local-model, and routing-preset registry loading with validation, cross-reference checks, safe URL handling, and credential metadata boundaries.
+- **Explainable route planning**: Added deterministic route planning, scoring, fallback-chain planning, and dry-run explanations without executing provider calls.
+- **Resilience simulation**: Added failure classification, retry eligibility, deterministic backoff schedules, timeout budgets, fallback transition planning, circuit-breaker simulation, quota/rate-limit planning, and full failure-chain simulation.
+- **Client integration previews**: Added validated client profiles, endpoint compatibility metadata, preview-only configuration generation, redacted diagnostics, and local mock compatibility fixtures.
+- **Local observability**: Added bounded in-memory request lifecycle events, traces, usage accounting, static cost estimation, metrics, mock-provider health snapshots, and redacted audit records.
+- **Release hardening**: Added compatibility documentation, API reference material, known limitations, security and privacy reviews, release-readiness checks, package hygiene verification, and public repository hygiene enforcement.
+
+### Safety Boundaries
+- The mock provider is the only executable provider.
+- External providers remain metadata-only.
+- Live provider fallback and retry execution remain disabled.
+- Localhost remains the default gateway binding.
+- Remote binding requires explicit authenticated configuration.
+- Client configuration generation remains preview-only.
+- Observability remains local, bounded, redacted, and in-memory.
+- No persistent telemetry, prompt retention, provider credential loading, provider SDKs, or runtime dependencies were added.
+
 ## [4.1.0] - 2026-07-07
 
 ### Added

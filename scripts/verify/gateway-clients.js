@@ -124,8 +124,8 @@ export async function checkGatewayClients() {
   checkNoPattern(source, /https:\/\/api\.openai\.com|https:\/\/api\.anthropic\.com|generativelanguage\.googleapis\.com/, 'Client modules contain no executable external provider endpoints');
 
   const packageJson = readJson('package.json');
-  if (packageJson.version === '4.2.0-dev.0') pass('Package version remains 4.2.0-dev.0');
-  else fail('Package version remains 4.2.0-dev.0');
+  if (packageJson.version === '4.2.0') pass('Package version remains 4.2.0');
+  else fail('Package version remains 4.2.0');
   if (!packageJson.dependencies || Object.keys(packageJson.dependencies).length === 0) pass('Runtime dependencies remain zero');
   else fail('Runtime dependencies remain zero');
 }

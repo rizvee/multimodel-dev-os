@@ -1,6 +1,6 @@
 # Gateway API Reference
 
-The gateway JavaScript API is grouped by layer. These exports are intended for local foundation work and tests while v4.2 remains a development lane.
+The gateway JavaScript API is grouped by layer. These exports are intended for local foundation work, tests, and the v4.2.0 mock-only gateway foundation.
 
 ## Protocol and Contracts
 

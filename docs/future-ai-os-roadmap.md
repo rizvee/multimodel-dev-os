@@ -4,7 +4,7 @@ This roadmap outlines neutral, product-facing tracks for scaling MultiModel Dev 
 
 v4.1 shipped the Skill OS foundation: schemas, examples, validation, read-only CLI inspection, declarative guardrails, workflow metadata, business operator templates, and migration/adoption documentation. These features do not execute automation or enforce permissions.
 
-v4.2 is the Gateway Foundation development lane. It realigns the roadmap toward a local-first, governed, multi-provider AI gateway while keeping v4.1 Skill OS as the control plane. The current `main` package version is `4.2.0-dev.0`; v4.2 is not released. See [v4.2 Gateway Foundation Planning](./v4.2-planning.md).
+v4.2.0 is prepared as the Gateway Foundation release. It realigns the roadmap toward a local-first, governed, multi-provider AI gateway while keeping v4.1 Skill OS as the control plane. During preparation, v4.1.0 remains npm `latest` until manual npm publication is complete. See [v4.2 Gateway Foundation Planning](./v4.2-planning.md).
 
 Sprint A itself added gateway contracts, schemas, fixtures, and docs only. It did not include gateway runtime, provider execution, live routing, live fallback, or runtime permission enforcement.
 
@@ -20,7 +20,7 @@ Sprint F adds client and agent gateway integration planning. It introduces clien
 
 Sprint G adds local mock-runtime observability: bounded in-memory events, traces, usage records, static cost estimates, metrics, and mock-provider health snapshots. It does not upload telemetry, persist logs, retain prompts/completions by default, or probe external providers.
 
-Sprint H hardens the development lane with a compatibility matrix, API reference, known limitations, release-readiness assessment, stronger auth/body validation, and a release-readiness verifier. It does not prepare a stable v4.2 release.
+Sprint H hardened the gateway foundation with a compatibility matrix, API reference, known limitations, release-readiness assessment, stronger auth/body validation, and a release-readiness verifier.
 
 ## Structured Prompting Layer
 

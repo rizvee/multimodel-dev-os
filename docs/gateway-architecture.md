@@ -1,6 +1,8 @@
 # Gateway Architecture
 
-v4.2 Gateway Foundation now includes contracts, runtime-readable registries, deterministic dry-run routing, resilience simulation, a localhost mock gateway runtime, preview-only client configuration, and bounded local observability.
+v4.2.0 Gateway Foundation includes contracts, runtime-readable registries, deterministic dry-run routing, resilience simulation, a localhost mock gateway runtime, preview-only client configuration, and bounded local observability.
+
+v4.2.0 is prepared for release but not npm-published yet. v4.1.0 remains npm `latest` until manual publication is complete.
 
 The current runtime can start a local HTTP server for the mock provider only. MultiModel Dev OS still does not call external providers, load provider credentials, execute live retry/fallback chains, or enforce Skill OS permissions at runtime.
 

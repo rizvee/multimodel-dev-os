@@ -214,13 +214,15 @@ You use **Cursor** for autocomplete, **Claude Code** for terminal ops, **Gemini*
 
 <div class="highlight-box">
 
-### What's New in v4.2 Development
+### What's New in v4.2.0
 
 - **Gateway protocol contracts** define a minimal OpenAI-compatible request/response shape for local gateway work.
 - **Runtime-readable registries** normalize provider, model, local-model, and routing-preset metadata without executing providers.
 - **Dry-run routing and resilience simulation** plan routes, fallback chains, retry budgets, and failure behavior without live provider calls.
 - **Local mock gateway runtime** serves `/health`, `/v1/models`, and mock chat completions on localhost only.
 - **Safety-first defaults** keep external providers metadata-only: no provider credentials, no external provider calls, no live fallback, and no runtime permission enforcement.
+
+v4.2.0 is prepared for release but not npm-published yet. v4.1.0 remains npm `latest` until manual publication is complete.
 
 </div>
 

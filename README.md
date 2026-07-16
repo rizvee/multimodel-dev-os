@@ -201,13 +201,13 @@ Start here:
 
 ## Gateway Foundation
 
-The v4.2 development lane begins the future multi-provider AI gateway foundation. Sprint A adds deterministic gateway protocol contracts, provider adapter contracts, routing request/decision contracts, normalized error and usage shapes, security defaults, schemas, fixtures, and tests. Sprint B adds deterministic runtime-readable provider/model registry snapshots from existing `.ai/models/` metadata. Sprint C adds deterministic route planning, scoring, fallback planning, and dry-run explanations. Sprint D adds deterministic resilience planning and simulation for failure classification, retry budgets, backoff schedules, timeout budgets, fallback transitions, circuit-breaker state, rate-limit/quota responses, and failure-chain explanations.
+v4.2.0 prepares the Gateway Foundation release. It is not npm-published yet; v4.1.0 remains npm `latest` until the maintainer completes the manual publication step.
 
-Sprint E introduces a localhost-only mock gateway runtime. It can start a local HTTP server, answer `/health`, list mock models, and serve mock chat/streaming responses. External providers remain metadata-only: MultiModel Dev OS does not currently call model providers, load provider credential values, execute real provider requests, perform retries, perform provider failover, probe local engines, persist circuit-breaker state, or enforce Skill OS permissions at runtime.
+The release adds deterministic gateway protocol contracts, runtime-readable provider/model registry snapshots, explainable dry-run route planning, resilience simulation, a localhost-only mock gateway runtime, preview-only client configuration plans, and bounded local observability.
 
-Sprint F adds preview-only client and agent gateway integration planning. It can generate local mock gateway configuration previews and validate generic/local clients against the mock protocol, but it does not install or execute third-party clients, write global settings, or activate external providers.
+The mock gateway can start a local HTTP server, answer `/health`, list mock models, and serve mock chat/streaming responses. External providers remain metadata-only: MultiModel Dev OS does not currently call model providers, load provider credential values, execute real provider requests, perform retries, perform provider failover, probe local engines, persist circuit-breaker state, or enforce Skill OS permissions at runtime.
 
-Sprint G adds local, bounded, in-memory observability for the mock gateway runtime: request traces, lifecycle events, usage records, static cost estimates, runtime metrics, and mock-provider health snapshots. It does not upload telemetry, persist logs, retain prompts/completions by default, probe external providers, or enable live fallback.
+Client integration plans remain preview-only. Observability remains local, bounded, redacted, and in-memory; it does not upload telemetry, persist logs, retain prompts/completions by default, probe external providers, or enable live fallback.
 
 Gateway docs:
 **[Gateway Architecture](docs/gateway-architecture.md)** |
@@ -266,7 +266,7 @@ Gateway docs:
 | **v3.5.0** | Trusted Registry Signing + Provenance Foundation | ✅ Released |
 | **v4.0.0** | Modular CLI, verification engine, registry trust, handler tests, docs/DX hardening | ✅ Released |
 | **v4.1.0** | Skill OS foundation: RACE+ prompts, skill registries, permissions, guardrails, workflow metadata, and read-only inspection | ✅ Released |
-| **v4.2.0** | Gateway Foundation: local AI gateway contracts, provider/model runtime registries, deterministic routing, fallback simulation, and security design | Development lane |
+| **v4.2.0** | Gateway Foundation: local mock gateway runtime, provider/model registries, deterministic routing, resilience simulation, client previews, observability, and security hardening | Prepared, npm publish pending |
 
 **[Full Roadmap →](https://rizvee.github.io/multimodel-dev-os/v3-roadmap)**
 

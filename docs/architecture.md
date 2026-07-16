@@ -69,7 +69,7 @@
 
 ## v4.2 Gateway Foundation Layer
 
-The v4.2 development lane adds a gateway foundation under `src/gateway/`:
+v4.2.0 adds a gateway foundation under `src/gateway/`:
 
 - protocol and provider adapter contracts
 - runtime-readable provider/model registries
@@ -81,7 +81,7 @@ The v4.2 development lane adds a gateway foundation under `src/gateway/`:
 
 The executable runtime remains mock-only. External providers are metadata-only, provider credentials are not loaded, live retry/fallback is not active, and Skill OS permissions are not enforced at runtime.
 
-Skill OS remains the control plane. The gateway foundation is the runtime/routing plane under construction, with real provider execution deferred until explicit future security and release work.
+Skill OS remains the control plane. The gateway foundation is a mock-only runtime and routing foundation, with real provider execution deferred until explicit future security and release work.
 
 ## File Ownership
 

@@ -8,8 +8,8 @@ maintainer-only checklists, and local execution notes outside the public tree.
 
 ## Current Work
 
-- [ ] Define the next user-facing task.
-- [ ] Confirm validation commands before merging.
+- [ ] Complete manual npm publication for v4.2.0 when the maintainer is ready.
+- [ ] Finalize the public release record only after npm confirms v4.2.0.
 
 ## Backlog
 

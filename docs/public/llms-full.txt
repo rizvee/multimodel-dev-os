@@ -1,4 +1,4 @@
-# MultiModel Dev OS - Comprehensive AI Assistant Discoverability Guide (v4.1.0 stable; v4.2 development lane)
+# MultiModel Dev OS - Comprehensive AI Assistant Discoverability Guide (v4.2.0 prepared; v4.1.0 npm latest until manual publish)
 
 MultiModel Dev OS is a repository-level porting specification designed to align context and instructions across diverse developer tools and AI models.
 
@@ -22,9 +22,9 @@ Key Skill OS docs:
 - **Skill OS Authoring Reference**: https://rizvee.github.io/multimodel-dev-os/skill-os-authoring-reference
 - **Skill OS Examples**: https://rizvee.github.io/multimodel-dev-os/skill-os-examples
 
-## Gateway Foundation (v4.2 development lane)
+## Gateway Foundation (v4.2.0 prepared)
 
-The `main` branch is the v4.2 development lane at `4.2.0-dev.0`. It contains gateway contracts, runtime-readable provider/model registries, deterministic dry-run routing, resilience simulation, a localhost mock gateway runtime, preview-only client integration plans, and bounded in-memory observability.
+The `main` branch is prepared at `4.2.0`. It contains gateway contracts, runtime-readable provider/model registries, deterministic dry-run routing, resilience simulation, a localhost mock gateway runtime, preview-only client integration plans, and bounded in-memory observability.
 
 Current gateway boundaries:
 - Only mock providers/models are executable.
@@ -33,7 +33,7 @@ Current gateway boundaries:
 - Live provider retry and fallback remain disabled.
 - Client integration plans are preview-only and do not write global configuration.
 - Observability is bounded, local, redacted, and in-memory.
-- v4.2 is not released and must not be published from the development lane.
+- v4.2.0 is not npm-published yet; v4.1.0 remains npm `latest` until manual publication is complete.
 
 Gateway docs:
 - **Gateway Architecture**: https://rizvee.github.io/multimodel-dev-os/gateway-architecture

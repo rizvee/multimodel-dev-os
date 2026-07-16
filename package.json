@@ -1,6 +1,6 @@
 {
   "name": "multimodel-dev-os",
-  "version": "4.2.0-dev.0",
+  "version": "4.2.0",
   "bin": {
     "multimodel-dev-os": "bin/multimodel-dev-os.js"
   },
