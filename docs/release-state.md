@@ -61,7 +61,7 @@ The GitHub release should remain draft until npmjs confirms the version is publi
 - main must not be published as v4.0.1.
 - v4.1.0 is published on npmjs.
 - v4.2.0 is the npm latest.
-- The GitHub release for v4.1.0 is public and marked latest.
+- The GitHub release for v4.1.0 is public; v4.2.0 is the current latest release.
 - The optional GitHub Packages mirror workflow has completed; package visibility and access are controlled by GitHub Packages settings.
 - v4.1.0 provides declarative Skill OS metadata, validation, documentation, and read-only inspection foundations; it does not execute automation, enforce permissions at runtime, or make advisory guardrails block live commands.
 - v4.2.0 provides the Gateway Foundation release.

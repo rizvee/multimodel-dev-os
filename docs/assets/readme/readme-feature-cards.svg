@@ -1,0 +1,57 @@
+<svg width="1280" height="620" viewBox="0 0 1280 620" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">MultiModel Dev OS feature highlights</title>
+  <desc id="desc">Six feature cards for workspace standardization, Skill OS, registry trust, verification, gateway foundation, and observability.</desc>
+  <rect width="1280" height="620" rx="28" fill="#0B1220"/>
+  <text x="70" y="82" fill="#F8FAFC" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="34" font-weight="800">Core capabilities</text>
+  <text x="70" y="116" fill="#94A3B8" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16">Product-facing foundations that are shipped today, with runtime boundaries stated clearly.</text>
+  <g font-family="Inter, Segoe UI, Arial, sans-serif">
+    <g>
+      <rect x="70" y="160" width="350" height="160" rx="18" fill="#111C2E" stroke="#253954"/>
+      <circle cx="112" cy="204" r="16" fill="#14B8A6"/>
+      <text x="146" y="210" fill="#F8FAFC" font-size="19" font-weight="760">Workspace standard</text>
+      <text x="100" y="252" fill="#CBD5E1" font-size="14">Root contracts, templates, adapters,</text>
+      <text x="100" y="276" fill="#CBD5E1" font-size="14">and public docs keep project context</text>
+      <text x="100" y="300" fill="#CBD5E1" font-size="14">portable across tools.</text>
+    </g>
+    <g>
+      <rect x="465" y="160" width="350" height="160" rx="18" fill="#111C2E" stroke="#253954"/>
+      <circle cx="507" cy="204" r="16" fill="#3B82F6"/>
+      <text x="541" y="210" fill="#F8FAFC" font-size="19" font-weight="760">Skill OS control plane</text>
+      <text x="495" y="252" fill="#CBD5E1" font-size="14">RACE+ prompts, skills, workflows,</text>
+      <text x="495" y="276" fill="#CBD5E1" font-size="14">permissions, and advisory guardrails</text>
+      <text x="495" y="300" fill="#CBD5E1" font-size="14">validated as local metadata.</text>
+    </g>
+    <g>
+      <rect x="860" y="160" width="350" height="160" rx="18" fill="#111C2E" stroke="#253954"/>
+      <circle cx="902" cy="204" r="16" fill="#8B5CF6"/>
+      <text x="936" y="210" fill="#F8FAFC" font-size="19" font-weight="760">Registry trust</text>
+      <text x="890" y="252" fill="#CBD5E1" font-size="14">Schemas, provenance, signing, trust</text>
+      <text x="890" y="276" fill="#CBD5E1" font-size="14">stores, and strict verification gates</text>
+      <text x="890" y="300" fill="#CBD5E1" font-size="14">protect distributed configuration.</text>
+    </g>
+    <g>
+      <rect x="70" y="360" width="350" height="160" rx="18" fill="#111C2E" stroke="#253954"/>
+      <circle cx="112" cy="404" r="16" fill="#22C55E"/>
+      <text x="146" y="410" fill="#F8FAFC" font-size="19" font-weight="760">Validation-first safety</text>
+      <text x="100" y="452" fill="#CBD5E1" font-size="14">Build freshness, tests, registry checks,</text>
+      <text x="100" y="476" fill="#CBD5E1" font-size="14">repository hygiene, and package audits</text>
+      <text x="100" y="500" fill="#CBD5E1" font-size="14">run through one verify command.</text>
+    </g>
+    <g>
+      <rect x="465" y="360" width="350" height="160" rx="18" fill="#111C2E" stroke="#253954"/>
+      <circle cx="507" cy="404" r="16" fill="#F59E0B"/>
+      <text x="541" y="410" fill="#F8FAFC" font-size="19" font-weight="760">Gateway foundation</text>
+      <text x="495" y="452" fill="#CBD5E1" font-size="14">Local mock gateway, model metadata,</text>
+      <text x="495" y="476" fill="#CBD5E1" font-size="14">dry-run routing, and resilience</text>
+      <text x="495" y="500" fill="#CBD5E1" font-size="14">simulation without provider calls.</text>
+    </g>
+    <g>
+      <rect x="860" y="360" width="350" height="160" rx="18" fill="#111C2E" stroke="#253954"/>
+      <circle cx="902" cy="404" r="16" fill="#06B6D4"/>
+      <text x="936" y="410" fill="#F8FAFC" font-size="19" font-weight="760">Local observability</text>
+      <text x="890" y="452" fill="#CBD5E1" font-size="14">Bounded in-memory metrics, traces,</text>
+      <text x="890" y="476" fill="#CBD5E1" font-size="14">usage accounting, and redacted audit</text>
+      <text x="890" y="500" fill="#CBD5E1" font-size="14">events for the mock runtime.</text>
+    </g>
+  </g>
+</svg>

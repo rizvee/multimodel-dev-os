@@ -1,0 +1,35 @@
+<svg width="1280" height="360" viewBox="0 0 1280 360" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">MultiModel Dev OS safety model</title>
+  <desc id="desc">Safety banner showing zero runtime dependencies, validation-first design, approval-gated writes, mock-only gateway execution, and local observability.</desc>
+  <rect width="1280" height="360" rx="28" fill="#F8FAFC"/>
+  <rect x="42" y="42" width="1196" height="276" rx="24" fill="#FFFFFF" stroke="#E2E8F0"/>
+  <text x="88" y="103" fill="#0F172A" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="31" font-weight="800">Safety model</text>
+  <text x="88" y="136" fill="#475569" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16">The project favors local inspection, bounded runtime behavior, and explicit release boundaries.</text>
+  <g font-family="Inter, Segoe UI, Arial, sans-serif">
+    <g>
+      <rect x="88" y="180" width="205" height="82" rx="16" fill="#ECFDF5" stroke="#A7F3D0"/>
+      <text x="116" y="214" fill="#065F46" font-size="15" font-weight="800">Zero runtime deps</text>
+      <text x="116" y="240" fill="#047857" font-size="13">Node standard library runtime.</text>
+    </g>
+    <g>
+      <rect x="318" y="180" width="205" height="82" rx="16" fill="#EFF6FF" stroke="#BFDBFE"/>
+      <text x="346" y="214" fill="#1D4ED8" font-size="15" font-weight="800">Validation-first</text>
+      <text x="346" y="240" fill="#2563EB" font-size="13">Schemas and strict checks.</text>
+    </g>
+    <g>
+      <rect x="548" y="180" width="205" height="82" rx="16" fill="#F5F3FF" stroke="#DDD6FE"/>
+      <text x="576" y="214" fill="#6D28D9" font-size="15" font-weight="800">Approval-gated writes</text>
+      <text x="576" y="240" fill="#7C3AED" font-size="13">No hidden write paths.</text>
+    </g>
+    <g>
+      <rect x="778" y="180" width="205" height="82" rx="16" fill="#FFFBEB" stroke="#FDE68A"/>
+      <text x="806" y="214" fill="#92400E" font-size="15" font-weight="800">Mock-only gateway</text>
+      <text x="806" y="240" fill="#B45309" font-size="13">External providers metadata-only.</text>
+    </g>
+    <g>
+      <rect x="1008" y="180" width="182" height="82" rx="16" fill="#F0FDFA" stroke="#99F6E4"/>
+      <text x="1036" y="214" fill="#0F766E" font-size="15" font-weight="800">Local observability</text>
+      <text x="1036" y="240" fill="#0D9488" font-size="13">Bounded and redacted.</text>
+    </g>
+  </g>
+</svg>

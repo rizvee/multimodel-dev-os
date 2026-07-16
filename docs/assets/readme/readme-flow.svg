@@ -1,0 +1,72 @@
+<svg width="1280" height="560" viewBox="0 0 1280 560" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">How MultiModel Dev OS works</title>
+  <desc id="desc">Flow diagram from repository contracts through registries, validation, adapters, Skill OS, and the gateway foundation.</desc>
+  <defs>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#0F172A"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="110" y1="280" x2="1170" y2="280" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#14B8A6"/>
+      <stop offset="0.5" stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="560" rx="28" fill="#F8FAFC"/>
+  <rect x="40" y="40" width="1200" height="480" rx="24" fill="#FFFFFF" stroke="#E2E8F0"/>
+  <text x="90" y="105" fill="#0F172A" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="32" font-weight="800">How it works</text>
+  <text x="90" y="136" fill="#475569" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16">One repository standard becomes validated local metadata, tool adapters, and a safe gateway foundation.</text>
+  <path d="M196 282H1072" stroke="url(#accent)" stroke-width="4" stroke-linecap="round"/>
+  <g font-family="Inter, Segoe UI, Arial, sans-serif">
+    <g>
+      <rect x="88" y="200" width="176" height="164" rx="18" fill="url(#card)"/>
+      <text x="118" y="246" fill="#F8FAFC" font-size="18" font-weight="750">Repository</text>
+      <text x="118" y="278" fill="#CBD5E1" font-size="13">README</text>
+      <text x="118" y="300" fill="#CBD5E1" font-size="13">AGENTS.md</text>
+      <text x="118" y="322" fill="#CBD5E1" font-size="13">templates</text>
+    </g>
+    <g>
+      <rect x="304" y="200" width="176" height="164" rx="18" fill="url(#card)"/>
+      <text x="334" y="246" fill="#F8FAFC" font-size="18" font-weight="750">Control plane</text>
+      <text x="334" y="278" fill="#CBD5E1" font-size="13">skills</text>
+      <text x="334" y="300" fill="#CBD5E1" font-size="13">prompts</text>
+      <text x="334" y="322" fill="#CBD5E1" font-size="13">guardrails</text>
+    </g>
+    <g>
+      <rect x="520" y="200" width="176" height="164" rx="18" fill="url(#card)"/>
+      <text x="550" y="246" fill="#F8FAFC" font-size="18" font-weight="750">Verification</text>
+      <text x="550" y="278" fill="#CBD5E1" font-size="13">schemas</text>
+      <text x="550" y="300" fill="#CBD5E1" font-size="13">registry checks</text>
+      <text x="550" y="322" fill="#CBD5E1" font-size="13">package hygiene</text>
+    </g>
+    <g>
+      <rect x="736" y="200" width="176" height="164" rx="18" fill="url(#card)"/>
+      <text x="766" y="246" fill="#F8FAFC" font-size="18" font-weight="750">Adapters</text>
+      <text x="766" y="278" fill="#CBD5E1" font-size="13">tool configs</text>
+      <text x="766" y="300" fill="#CBD5E1" font-size="13">workflows</text>
+      <text x="766" y="322" fill="#CBD5E1" font-size="13">read-only views</text>
+    </g>
+    <g>
+      <rect x="952" y="200" width="240" height="164" rx="18" fill="url(#card)"/>
+      <text x="982" y="246" fill="#F8FAFC" font-size="18" font-weight="750">Gateway foundation</text>
+      <text x="982" y="278" fill="#CBD5E1" font-size="13">mock runtime</text>
+      <text x="982" y="300" fill="#CBD5E1" font-size="13">routing simulation</text>
+      <text x="982" y="322" fill="#CBD5E1" font-size="13">local observability</text>
+    </g>
+  </g>
+  <g fill="#FFFFFF" stroke="#CBD5E1">
+    <circle cx="284" cy="282" r="15"/>
+    <circle cx="500" cy="282" r="15"/>
+    <circle cx="716" cy="282" r="15"/>
+    <circle cx="932" cy="282" r="15"/>
+  </g>
+  <g fill="#2563EB">
+    <path d="M289 282L280 276V288L289 282Z"/>
+    <path d="M505 282L496 276V288L505 282Z"/>
+    <path d="M721 282L712 276V288L721 282Z"/>
+    <path d="M937 282L928 276V288L937 282Z"/>
+  </g>
+  <rect x="90" y="414" width="1100" height="54" rx="16" fill="#ECFDF5" stroke="#A7F3D0"/>
+  <text x="118" y="447" fill="#065F46" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">Result:</text>
+  <text x="178" y="447" fill="#065F46" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16">shared context, lower drift, safer changes, clearer gateway boundaries, and portable local AI development workflows.</text>
+</svg>
