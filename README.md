@@ -207,6 +207,8 @@ Sprint E introduces a localhost-only mock gateway runtime. It can start a local 
 
 Sprint F adds preview-only client and agent gateway integration planning. It can generate local mock gateway configuration previews and validate generic/local clients against the mock protocol, but it does not install or execute third-party clients, write global settings, or activate external providers.
 
+Sprint G adds local, bounded, in-memory observability for the mock gateway runtime: request traces, lifecycle events, usage records, static cost estimates, runtime metrics, and mock-provider health snapshots. It does not upload telemetry, persist logs, retain prompts/completions by default, probe external providers, or enable live fallback.
+
 Gateway docs:
 **[Gateway Architecture](docs/gateway-architecture.md)** |
 **[Gateway Protocol](docs/gateway-protocol.md)** |
@@ -223,6 +225,12 @@ Gateway docs:
 **[Gateway Mock Provider](docs/gateway-mock-provider.md)** |
 **[Gateway Streaming](docs/gateway-streaming.md)** |
 **[Gateway Authentication](docs/gateway-authentication.md)** |
+**[Gateway Observability](docs/gateway-observability.md)** |
+**[Gateway Usage Accounting](docs/gateway-usage-accounting.md)** |
+**[Gateway Cost Estimation](docs/gateway-cost-estimation.md)** |
+**[Gateway Request Tracing](docs/gateway-request-tracing.md)** |
+**[Gateway Provider Health](docs/gateway-provider-health.md)** |
+**[Gateway Audit Events](docs/gateway-audit-events.md)** |
 **[Gateway Client Integrations](docs/gateway-client-integrations.md)** |
 **[Gateway Client Compatibility](docs/gateway-client-compatibility.md)** |
 **[Gateway Client Configuration](docs/gateway-client-configuration.md)** |

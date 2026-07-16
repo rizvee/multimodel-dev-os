@@ -34,3 +34,5 @@ Prompt text is not echoed in diagnostics by default.
 ## Client Validation
 
 Sprint F uses this mock provider for client plan validation. Passing a Sprint F compatibility test means the generated plan works against the local mock protocol; it does not mean a named third-party client was installed or executed.
+
+Sprint G provider-health snapshots are execution-backed only for this mock provider. External providers remain metadata-only and are not probed.

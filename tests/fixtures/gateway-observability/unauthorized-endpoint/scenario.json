@@ -1,0 +1,1 @@
+{"path":"/v1/gateway/metrics","auth_mode":"bearer-token","expected_status":401}

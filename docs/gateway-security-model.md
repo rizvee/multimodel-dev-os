@@ -96,6 +96,21 @@ Sprint F client plans are preview-only:
 - no global editor or shell configuration is written
 - no third-party client executable is invoked
 
+## Observability Boundary
+
+Sprint G observability is bounded and local:
+
+- no telemetry upload
+- no analytics SDK
+- no filesystem logs
+- no prompt or completion retention by default
+- no authorization header retention
+- no bearer-token retention
+- no external provider health probes
+- no live pricing lookups
+
+Optional observability endpoints inherit the local runtime authentication boundary and are disabled unless explicitly configured.
+
 ## Skill OS Integration
 
 Skill OS remains the control plane:

@@ -3,6 +3,7 @@ import { createGatewayApp } from './app.js';
 import { createRuntimeError } from './errors.js';
 import { createMockGatewayProvider } from './mock-provider.js';
 import { normalizeGatewayRuntimeConfig, validateGatewayRuntimeConfig } from './limits.js';
+import { createGatewayObservabilityCollector } from '../observability/collector.js';
 
 function serverAddress(server) {
   const address = server.address();
@@ -14,10 +15,16 @@ export function createGatewayServer({
   config = {},
   provider = null,
   logger = null,
+  observability = null,
 } = {}) {
   const configResult = validateGatewayRuntimeConfig(config);
   const runtimeConfig = normalizeGatewayRuntimeConfig(config);
   const runtimeProvider = provider || createMockGatewayProvider({ delayMs: runtimeConfig.mock_delay_ms });
+  const runtimeObservability = observability || (
+    runtimeConfig.observability.enabled
+      ? createGatewayObservabilityCollector({ config: runtimeConfig.observability })
+      : null
+  );
   const connections = new Set();
   let stateValue = 'created';
   let httpServer = null;
@@ -52,6 +59,7 @@ export function createGatewayServer({
       state,
       startTime,
       requestIdFactory: runtimeConfig.request_id_factory,
+      observability: runtimeObservability,
     });
     httpServer = createServer(app);
     httpServer.on('connection', (socket) => {
@@ -108,5 +116,6 @@ export function createGatewayServer({
     stop,
     address,
     state,
+    observability: () => runtimeObservability,
   };
 }

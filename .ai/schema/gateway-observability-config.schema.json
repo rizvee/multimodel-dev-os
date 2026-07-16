@@ -1,0 +1,17 @@
+{
+  "title": "Gateway Observability Config",
+  "type": "object",
+  "required": ["enabled", "max_events", "max_traces", "max_usage_records"],
+  "properties": {
+    "enabled": { "type": "boolean" },
+    "max_events": { "type": "integer", "minimum": 1, "maximum": 10000 },
+    "max_traces": { "type": "integer", "minimum": 1, "maximum": 10000 },
+    "max_usage_records": { "type": "integer", "minimum": 1, "maximum": 10000 },
+    "retain_prompt_content": { "const": false },
+    "retain_response_content": { "const": false },
+    "redact_headers": { "const": true },
+    "redact_query_values": { "const": true },
+    "expose_http_endpoints": { "type": "boolean" },
+    "metadata": { "type": "object" }
+  }
+}

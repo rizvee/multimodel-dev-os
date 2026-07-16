@@ -7,7 +7,7 @@ function writeEvent(response, chunk) {
   return true;
 }
 
-export function writeSseStream(response, chunks, context, config) {
+export function writeSseStream(response, chunks, context, config, observer = {}) {
   return new Promise((resolve, reject) => {
     let closed = false;
     let idleTimer = null;
@@ -33,6 +33,7 @@ export function writeSseStream(response, chunks, context, config) {
       connection: 'keep-alive',
       'x-request-id': context.request_id,
     });
+    observer.onStart?.();
 
     response.on('close', () => {
       if (closed) return;
@@ -52,11 +53,13 @@ export function writeSseStream(response, chunks, context, config) {
       if (index >= chunks.length) {
         if (!response.writableEnded && !response.destroyed) response.write('data: [DONE]\n\n');
         cleanup();
+        observer.onComplete?.({ chunk_count: chunks.length, disconnected: false });
         if (!response.writableEnded && !response.destroyed) response.end();
         resolve({ disconnected: false });
         return;
       }
       const ok = writeEvent(response, chunks[index]);
+      observer.onChunk?.(chunks[index], index);
       index += 1;
       if (!ok) {
         cleanup();

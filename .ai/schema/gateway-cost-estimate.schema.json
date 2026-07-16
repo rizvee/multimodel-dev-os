@@ -1,0 +1,14 @@
+{
+  "title": "Gateway Cost Estimate",
+  "type": "object",
+  "required": ["input_cost", "output_cost", "total_cost", "estimated", "warnings"],
+  "properties": {
+    "input_cost": { "type": ["number", "null"], "minimum": 0 },
+    "output_cost": { "type": ["number", "null"], "minimum": 0 },
+    "total_cost": { "type": ["number", "null"], "minimum": 0 },
+    "currency": { "type": ["string", "null"] },
+    "estimated": { "type": "boolean" },
+    "pricing_source": { "type": "string" },
+    "warnings": { "type": "array", "items": { "type": "string" } }
+  }
+}

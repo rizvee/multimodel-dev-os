@@ -1,0 +1,19 @@
+{
+  "title": "Gateway Trace",
+  "type": "object",
+  "required": ["trace_id", "request_id", "started_at", "event_ids"],
+  "properties": {
+    "trace_id": { "type": "string" },
+    "request_id": { "type": "string" },
+    "started_at": { "type": ["integer", "number"] },
+    "completed_at": { "type": ["integer", "number", "null"] },
+    "duration_ms": { "type": ["integer", "number", "null"], "minimum": 0 },
+    "method": { "type": ["string", "null"] },
+    "pathname": { "type": ["string", "null"] },
+    "status_code": { "type": ["integer", "null"] },
+    "streamed": { "type": "boolean" },
+    "success": { "type": ["boolean", "null"] },
+    "event_ids": { "type": "array", "items": { "type": "string" } },
+    "metadata": { "type": "object" }
+  }
+}

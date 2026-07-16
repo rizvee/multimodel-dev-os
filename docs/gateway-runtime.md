@@ -53,3 +53,7 @@ Sprint E does not add gateway CLI startup commands. The runtime is exposed throu
 ## Client Integration Boundary
 
 Sprint F adds preview-only client integration planning on top of this runtime. Generated client plans target the localhost mock gateway and report `writes_performed: false`. They do not install clients, write global settings, or activate external providers.
+
+## Observability Boundary
+
+Sprint G adds bounded in-memory observability for the local mock runtime. It can record redacted request lifecycle events, traces, usage records, metrics, and mock-provider health snapshots. It does not persist request logs, upload telemetry, retain prompts or completions by default, probe external providers, or execute live retry/fallback behavior.

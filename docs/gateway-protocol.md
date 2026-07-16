@@ -79,3 +79,5 @@ Sprint D consumes route decisions and caller-supplied outcome fixtures to produc
 Sprint E implements the first local HTTP protocol surface for the mock provider only. The implemented endpoint subset is `GET /health`, `GET /v1/models`, and `POST /v1/chat/completions`.
 
 Sprint F validates generated client plans against this local mock protocol. Compatibility labels distinguish validated local protocol checks from examples that still require manual client review.
+
+Sprint G observability records request metadata for this protocol subset. Traces and events omit prompt bodies, completion text, authorization headers, and raw request bodies.

@@ -1,0 +1,20 @@
+{
+  "title": "Gateway Metrics",
+  "type": "object",
+  "required": ["requests_total", "requests_success", "requests_failed", "active_requests"],
+  "properties": {
+    "started_at": { "type": ["integer", "number", "null"] },
+    "uptime_ms": { "type": ["integer", "number", "null"], "minimum": 0 },
+    "requests_total": { "type": "integer", "minimum": 0 },
+    "requests_success": { "type": "integer", "minimum": 0 },
+    "requests_failed": { "type": "integer", "minimum": 0 },
+    "requests_streamed": { "type": "integer", "minimum": 0 },
+    "active_requests": { "type": "integer", "minimum": 0 },
+    "auth_failures": { "type": "integer", "minimum": 0 },
+    "total_tokens": { "type": "integer", "minimum": 0 },
+    "estimated_cost_total": { "type": ["number", "null"], "minimum": 0 },
+    "models": { "type": "object" },
+    "providers": { "type": "object" },
+    "errors": { "type": "object" }
+  }
+}

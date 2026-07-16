@@ -1,0 +1,13 @@
+{
+  "title": "Gateway Observability Snapshot",
+  "type": "object",
+  "required": ["object", "events", "traces", "usage", "health", "metrics"],
+  "properties": {
+    "object": { "const": "gateway.observability.snapshot" },
+    "events": { "type": "array" },
+    "traces": { "type": "array" },
+    "usage": { "type": "array" },
+    "health": { "type": "object" },
+    "metrics": { "type": "object" }
+  }
+}

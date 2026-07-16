@@ -1,0 +1,1 @@
+{"usage":{"input_tokens":1000,"output_tokens":1000},"pricing":{"input_cost":1,"output_cost":1,"currency":"USD"},"currency":"EUR","expected_warning":"currency mismatch"}

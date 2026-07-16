@@ -30,6 +30,8 @@ Only mock models are executable in Sprint E. Registry-backed external providers 
 
 Sprint F client examples should point at this local server only. They should use mock models and avoid raw tokens in commands or files.
 
+Sprint G observability can be enabled in memory for the local server. Optional observability endpoints remain disabled unless explicitly configured and inherit the local/auth boundary.
+
 ## Shutdown
 
 `stop()` is idempotent and closes the local server. Active sockets are closed within a bounded shutdown window.

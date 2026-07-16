@@ -126,6 +126,19 @@ v4.2 Sprint F adds a client integration layer around the local runtime:
 
 It does not install or execute third-party clients, write user-global configuration, enable external providers, or turn the gateway into a production multi-provider service.
 
+## Sprint G Local Observability
+
+v4.2 Sprint G adds a local observability plane for the mock runtime:
+
+- redacted request lifecycle events
+- request traces
+- usage records
+- static cost estimates
+- metrics snapshots
+- mock-provider health snapshots
+
+This plane is local-only and bounded. It does not upload telemetry, persist logs, retain prompt/completion content by default, or probe external providers.
+
 ## Safety Boundary
 
 Gateway architecture work must preserve:

@@ -1,0 +1,19 @@
+{
+  "title": "Gateway Observability Event",
+  "type": "object",
+  "required": ["event_id", "type", "timestamp"],
+  "properties": {
+    "event_id": { "type": "string" },
+    "trace_id": { "type": ["string", "null"] },
+    "request_id": { "type": ["string", "null"] },
+    "type": {
+      "enum": ["request-received", "request-validated", "route-planned", "mock-provider-started", "mock-provider-completed", "stream-started", "stream-chunk", "stream-completed", "request-completed", "request-failed", "request-aborted", "auth-failed", "rate-limited", "runtime-started", "runtime-stopped"]
+    },
+    "timestamp": { "type": ["integer", "number"] },
+    "duration_ms": { "type": ["integer", "number", "null"], "minimum": 0 },
+    "provider_id": { "type": ["string", "null"] },
+    "model_id": { "type": ["string", "null"] },
+    "status": { "type": ["string", "null"] },
+    "metadata": { "type": "object" }
+  }
+}

@@ -1,3 +1,5 @@
+import { normalizeGatewayObservabilityConfig } from '../observability/collector.js';
+
 export const DEFAULT_GATEWAY_RUNTIME_CONFIG = Object.freeze({
   host: '127.0.0.1',
   port: 0,
@@ -13,6 +15,10 @@ export const DEFAULT_GATEWAY_RUNTIME_CONFIG = Object.freeze({
   redact_prompts: true,
   allow_remote_binding: false,
   fallback_enabled: false,
+  observability: Object.freeze({
+    enabled: true,
+    expose_http_endpoints: false,
+  }),
 });
 
 const WILDCARD_IPV4 = ['0', '0', '0', '0'].join('.');
@@ -55,6 +61,7 @@ export function normalizeGatewayRuntimeConfig(config = {}) {
     fallback_enabled: source.fallback_enabled === true,
     request_id_factory: typeof source.request_id_factory === 'function' ? source.request_id_factory : null,
     mock_delay_ms: boundedInteger(source.mock_delay_ms, 0, { min: 0, max: 1000 }),
+    observability: normalizeGatewayObservabilityConfig(source.observability || DEFAULT_GATEWAY_RUNTIME_CONFIG.observability),
   };
 }
 

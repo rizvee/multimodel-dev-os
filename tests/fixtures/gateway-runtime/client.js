@@ -1,7 +1,7 @@
 import { request } from 'node:http';
 import { createGatewayServer } from '../../../src/gateway/index.js';
 
-export async function startTestGateway(config = {}) {
+export async function startTestGateway(config = {}, options = {}) {
   const gateway = createGatewayServer({
     config: {
       host: '127.0.0.1',
@@ -9,6 +9,7 @@ export async function startTestGateway(config = {}) {
       request_id_factory: () => 'req-test',
       ...config,
     },
+    observability: options.observability || null,
   });
   const address = await gateway.start();
   return { gateway, address };

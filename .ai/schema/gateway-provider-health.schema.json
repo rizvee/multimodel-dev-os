@@ -1,0 +1,19 @@
+{
+  "title": "Gateway Provider Health",
+  "type": "object",
+  "required": ["provider_id", "status", "executable", "local", "request_count", "error_count"],
+  "properties": {
+    "provider_id": { "type": ["string", "null"] },
+    "status": { "enum": ["healthy", "degraded", "unknown", "metadata-only"] },
+    "executable": { "type": "boolean" },
+    "local": { "type": "boolean" },
+    "last_success_at": { "type": ["integer", "number", "null"] },
+    "last_failure_at": { "type": ["integer", "number", "null"] },
+    "consecutive_successes": { "type": "integer", "minimum": 0 },
+    "consecutive_failures": { "type": "integer", "minimum": 0 },
+    "request_count": { "type": "integer", "minimum": 0 },
+    "error_count": { "type": "integer", "minimum": 0 },
+    "latency_summary": { "type": "object" },
+    "metadata": { "type": "object" }
+  }
+}

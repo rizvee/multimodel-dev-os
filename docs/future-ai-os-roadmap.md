@@ -18,6 +18,8 @@ Sprint E adds a localhost-only mock gateway runtime with `/health`, `/v1/models`
 
 Sprint F adds client and agent gateway integration planning. It introduces client profiles, localhost endpoint configuration previews, redacted diagnostics, and local mock compatibility tests. It does not install third-party clients, write global configuration, call external providers, or include API keys.
 
+Sprint G adds local mock-runtime observability: bounded in-memory events, traces, usage records, static cost estimates, metrics, and mock-provider health snapshots. It does not upload telemetry, persist logs, retain prompts/completions by default, or probe external providers.
+
 ## Structured Prompting Layer
 
 Implement reusable RACE+ templates for consistent, inspectable prompts:
