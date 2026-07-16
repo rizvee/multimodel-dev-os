@@ -1,0 +1,6 @@
+{
+  "required_capabilities": ["chat"],
+  "estimated_input_tokens": 1000,
+  "required_context_window": 4000,
+  "metadata": { "requested_output_tokens": 500 }
+}

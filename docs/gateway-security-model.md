@@ -50,6 +50,12 @@ v4.2 Sprint B validates provider and local endpoint metadata without making requ
 - credential values are never read from the environment
 - routing presets are loaded but not executed
 
+## Routing Safety
+
+Sprint C route planning is dry-run only. It uses static registry metadata and caller-supplied estimates to select a recommended candidate. It does not send prompts, load API keys, call provider endpoints, run health probes, execute fallback attempts, or write routing logs.
+
+Route explanations must not include prompt bodies, credential values, authorization headers, or absolute local machine paths.
+
 ## Skill OS Integration
 
 Skill OS remains the control plane:

@@ -1,0 +1,22 @@
+{
+  "$id": "mmdo.route-candidate",
+  "title": "Route Candidate",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["provider_id", "model_id", "aliases", "capabilities", "local", "enabled", "status"],
+  "properties": {
+    "provider_id": { "type": "string", "minLength": 1 },
+    "model_id": { "type": "string", "minLength": 1 },
+    "aliases": { "type": "array", "items": { "type": "string" } },
+    "capabilities": { "type": "array", "items": { "type": "string" } },
+    "context_window": { "type": ["integer", "null"], "minimum": 0 },
+    "max_output_tokens": { "type": ["integer", "null"], "minimum": 0 },
+    "input_cost": { "type": ["number", "null"], "minimum": 0 },
+    "output_cost": { "type": ["number", "null"], "minimum": 0 },
+    "currency": { "type": ["string", "null"] },
+    "local": { "type": "boolean" },
+    "enabled": { "type": "boolean" },
+    "status": { "type": "string" },
+    "metadata": { "type": "object" }
+  }
+}

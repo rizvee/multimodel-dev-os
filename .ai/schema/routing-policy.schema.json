@@ -1,0 +1,23 @@
+{
+  "$id": "mmdo.routing-policy",
+  "title": "Routing Policy",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "strategy": {
+      "type": "string",
+      "enum": ["explicit", "capability", "cost-first", "latency-first", "context-aware", "local-first", "fallback-chain", "balanced", "user-policy"]
+    },
+    "required_capabilities": { "type": "array", "items": { "type": "string" } },
+    "preferred_capabilities": { "type": "array", "items": { "type": "string" } },
+    "local_required": { "type": "boolean" },
+    "local_preferred": { "type": "boolean" },
+    "fallback_allowed": { "type": "boolean" },
+    "max_fallbacks": { "type": "integer", "minimum": 0, "maximum": 10 },
+    "allow_disabled": { "type": "boolean" },
+    "allowed_statuses": { "type": "array", "items": { "type": "string" } },
+    "unknown_metric_policy": { "type": "string", "enum": ["neutral", "penalize"] },
+    "weights": { "type": "object" },
+    "metadata": { "type": "object" }
+  }
+}

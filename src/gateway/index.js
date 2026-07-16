@@ -6,3 +6,4 @@ export { describeProviderAdapter } from './contracts/provider-adapter.js';
 export { createRoutingRequest } from './contracts/routing-request.js';
 export { createRouteDecision } from './contracts/route-decision.js';
 export * from './registry/index.js';
+export * from './router/index.js';

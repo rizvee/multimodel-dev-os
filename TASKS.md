@@ -18,7 +18,8 @@
 
 ## Backlog
 
-- [ ] Plan v4.2 Sprint C deterministic routing without provider calls
+- [x] Complete v4.2 Sprint C deterministic routing without provider calls
+- [ ] Plan v4.2 Sprint D fallback, retry, timeout, and resilience simulation contracts
 - [ ] Collect post-release feedback and triage v4.1.x candidates
 - [ ] Continue improving adapter documentation and template coverage
 - [ ] Review GitHub Packages adoption after npmjs release

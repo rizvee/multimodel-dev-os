@@ -1,0 +1,1 @@
+{ "strategy": "user-policy", "weights": { "local": 80, "cost": 0, "latency": 0 } }

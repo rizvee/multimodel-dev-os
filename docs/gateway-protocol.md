@@ -69,3 +69,7 @@ The protocol is intentionally small so future runtime work can be validated befo
 ## Registry Relationship
 
 The v4.2 runtime registry supplies provider, model, local model, and routing preset metadata that future protocol handlers may consume. Sprint B loads this metadata but does not use it to execute requests, contact providers, or choose live routes.
+
+## Routing Relationship
+
+Sprint C consumes routing requests and registry snapshots to produce dry-run route decisions. These decisions are protocol-compatible planning records only: no selected provider is contacted and no model request is executed.

@@ -37,6 +37,8 @@ The runtime registry validates provider IDs, `api_endpoint` URL safety, and cred
 
 Remote providers must use `https:` and must not include embedded URL credentials. Localhost/private-network URLs are only accepted for providers explicitly classified as local.
 
+v4.2 Sprint C can use provider metadata during deterministic route planning. It still does not invoke providers, run health checks, measure live latency, or load credentials.
+
 ---
 
 ## API Key Security Rules

@@ -10,6 +10,8 @@ Sprint A adds gateway contracts, schemas, fixtures, and docs only. No gateway ru
 
 Sprint B adds deterministic runtime-readable provider/model registry snapshots. These snapshots validate metadata for future routing but still do not execute providers, read credential values, probe local engines, or run routing/fallback logic.
 
+Sprint C adds deterministic route planning and dry-run explanations over those snapshots. It still does not contact providers, execute model requests, execute fallback attempts, read credentials, tokenize prompts, or perform live pricing/latency lookups.
+
 ## Structured Prompting Layer
 
 Implement reusable RACE+ templates for consistent, inspectable prompts:

@@ -1,0 +1,1 @@
+{ "required_capabilities": ["chat"], "required_context_window": 50000 }

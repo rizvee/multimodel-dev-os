@@ -103,6 +103,9 @@ export default {
           { text: 'Gateway Architecture', link: '/gateway-architecture' },
           { text: 'Gateway Protocol', link: '/gateway-protocol' },
           { text: 'Gateway Runtime Registry', link: '/gateway-runtime-registry' },
+          { text: 'Gateway Routing Engine', link: '/gateway-routing-engine' },
+          { text: 'Gateway Routing Strategies', link: '/gateway-routing-strategies' },
+          { text: 'Gateway Route Explanations', link: '/gateway-route-explanations' },
           { text: 'Provider Adapter Contract', link: '/provider-adapter-contract' },
           { text: 'Gateway Security Model', link: '/gateway-security-model' },
           { text: 'v4.2 Gateway Planning', link: '/v4.2-planning' }

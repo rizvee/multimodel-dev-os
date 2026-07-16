@@ -1,0 +1,1 @@
+{ "strategy": "fallback-chain", "max_fallbacks": 2 }

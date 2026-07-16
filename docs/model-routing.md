@@ -25,6 +25,8 @@ v4.2 Sprint B loads routing presets into deterministic runtime-readable registry
 
 The snapshot layer validates preset references, model IDs, provider IDs, and strategy metadata. It does not score candidates, execute routing decisions, call providers, or invoke fallback chains.
 
+v4.2 Sprint C adds deterministic route planning over the normalized snapshot. The router can score candidates and produce fallback plans, but those plans are dry-run records only. No provider is contacted and no fallback is executed.
+
 ## Standard Presets Matrix
 
 ### 1. Planning (`planning` Preset)

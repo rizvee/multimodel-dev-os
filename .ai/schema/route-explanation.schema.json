@@ -1,0 +1,20 @@
+{
+  "$id": "mmdo.route-explanation",
+  "title": "Route Explanation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "strategy", "selected", "hard_requirements", "score_breakdown", "rejected", "fallbacks", "warnings", "policy_source", "preset_id", "deterministic_tie_break"],
+  "properties": {
+    "summary": { "type": "string", "minLength": 1 },
+    "strategy": { "type": "string" },
+    "selected": { "type": "object" },
+    "hard_requirements": { "type": "object" },
+    "score_breakdown": { "type": "array" },
+    "rejected": { "type": "array" },
+    "fallbacks": { "type": "array" },
+    "warnings": { "type": "array", "items": { "type": "string" } },
+    "policy_source": { "type": "string" },
+    "preset_id": { "type": ["string", "null"] },
+    "deterministic_tie_break": { "type": "array", "items": { "type": "string" } }
+  }
+}

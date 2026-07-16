@@ -105,4 +105,4 @@ The strict verifier checks:
 - registry modules contain no network operations or writes
 - existing model/provider CLI commands remain functional
 
-Sprint C is expected to build pure deterministic routing functions on top of these registry snapshots, still without provider calls.
+Sprint C builds pure deterministic routing functions on top of these registry snapshots, still without provider calls. The router consumes snapshots explicitly and returns planning decisions, rejected-candidate reasons, fallback plans, and explanations.

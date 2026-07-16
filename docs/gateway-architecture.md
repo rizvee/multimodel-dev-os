@@ -74,6 +74,12 @@ v4.2 Sprint B adds a runtime-readable registry layer for existing `.ai/models/` 
 
 This layer still does not execute providers, read credential values, start local engines, score routes, or run fallback chains. It only prepares safe metadata for future routing code.
 
+## Deterministic Routing Layer
+
+v4.2 Sprint C adds pure route planning on top of the runtime registry snapshot. It can rank viable candidates, return rejected-candidate reasons, produce fallback plans, and explain the decision.
+
+Sprint C still does not contact providers, execute model requests, execute fallback attempts, start a gateway server, read provider credential values, or enforce Skill OS permissions at runtime.
+
 ## Safety Boundary
 
 Gateway architecture work must preserve:

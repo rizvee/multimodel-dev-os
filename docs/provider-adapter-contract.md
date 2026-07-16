@@ -63,3 +63,7 @@ This keeps provider contract tests safe and reproducible.
 ## Registry Relationship
 
 Provider registry records are metadata inputs for future adapters. Sprint B can normalize provider IDs, base URLs, credential environment variable names, capabilities, and model associations, but it does not instantiate provider clients or call adapter `invoke`/`stream` methods.
+
+## Routing Relationship
+
+Sprint C route planning does not call adapter `invoke`, `stream`, `health`, or credential-loading paths. Provider adapter records remain metadata and contract inputs only.

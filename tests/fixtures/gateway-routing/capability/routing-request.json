@@ -1,0 +1,1 @@
+{ "required_capabilities": ["vision"], "preferred_capabilities": ["chat"] }

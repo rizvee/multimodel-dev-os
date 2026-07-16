@@ -34,6 +34,7 @@
       "items": { "type": "string" }
     },
     "request_id": { "type": "string", "minLength": 1 },
-    "decision_timestamp": { "type": "integer", "minimum": 1 }
+    "decision_timestamp": { "type": "integer", "minimum": 1 },
+    "explanation": { "type": "object" }
   }
 }

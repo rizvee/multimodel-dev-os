@@ -1,0 +1,14 @@
+{
+  "$id": "mmdo.gateway-dry-run",
+  "title": "Gateway Dry Run",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["mode", "decision", "explanation", "error", "executed"],
+  "properties": {
+    "mode": { "type": "string", "const": "dry-run" },
+    "decision": { "type": ["object", "null"] },
+    "explanation": { "type": ["object", "null"] },
+    "error": { "type": ["object", "null"] },
+    "executed": { "type": "boolean", "const": false }
+  }
+}
