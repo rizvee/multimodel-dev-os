@@ -27,6 +27,7 @@
 | 2026-07-16 | Local mock gateway runtime | Adds a localhost-only HTTP runtime for the deterministic mock provider while keeping external providers metadata-only and provider credentials unloaded |
 | 2026-07-16 | Gateway client integration planning | Adds preview-only client profiles, endpoint configuration generation, redacted diagnostics, and local mock compatibility tests without installing clients or writing global settings |
 | 2026-07-17 | Gateway local observability | Adds bounded in-memory mock-runtime events, traces, usage records, static cost estimates, metrics, and provider health snapshots without telemetry upload, persistent logs, or external provider probes |
+| 2026-07-17 | v4.2 gateway release hardening | Adds compatibility matrices, API reference, known limitations, release-readiness assessment, stricter auth/body validation, and release-readiness verification while keeping v4.2 at `4.2.0-dev.0` |
 
 ## Key Patterns
 
@@ -43,7 +44,7 @@
 - v4.0.0 prepares the modular CLI architecture, decomposed verification engine, registry signing and provenance hardening, handler-level test coverage, and public documentation cleanup.
 - v4.1.0 prepares the Skill OS foundation: RACE+ prompts, skill registries, tool permission metadata, advisory guardrails, workflow `skill_os` metadata, draft-only business operator templates, read-only CLI inspection, and migration docs.
 - Skill OS metadata remains declarative; it does not execute automation, enforce permissions at runtime, or make advisory guardrails block live commands.
-- v4.2 Gateway Foundation is under development on `main` at `4.2.0-dev.0`; gateway contracts, runtime-readable registry snapshots, deterministic dry-run route planning, resilience simulation, a localhost-only mock gateway runtime, preview-only client integration plans, and bounded local observability exist, but external provider calls, provider credential loading, retry execution, active multi-provider fallback, third-party client execution, telemetry upload, and persistent runtime logging remain disabled.
+- v4.2 Gateway Foundation is under development on `main` at `4.2.0-dev.0`; gateway contracts, runtime-readable registry snapshots, deterministic dry-run route planning, resilience simulation, a localhost-only mock gateway runtime, preview-only client integration plans, bounded local observability, and Sprint H release-readiness hardening exist, but external provider calls, provider credential loading, retry execution, active multi-provider fallback, third-party client execution, telemetry upload, and persistent runtime logging remain disabled.
 - npm publishing is manual and guarded by `scripts/prepublish-guard.js`.
 - GitHub Packages publishing is optional and manual-only through `publish-github-package.yml`.
 

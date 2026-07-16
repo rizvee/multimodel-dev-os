@@ -17,4 +17,15 @@ describe('gateway runtime auth', () => {
     expect(() => authenticateRequest({ headers: { authorization: 'Bearer wrong' } }, { request_id: 'req', remote_address: '127.0.0.1' }, { auth_mode: 'bearer-token', auth_token: 'secret' })).toThrow();
     expect(authenticateRequest({ headers: { authorization: 'Bearer secret' } }, { request_id: 'req', remote_address: '127.0.0.1' }, { auth_mode: 'bearer-token', auth_token: 'secret' }).authenticated).toBe(true);
   });
+
+  it('rejects malformed bearer token headers', () => {
+    const context = { request_id: 'req', remote_address: '127.0.0.1' };
+    const config = { auth_mode: 'bearer-token', auth_token: 'secret' };
+
+    expect(() => authenticateRequest({ headers: { authorization: ['Bearer secret', 'Bearer other'] } }, context, config)).toThrow();
+    expect(() => authenticateRequest({ headers: { authorization: 'Basic secret' } }, context, config)).toThrow();
+    expect(() => authenticateRequest({ headers: { authorization: 'Bearer ' } }, context, config)).toThrow();
+    expect(() => authenticateRequest({ headers: { authorization: 'Bearer secret ' } }, context, config)).toThrow();
+    expect(() => authenticateRequest({ headers: { authorization: `Bearer ${'x'.repeat(5000)}` } }, context, config)).toThrow();
+  });
 });

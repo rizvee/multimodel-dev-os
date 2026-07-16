@@ -19,11 +19,12 @@
 - [x] Complete v4.2 Sprint E localhost-only mock gateway runtime
 - [x] Complete v4.2 Sprint F client and agent gateway integration planning
 - [x] Complete v4.2 Sprint G local observability, usage accounting, cost estimation, and audit events
+- [x] Complete v4.2 Sprint H security, compatibility, documentation, and release hardening
 - [ ] Maintain `main` as the v4.2 development lane without publishing dev versions
 
 ## Backlog
 
-- [ ] Prepare v4.2 Sprint H release hardening plan
+- [ ] Prepare an explicit v4.2 stable release-prep sprint when requested
 - [ ] Collect post-release feedback and triage v4.1.x candidates
 - [ ] Continue improving adapter documentation and template coverage
 - [ ] Review GitHub Packages adoption after npmjs release

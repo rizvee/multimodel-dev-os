@@ -216,10 +216,11 @@ You use **Cursor** for autocomplete, **Claude Code** for terminal ops, **Gemini*
 
 ### What's New in v4.2 Development
 
-- **Gateway protocol contracts** define a minimal OpenAI-compatible request/response shape for future local gateway work.
-- **Provider adapter contracts** define deterministic metadata and interface expectations without executing provider calls.
-- **Routing contracts** define request, decision, explanation, usage, and normalized error shapes for future routing work.
-- **Safety-first defaults** keep this sprint contracts-only: no HTTP server, no credentials, no provider calls, no live fallback, and no runtime permission enforcement.
+- **Gateway protocol contracts** define a minimal OpenAI-compatible request/response shape for local gateway work.
+- **Runtime-readable registries** normalize provider, model, local-model, and routing-preset metadata without executing providers.
+- **Dry-run routing and resilience simulation** plan routes, fallback chains, retry budgets, and failure behavior without live provider calls.
+- **Local mock gateway runtime** serves `/health`, `/v1/models`, and mock chat completions on localhost only.
+- **Safety-first defaults** keep external providers metadata-only: no provider credentials, no external provider calls, no live fallback, and no runtime permission enforcement.
 
 </div>
 
@@ -273,7 +274,7 @@ You use **Cursor** for autocomplete, **Claude Code** for terminal ops, **Gemini*
   </a>
   <a href="/gateway-architecture" class="card-item">
     <div class="card-title">Gateway Architecture</div>
-    <div class="card-desc">Contracts-only foundation for the future local multi-provider gateway.</div>
+    <div class="card-desc">Mock-only local gateway foundation, dry-run routing, resilience simulation, and safety boundaries.</div>
   </a>
   <a href="/gateway-protocol" class="card-item">
     <div class="card-title">Gateway Protocol</div>

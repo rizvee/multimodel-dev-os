@@ -25,4 +25,12 @@ describe('gateway runtime body reader', () => {
     await expect(readJsonBody(request('{"too":"large"}'), { request_id: 'req' }, { request_size_limit_bytes: 2, request_timeout_ms: 1000 })).rejects.toThrow();
     await expect(readJsonBody(request('x', { 'content-type': 'text/plain' }), { request_id: 'req' }, { request_size_limit_bytes: 100, request_timeout_ms: 1000 })).rejects.toThrow();
   });
+
+  it('rejects malformed content-length headers before reading', async () => {
+    const config = { request_size_limit_bytes: 100, request_timeout_ms: 1000 };
+
+    await expect(readJsonBody(request('{"ok":true}', { 'content-type': 'application/json', 'content-length': '-1' }), { request_id: 'req' }, config)).rejects.toThrow();
+    await expect(readJsonBody(request('{"ok":true}', { 'content-type': 'application/json', 'content-length': '1.5' }), { request_id: 'req' }, config)).rejects.toThrow();
+    await expect(readJsonBody(request('{"ok":true}', { 'content-type': 'application/json', 'content-length': '12x' }), { request_id: 'req' }, config)).rejects.toThrow();
+  });
 });

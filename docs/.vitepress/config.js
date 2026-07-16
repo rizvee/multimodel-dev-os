@@ -102,6 +102,7 @@ export default {
         items: [
           { text: 'Gateway Architecture', link: '/gateway-architecture' },
           { text: 'Gateway Protocol', link: '/gateway-protocol' },
+          { text: 'Gateway OpenAI Compatibility', link: '/gateway-openai-compatibility' },
           { text: 'Gateway Runtime Registry', link: '/gateway-runtime-registry' },
           { text: 'Gateway Routing Engine', link: '/gateway-routing-engine' },
           { text: 'Gateway Routing Strategies', link: '/gateway-routing-strategies' },
@@ -124,6 +125,7 @@ export default {
           { text: 'Gateway Observability Security', link: '/gateway-observability-security' },
           { text: 'Gateway Client Integrations', link: '/gateway-client-integrations' },
           { text: 'Gateway Client Compatibility', link: '/gateway-client-compatibility' },
+          { text: 'Gateway Client Compatibility Matrix', link: '/gateway-client-compatibility-matrix' },
           { text: 'Gateway Client Configuration', link: '/gateway-client-configuration' },
           { text: 'Gateway Codex', link: '/gateway-codex' },
           { text: 'Gateway Claude Code', link: '/gateway-claude-code' },
@@ -135,7 +137,10 @@ export default {
           { text: 'Gateway MCP', link: '/gateway-mcp' },
           { text: 'Gateway Custom Clients', link: '/gateway-custom-clients' },
           { text: 'Provider Adapter Contract', link: '/provider-adapter-contract' },
+          { text: 'Gateway API Reference', link: '/gateway-api-reference' },
           { text: 'Gateway Security Model', link: '/gateway-security-model' },
+          { text: 'v4.2 Known Limitations', link: '/v4.2-known-limitations' },
+          { text: 'v4.2 Release Readiness', link: '/v4.2-release-readiness' },
           { text: 'v4.2 Gateway Planning', link: '/v4.2-planning' }
         ]
       },
@@ -254,6 +259,8 @@ export default {
           { text: 'Future AI OS Roadmap', link: '/future-ai-os-roadmap' },
           { text: 'v4.1 Skill OS Plan', link: '/v4.1-skill-os-foundation-plan' },
           { text: 'v4.2 Gateway Planning', link: '/v4.2-planning' },
+          { text: 'v4.2 Known Limitations', link: '/v4.2-known-limitations' },
+          { text: 'v4.2 Release Readiness', link: '/v4.2-release-readiness' },
           { text: 'CLI Roadmap', link: '/cli-roadmap' },
           { text: 'v3 Roadmap', link: '/v3-roadmap' },
           { text: 'v3.5.0 Release Readiness', link: '/v3.5.0-readiness' },

@@ -20,4 +20,10 @@ describe('gateway runtime config', () => {
     expect(validateGatewayRuntimeConfig({ host: '192.168.1.5', allow_remote_binding: true, auth_mode: 'bearer-token' }).success).toBe(false);
     expect(validateGatewayRuntimeConfig({ host: '192.168.1.5', allow_remote_binding: true, auth_mode: 'bearer-token', auth_token: 'test-token' }).success).toBe(true);
   });
+
+  it('rejects blank and oversized bearer-token configuration', () => {
+    expect(validateGatewayRuntimeConfig({ auth_mode: 'bearer-token', auth_token: '   ' }).success).toBe(false);
+    expect(validateGatewayRuntimeConfig({ auth_mode: 'bearer-token', auth_token: 'x'.repeat(5000) }).success).toBe(false);
+    expect(normalizeGatewayRuntimeConfig({ auth_mode: 'bearer-token', auth_token: '  test-token  ' }).auth_token).toBe('test-token');
+  });
 });

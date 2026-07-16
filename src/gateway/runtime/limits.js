@@ -44,11 +44,12 @@ function boundedInteger(value, fallback, { min = 0, max = 3600000 } = {}) {
 
 export function normalizeGatewayRuntimeConfig(config = {}) {
   const source = { ...DEFAULT_GATEWAY_RUNTIME_CONFIG, ...(config || {}) };
+  const authToken = typeof source.auth_token === 'string' ? source.auth_token.trim() : '';
   return {
     host: String(source.host || DEFAULT_GATEWAY_RUNTIME_CONFIG.host),
     port: boundedInteger(source.port, DEFAULT_GATEWAY_RUNTIME_CONFIG.port, { min: 0, max: 65535 }),
     auth_mode: ['none-localhost-only', 'bearer-token'].includes(source.auth_mode) ? source.auth_mode : DEFAULT_GATEWAY_RUNTIME_CONFIG.auth_mode,
-    auth_token: typeof source.auth_token === 'string' && source.auth_token.length > 0 ? source.auth_token : null,
+    auth_token: authToken.length > 0 && authToken.length <= 4096 ? authToken : null,
     request_size_limit_bytes: boundedInteger(source.request_size_limit_bytes, DEFAULT_GATEWAY_RUNTIME_CONFIG.request_size_limit_bytes, { min: 1 }),
     request_timeout_ms: boundedInteger(source.request_timeout_ms, DEFAULT_GATEWAY_RUNTIME_CONFIG.request_timeout_ms, { min: 1 }),
     stream_idle_timeout_ms: boundedInteger(source.stream_idle_timeout_ms, DEFAULT_GATEWAY_RUNTIME_CONFIG.stream_idle_timeout_ms, { min: 1 }),

@@ -47,7 +47,7 @@ The GitHub release should remain draft until npmjs confirms the version is publi
 - The optional GitHub Packages mirror workflow has completed; package visibility and access are controlled by GitHub Packages settings.
 - v4.1.0 provides declarative Skill OS metadata, validation, documentation, and read-only inspection foundations; it does not execute automation, enforce permissions at runtime, or make advisory guardrails block live commands.
 - v4.2 Gateway Foundation is under development, not released.
-- No v4.2 gateway runtime, provider execution, or multi-provider fallback exists yet.
+- v4.2 includes a localhost mock gateway runtime, but no external provider execution or live multi-provider fallback exists yet.
 - main must not be published during development.
 - npm publication remains a manual maintainer action guarded by `scripts/prepublish-guard.js`.
 

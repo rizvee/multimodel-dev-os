@@ -4,6 +4,14 @@ function isJsonContentType(value) {
   return typeof value === 'string' && value.toLowerCase().split(';')[0].trim() === 'application/json';
 }
 
+function parseDeclaredContentLength(value) {
+  if (value === undefined || value === null || value === '') return 0;
+  const raw = String(value).trim();
+  if (!/^(0|[1-9][0-9]*)$/.test(raw)) return null;
+  const parsed = Number(raw);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
 export function readJsonBody(request, context, config) {
   return new Promise((resolve, reject) => {
     if (!isJsonContentType(request.headers['content-type'])) {
@@ -17,8 +25,18 @@ export function readJsonBody(request, context, config) {
       return;
     }
 
-    const declaredLength = Number.parseInt(request.headers['content-length'] || '0', 10);
-    if (Number.isFinite(declaredLength) && declaredLength > config.request_size_limit_bytes) {
+    const declaredLength = parseDeclaredContentLength(request.headers['content-length']);
+    if (declaredLength === null) {
+      reject(createRuntimeError({
+        code: 'invalid_request',
+        message: 'Content-Length header must be a non-negative integer',
+        request_id: context.request_id,
+        status: 400,
+        cause: 'invalid_content_length',
+      }));
+      return;
+    }
+    if (declaredLength > config.request_size_limit_bytes) {
       reject(createRuntimeError({
         code: 'request_too_large',
         message: 'Request body exceeds configured size limit',

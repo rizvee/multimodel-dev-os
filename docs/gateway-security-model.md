@@ -1,6 +1,6 @@
 # Gateway Security Model
 
-v4.2 Sprint A establishes security boundaries for future gateway runtime work. It does not start a server, load provider credentials, call provider APIs, or enforce Skill OS permissions at runtime.
+v4.2 Gateway Foundation establishes security boundaries for the local mock runtime and future provider execution work. The current runtime can start a localhost-only mock gateway; it does not load provider credentials, call external provider APIs, execute live retry/fallback chains, or enforce Skill OS permissions at runtime.
 
 ## Safe Defaults
 
@@ -30,13 +30,13 @@ Gateway diagnostics and normalized errors must not include:
 - sensitive environment values
 - full prompt bodies by default
 
-Provider credentials are not bundled and are not loaded by Sprint A modules.
+Provider credentials are not bundled and are not loaded by gateway modules.
 
 ## Provider URL Safety
 
-Provider hosts are treated as security-sensitive. Sprint A validation rejects local or private provider hosts in gateway configuration until a future explicit approval path exists.
+Provider hosts are treated as security-sensitive. Metadata validation rejects unsafe protocols, embedded credentials, and local/private remote targets until a future explicit approval path exists.
 
-This is a planning and validation boundary, not a live SSRF defense for an HTTP server. Runtime SSRF protections must be implemented before live provider execution is added.
+This is metadata validation and future SSRF preparation. Runtime SSRF protections must be reviewed again before live provider execution is added.
 
 ## Runtime Registry Safety
 
@@ -120,7 +120,22 @@ Skill OS remains the control plane:
 - workflows may reference Skill OS metadata
 - validation can inspect unsafe shapes
 
-Sprint A does not enforce permissions at runtime and does not make advisory guardrails block live commands.
+The gateway does not enforce permissions at runtime and does not make advisory guardrails block live commands.
+
+## Sprint H Threat Review
+
+| Threat | Current mitigation | Residual risk | Evidence | Future action |
+|:---|:---|:---|:---|:---|
+| Remote bind exposure | Loopback default; non-local binding requires explicit auth config. | Misconfiguration can still expose the local gateway. | Runtime config tests and release-readiness verifier. | Add operator-facing warnings before any CLI startup command exists. |
+| Unauthenticated access | Localhost-only mode by default; bearer-token auth for non-local config. | Local malware can still access localhost services. | Auth unit/integration tests. | Consider opt-in token requirement even on loopback for sensitive workspaces. |
+| Bearer-token disclosure | Authorization headers are redacted and not stored in observability. | User-applied client configs could leak tokens outside this project. | Redaction tests and client preview tests. | Keep generated configs placeholder-only. |
+| Oversized or malformed requests | Bounded request size; malformed JSON and content length rejected. | Slow request attacks still depend on Node server behavior and configured timeouts. | Body-reader tests and runtime verifier. | Add connection-count limits before production use. |
+| Stream exhaustion | Stream idle and total timeouts; server cleanup on stop. | High concurrency is not production-hardened. | SSE tests and runtime smoke. | Add concurrency caps before external provider execution. |
+| SSRF through provider URLs | Registry URL validation rejects unsafe protocols, embedded credentials, and local/private remote targets. | No live provider calls exist yet; future adapters must revalidate. | Registry verifier and security docs. | Re-audit before adding real provider clients. |
+| Prompt/completion leakage | Observability omits prompt/completion content by default and redacts content-like fields. | User-supplied metadata may need review when new fields are added. | Observability tests and release-readiness verifier. | Keep metadata allowlists narrow. |
+| Unsafe client configuration | Generated plans are preview-only, workspace-relative, and token-placeholder based. | Users can manually paste unsafe config into tools. | Client verifier and compatibility docs. | Add explicit apply approval if a write API is ever introduced. |
+| Mock-provider confusion | Docs and `/v1/models` expose executable mock models only. | Users may assume external provider support from roadmap language. | Compatibility docs and docs-claim scan. | Keep known limitations linked from gateway docs. |
+| Package and supply-chain risk | Zero runtime dependencies and prepublish guard remain active. | Dev dependency issues can still affect maintainers. | `npm audit --omit=dev`, `npm ls --omit=dev`, verify package checks. | Continue release-lane audit before stable v4.2. |
 
 ## Future Runtime Requirements
 

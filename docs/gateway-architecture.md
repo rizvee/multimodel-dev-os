@@ -1,6 +1,8 @@
 # Gateway Architecture
 
-v4.2 Sprint A defines gateway architecture contracts only. MultiModel Dev OS does not start an HTTP server, call providers, load credentials, execute routing decisions, or run fallback chains in this sprint.
+v4.2 Gateway Foundation now includes contracts, runtime-readable registries, deterministic dry-run routing, resilience simulation, a localhost mock gateway runtime, preview-only client configuration, and bounded local observability.
+
+The current runtime can start a local HTTP server for the mock provider only. MultiModel Dev OS still does not call external providers, load provider credentials, execute live retry/fallback chains, or enforce Skill OS permissions at runtime.
 
 The gateway foundation is split into four planes:
 
@@ -50,11 +52,11 @@ Planned gateway responsibilities:
 - security boundaries
 - health metadata
 
-No gateway server exists yet.
+The gateway server exists for the local mock provider only. External provider execution remains excluded.
 
 ## Client Plane
 
-Future clients may include Codex, Claude Code, Cursor, Cline, Aider, Antigravity, MCP tools, and custom agents. Sprint A does not add client configuration or compatibility guarantees.
+Client profiles and preview-only configuration plans exist for common coding agents and generic clients. They do not install or execute third-party clients, write global configuration, or validate external provider execution.
 
 ## Source Layout
 
@@ -149,3 +151,5 @@ Gateway architecture work must preserve:
 - no committed provider credentials
 - no hidden provider execution
 - no runtime permission enforcement until explicitly implemented and documented
+
+See [Gateway API Reference](./gateway-api-reference.md), [Gateway OpenAI Compatibility](./gateway-openai-compatibility.md), and [v4.2 Known Limitations](./v4.2-known-limitations.md) for the current hardening snapshot.

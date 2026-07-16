@@ -212,6 +212,7 @@ Sprint G adds local, bounded, in-memory observability for the mock gateway runti
 Gateway docs:
 **[Gateway Architecture](docs/gateway-architecture.md)** |
 **[Gateway Protocol](docs/gateway-protocol.md)** |
+**[Gateway OpenAI Compatibility](docs/gateway-openai-compatibility.md)** |
 **[Gateway Runtime Registry](docs/gateway-runtime-registry.md)** |
 **[Gateway Routing Engine](docs/gateway-routing-engine.md)** |
 **[Gateway Routing Strategies](docs/gateway-routing-strategies.md)** |
@@ -233,9 +234,13 @@ Gateway docs:
 **[Gateway Audit Events](docs/gateway-audit-events.md)** |
 **[Gateway Client Integrations](docs/gateway-client-integrations.md)** |
 **[Gateway Client Compatibility](docs/gateway-client-compatibility.md)** |
+**[Gateway Client Compatibility Matrix](docs/gateway-client-compatibility-matrix.md)** |
 **[Gateway Client Configuration](docs/gateway-client-configuration.md)** |
 **[Provider Adapter Contract](docs/provider-adapter-contract.md)** |
+**[Gateway API Reference](docs/gateway-api-reference.md)** |
 **[Gateway Security Model](docs/gateway-security-model.md)** |
+**[v4.2 Known Limitations](docs/v4.2-known-limitations.md)** |
+**[v4.2 Release Readiness](docs/v4.2-release-readiness.md)** |
 **[v4.2 Gateway Planning](docs/v4.2-planning.md)**
 
 ---

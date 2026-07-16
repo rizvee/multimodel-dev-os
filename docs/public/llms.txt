@@ -1,9 +1,12 @@
-# MultiModel Dev OS (v4.0.0)
+# MultiModel Dev OS (v4.1.0 stable; v4.2 development lane)
 
 Portable, vendor-neutral workspace configuration standard for multi-agent AI pair-programming workflows.
 
-## Skill OS Foundation (v4.1 development lane)
-Skill OS adds declarative metadata for RACE+ prompts, registered skills, tool permission classes, advisory guardrails, workflow `skill_os` references, and draft-only business operator templates. The current v4.1 foundation is validation-only and read-only for inspection; it does not execute automation, enforce permissions at runtime, call external tools, send messages, or publish content.
+## Skill OS Foundation (v4.1 stable)
+Skill OS adds declarative metadata for RACE+ prompts, registered skills, tool permission classes, advisory guardrails, workflow `skill_os` references, and draft-only business operator templates. The v4.1 foundation is validation-only and read-only for inspection; it does not execute automation, enforce permissions at runtime, call external tools, send messages, or publish content.
+
+## Gateway Foundation (v4.2 development lane)
+The `main` branch is the v4.2 development lane at `4.2.0-dev.0`. It contains gateway contracts, runtime-readable provider/model registries, deterministic dry-run routing, resilience simulation, a localhost mock gateway runtime, preview-only client integration plans, and bounded in-memory observability. Only mock providers/models are executable. External providers remain metadata-only; no provider credentials are loaded; live retry/fallback remains disabled; client plans are preview-only.
 
 ## Fast Setup & Commands (Stable npm @latest)
 ```bash
@@ -115,6 +118,12 @@ npx multimodel-dev-os@latest improve log
 - **Skill OS Adoption Checklist**: https://rizvee.github.io/multimodel-dev-os/skill-os-adoption-checklist
 - **Skill OS Authoring Reference**: https://rizvee.github.io/multimodel-dev-os/skill-os-authoring-reference
 - **Business Operator Layer**: https://rizvee.github.io/multimodel-dev-os/business-operator-layer
+- **Gateway Architecture**: https://rizvee.github.io/multimodel-dev-os/gateway-architecture
+- **Gateway OpenAI Compatibility**: https://rizvee.github.io/multimodel-dev-os/gateway-openai-compatibility
+- **Gateway Client Compatibility Matrix**: https://rizvee.github.io/multimodel-dev-os/gateway-client-compatibility-matrix
+- **Gateway API Reference**: https://rizvee.github.io/multimodel-dev-os/gateway-api-reference
+- **v4.2 Known Limitations**: https://rizvee.github.io/multimodel-dev-os/v4.2-known-limitations
+- **v4.2 Release Readiness**: https://rizvee.github.io/multimodel-dev-os/v4.2-release-readiness
 
 ## Standard Templates
 - `nextjs-saas` (App Router, Prisma ORM, Stripe)

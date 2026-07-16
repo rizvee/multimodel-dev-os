@@ -6,7 +6,7 @@ v4.1 shipped the Skill OS foundation: schemas, examples, validation, read-only C
 
 v4.2 is the Gateway Foundation development lane. It realigns the roadmap toward a local-first, governed, multi-provider AI gateway while keeping v4.1 Skill OS as the control plane. The current `main` package version is `4.2.0-dev.0`; v4.2 is not released. See [v4.2 Gateway Foundation Planning](./v4.2-planning.md).
 
-Sprint A adds gateway contracts, schemas, fixtures, and docs only. No gateway runtime, provider execution, live routing, live fallback, or runtime permission enforcement exists yet.
+Sprint A itself added gateway contracts, schemas, fixtures, and docs only. It did not include gateway runtime, provider execution, live routing, live fallback, or runtime permission enforcement.
 
 Sprint B adds deterministic runtime-readable provider/model registry snapshots. These snapshots validate metadata for future routing but still do not execute providers, read credential values, probe local engines, or run routing/fallback logic.
 
@@ -19,6 +19,8 @@ Sprint E adds a localhost-only mock gateway runtime with `/health`, `/v1/models`
 Sprint F adds client and agent gateway integration planning. It introduces client profiles, localhost endpoint configuration previews, redacted diagnostics, and local mock compatibility tests. It does not install third-party clients, write global configuration, call external providers, or include API keys.
 
 Sprint G adds local mock-runtime observability: bounded in-memory events, traces, usage records, static cost estimates, metrics, and mock-provider health snapshots. It does not upload telemetry, persist logs, retain prompts/completions by default, or probe external providers.
+
+Sprint H hardens the development lane with a compatibility matrix, API reference, known limitations, release-readiness assessment, stronger auth/body validation, and a release-readiness verifier. It does not prepare a stable v4.2 release.
 
 ## Structured Prompting Layer
 
