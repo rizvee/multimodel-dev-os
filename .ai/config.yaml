@@ -35,7 +35,7 @@ orchestrator:
 # Only enable adapters for tools you use
 adapters:
   codex: false
-  antigravity: true
+  antigravity: false
   cursor: false
   claude: false
   gemini: false

@@ -1,43 +1,13 @@
 {
   "//": "Antigravity adapter settings for multimodel-dev-os",
-  "//note": "Source of truth is /AGENTS.md — this file provides IDE-level overrides",
+  "//note": "Source of truth is /AGENTS.md — this file provides IDE-level overrides only",
   "agent": {
     "preferredModel": null,
     "contextFiles": [
       "AGENTS.md",
       "MEMORY.md",
       "TASKS.md",
-      "RUNBOOK.md",
-      ".ai/context/current-state.md",
-      ".ai/context/global-rules.md"
-    ],
-    "excludePatterns": [
-      "node_modules/**",
-      "dist/**",
-      ".next/**",
-      "bin/multimodel-dev-os.js",
-      ".ai/registry-cache/**",
-      ".ai/session-logs/**"
+      "RUNBOOK.md"
     ]
-  },
-  "planning": {
-    "requireApprovalForMultiFile": true,
-    "autoRunVerification": true
-  },
-  "safety": {
-    "neverPublish": true,
-    "confirmDestructive": true,
-    "noTouchFiles": [
-      ".env",
-      ".env.local",
-      "package-lock.json",
-      "bin/multimodel-dev-os.js",
-      ".ai/registry-signing-key"
-    ]
-  },
-  "skills": {
-    "canonical": "~/.agents/skills/",
-    "projectLocal": ".ai/skills/",
-    "loadStrategy": "on-demand"
   }
 }
