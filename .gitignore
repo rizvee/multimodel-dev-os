@@ -24,6 +24,15 @@ Desktop.ini
 .codex-local/
 .antigravity-local/
 
+# Private maintainer/agent context
+.ai/context/current-state.md
+.ai/context/global-rules.md
+.ai/context/task-format.md
+.ai/context/private/
+.ai/context/local/
+.ai/context/*.local.md
+.ai/context/*-private.md
+
 # === Private AI sessions and planning ===
 **/session-logs/
 !.ai/session-logs/README.md

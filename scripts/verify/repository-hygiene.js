@@ -58,6 +58,9 @@ function checkNoTrackedForbiddenPaths(files) {
     /(^|\/)work-notes\//,
     /(^|\/)implementation-notes\//,
     /(^|\/)session-logs\/(?!README\.md$)/,
+    /(^|\/)\.ai\/context\/(current-state|global-rules|task-format)\.md$/,
+    /(^|\/)\.ai\/context\/(private|local)\//,
+    /(^|\/)\.ai\/context\/.*(local|-private)\.md$/,
     /(^|\/)\.env($|\.)/,
     /(^|\/)\.npmrc$/,
     /(^|\/)\.ai\/registry-signing-key$/,
@@ -120,7 +123,11 @@ function checkWorkflowTellPhrases(files) {
     /stop and report/i,
     /chain of thought/i,
     /raw chat transcript/i,
-    /agent transcript/i
+    /agent transcript/i,
+    /Last Verified\s*:/i,
+    /Agent\s*:\s*Antigravity/i,
+    /Session\s*:\s*Antigravity/i,
+    /~\/\.agents\/skills\//i
   ];
   const allowedFiles = new Set([
     'scripts/verify/repository-hygiene.js'
@@ -174,6 +181,9 @@ function checkNpmPackHygiene() {
     file.includes('.release/') ||
     file.includes('.local-ai/') ||
     file.includes('.ai-private/') ||
+    file.includes('.ai/context/current-state.md') ||
+    file.includes('.ai/context/global-rules.md') ||
+    file.includes('.ai/context/task-format.md') ||
     /(^|\/)session-logs\/(?!README\.md$)/.test(file) ||
     /(^|\/)(chat-export|conversation-export|codex-transcript|agent-transcript|pasted-chat)/i.test(file) ||
     file.endsWith('.pid') ||
