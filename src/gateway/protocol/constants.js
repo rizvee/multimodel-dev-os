@@ -119,3 +119,35 @@ export const DEFAULT_GATEWAY_CONFIG = Object.freeze({
 });
 
 export const SENSITIVE_KEY_PATTERN = /(api[_-]?key|authorization|token|secret|credential|password|cookie)/i;
+
+export const EXECUTION_STATES = [
+  'pending',
+  'executing',
+  'completed',
+  'failed',
+  'cancelled',
+  'timed_out',
+];
+
+export const CREDENTIAL_SOURCES = [
+  'environment',
+];
+
+export const ALLOWED_TRANSPORT_HEADERS = [
+  'authorization',
+  'content-type',
+  'user-agent',
+  'accept',
+];
+
+export const EXECUTION_PROTOCOLS = [
+  'https',
+];
+
+export const EXECUTION_DEFAULTS = Object.freeze({
+  timeout_ms: 60000,
+  max_response_bytes: 10485760,
+  stream: false,
+  follow_redirects: false,
+  ssrf_check_required: true,
+});

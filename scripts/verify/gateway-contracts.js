@@ -2,11 +2,20 @@ import { existsSync, readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import {
   createChatCompletionResponse,
+  createCredentialRef,
+  createExecutionRequest,
+  createExecutionResult,
+  createProviderEndpoint,
   DEFAULT_GATEWAY_CONFIG,
+  EXECUTION_DEFAULTS,
+  validateCredentialRef,
+  validateExecutionRequest,
+  validateExecutionResult,
   validateGatewayConfig,
   validateGatewayRequest,
   validateGatewayResponse,
   validateProviderAdapter,
+  validateProviderEndpoint,
 } from '../../src/gateway/index.js';
 import { mockProvider } from '../../tests/fixtures/gateway/mock-provider.js';
 import { stats, GREEN, RED, NC, projectRoot } from './utils.js';
@@ -86,6 +95,10 @@ export function checkGatewayContracts() {
     'src/gateway/contracts/routing-request.js',
     'src/gateway/contracts/route-decision.js',
     'src/gateway/contracts/usage.js',
+    'src/gateway/contracts/execution-request.js',
+    'src/gateway/contracts/execution-result.js',
+    'src/gateway/contracts/credential-ref.js',
+    'src/gateway/contracts/provider-endpoint.js',
     'src/gateway/contracts/config.js',
     'src/gateway/index.js',
   ];
@@ -106,6 +119,11 @@ export function checkGatewayContracts() {
     'tests/fixtures/gateway/valid-routing-request.json',
     'tests/fixtures/gateway/valid-route-decision.json',
     'tests/fixtures/gateway/normalized-errors.json',
+    'tests/fixtures/gateway/valid-execution-request.json',
+    'tests/fixtures/gateway/valid-execution-result.json',
+    'tests/fixtures/gateway/invalid-execution-request.json',
+    'tests/fixtures/gateway/valid-credential-ref.json',
+    'tests/fixtures/gateway/valid-provider-endpoint.json',
   ];
 
   checkFilesExist(sourceFiles, 'Gateway contract source files exist');
@@ -172,5 +190,66 @@ export function checkGatewayContracts() {
     pass('No runtime dependencies added for gateway contracts');
   } else {
     fail('Runtime dependencies were added');
+  }
+
+  // Sprint A: Execution contract validators
+  const credRef = createCredentialRef({ env_var: 'OPENAI_API_KEY' });
+  const credResult = validateCredentialRef(credRef);
+  if (credResult.success) {
+    pass('Credential reference validator accepts valid ref');
+  } else {
+    fail(`Credential reference validator: ${credResult.errors.map((e) => e.message).join('; ')}`);
+  }
+
+  const endpoint = createProviderEndpoint({ url: 'https://api.openai.com/v1/chat/completions' });
+  const endpointResult = validateProviderEndpoint(endpoint);
+  if (endpointResult.success) {
+    pass('Provider endpoint validator accepts valid HTTPS endpoint');
+  } else {
+    fail(`Provider endpoint validator: ${endpointResult.errors.map((e) => e.message).join('; ')}`);
+  }
+
+  const httpEndpointResult = validateProviderEndpoint({ url: 'http://insecure.example.com', follow_redirects: false, ssrf_check_required: true });
+  if (!httpEndpointResult.success) {
+    pass('Provider endpoint validator rejects HTTP endpoints');
+  } else {
+    fail('Provider endpoint validator should reject HTTP endpoints');
+  }
+
+  const execReq = readJson('tests/fixtures/gateway/valid-execution-request.json');
+  const execReqResult = validateExecutionRequest(execReq);
+  if (execReqResult.success) {
+    pass('Execution request validator accepts valid fixture');
+  } else {
+    fail(`Execution request validator: ${execReqResult.errors.map((e) => e.message).join('; ')}`);
+  }
+
+  const execRes = readJson('tests/fixtures/gateway/valid-execution-result.json');
+  const execResResult = validateExecutionResult(execRes);
+  if (execResResult.success) {
+    pass('Execution result validator accepts valid fixture');
+  } else {
+    fail(`Execution result validator: ${execResResult.errors.map((e) => e.message).join('; ')}`);
+  }
+
+  const pendingResult = createExecutionResult({ request_id: 'r', provider_id: 'p', model_id: 'm' });
+  if (pendingResult.redacted === true) {
+    pass('Execution results are always marked redacted');
+  } else {
+    fail('Execution results must always be marked redacted');
+  }
+
+  if (EXECUTION_DEFAULTS.follow_redirects === false && EXECUTION_DEFAULTS.ssrf_check_required === true) {
+    pass('Execution defaults enforce no-redirect and SSRF check');
+  } else {
+    fail('Execution defaults must enforce no-redirect and SSRF check');
+  }
+
+  const invalidExecReq = readJson('tests/fixtures/gateway/invalid-execution-request.json');
+  const invalidExecReqResult = validateExecutionRequest(invalidExecReq);
+  if (!invalidExecReqResult.success && invalidExecReqResult.errors.length >= 3) {
+    pass('Execution request validator rejects invalid fixture with multiple errors');
+  } else {
+    fail('Execution request validator should reject invalid fixture');
   }
 }

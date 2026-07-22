@@ -1,0 +1,7 @@
+{
+  "url": "https://api.openai.com/v1/chat/completions",
+  "protocol": "https",
+  "headers_allowlist": ["authorization", "content-type", "user-agent", "accept"],
+  "follow_redirects": false,
+  "ssrf_check_required": true
+}

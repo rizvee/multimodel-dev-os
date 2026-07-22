@@ -1,6 +1,6 @@
 # Gateway Security Model
 
-v4.2 Gateway Foundation establishes security boundaries for the local mock runtime and future provider execution work. The current runtime can start a localhost-only mock gateway; it does not load provider credentials, call external provider APIs, execute live retry/fallback chains, or enforce Skill OS permissions at runtime.
+MultiModel Dev OS v4.2 Gateway Foundation established safe defaults, mock runtime boundaries, and bounded observability. v4.3 Sprint A extends this model with formal **Execution Contracts and Security Boundaries** (`src/gateway/contracts/execution-request.js`, `execution-result.js`, `credential-ref.js`, `provider-endpoint.js`). Outbound execution remains contract-only in Sprint A: network requests do not run, credentials are not read, and no live sockets are opened.
 
 ## Safe Defaults
 

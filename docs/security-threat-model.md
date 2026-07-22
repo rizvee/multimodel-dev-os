@@ -6,21 +6,19 @@ This document outlines the security architecture, threat model using the STRIDE 
 
 ## Gateway Security Scope
 
-v4.2 Gateway Foundation now includes a localhost mock gateway runtime, deterministic dry-run routing, resilience simulation, preview-only client plans, and bounded local observability. External providers remain metadata-only: no external provider calls are made, no provider credentials are loaded, and live retry/fallback chains do not run.
+v4.2 Gateway Foundation established a localhost mock gateway runtime, dry-run routing, resilience simulation, preview-only client plans, and bounded observability.
 
-The gateway security model is documented separately in [Gateway Security Model](./gateway-security-model.md). The key v4.2 boundaries are:
+v4.3 Sprint A extends this baseline by defining formal **Execution Contracts and Threat Boundaries** (`src/gateway/contracts/execution-request.js`, `execution-result.js`, `credential-ref.js`, `provider-endpoint.js`). Outbound execution remains contract-only in Sprint A: no network sockets are opened, credentials are not read from the environment, and provider HTTP calls do not execute.
 
-- localhost-first configuration defaults
-- prompt redaction by default
-- normalized errors that redact sensitive details
-- provider host validation for future SSRF mitigation
-- mock-only executable runtime
-- bounded, redacted, in-memory observability
-- preview-only client configuration
-- no committed provider credentials
-- no runtime permission enforcement until explicitly implemented
+The key gateway boundaries and threat controls are:
 
-Future gateway runtime work must extend this threat model before live provider execution is added.
+- **Localhost & Loopback Defaults**: Binding remains `127.0.0.1` by default.
+- **Strict HTTPS Enforcement**: Provider endpoints must use `https://`. Insecure `http://` endpoints are rejected.
+- **SSRF Mitigation**: Private IP addresses (RFC 1918, loopback, link-local) and embedded credentials in URLs are rejected by contract validators.
+- **Zero Redirect Policy**: `follow_redirects` is hardcoded to `false` for provider endpoints.
+- **Environment Credential References**: Credentials reference environment variable names (`credential_ref.env_var`) only. Raw secret values in contract objects trigger validation errors.
+- **Mandatory Redaction**: Execution results require `redacted: true`.
+- **Zero Runtime Dependencies**: All validators rely strictly on Node.js standard library and native gateway protocol primitives.
 
 ---
 

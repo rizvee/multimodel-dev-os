@@ -1,14 +1,19 @@
 import {
+  ALLOWED_TRANSPORT_HEADERS,
   CHAT_MESSAGE_ROLES,
   CHAT_REQUEST_FIELDS,
   COST_PREFERENCES,
+  CREDENTIAL_SOURCES,
   DEFAULT_GATEWAY_CONFIG,
   ERROR_CODES,
+  EXECUTION_PROTOCOLS,
+  EXECUTION_STATES,
   LATENCY_PREFERENCES,
   PRIVACY_POLICIES,
   PROVIDER_CAPABILITIES,
   PROVIDER_TYPES,
   ROUTING_STRATEGIES,
+  SENSITIVE_KEY_PATTERN,
 } from './constants.js';
 
 function createResult(value = null) {
@@ -401,5 +406,175 @@ export function validateGatewayErrorShape(errorResponse) {
   if (!isString(error.type)) addError(result, 'invalid_request', 'error.type', 'error.type must be a string');
   if (!Number.isInteger(error.status)) addError(result, 'invalid_request', 'error.status', 'error.status must be an integer');
   if (typeof error.retryable !== 'boolean') addError(result, 'invalid_request', 'error.retryable', 'error.retryable must be a boolean');
+  return result;
+}
+
+export function validateCredentialRef(ref) {
+  const result = createResult(ref);
+  if (!isObject(ref)) {
+    addError(result, 'authentication_required', '$', 'credential reference must be an object');
+    return result;
+  }
+  if (!CREDENTIAL_SOURCES.includes(ref.source)) {
+    addError(result, 'authentication_required', 'source', `source must be one of: ${CREDENTIAL_SOURCES.join(', ')}`);
+  }
+  if (!isString(ref.env_var)) {
+    addError(result, 'authentication_required', 'env_var', 'env_var must be a non-empty string');
+  } else {
+    if (SENSITIVE_KEY_PATTERN.test(ref.env_var) && ref.env_var.length > 64) {
+      addError(result, 'policy_denied', 'env_var', 'env_var appears to contain an actual secret value instead of a variable name');
+    }
+    if (ref.env_var.includes('=') || ref.env_var.includes(' ')) {
+      addError(result, 'policy_denied', 'env_var', 'env_var must be a variable name without spaces or assignment operators');
+    }
+  }
+  if (ref.required !== undefined && typeof ref.required !== 'boolean') {
+    addError(result, 'invalid_request', 'required', 'required must be a boolean');
+  }
+  return result;
+}
+
+export function validateProviderEndpoint(endpoint) {
+  const result = createResult(endpoint);
+  if (!isObject(endpoint)) {
+    addError(result, 'configuration_error', '$', 'provider endpoint must be an object');
+    return result;
+  }
+  if (!isString(endpoint.url)) {
+    addError(result, 'configuration_error', 'url', 'url must be a non-empty string');
+  } else {
+    let parsed;
+    try {
+      parsed = new URL(endpoint.url);
+    } catch {
+      addError(result, 'configuration_error', 'url', 'url must be a valid URL');
+    }
+    if (parsed) {
+      if (!EXECUTION_PROTOCOLS.includes(parsed.protocol.replace(':', ''))) {
+        addError(result, 'policy_denied', 'url', `url protocol must be one of: ${EXECUTION_PROTOCOLS.join(', ')}`);
+      }
+      if (parsed.username || parsed.password) {
+        addError(result, 'policy_denied', 'url', 'url must not contain embedded credentials');
+      }
+      if (isPrivateOrLocalHost(parsed.hostname)) {
+        addError(result, 'policy_denied', 'url', 'url must not target private or local network addresses');
+      }
+    }
+  }
+  if (endpoint.protocol !== undefined && !EXECUTION_PROTOCOLS.includes(endpoint.protocol)) {
+    addError(result, 'policy_denied', 'protocol', `protocol must be one of: ${EXECUTION_PROTOCOLS.join(', ')}`);
+  }
+  if (endpoint.headers_allowlist !== undefined) {
+    if (!Array.isArray(endpoint.headers_allowlist)) {
+      addError(result, 'configuration_error', 'headers_allowlist', 'headers_allowlist must be an array');
+    } else {
+      for (const [index, header] of endpoint.headers_allowlist.entries()) {
+        if (!ALLOWED_TRANSPORT_HEADERS.includes(header)) {
+          addError(result, 'policy_denied', `headers_allowlist[${index}]`, `header "${header}" is not in the transport allowlist`);
+        }
+      }
+    }
+  }
+  if (endpoint.follow_redirects !== undefined && endpoint.follow_redirects !== false) {
+    addError(result, 'policy_denied', 'follow_redirects', 'follow_redirects must be false for security');
+  }
+  if (endpoint.ssrf_check_required !== undefined && endpoint.ssrf_check_required !== true) {
+    addError(result, 'policy_denied', 'ssrf_check_required', 'ssrf_check_required must be true');
+  }
+  return result;
+}
+
+export function validateExecutionRequest(request) {
+  const result = createResult(request);
+  if (!isObject(request)) {
+    addError(result, 'invalid_request', '$', 'execution request must be an object');
+    return result;
+  }
+  if (!isString(request.request_id)) {
+    addError(result, 'invalid_request', 'request_id', 'request_id must be a non-empty string');
+  }
+  if (!isString(request.provider_id)) {
+    addError(result, 'invalid_request', 'provider_id', 'provider_id must be a non-empty string');
+  }
+  if (!isString(request.model_id)) {
+    addError(result, 'invalid_request', 'model_id', 'model_id must be a non-empty string');
+  }
+  if (!isObject(request.gateway_request)) {
+    addError(result, 'invalid_request', 'gateway_request', 'gateway_request must be an object');
+  }
+  if (request.credential_ref !== undefined && request.credential_ref !== null) {
+    const credResult = validateCredentialRef(request.credential_ref);
+    for (const error of credResult.errors) {
+      addError(result, error.code, `credential_ref.${error.path}`, error.message);
+    }
+  }
+  if (request.endpoint !== undefined && request.endpoint !== null) {
+    const epResult = validateProviderEndpoint(request.endpoint);
+    for (const error of epResult.errors) {
+      addError(result, error.code, `endpoint.${error.path}`, error.message);
+    }
+  }
+  if (request.options !== undefined) {
+    if (!isObject(request.options)) {
+      addError(result, 'invalid_request', 'options', 'options must be an object');
+    } else {
+      if (request.options.timeout_ms !== undefined && (!Number.isInteger(request.options.timeout_ms) || request.options.timeout_ms <= 0)) {
+        addError(result, 'invalid_request', 'options.timeout_ms', 'timeout_ms must be a positive integer');
+      }
+      if (request.options.max_response_bytes !== undefined && (!Number.isInteger(request.options.max_response_bytes) || request.options.max_response_bytes <= 0)) {
+        addError(result, 'invalid_request', 'options.max_response_bytes', 'max_response_bytes must be a positive integer');
+      }
+      if (request.options.stream !== undefined && typeof request.options.stream !== 'boolean') {
+        addError(result, 'invalid_request', 'options.stream', 'stream must be a boolean');
+      }
+      if (request.options.follow_redirects !== undefined && request.options.follow_redirects !== false) {
+        addError(result, 'policy_denied', 'options.follow_redirects', 'follow_redirects must be false for security');
+      }
+    }
+  }
+  validateMetadata(request.metadata, result);
+  return result;
+}
+
+export function validateExecutionResult(executionResult) {
+  const result = createResult(executionResult);
+  if (!isObject(executionResult)) {
+    addError(result, 'invalid_request', '$', 'execution result must be an object');
+    return result;
+  }
+  if (!isString(executionResult.request_id)) {
+    addError(result, 'invalid_request', 'request_id', 'request_id must be a non-empty string');
+  }
+  if (!isString(executionResult.provider_id)) {
+    addError(result, 'invalid_request', 'provider_id', 'provider_id must be a non-empty string');
+  }
+  if (!isString(executionResult.model_id)) {
+    addError(result, 'invalid_request', 'model_id', 'model_id must be a non-empty string');
+  }
+  if (!EXECUTION_STATES.includes(executionResult.state)) {
+    addError(result, 'invalid_request', 'state', `state must be one of: ${EXECUTION_STATES.join(', ')}`);
+  }
+  if (executionResult.state === 'completed' && !isObject(executionResult.gateway_response)) {
+    addError(result, 'invalid_request', 'gateway_response', 'gateway_response is required when state is completed');
+  }
+  if (executionResult.state === 'failed' && !isObject(executionResult.error)) {
+    addError(result, 'invalid_request', 'error', 'error is required when state is failed');
+  }
+  if (executionResult.timing !== undefined) {
+    if (!isObject(executionResult.timing)) {
+      addError(result, 'invalid_request', 'timing', 'timing must be an object');
+    } else {
+      for (const field of ['started_at', 'completed_at', 'duration_ms']) {
+        const value = executionResult.timing[field];
+        if (value !== undefined && value !== null && (!isNumber(value) || value < 0)) {
+          addError(result, 'invalid_request', `timing.${field}`, `${field} must be null or a non-negative number`);
+        }
+      }
+    }
+  }
+  if (executionResult.redacted !== true) {
+    addError(result, 'policy_denied', 'redacted', 'redacted must be true on execution results');
+  }
+  validateMetadata(executionResult.metadata, result);
   return result;
 }

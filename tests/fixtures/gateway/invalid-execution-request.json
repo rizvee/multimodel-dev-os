@@ -1,0 +1,12 @@
+{
+  "request_id": "exec-req-002",
+  "provider_id": "",
+  "model_id": "mock-chat",
+  "gateway_request": "not-an-object",
+  "endpoint": {
+    "url": "http://api.openai.com/v1/chat/completions",
+    "protocol": "http",
+    "follow_redirects": true
+  },
+  "metadata": {}
+}
