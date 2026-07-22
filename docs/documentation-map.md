@@ -108,14 +108,16 @@ Synchronize instructions across AI coding tools and editor plugins:
 
 ---
 
-## 8. Security & Threat Model
+## 8. v4.3 Development & Release Planning
 
-Inspect safety boundaries, privacy guarantees, and threat mitigations:
+Track active development and long-term release roadmaps:
 
 | Developer Objective | Recommended Document | Description |
 |:---|:---|:---|
-| Gateway security boundaries | [Gateway Security Model](gateway-security-model.md) | Bounded local execution, mock isolation, and log redaction. |
-| Comprehensive threat model | [Security Threat Model](security-threat-model.md) | System threat analysis, attack vectors, and defenses. |
+| v4.3 Development Plan | [v4.3 Planning](v4.3-planning.md) | Scope lock and architecture for Governed Provider Execution. |
+| Release state tracking | [Release State](release-state.md) | Official release statuses across npm, GitHub, and dev lane. |
+| Product roadmap | [Future AI OS Roadmap](future-ai-os-roadmap.md) | Long-term product tracks and architectural vision. |
+| Threat model | [Security Threat Model](security-threat-model.md) | Security boundaries, credential policies, and SSRF guards. |
 | Guardrails & action hooks | [Hooks and Guardrails](hooks-and-guardrails.md) | Intercepting file writes and command executions. |
 
 ---

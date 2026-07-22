@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **v4.3.0 Development Lane Bootstrapped**: Opened `4.3.0-dev.0` development lane focused on the Governed Provider Execution Foundation.
+
 ## [4.2.0] - 2026-07-17
 
 ### Gateway Foundation

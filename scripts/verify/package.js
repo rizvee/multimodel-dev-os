@@ -1,25 +1,43 @@
 import { readFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import { execSync, spawnSync } from 'child_process';
-import { projectRoot, stats, RED, GREEN, YELLOW, NC, checkFile } from './utils.js';
+import { projectRoot, stats, RED, GREEN, YELLOW, NC, checkFile, EXPECTED_LANE_VERSION, validateLaneVersion } from './utils.js';
 
 export function verifyPackage() {
   console.log('\nRunning CLI & Packaging Pre-Flight Tests...');
 
-  // 1. Verify package.json version dynamically
+  // 1. Verify package.json version dynamically and strictly against lane
   let expectedVersion = '';
   try {
     const pkgData = JSON.parse(readFileSync(join(projectRoot, 'package.json'), 'utf8'));
     expectedVersion = pkgData.version;
-    if (!expectedVersion || !/^\d+\.\d+\.\d+/.test(expectedVersion)) {
-      console.error(`  ${RED}✗${NC} package.json version is invalid (found ${expectedVersion})`);
+    const laneResult = validateLaneVersion(expectedVersion);
+    if (!laneResult.valid) {
+      console.error(`  ${RED}✗${NC} package.json version error: ${laneResult.reason}`);
       stats.fail++;
     } else {
-      console.log(`  ${GREEN}✓${NC} package.json version is valid: ${expectedVersion}`);
+      console.log(`  ${GREEN}✓${NC} package.json version matches expected development lane: ${expectedVersion}`);
       stats.pass++;
     }
   } catch (e) {
     console.error(`  ${RED}✗${NC} Failed to parse package.json: ${e.message}`);
+    stats.fail++;
+  }
+
+  // 1b. Verify package-lock.json root version matches package.json
+  try {
+    const lockData = JSON.parse(readFileSync(join(projectRoot, 'package-lock.json'), 'utf8'));
+    const lockVersion = lockData.version;
+    const lockLaneResult = validateLaneVersion(lockVersion);
+    if (!lockLaneResult.valid) {
+      console.error(`  ${RED}✗${NC} package-lock.json root version error: ${lockLaneResult.reason}`);
+      stats.fail++;
+    } else {
+      console.log(`  ${GREEN}✓${NC} package-lock.json root version matches expected development lane: ${lockVersion}`);
+      stats.pass++;
+    }
+  } catch (e) {
+    console.error(`  ${RED}✗${NC} Failed to parse package-lock.json: ${e.message}`);
     stats.fail++;
   }
 
@@ -76,7 +94,29 @@ export function verifyPackage() {
       }
     }
 
-    // Test 2: Allows the current package version with MMDO_ALLOW_PUBLISH=true
+    // Test 2: Rejects prerelease 4.3.0-dev.0 when MMDO_ALLOW_PUBLISH=true is set without MMDO_ALLOW_PRERELEASE_PUBLISH
+    if (expectedVersion.includes('-')) {
+      try {
+        execSync('node scripts/prepublish-guard.js', {
+          cwd: projectRoot,
+          env: { ...process.env, MMDO_ALLOW_PUBLISH: 'true', MMDO_ALLOW_PRERELEASE_PUBLISH: undefined },
+          stdio: 'pipe'
+        });
+        console.error(`  ${RED}✗${NC} prepublish-guard should have blocked prerelease version ${expectedVersion} without MMDO_ALLOW_PRERELEASE_PUBLISH=true`);
+        stats.fail++;
+      } catch (err) {
+        const output = err.stderr ? err.stderr.toString() : '';
+        if (output.includes('Blocked publishing prerelease version')) {
+          console.log(`  ${GREEN}✓${NC} prepublish guard rejects prerelease version ${expectedVersion} without MMDO_ALLOW_PRERELEASE_PUBLISH=true`);
+          stats.pass++;
+        } else {
+          console.error(`  ${RED}✗${NC} prepublish guard failed with unexpected error on prerelease: ${output}`);
+          stats.fail++;
+        }
+      }
+    }
+
+    // Test 3: Allows the current package version with MMDO_ALLOW_PUBLISH=true and MMDO_ALLOW_PRERELEASE_PUBLISH=true
     try {
       const output = execSync('node scripts/prepublish-guard.js', { 
         cwd: projectRoot, 
@@ -88,7 +128,7 @@ export function verifyPackage() {
         encoding: 'utf8' 
       });
       if (output.includes('Prepublish guard passed')) {
-        console.log(`  ${GREEN}✓${NC} prepublish guard allows version ${expectedVersion} when MMDO_ALLOW_PUBLISH=true`);
+        console.log(`  ${GREEN}✓${NC} prepublish guard allows version ${expectedVersion} when MMDO_ALLOW_PUBLISH=true and MMDO_ALLOW_PRERELEASE_PUBLISH=true`);
         stats.pass++;
       } else {
         console.error(`  ${RED}✗${NC} prepublish guard passed but stdout missing success indicator`);
@@ -100,7 +140,7 @@ export function verifyPackage() {
       stats.fail++;
     }
 
-    // Test 3: Guard output no longer has "Only major v2" wording
+    // Test 4: Guard output no longer has "Only major v2" wording
     const guardCode = readFileSync(join(projectRoot, 'scripts', 'prepublish-guard.js'), 'utf8');
     if (guardCode.includes('Only major v2')) {
       console.error(`  ${RED}✗${NC} prepublish-guard still contains "Only major v2" wording`);
@@ -110,12 +150,12 @@ export function verifyPackage() {
       stats.pass++;
     }
 
-    // Test 4: Package.json version is exactly the prepared stable release version.
-    if (expectedVersion === '4.2.0') {
-      console.log(`  ${GREEN}✓${NC} package.json version is exactly 4.2.0`);
+    // Test 5: Package.json version matches EXPECTED_LANE_VERSION exactly
+    if (expectedVersion === EXPECTED_LANE_VERSION) {
+      console.log(`  ${GREEN}✓${NC} package.json version matches expected lane ${EXPECTED_LANE_VERSION}`);
       stats.pass++;
     } else {
-      console.error(`  ${RED}✗${NC} package.json version is not 4.2.0 (found ${expectedVersion})`);
+      console.error(`  ${RED}✗${NC} package.json version ${expectedVersion} does not match ${EXPECTED_LANE_VERSION}`);
       stats.fail++;
     }
   } catch (e) {

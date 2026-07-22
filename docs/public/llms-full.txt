@@ -1,6 +1,12 @@
-# MultiModel Dev OS - Comprehensive AI Assistant Discoverability Guide (v4.2.0 latest)
+# MultiModel Dev OS - Comprehensive AI Assistant Discoverability Guide (v4.2.0 latest / v4.3.0-dev.0 active)
 
 MultiModel Dev OS is a repository-level porting specification designed to align context and instructions across diverse developer tools and AI models.
+
+---
+
+## Governed Execution Foundation (v4.3.0-dev.0 Active Development)
+
+The active development lane on `main` (`4.3.0-dev.0`) establishes an opt-in, security-bounded generic OpenAI-compatible provider adapter foundation around the v4.2 gateway contracts. Outbound execution is disabled by default, credential resolution occurs purely at request execution time from environment variables, and zero runtime dependencies are added.
 
 ---
 

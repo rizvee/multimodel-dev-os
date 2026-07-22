@@ -57,17 +57,13 @@ The GitHub release should remain draft until npmjs confirms the version is publi
 
 ### main
 
-- main package version is `4.2.0`.
-- main must not be published as v4.0.1.
-- v4.1.0 is published on npmjs.
-- v4.2.0 is the npm latest.
-- The GitHub release for v4.1.0 is public; v4.2.0 is the current latest release.
-- The optional GitHub Packages mirror workflow has completed; package visibility and access are controlled by GitHub Packages settings.
-- v4.1.0 provides declarative Skill OS metadata, validation, documentation, and read-only inspection foundations; it does not execute automation, enforce permissions at runtime, or make advisory guardrails block live commands.
-- v4.2.0 provides the Gateway Foundation release.
-- The mock provider is the only executable provider.
-- External providers remain metadata-only.
-- Live fallback and retry execution are not enabled.
+- main package version is `4.3.0-dev.0` (Development Lane open).
+- main must not be published to npm without explicit prerelease approval.
+- v4.2.0 is the public npm latest and GitHub latest release.
+- v4.3 development scope is planned around the Governed Provider Execution Foundation.
+- Outbound provider execution remains default-disabled; mock provider is default.
+- External providers remain non-executable until explicitly enabled.
+- Live multi-provider fallback and retry remain deferred.
 - Client configurations remain preview-only.
 - Observability remains local, bounded, redacted, and in-memory.
 

@@ -179,8 +179,8 @@ export function checkGatewayResilience() {
   checkNoPattern(source, /writeFile|writeFileSync|appendFile|appendFileSync|mkdir|mkdirSync|rmSync|unlinkSync/, 'Resilience code contains no filesystem writes');
 
   const packageJson = readJson('package.json');
-  if (packageJson.version === '4.2.0') pass('Package version remains 4.2.0');
-  else fail('Package version remains 4.2.0');
+  if (packageJson.version === '4.3.0-dev.0') pass('Package version matches active development lane 4.3.0-dev.0');
+  else fail(`Package version check failed: expected 4.3.0-dev.0 but found "${packageJson.version}"`);
   if (!packageJson.dependencies || Object.keys(packageJson.dependencies).length === 0) pass('Runtime dependencies remain zero');
   else fail('Runtime dependencies remain zero');
 }

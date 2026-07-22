@@ -7,6 +7,19 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 export const projectRoot = resolve(__dirname, '..', '..');
 
+export const EXPECTED_LANE_VERSION = '4.3.0-dev.0';
+
+export function validateLaneVersion(version, expectedLane = EXPECTED_LANE_VERSION) {
+  const semverRegex = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
+  if (!version || typeof version !== 'string' || !semverRegex.test(version)) {
+    return { valid: false, reason: `Version format is invalid semver: "${version}"` };
+  }
+  if (version !== expectedLane) {
+    return { valid: false, reason: `Version "${version}" does not match expected development lane "${expectedLane}"` };
+  }
+  return { valid: true };
+}
+
 export const stats = {
   pass: 0,
   fail: 0,

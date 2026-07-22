@@ -1,4 +1,4 @@
-# MultiModel Dev OS (v4.2.0 latest)
+# MultiModel Dev OS (v4.2.0 latest / v4.3.0-dev.0 active)
 
 Portable, vendor-neutral workspace configuration standard for multi-agent AI pair-programming workflows.
 
@@ -7,6 +7,9 @@ Skill OS adds declarative metadata for RACE+ prompts, registered skills, tool pe
 
 ## Gateway Foundation (v4.2.0)
 v4.2.0 is published on npm and the public GitHub release is marked latest. It contains gateway contracts, runtime-readable provider/model registries, deterministic dry-run routing, resilience simulation, a localhost mock gateway runtime, preview-only client integration plans, and bounded in-memory observability. Only mock providers/models are executable. External providers remain metadata-only; no provider credentials are loaded; live retry/fallback remains disabled; client plans are preview-only.
+
+## Governed Execution Foundation (v4.3.0-dev.0 Active Development)
+The active development lane on `main` (`4.3.0-dev.0`) builds on the v4.2 gateway contracts to establish an opt-in, security-bounded generic OpenAI-compatible provider adapter foundation while preserving local-first defaults, zero runtime dependencies, and strict credential redaction.
 
 ## Fast Setup & Commands (Stable npm @latest)
 ```bash

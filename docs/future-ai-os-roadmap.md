@@ -2,25 +2,11 @@
 
 This roadmap outlines neutral, product-facing tracks for scaling MultiModel Dev OS into a broader AI operating layer for technical, operational, and document-heavy workflows. These tracks are directional and do not imply committed release scope.
 
-v4.1 shipped the Skill OS foundation: schemas, examples, validation, read-only CLI inspection, declarative guardrails, workflow metadata, business operator templates, and migration/adoption documentation. These features do not execute automation or enforce permissions.
+v4.1 shipped the Skill OS foundation: schemas, examples, validation, read-only CLI inspection, declarative guardrails, workflow metadata, business operator templates, and migration/adoption documentation.
 
-v4.2.0 is prepared as the Gateway Foundation release. It realigns the roadmap toward a local-first, governed, multi-provider AI gateway while keeping v4.1 Skill OS as the control plane. During preparation, v4.1.0 remains npm `latest` until manual npm publication is complete. See [v4.2 Gateway Foundation Planning](./v4.2-planning.md).
+v4.2.0 is fully released as the Gateway Foundation release on npmjs and GitHub, providing localhost mock gateway runtime, deterministic routing, resilience simulation, and local observability.
 
-Sprint A itself added gateway contracts, schemas, fixtures, and docs only. It did not include gateway runtime, provider execution, live routing, live fallback, or runtime permission enforcement.
-
-Sprint B adds deterministic runtime-readable provider/model registry snapshots. These snapshots validate metadata for future routing but still do not execute providers, read credential values, probe local engines, or run routing/fallback logic.
-
-Sprint C adds deterministic route planning and dry-run explanations over those snapshots. It still does not contact providers, execute model requests, execute fallback attempts, read credentials, tokenize prompts, or perform live pricing/latency lookups.
-
-Sprint D adds deterministic resilience planning and simulation for provider failure classification, retry budgets, backoff schedules, timeout budgets, fallback transitions, circuit-breaker state, rate-limit/quota responses, and failure-chain explanations. It still does not contact providers, perform retries, perform provider failover, wait on timeouts, persist circuit state, or read credentials.
-
-Sprint E adds a localhost-only mock gateway runtime with `/health`, `/v1/models`, and `/v1/chat/completions`. Only the mock provider is executable. External providers remain metadata-only, retry/fallback plans remain unexecuted, and no provider credentials are loaded.
-
-Sprint F adds client and agent gateway integration planning. It introduces client profiles, localhost endpoint configuration previews, redacted diagnostics, and local mock compatibility tests. It does not install third-party clients, write global configuration, call external providers, or include API keys.
-
-Sprint G adds local mock-runtime observability: bounded in-memory events, traces, usage records, static cost estimates, metrics, and mock-provider health snapshots. It does not upload telemetry, persist logs, retain prompts/completions by default, or probe external providers.
-
-Sprint H hardened the gateway foundation with a compatibility matrix, API reference, known limitations, release-readiness assessment, stronger auth/body validation, and a release-readiness verifier.
+v4.3 is in active development on `main` (`4.3.0-dev.0`). It expands the gateway foundation into a Governed Provider Execution layer while preserving zero-dependency and local-first safety guarantees. See [v4.3 Planning](./v4.3-planning.md).
 
 ## Structured Prompting Layer
 
