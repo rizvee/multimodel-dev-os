@@ -1,7 +1,7 @@
 # MultiModel Dev OS
 
 <p align="center">
-  <img src="docs/assets/readme/readme-hero.svg" alt="MultiModel Dev OS - governed workspace standard for AI coding tools" width="100%">
+  <img src="https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/docs/assets/readme/readme-hero.svg" alt="MultiModel Dev OS - governed workspace standard for AI coding tools" width="100%">
 </p>
 
 <p align="center">
@@ -20,7 +20,8 @@
 <p align="center">
   <a href="https://rizvee.github.io/multimodel-dev-os/">Documentation</a> |
   <a href="https://rizvee.github.io/multimodel-dev-os/quickstart">Quickstart</a> |
-  <a href="docs/gateway-architecture.md">Gateway architecture</a> |
+  <a href="docs/documentation-map.md">Documentation Map</a> |
+  <a href="docs/gateway-architecture.md">Gateway Architecture</a> |
   <a href="CHANGELOG.md">Changelog</a>
 </p>
 
@@ -62,13 +63,13 @@ It is designed for projects that need:
 - a clean public repository surface that stays package-safe
 
 <p align="center">
-  <img src="docs/assets/readme/readme-flow.svg" alt="How MultiModel Dev OS connects repository standards, governance, validation, adapters, and gateway foundations" width="100%">
+  <img src="https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/docs/assets/readme/readme-flow.svg" alt="How MultiModel Dev OS connects repository standards, governance, validation, adapters, and gateway foundations" width="100%">
 </p>
 
 ## What You Get
 
 <p align="center">
-  <img src="docs/assets/readme/readme-feature-cards.svg" alt="MultiModel Dev OS feature highlights: workspace standardization, Skill OS, registry trust, validation-first safety, gateway foundation, local observability" width="100%">
+  <img src="https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/docs/assets/readme/readme-feature-cards.svg" alt="MultiModel Dev OS feature highlights: workspace standardization, Skill OS, registry trust, validation-first safety, gateway foundation, local observability" width="100%">
 </p>
 
 ### Workspace Standardization
@@ -97,7 +98,7 @@ It is designed for projects that need:
 ## Safety Model
 
 <p align="center">
-  <img src="docs/assets/readme/readme-safety.svg" alt="Safety model: zero runtime dependencies, validation-first, approval-gated writes, mock-only gateway, local observability" width="100%">
+  <img src="https://raw.githubusercontent.com/rizvee/multimodel-dev-os/main/docs/assets/readme/readme-safety.svg" alt="Safety model: zero runtime dependencies, validation-first, approval-gated writes, mock-only gateway, local observability" width="100%">
 </p>
 
 MultiModel Dev OS is intentionally conservative:

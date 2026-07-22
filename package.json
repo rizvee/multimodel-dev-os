@@ -4,7 +4,7 @@
   "bin": {
     "multimodel-dev-os": "bin/multimodel-dev-os.js"
   },
-  "description": "Portable, vendor-neutral AI Dev OS for multi-agent coding workflows",
+  "description": "Portable, validation-first AI development workspace with Skill OS, multi-agent adapters, and a localhost gateway foundation.",
   "keywords": [
     "ai",
     "agents",
@@ -12,9 +12,14 @@
     "multi-agent",
     "developer-tools",
     "agents-md",
+    "skill-os",
+    "gateway",
+    "localhost",
+    "governed",
+    "zero-dependency",
     "ai-dev-os"
   ],
-  "homepage": "https://github.com/rizvee/multimodel-dev-os",
+  "homepage": "https://rizvee.github.io/multimodel-dev-os/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/rizvee/multimodel-dev-os.git"
@@ -34,6 +39,13 @@
     "TASKS.md",
     "RUNBOOK.md",
     ".ai/",
+    "!.ai/session-logs/",
+    "!.ai/intelligence/",
+    "!.ai/proposals/proposal-*.md",
+    "!.ai/proposals/apply-log.jsonl",
+    "!.ai/fine-tuning/",
+    "!.ai/registry-cache/",
+    "!.ai/registry-signing-key",
     "adapters/",
     "scripts/",
     "docs/",
