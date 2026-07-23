@@ -1,0 +1,13 @@
+{
+  "contract_version": "2026-07-15.sprint-a",
+  "chat_completions": "not-a-boolean",
+  "non_streaming": true,
+  "sse_streaming": false,
+  "usage_reporting": true,
+  "tool_calls": false,
+  "structured_output": false,
+  "system_messages": true,
+  "custom_endpoint_support": true,
+  "secret_key": "sk-12345",
+  "unknown_capability": true
+}

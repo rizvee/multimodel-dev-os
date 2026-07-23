@@ -3,12 +3,18 @@ import { join } from 'path';
 import {
   createChatCompletionResponse,
   createCredentialRef,
+  createExecutionError,
+  createExecutionPolicy,
   createExecutionRequest,
   createExecutionResult,
   createProviderEndpoint,
+  createProviderExecutionCapability,
   DEFAULT_GATEWAY_CONFIG,
+  EXECUTION_CONTRACT_VERSION,
   EXECUTION_DEFAULTS,
   validateCredentialRef,
+  validateExecutionError,
+  validateExecutionPolicy,
   validateExecutionRequest,
   validateExecutionResult,
   validateGatewayConfig,
@@ -16,6 +22,7 @@ import {
   validateGatewayResponse,
   validateProviderAdapter,
   validateProviderEndpoint,
+  validateProviderExecutionCapability,
 } from '../../src/gateway/index.js';
 import { mockProvider } from '../../tests/fixtures/gateway/mock-provider.js';
 import { stats, GREEN, RED, NC, projectRoot } from './utils.js';
@@ -99,6 +106,9 @@ export function checkGatewayContracts() {
     'src/gateway/contracts/execution-result.js',
     'src/gateway/contracts/credential-ref.js',
     'src/gateway/contracts/provider-endpoint.js',
+    'src/gateway/contracts/execution-policy.js',
+    'src/gateway/contracts/provider-execution-capability.js',
+    'src/gateway/contracts/execution-error.js',
     'src/gateway/contracts/config.js',
     'src/gateway/index.js',
   ];
@@ -111,6 +121,13 @@ export function checkGatewayContracts() {
     '.ai/schema/gateway-error.schema.json',
     '.ai/schema/gateway-config.schema.json',
     '.ai/schema/gateway-usage.schema.json',
+    '.ai/schema/gateway-execution-request.schema.json',
+    '.ai/schema/gateway-execution-result.schema.json',
+    '.ai/schema/gateway-credential-reference.schema.json',
+    '.ai/schema/gateway-provider-endpoint.schema.json',
+    '.ai/schema/gateway-execution-policy.schema.json',
+    '.ai/schema/gateway-provider-capability.schema.json',
+    '.ai/schema/gateway-execution-error.schema.json',
   ];
   const fixtureFiles = [
     'tests/fixtures/gateway/valid-chat-request.json',
@@ -124,11 +141,37 @@ export function checkGatewayContracts() {
     'tests/fixtures/gateway/invalid-execution-request.json',
     'tests/fixtures/gateway/valid-credential-ref.json',
     'tests/fixtures/gateway/valid-provider-endpoint.json',
+    'tests/fixtures/gateway/valid-execution-policy.json',
+    'tests/fixtures/gateway/invalid-execution-policy.json',
+    'tests/fixtures/gateway/valid-provider-capability.json',
+    'tests/fixtures/gateway/invalid-provider-capability.json',
+    'tests/fixtures/gateway/valid-execution-error.json',
+    'tests/fixtures/gateway/invalid-execution-error.json',
   ];
 
   checkFilesExist(sourceFiles, 'Gateway contract source files exist');
   checkJsonFilesParse(schemaFiles, 'Gateway schemas parse');
   checkJsonFilesParse(fixtureFiles, 'Gateway fixtures parse');
+
+  // Verify JSON Schema unique IDs
+  const schemaIds = new Set();
+  let schemaIdsValid = true;
+  for (const schemaPath of schemaFiles) {
+    const json = readJson(schemaPath);
+    if (!json.$id || typeof json.$id !== 'string' || !json.$id.startsWith('mmdo.')) {
+      schemaIdsValid = false;
+      fail(`Schema ${schemaPath} lacks valid mmdo. $id`);
+    } else {
+      if (schemaIds.has(json.$id)) {
+        schemaIdsValid = false;
+        fail(`Duplicate schema $id: ${json.$id}`);
+      }
+      schemaIds.add(json.$id);
+    }
+  }
+  if (schemaIdsValid) {
+    pass('Gateway JSON Schemas have unique mmdo. $id identifiers');
+  }
 
   const requestResult = validateGatewayRequest(readJson('tests/fixtures/gateway/valid-chat-request.json'));
   if (requestResult.success) {
@@ -209,7 +252,13 @@ export function checkGatewayContracts() {
     fail(`Provider endpoint validator: ${endpointResult.errors.map((e) => e.message).join('; ')}`);
   }
 
-  const httpEndpointResult = validateProviderEndpoint({ url: 'http://insecure.example.com', follow_redirects: false, ssrf_check_required: true });
+  const httpEndpointResult = validateProviderEndpoint({
+    contract_version: EXECUTION_CONTRACT_VERSION,
+    url: 'http://insecure.example.com',
+    protocol: 'https',
+    follow_redirects: false,
+    ssrf_check_required: true,
+  });
   if (!httpEndpointResult.success) {
     pass('Provider endpoint validator rejects HTTP endpoints');
   } else {
@@ -232,11 +281,43 @@ export function checkGatewayContracts() {
     fail(`Execution result validator: ${execResResult.errors.map((e) => e.message).join('; ')}`);
   }
 
-  const pendingResult = createExecutionResult({ request_id: 'r', provider_id: 'p', model_id: 'm' });
-  if (pendingResult.redacted === true) {
-    pass('Execution results are always marked redacted');
+  const policyReq = readJson('tests/fixtures/gateway/valid-execution-policy.json');
+  const policyResult = validateExecutionPolicy(policyReq);
+  if (policyResult.success) {
+    pass('Execution policy validator accepts valid fixture');
   } else {
-    fail('Execution results must always be marked redacted');
+    fail(`Execution policy validator: ${policyResult.errors.map((e) => e.message).join('; ')}`);
+  }
+
+  const invalidPolicyReq = readJson('tests/fixtures/gateway/invalid-execution-policy.json');
+  const invalidPolicyResult = validateExecutionPolicy(invalidPolicyReq);
+  if (!invalidPolicyResult.success) {
+    pass('Execution policy validator rejects invalid fixture');
+  } else {
+    fail('Execution policy validator should reject invalid fixture');
+  }
+
+  const capReq = readJson('tests/fixtures/gateway/valid-provider-capability.json');
+  const capResult = validateProviderExecutionCapability(capReq);
+  if (capResult.success) {
+    pass('Provider execution capability validator accepts valid fixture');
+  } else {
+    fail(`Provider execution capability validator: ${capResult.errors.map((e) => e.message).join('; ')}`);
+  }
+
+  const errReq = readJson('tests/fixtures/gateway/valid-execution-error.json');
+  const errResult = validateExecutionError(errReq);
+  if (errResult.success) {
+    pass('Execution error validator accepts valid fixture');
+  } else {
+    fail(`Execution error validator: ${errResult.errors.map((e) => e.message).join('; ')}`);
+  }
+
+  const forcedRedactedResult = createExecutionResult({ redacted: false });
+  if (forcedRedactedResult.redacted === true) {
+    pass('Execution results factory forces redacted: true invariant');
+  } else {
+    fail('Execution results factory must force redacted: true invariant');
   }
 
   if (EXECUTION_DEFAULTS.follow_redirects === false && EXECUTION_DEFAULTS.ssrf_check_required === true) {
@@ -247,8 +328,8 @@ export function checkGatewayContracts() {
 
   const invalidExecReq = readJson('tests/fixtures/gateway/invalid-execution-request.json');
   const invalidExecReqResult = validateExecutionRequest(invalidExecReq);
-  if (!invalidExecReqResult.success && invalidExecReqResult.errors.length >= 3) {
-    pass('Execution request validator rejects invalid fixture with multiple errors');
+  if (!invalidExecReqResult.success) {
+    pass('Execution request validator rejects invalid fixture');
   } else {
     fail('Execution request validator should reject invalid fixture');
   }

@@ -20,7 +20,41 @@ The key gateway boundaries and threat controls are:
 - **Mandatory Redaction**: Execution results require `redacted: true`.
 - **Zero Runtime Dependencies**: All validators rely strictly on Node.js standard library and native gateway protocol primitives.
 
+## Governed Provider Execution Threat Model
+
+The following matrix documents the threat model, attack scenarios, mitigations, responsible sprint, and honest implementation status for governed outbound provider execution:
+
+| Asset | Trust Boundary | Threat | Attack Scenario | Required Mitigation | Responsible Sprint | Current Status |
+|:---|:---|:---|:---|:---|:---|:---|
+| **API Credentials** | Provider Execution Engine | Credential Disclosure | Raw API key stored in object or logged | Reference environment variables only (`credential_ref.env_var`); force `redacted: true` | Sprint A / C | validator-enforced |
+| **API Credentials** | Environment Variables | Env Var Confusion | Specifying prototype or system env var (`__PROTO__`, `PATH`) | Strict regex `^[A-Z_][A-Z0-9_]{0,127}$` and prototype name rejection | Sprint A | validator-enforced |
+| **API Credentials** | Multi-Provider Routing | Cross-Provider Reuse | Reusing OpenAI key for Anthropic | Scope credential references strictly per provider ID | Sprint A / C | contract-defined |
+| **Network Endpoints** | Outbound Transport | SSRF | Target internal/private network service | Reject non-HTTPS, loopback, link-local, RFC 1918 IPs | Sprint A | validator-enforced |
+| **Network Endpoints** | DNS Resolution | DNS Rebinding | Domain resolves to public IP during validation but private IP during fetch | Re-validate IP resolution at transport layer before connect | Sprint B | planned for Sprint B |
+| **Network Endpoints** | HTTP Redirects | Redirect Policy Bypass | HTTPS endpoint redirects to HTTP or internal IP | Hardcode `follow_redirects: false` in contracts & transport | Sprint A / B | validator-enforced |
+| **Network Endpoints** | URL Parser | URL Credential Injection | Embedded `https://user:pass@host` in endpoint URL | Reject URLs with username or password component | Sprint A | validator-enforced |
+| **Network Endpoints** | Provider Registry | Malicious Custom Endpoints | Attacker configures endpoint to point to attacker-controlled server | Validate URL against provider allowlists and require HTTPS | Sprint A | validator-enforced |
+| **Network Endpoints** | Local Network | Private-Address Resolution | Endpoint targets localhost/127.0.0.1 or 10.x.x.x | Strict private/local address checks in validator | Sprint A | validator-enforced |
+| **Transport Headers** | Outbound Request | Header Injection | Injecting CR/LF or custom cookie/proxy headers | Restrict headers to `ALLOWED_TRANSPORT_HEADERS` allowlist | Sprint A | validator-enforced |
+| **Provider Identity** | Routing Engine | Host Confusion | Mismatched provider_id and endpoint domain | Validate provider_id consistency against endpoint URL | Sprint A / B | contract-defined |
+| **Gateway Memory** | Memory/Buffers | Oversized Request | Attacker submits gigabyte payload to exhaust RAM | Enforce `max_request_bytes` (<= 52MB) limit in contract & stream parser | Sprint A / B | validator-enforced |
+| **Gateway Memory** | Memory/Buffers | Oversized Response | Upstream provider returns massive response payload | Bounded `max_response_bytes` with stream buffer cut-off | Sprint A / B | validator-enforced |
+| **Gateway Sockets** | Transport Connection | Unbounded Stream | Upstream stream never sends end-of-stream signal | Enforce stream idle timeout & max duration budget | Sprint A / B | contract-defined |
+| **Gateway Thread** | Resource Allocation | Slow Upstream / Resource Exhaustion | Slowloris attack keeping connections open | Bounded connection & request timeouts (`request_timeout_ms`) | Sprint A / B | validator-enforced |
+| **SSE Parser** | Stream Parser | Malformed SSE | Malformed server-sent events crash parser | Robust SSE chunk validator & error boundary | Sprint B | planned for Sprint B |
+| **Error Diagnostics** | Error Normalization | Upstream Error-Body Leakage | Provider error response contains credentials or internal details | Normalize error shape, force `redacted: true`, reject raw response bodies | Sprint A | validator-enforced |
+| **Gateway Logs** | Observability | Log Injection | User prompt contains control characters or format specifiers | Sanitize log entries, redact prompt text by default | Sprint A | validator-enforced |
+| **Error Diagnostics** | Error Reporting | Stack Trace Leakage | Execution crash exposes local file paths & stack | Strip stack traces from `ExecutionError` contracts | Sprint A | validator-enforced |
+| **Prompts/Completions** | Observability | Prompt/Completion Retention | Logs store full prompt/completion text | Prompt redaction enabled by default (`redact_prompts: true`) | Sprint A | validator-enforced |
+| **Provider Identity** | Provider Transport | Provider Impersonation | Spoofed provider response | TLS certificate validation & strict HTTPS | Sprint B | planned for Sprint B |
+| **Execution Policy** | Local Config | Configuration Tampering | Local config enables retries or private networks without authorization | Enforce `max_attempts: 1`, `retry_enabled: false`, `fallback_enabled: false` in contract validator | Sprint A | validator-enforced |
+| **Upstream Services** | Transport Resiliency | Retry Amplification | Loops trigger rapid automated retries flooding provider | Hardcode `max_attempts: 1` and `retry_enabled: false` | Sprint A | validator-enforced |
+| **Upstream Services** | Routing Resiliency | Fallback Confusion | Fallback routes send request to unauthorized secondary provider | Enforce `fallback_enabled: false` in execution contracts | Sprint A | validator-enforced |
+| **Binary/Packages** | npm Dependency Tree | Supply-Chain Compromise | Malicious third-party package introduced via npm dependency | Maintain zero runtime dependencies policy | Sprint A | validator-enforced |
+| **Gateway Listener** | Local Network | Exposed Localhost Gateway | Gateway bound to 0.0.0.0 allowing LAN access | Default host `127.0.0.1`, reject `allow_remote_binding: true` without auth | Sprint A | validator-enforced |
+
 ---
+
 
 ## 1. Threat Scenarios & Mitigations
 

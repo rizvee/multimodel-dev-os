@@ -151,3 +151,123 @@ export const EXECUTION_DEFAULTS = Object.freeze({
   follow_redirects: false,
   ssrf_check_required: true,
 });
+
+export const EXECUTION_CONTRACT_VERSION = '2026-07-15.sprint-a';
+
+export const STRICT_ENV_VAR_REGEX = /^[A-Z_][A-Z0-9_]{0,127}$/;
+
+export const PROTOTYPE_NAMES_PATTERN = /^(?:__proto__|prototype|constructor)$/i;
+
+export const EXECUTION_ERROR_CATEGORIES = [
+  'execution_disabled',
+  'provider_not_enabled',
+  'unsupported_capability',
+  'credential_reference_invalid',
+  'credential_unavailable',
+  'endpoint_invalid',
+  'endpoint_forbidden',
+  'request_invalid',
+  'request_too_large',
+  'timeout',
+  'upstream_authentication',
+  'upstream_rate_limit',
+  'upstream_quota',
+  'upstream_client_error',
+  'upstream_server_error',
+  'upstream_protocol_error',
+  'stream_error',
+  'response_too_large',
+  'cancelled',
+  'internal_execution_error',
+];
+
+export const CREDENTIAL_REF_KEYS = [
+  'contract_version',
+  'source',
+  'env_var',
+  'required',
+];
+
+export const PROVIDER_ENDPOINT_KEYS = [
+  'contract_version',
+  'url',
+  'protocol',
+  'headers_allowlist',
+  'follow_redirects',
+  'ssrf_check_required',
+];
+
+export const EXECUTION_POLICY_KEYS = [
+  'contract_version',
+  'enabled',
+  'allowed_provider_ids',
+  'require_https',
+  'allow_private_networks',
+  'follow_redirects',
+  'max_attempts',
+  'request_timeout_ms',
+  'response_timeout_ms',
+  'max_request_bytes',
+  'max_response_bytes',
+  'fallback_enabled',
+  'retry_enabled',
+  'observability_policy_id',
+  'metadata',
+];
+
+export const PROVIDER_CAPABILITY_KEYS = [
+  'contract_version',
+  'chat_completions',
+  'non_streaming',
+  'sse_streaming',
+  'usage_reporting',
+  'tool_calls',
+  'structured_output',
+  'system_messages',
+  'custom_endpoint_support',
+  'supported_auth_schemes',
+  'metadata',
+];
+
+export const EXECUTION_REQUEST_KEYS = [
+  'contract_version',
+  'request_id',
+  'provider_id',
+  'model_id',
+  'gateway_request',
+  'credential_ref',
+  'endpoint',
+  'options',
+  'policy',
+  'capability',
+  'metadata',
+];
+
+export const EXECUTION_RESULT_KEYS = [
+  'contract_version',
+  'execution_id',
+  'request_id',
+  'provider_id',
+  'model_id',
+  'state',
+  'attempt_count',
+  'gateway_response',
+  'error',
+  'timing',
+  'usage',
+  'metadata',
+  'redacted',
+];
+
+export const EXECUTION_ERROR_KEYS = [
+  'contract_version',
+  'code',
+  'category',
+  'message',
+  'retryable',
+  'request_id',
+  'provider_id',
+  'status',
+  'details',
+  'redacted',
+];

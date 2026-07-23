@@ -1,0 +1,23 @@
+{
+  "$id": "mmdo.gateway-provider-capability",
+  "title": "Gateway Provider Capability",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "chat_completions", "non_streaming", "sse_streaming", "usage_reporting", "tool_calls", "structured_output", "system_messages", "custom_endpoint_support"],
+  "properties": {
+    "contract_version": { "type": "string", "enum": ["2026-07-15.sprint-a"] },
+    "chat_completions": { "type": "boolean" },
+    "non_streaming": { "type": "boolean" },
+    "sse_streaming": { "type": "boolean" },
+    "usage_reporting": { "type": "boolean" },
+    "tool_calls": { "type": "boolean" },
+    "structured_output": { "type": "boolean" },
+    "system_messages": { "type": "boolean" },
+    "custom_endpoint_support": { "type": "boolean" },
+    "supported_auth_schemes": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["bearer_environment_variable"] }
+    },
+    "metadata": { "type": "object" }
+  }
+}

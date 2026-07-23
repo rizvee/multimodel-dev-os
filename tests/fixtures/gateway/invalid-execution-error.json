@@ -1,0 +1,10 @@
+{
+  "contract_version": "2026-07-15.sprint-a",
+  "code": "unknown_error_code",
+  "category": "invalid",
+  "message": "Error message",
+  "retryable": "not-a-boolean",
+  "stack": "Error: stack trace at /home/user/app.js:10",
+  "raw_response": "{ \"secret\": \"1234\" }",
+  "redacted": false
+}

@@ -1,12 +1,16 @@
 {
+  "contract_version": "2026-07-15.sprint-a",
   "request_id": "exec-req-002",
   "provider_id": "",
   "model_id": "mock-chat",
   "gateway_request": "not-an-object",
   "endpoint": {
+    "contract_version": "2026-07-15.sprint-a",
     "url": "http://api.openai.com/v1/chat/completions",
     "protocol": "http",
-    "follow_redirects": true
+    "follow_redirects": true,
+    "ssrf_check_required": true
   },
+  "secret_key": "sk-12345",
   "metadata": {}
 }

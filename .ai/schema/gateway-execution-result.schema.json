@@ -1,0 +1,32 @@
+{
+  "$id": "mmdo.gateway-execution-result",
+  "title": "Gateway Execution Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "request_id", "provider_id", "model_id", "state", "redacted"],
+  "properties": {
+    "contract_version": { "type": "string", "enum": ["2026-07-15.sprint-a"] },
+    "execution_id": { "type": ["string", "null"] },
+    "request_id": { "type": "string", "minLength": 1 },
+    "provider_id": { "type": "string", "minLength": 1 },
+    "model_id": { "type": "string", "minLength": 1 },
+    "state": {
+      "type": "string",
+      "enum": ["pending", "executing", "completed", "failed", "cancelled", "timed_out"]
+    },
+    "attempt_count": { "type": "integer", "enum": [0, 1] },
+    "gateway_response": { "type": ["object", "null"] },
+    "error": { "type": ["object", "null"] },
+    "timing": {
+      "type": "object",
+      "properties": {
+        "started_at": { "type": ["number", "null"], "minimum": 0 },
+        "completed_at": { "type": ["number", "null"], "minimum": 0 },
+        "duration_ms": { "type": ["number", "null"], "minimum": 0 }
+      }
+    },
+    "usage": { "type": ["object", "null"] },
+    "metadata": { "type": "object" },
+    "redacted": { "type": "boolean", "enum": [true] }
+  }
+}

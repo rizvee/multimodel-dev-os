@@ -1,0 +1,15 @@
+{
+  "contract_version": "2026-07-15.sprint-a",
+  "chat_completions": true,
+  "non_streaming": true,
+  "sse_streaming": true,
+  "usage_reporting": true,
+  "tool_calls": true,
+  "structured_output": false,
+  "system_messages": true,
+  "custom_endpoint_support": true,
+  "supported_auth_schemes": ["bearer_environment_variable"],
+  "metadata": {
+    "fixture": true
+  }
+}

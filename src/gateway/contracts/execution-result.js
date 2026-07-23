@@ -2,13 +2,18 @@ export {
   validateExecutionResult,
 } from '../protocol/validation.js';
 
+import { EXECUTION_CONTRACT_VERSION } from '../protocol/constants.js';
+
 export function createExecutionResult(overrides = {}) {
-  const { timing, ...rest } = overrides;
+  const { redacted, contract_version, timing, ...rest } = overrides || {};
   return {
+    contract_version: EXECUTION_CONTRACT_VERSION,
+    execution_id: null,
     request_id: null,
     provider_id: null,
     model_id: null,
     state: 'pending',
+    attempt_count: 1,
     gateway_response: null,
     error: null,
     timing: {
@@ -19,7 +24,7 @@ export function createExecutionResult(overrides = {}) {
     },
     usage: null,
     metadata: {},
-    redacted: true,
     ...rest,
+    redacted: true,
   };
 }

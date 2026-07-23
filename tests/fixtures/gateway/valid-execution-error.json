@@ -1,0 +1,14 @@
+{
+  "contract_version": "2026-07-15.sprint-a",
+  "code": "upstream_rate_limit",
+  "category": "upstream_rate_limit",
+  "message": "Rate limit exceeded on upstream provider",
+  "retryable": false,
+  "request_id": "exec-req-001",
+  "provider_id": "openai-compatible",
+  "status": 429,
+  "details": {
+    "retry_after_seconds": 30
+  },
+  "redacted": true
+}

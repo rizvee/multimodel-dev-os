@@ -7,6 +7,7 @@ import {
   validateExecutionResult,
   validateProviderEndpoint,
   ALLOWED_TRANSPORT_HEADERS,
+  EXECUTION_CONTRACT_VERSION,
   EXECUTION_DEFAULTS,
 } from '../../src/gateway/index.js';
 
@@ -23,6 +24,7 @@ describe('execution security contracts', () => {
     it('rejects env_var that looks like an actual secret value', () => {
       const longSecretLikeVar = 'api_key_' + 'x'.repeat(60);
       const result = validateCredentialRef({
+        contract_version: EXECUTION_CONTRACT_VERSION,
         source: 'environment',
         env_var: longSecretLikeVar,
       });
@@ -35,7 +37,11 @@ describe('execution security contracts', () => {
 
     it('only supports environment as credential source', () => {
       for (const badSource of ['file', 'vault', 'config', 'stdin', 'inline']) {
-        const result = validateCredentialRef({ source: badSource, env_var: 'KEY' });
+        const result = validateCredentialRef({
+          contract_version: EXECUTION_CONTRACT_VERSION,
+          source: badSource,
+          env_var: 'KEY',
+        });
         expect(result.success).toBe(false);
       }
     });
@@ -50,7 +56,9 @@ describe('execution security contracts', () => {
         'file:///etc/passwd',
       ]) {
         const result = validateProviderEndpoint({
+          contract_version: EXECUTION_CONTRACT_VERSION,
           url,
+          protocol: 'https',
           follow_redirects: false,
           ssrf_check_required: true,
         });
@@ -70,7 +78,9 @@ describe('execution security contracts', () => {
       ];
       for (const url of privateIps) {
         const result = validateProviderEndpoint({
+          contract_version: EXECUTION_CONTRACT_VERSION,
           url,
+          protocol: 'https',
           follow_redirects: false,
           ssrf_check_required: true,
         });
@@ -80,7 +90,9 @@ describe('execution security contracts', () => {
 
     it('rejects embedded URL credentials', () => {
       const result = validateProviderEndpoint({
+        contract_version: EXECUTION_CONTRACT_VERSION,
         url: 'https://admin:secret@api.example.com/v1',
+        protocol: 'https',
         follow_redirects: false,
         ssrf_check_required: true,
       });
@@ -124,6 +136,7 @@ describe('execution security contracts', () => {
 
     it('validation rejects redacted=false', () => {
       const result = validateExecutionResult({
+        contract_version: EXECUTION_CONTRACT_VERSION,
         request_id: 'req-sec',
         provider_id: 'test',
         model_id: 'test-model',
@@ -140,6 +153,7 @@ describe('execution security contracts', () => {
 
     it('validation rejects missing redacted flag', () => {
       const result = validateExecutionResult({
+        contract_version: EXECUTION_CONTRACT_VERSION,
         request_id: 'req-sec',
         provider_id: 'test',
         model_id: 'test-model',

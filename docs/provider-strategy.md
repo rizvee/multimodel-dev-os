@@ -1,8 +1,9 @@
 # Provider Strategy & API Keys Reference
 
-MultiModel Dev OS supports multi-vendor API routing by centralizing provider properties, endpoints, and credentials reference schemas.
+MultiModel Dev OS defines governed execution contracts and registry schemas for multi-vendor provider endpoints and credential references.
 
 ---
+
 
 ## Provider Registry Configuration
 Configure base URLs and API environment variables in [.ai/models/providers.yaml](../.ai/models/providers.yaml):

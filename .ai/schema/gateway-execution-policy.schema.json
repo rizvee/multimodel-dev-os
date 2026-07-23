@@ -1,0 +1,27 @@
+{
+  "$id": "mmdo.gateway-execution-policy",
+  "title": "Gateway Execution Policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "enabled", "require_https", "allow_private_networks", "follow_redirects", "max_attempts", "retry_enabled", "fallback_enabled"],
+  "properties": {
+    "contract_version": { "type": "string", "enum": ["2026-07-15.sprint-a"] },
+    "enabled": { "type": "boolean" },
+    "allowed_provider_ids": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "require_https": { "type": "boolean", "enum": [true] },
+    "allow_private_networks": { "type": "boolean", "enum": [false] },
+    "follow_redirects": { "type": "boolean", "enum": [false] },
+    "max_attempts": { "type": "integer", "enum": [1] },
+    "request_timeout_ms": { "type": "integer", "minimum": 1, "maximum": 300000 },
+    "response_timeout_ms": { "type": "integer", "minimum": 1, "maximum": 300000 },
+    "max_request_bytes": { "type": "integer", "minimum": 1, "maximum": 52428800 },
+    "max_response_bytes": { "type": "integer", "minimum": 1, "maximum": 52428800 },
+    "fallback_enabled": { "type": "boolean", "enum": [false] },
+    "retry_enabled": { "type": "boolean", "enum": [false] },
+    "observability_policy_id": { "type": ["string", "null"] },
+    "metadata": { "type": "object" }
+  }
+}

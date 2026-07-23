@@ -9,6 +9,9 @@ export { createExecutionRequest, validateExecutionRequest } from './contracts/ex
 export { createExecutionResult, validateExecutionResult } from './contracts/execution-result.js';
 export { createCredentialRef, validateCredentialRef } from './contracts/credential-ref.js';
 export { createProviderEndpoint, validateProviderEndpoint } from './contracts/provider-endpoint.js';
+export { createExecutionPolicy, validateExecutionPolicy } from './contracts/execution-policy.js';
+export { createProviderExecutionCapability, validateProviderExecutionCapability } from './contracts/provider-execution-capability.js';
+export { createExecutionError, validateExecutionError } from './contracts/execution-error.js';
 export * from './registry/index.js';
 export * from './router/index.js';
 export * from './resilience/index.js';

@@ -3,18 +3,30 @@ import {
   CHAT_MESSAGE_ROLES,
   CHAT_REQUEST_FIELDS,
   COST_PREFERENCES,
+  CREDENTIAL_REF_KEYS,
   CREDENTIAL_SOURCES,
   DEFAULT_GATEWAY_CONFIG,
   ERROR_CODES,
+  EXECUTION_CONTRACT_VERSION,
+  EXECUTION_ERROR_CATEGORIES,
+  EXECUTION_ERROR_KEYS,
+  EXECUTION_POLICY_KEYS,
   EXECUTION_PROTOCOLS,
+  EXECUTION_REQUEST_KEYS,
+  EXECUTION_RESULT_KEYS,
   EXECUTION_STATES,
   LATENCY_PREFERENCES,
   PRIVACY_POLICIES,
+  PROTOTYPE_NAMES_PATTERN,
   PROVIDER_CAPABILITIES,
+  PROVIDER_CAPABILITY_KEYS,
+  PROVIDER_ENDPOINT_KEYS,
   PROVIDER_TYPES,
   ROUTING_STRATEGIES,
   SENSITIVE_KEY_PATTERN,
+  STRICT_ENV_VAR_REGEX,
 } from './constants.js';
+
 
 function createResult(value = null) {
   return {
@@ -62,8 +74,44 @@ function validateMetadata(value, result, path = 'metadata') {
   if (value === undefined || value === null) return;
   if (!isObject(value)) {
     addError(result, 'invalid_request', path, `${path} must be an object`);
+    return;
+  }
+  for (const key of Object.keys(value)) {
+    const keyPath = `${path}.${key}`;
+    if (PROTOTYPE_NAMES_PATTERN.test(key)) {
+      addError(result, 'policy_denied', keyPath, `prototype-sensitive property forbidden in metadata: ${key}`);
+    }
   }
 }
+
+
+
+function validateAllowedKeys(obj, allowedKeys, result, path = '$') {
+  if (!isObject(obj)) return;
+  for (const key of Object.keys(obj)) {
+    const keyPath = path === '$' ? key : `${path}.${key}`;
+    if (PROTOTYPE_NAMES_PATTERN.test(key)) {
+      addError(result, 'policy_denied', keyPath, `prototype-sensitive property forbidden: ${key}`);
+    } else if (!allowedKeys.includes(key)) {
+      if (SENSITIVE_KEY_PATTERN.test(key)) {
+        addError(result, 'policy_denied', keyPath, `sensitive property forbidden: ${key}`);
+      } else {
+        addError(result, 'unsupported_field', keyPath, `unsupported property: ${key}`);
+      }
+    }
+  }
+}
+
+
+function validateContractVersion(obj, result, path = 'contract_version') {
+  if (!isObject(obj)) return;
+  if (!isString(obj.contract_version)) {
+    addError(result, 'invalid_request', path, `${path} is required and must be a string`);
+  } else if (obj.contract_version !== EXECUTION_CONTRACT_VERSION) {
+    addError(result, 'invalid_request', path, `${path} must be ${EXECUTION_CONTRACT_VERSION}`);
+  }
+}
+
 
 function normalizeHost(value) {
   try {
@@ -415,17 +463,22 @@ export function validateCredentialRef(ref) {
     addError(result, 'authentication_required', '$', 'credential reference must be an object');
     return result;
   }
-  if (!CREDENTIAL_SOURCES.includes(ref.source)) {
-    addError(result, 'authentication_required', 'source', `source must be one of: ${CREDENTIAL_SOURCES.join(', ')}`);
+  validateAllowedKeys(ref, CREDENTIAL_REF_KEYS, result);
+  validateContractVersion(ref, result);
+  if (ref.source !== 'environment') {
+    addError(result, 'authentication_required', 'source', 'source must be environment');
   }
   if (!isString(ref.env_var)) {
     addError(result, 'authentication_required', 'env_var', 'env_var must be a non-empty string');
   } else {
+    if (PROTOTYPE_NAMES_PATTERN.test(ref.env_var)) {
+      addError(result, 'policy_denied', 'env_var', 'env_var cannot be prototype-sensitive name');
+    }
+    if (!STRICT_ENV_VAR_REGEX.test(ref.env_var)) {
+      addError(result, 'policy_denied', 'env_var', 'env_var must be a valid uppercase variable name (^[A-Z_][A-Z0-9_]{0,127}$)');
+    }
     if (SENSITIVE_KEY_PATTERN.test(ref.env_var) && ref.env_var.length > 64) {
       addError(result, 'policy_denied', 'env_var', 'env_var appears to contain an actual secret value instead of a variable name');
-    }
-    if (ref.env_var.includes('=') || ref.env_var.includes(' ')) {
-      addError(result, 'policy_denied', 'env_var', 'env_var must be a variable name without spaces or assignment operators');
     }
   }
   if (ref.required !== undefined && typeof ref.required !== 'boolean') {
@@ -440,6 +493,8 @@ export function validateProviderEndpoint(endpoint) {
     addError(result, 'configuration_error', '$', 'provider endpoint must be an object');
     return result;
   }
+  validateAllowedKeys(endpoint, PROVIDER_ENDPOINT_KEYS, result);
+  validateContractVersion(endpoint, result);
   if (!isString(endpoint.url)) {
     addError(result, 'configuration_error', 'url', 'url must be a non-empty string');
   } else {
@@ -461,8 +516,8 @@ export function validateProviderEndpoint(endpoint) {
       }
     }
   }
-  if (endpoint.protocol !== undefined && !EXECUTION_PROTOCOLS.includes(endpoint.protocol)) {
-    addError(result, 'policy_denied', 'protocol', `protocol must be one of: ${EXECUTION_PROTOCOLS.join(', ')}`);
+  if (endpoint.protocol !== undefined && endpoint.protocol !== 'https') {
+    addError(result, 'policy_denied', 'protocol', 'protocol must be https');
   }
   if (endpoint.headers_allowlist !== undefined) {
     if (!Array.isArray(endpoint.headers_allowlist)) {
@@ -484,12 +539,132 @@ export function validateProviderEndpoint(endpoint) {
   return result;
 }
 
+export function validateExecutionPolicy(policy) {
+  const result = createResult(policy);
+  if (!isObject(policy)) {
+    addError(result, 'configuration_error', '$', 'execution policy must be an object');
+    return result;
+  }
+  validateAllowedKeys(policy, EXECUTION_POLICY_KEYS, result);
+  validateContractVersion(policy, result);
+  if (policy.enabled !== undefined && typeof policy.enabled !== 'boolean') {
+    addError(result, 'configuration_error', 'enabled', 'enabled must be a boolean');
+  }
+  validateStringArray(policy.allowed_provider_ids, result, 'allowed_provider_ids');
+  if (policy.require_https !== undefined && policy.require_https !== true) {
+    addError(result, 'policy_denied', 'require_https', 'require_https must be true');
+  }
+  if (policy.allow_private_networks !== undefined && policy.allow_private_networks !== false) {
+    addError(result, 'policy_denied', 'allow_private_networks', 'allow_private_networks must be false');
+  }
+  if (policy.follow_redirects !== undefined && policy.follow_redirects !== false) {
+    addError(result, 'policy_denied', 'follow_redirects', 'follow_redirects must be false');
+  }
+  if (policy.max_attempts !== undefined && policy.max_attempts !== 1) {
+    addError(result, 'policy_denied', 'max_attempts', 'max_attempts must be 1 in Sprint A contract');
+  }
+  if (policy.retry_enabled !== undefined && policy.retry_enabled !== false) {
+    addError(result, 'policy_denied', 'retry_enabled', 'retry_enabled must be false in Sprint A contract');
+  }
+  if (policy.fallback_enabled !== undefined && policy.fallback_enabled !== false) {
+    addError(result, 'policy_denied', 'fallback_enabled', 'fallback_enabled must be false in Sprint A contract');
+  }
+  for (const field of ['request_timeout_ms', 'response_timeout_ms']) {
+    if (policy[field] !== undefined && (!Number.isInteger(policy[field]) || policy[field] <= 0 || policy[field] > 300000)) {
+      addError(result, 'configuration_error', field, `${field} must be a positive integer <= 300000`);
+    }
+  }
+  for (const field of ['max_request_bytes', 'max_response_bytes']) {
+    if (policy[field] !== undefined && (!Number.isInteger(policy[field]) || policy[field] <= 0 || policy[field] > 52428800)) {
+      addError(result, 'configuration_error', field, `${field} must be a positive integer <= 52428800`);
+    }
+  }
+  if (policy.observability_policy_id !== undefined && policy.observability_policy_id !== null && !isString(policy.observability_policy_id)) {
+    addError(result, 'configuration_error', 'observability_policy_id', 'observability_policy_id must be null or a string');
+  }
+  validateMetadata(policy.metadata, result);
+  return result;
+}
+
+export function validateProviderExecutionCapability(capability) {
+  const result = createResult(capability);
+  if (!isObject(capability)) {
+    addError(result, 'invalid_request', '$', 'provider execution capability must be an object');
+    return result;
+  }
+  validateAllowedKeys(capability, PROVIDER_CAPABILITY_KEYS, result);
+  validateContractVersion(capability, result);
+  for (const field of [
+    'chat_completions',
+    'non_streaming',
+    'sse_streaming',
+    'usage_reporting',
+    'tool_calls',
+    'structured_output',
+    'system_messages',
+    'custom_endpoint_support',
+  ]) {
+    if (capability[field] !== undefined && typeof capability[field] !== 'boolean') {
+      addError(result, 'invalid_request', field, `${field} must be a boolean`);
+    }
+  }
+  if (capability.supported_auth_schemes !== undefined) {
+    validateStringArray(capability.supported_auth_schemes, result, 'supported_auth_schemes');
+  }
+  validateMetadata(capability.metadata, result);
+  return result;
+}
+
+export function validateExecutionError(error) {
+  const result = createResult(error);
+  if (!isObject(error)) {
+    addError(result, 'invalid_request', '$', 'execution error must be an object');
+    return result;
+  }
+  validateAllowedKeys(error, EXECUTION_ERROR_KEYS, result);
+  validateContractVersion(error, result);
+  if (!isString(error.code) || !EXECUTION_ERROR_CATEGORIES.includes(error.code)) {
+    addError(result, 'invalid_request', 'code', `code must be one of: ${EXECUTION_ERROR_CATEGORIES.join(', ')}`);
+  }
+  if (!isString(error.category)) {
+    addError(result, 'invalid_request', 'category', 'category must be a non-empty string');
+  }
+  if (!isString(error.message)) {
+    addError(result, 'invalid_request', 'message', 'message must be a non-empty string');
+  }
+  if (typeof error.retryable !== 'boolean') {
+    addError(result, 'invalid_request', 'retryable', 'retryable must be a boolean');
+  }
+  if (error.request_id !== undefined && error.request_id !== null && !isString(error.request_id)) {
+    addError(result, 'invalid_request', 'request_id', 'request_id must be null or a string');
+  }
+  if (error.provider_id !== undefined && error.provider_id !== null && !isString(error.provider_id)) {
+    addError(result, 'invalid_request', 'provider_id', 'provider_id must be null or a string');
+  }
+  if (error.status !== undefined && error.status !== null && (!Number.isInteger(error.status) || error.status < 100 || error.status > 599)) {
+    addError(result, 'invalid_request', 'status', 'status must be null or an integer from 100 to 599');
+  }
+  if (error.details !== undefined && error.details !== null) {
+    if (!isObject(error.details)) {
+      addError(result, 'invalid_request', 'details', 'details must be an object or null');
+    } else {
+      validateMetadata(error.details, result, 'details');
+    }
+  }
+  if (error.redacted !== true) {
+    addError(result, 'policy_denied', 'redacted', 'redacted must be true on execution errors');
+  }
+  return result;
+}
+
 export function validateExecutionRequest(request) {
   const result = createResult(request);
   if (!isObject(request)) {
     addError(result, 'invalid_request', '$', 'execution request must be an object');
     return result;
   }
+  validateAllowedKeys(request, EXECUTION_REQUEST_KEYS, result);
+  validateContractVersion(request, result);
   if (!isString(request.request_id)) {
     addError(result, 'invalid_request', 'request_id', 'request_id must be a non-empty string');
   }
@@ -501,17 +676,48 @@ export function validateExecutionRequest(request) {
   }
   if (!isObject(request.gateway_request)) {
     addError(result, 'invalid_request', 'gateway_request', 'gateway_request must be an object');
+  } else {
+    const gwReqResult = validateGatewayRequest(request.gateway_request);
+    for (const err of gwReqResult.errors) {
+      addError(result, err.code, `gateway_request.${err.path}`, err.message);
+    }
+    if (gwReqResult.success && request.gateway_request.model !== request.model_id) {
+      addError(result, 'invalid_request', 'model_id', `model_id (${request.model_id}) must match gateway_request.model (${request.gateway_request.model})`);
+    }
   }
   if (request.credential_ref !== undefined && request.credential_ref !== null) {
     const credResult = validateCredentialRef(request.credential_ref);
-    for (const error of credResult.errors) {
-      addError(result, error.code, `credential_ref.${error.path}`, error.message);
+    for (const err of credResult.errors) {
+      addError(result, err.code, `credential_ref.${err.path}`, err.message);
     }
   }
   if (request.endpoint !== undefined && request.endpoint !== null) {
     const epResult = validateProviderEndpoint(request.endpoint);
-    for (const error of epResult.errors) {
-      addError(result, error.code, `endpoint.${error.path}`, error.message);
+    for (const err of epResult.errors) {
+      addError(result, err.code, `endpoint.${err.path}`, err.message);
+    }
+  }
+  if (request.policy !== undefined && request.policy !== null) {
+    const polResult = validateExecutionPolicy(request.policy);
+    for (const err of polResult.errors) {
+      addError(result, err.code, `policy.${err.path}`, err.message);
+    }
+    if (request.policy.enabled === true) {
+      if (!request.endpoint) {
+        addError(result, 'policy_denied', 'endpoint', 'endpoint is required when execution policy is enabled');
+      }
+      if (!request.credential_ref) {
+        addError(result, 'policy_denied', 'credential_ref', 'credential_ref is required when execution policy is enabled');
+      }
+    }
+  }
+  if (request.capability !== undefined && request.capability !== null) {
+    const capResult = validateProviderExecutionCapability(request.capability);
+    for (const err of capResult.errors) {
+      addError(result, err.code, `capability.${err.path}`, err.message);
+    }
+    if (request.gateway_request && request.gateway_request.stream === true && request.capability.sse_streaming !== true) {
+      addError(result, 'unsupported_capability', 'capability.sse_streaming', 'stream requested but provider capability sse_streaming is false');
     }
   }
   if (request.options !== undefined) {
@@ -542,6 +748,8 @@ export function validateExecutionResult(executionResult) {
     addError(result, 'invalid_request', '$', 'execution result must be an object');
     return result;
   }
+  validateAllowedKeys(executionResult, EXECUTION_RESULT_KEYS, result);
+  validateContractVersion(executionResult, result);
   if (!isString(executionResult.request_id)) {
     addError(result, 'invalid_request', 'request_id', 'request_id must be a non-empty string');
   }
@@ -554,13 +762,36 @@ export function validateExecutionResult(executionResult) {
   if (!EXECUTION_STATES.includes(executionResult.state)) {
     addError(result, 'invalid_request', 'state', `state must be one of: ${EXECUTION_STATES.join(', ')}`);
   }
-  if (executionResult.state === 'completed' && !isObject(executionResult.gateway_response)) {
-    addError(result, 'invalid_request', 'gateway_response', 'gateway_response is required when state is completed');
+  if (executionResult.attempt_count !== undefined && executionResult.attempt_count !== 1 && (executionResult.state !== 'pending' || executionResult.attempt_count !== 0)) {
+    addError(result, 'policy_denied', 'attempt_count', 'attempt_count must be 1');
   }
-  if (executionResult.state === 'failed' && !isObject(executionResult.error)) {
-    addError(result, 'invalid_request', 'error', 'error is required when state is failed');
+  if (executionResult.state === 'completed') {
+    if (!isObject(executionResult.gateway_response)) {
+      addError(result, 'invalid_request', 'gateway_response', 'gateway_response is required when state is completed');
+    } else {
+      const respResult = validateGatewayResponse(executionResult.gateway_response);
+      for (const err of respResult.errors) {
+        addError(result, err.code, `gateway_response.${err.path}`, err.message);
+      }
+    }
+    if (executionResult.error !== null && executionResult.error !== undefined) {
+      addError(result, 'invalid_request', 'error', 'error must be null when state is completed');
+    }
   }
-  if (executionResult.timing !== undefined) {
+  if (executionResult.state === 'failed') {
+    if (!isObject(executionResult.error)) {
+      addError(result, 'invalid_request', 'error', 'error is required when state is failed');
+    } else {
+      const errResult = validateExecutionError(executionResult.error);
+      for (const err of errResult.errors) {
+        addError(result, err.code, `error.${err.path}`, err.message);
+      }
+    }
+    if (executionResult.gateway_response !== null && executionResult.gateway_response !== undefined) {
+      addError(result, 'invalid_request', 'gateway_response', 'gateway_response must be null when state is failed');
+    }
+  }
+  if (executionResult.timing !== undefined && executionResult.timing !== null) {
     if (!isObject(executionResult.timing)) {
       addError(result, 'invalid_request', 'timing', 'timing must be an object');
     } else {
@@ -570,6 +801,21 @@ export function validateExecutionResult(executionResult) {
           addError(result, 'invalid_request', `timing.${field}`, `${field} must be null or a non-negative number`);
         }
       }
+      const { started_at, completed_at, duration_ms } = executionResult.timing;
+      if (isNumber(started_at) && isNumber(completed_at)) {
+        if (completed_at < started_at) {
+          addError(result, 'invalid_request', 'timing.completed_at', 'completed_at cannot be before started_at');
+        }
+        if (isNumber(duration_ms) && duration_ms !== (completed_at - started_at)) {
+          addError(result, 'invalid_request', 'timing.duration_ms', `duration_ms (${duration_ms}) must match completed_at - started_at (${completed_at - started_at})`);
+        }
+      }
+    }
+  }
+  if (executionResult.usage !== undefined && executionResult.usage !== null) {
+    const usageResult = validateUsage(executionResult.usage);
+    for (const err of usageResult.errors) {
+      addError(result, err.code, `usage.${err.path}`, err.message);
     }
   }
   if (executionResult.redacted !== true) {

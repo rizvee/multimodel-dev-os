@@ -1,0 +1,18 @@
+{
+  "$id": "mmdo.gateway-provider-endpoint",
+  "title": "Gateway Provider Endpoint",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "url", "protocol", "follow_redirects", "ssrf_check_required"],
+  "properties": {
+    "contract_version": { "type": "string", "enum": ["2026-07-15.sprint-a"] },
+    "url": { "type": "string", "pattern": "^https://" },
+    "protocol": { "type": "string", "enum": ["https"] },
+    "headers_allowlist": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["authorization", "content-type", "user-agent", "accept"] }
+    },
+    "follow_redirects": { "type": "boolean", "enum": [false] },
+    "ssrf_check_required": { "type": "boolean", "enum": [true] }
+  }
+}

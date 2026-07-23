@@ -1,8 +1,11 @@
 {
+  "contract_version": "2026-07-15.sprint-a",
+  "execution_id": "exec-001",
   "request_id": "exec-req-001",
   "provider_id": "mock-provider",
   "model_id": "mock-chat",
   "state": "completed",
+  "attempt_count": 1,
   "gateway_response": {
     "id": "chatcmpl-mock",
     "object": "chat.completion",

@@ -1,0 +1,43 @@
+{
+  "$id": "mmdo.gateway-execution-error",
+  "title": "Gateway Execution Error",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "code", "category", "message", "retryable", "redacted"],
+  "properties": {
+    "contract_version": { "type": "string", "enum": ["2026-07-15.sprint-a"] },
+    "code": {
+      "type": "string",
+      "enum": [
+        "execution_disabled",
+        "provider_not_enabled",
+        "unsupported_capability",
+        "credential_reference_invalid",
+        "credential_unavailable",
+        "endpoint_invalid",
+        "endpoint_forbidden",
+        "request_invalid",
+        "request_too_large",
+        "timeout",
+        "upstream_authentication",
+        "upstream_rate_limit",
+        "upstream_quota",
+        "upstream_client_error",
+        "upstream_server_error",
+        "upstream_protocol_error",
+        "stream_error",
+        "response_too_large",
+        "cancelled",
+        "internal_execution_error"
+      ]
+    },
+    "category": { "type": "string", "minLength": 1 },
+    "message": { "type": "string", "minLength": 1 },
+    "retryable": { "type": "boolean" },
+    "request_id": { "type": ["string", "null"] },
+    "provider_id": { "type": ["string", "null"] },
+    "status": { "type": ["integer", "null"], "minimum": 100, "maximum": 599 },
+    "details": { "type": ["object", "null"] },
+    "redacted": { "type": "boolean", "enum": [true] }
+  }
+}

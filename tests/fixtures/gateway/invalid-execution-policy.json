@@ -1,0 +1,12 @@
+{
+  "contract_version": "2026-07-15.sprint-a",
+  "enabled": true,
+  "allowed_provider_ids": [],
+  "require_https": false,
+  "allow_private_networks": true,
+  "follow_redirects": true,
+  "max_attempts": 3,
+  "retry_enabled": true,
+  "fallback_enabled": true,
+  "unsupported_extra_key": "forbidden"
+}
