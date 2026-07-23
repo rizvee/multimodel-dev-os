@@ -1,4 +1,5 @@
-import { DEFAULT_GATEWAY_CONFIG, GATEWAY_PROTOCOL_VERSION } from './constants.js';
+import { GATEWAY_PROTOCOL_VERSION } from './constants.js';
+import { DEFAULT_GATEWAY_CONFIG } from '../contracts/config.js';
 import { redactSensitiveValue } from './errors.js';
 
 export function normalizeGatewayRequest(request) {

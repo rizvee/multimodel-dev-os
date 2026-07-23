@@ -4,23 +4,30 @@ import {
   CHAT_REQUEST_FIELDS,
   COST_PREFERENCES,
   CREDENTIAL_REF_KEYS,
+  CREDENTIAL_REF_REQUIRED_FIELDS,
   CREDENTIAL_SOURCES,
   DEFAULT_GATEWAY_CONFIG,
   ERROR_CODES,
   EXECUTION_CONTRACT_VERSION,
   EXECUTION_ERROR_CATEGORIES,
   EXECUTION_ERROR_KEYS,
+  EXECUTION_ERROR_REQUIRED_FIELDS,
   EXECUTION_POLICY_KEYS,
+  EXECUTION_POLICY_REQUIRED_FIELDS,
   EXECUTION_PROTOCOLS,
   EXECUTION_REQUEST_KEYS,
+  EXECUTION_REQUEST_REQUIRED_FIELDS,
   EXECUTION_RESULT_KEYS,
+  EXECUTION_RESULT_REQUIRED_FIELDS,
   EXECUTION_STATES,
   LATENCY_PREFERENCES,
   PRIVACY_POLICIES,
   PROTOTYPE_NAMES_PATTERN,
   PROVIDER_CAPABILITIES,
   PROVIDER_CAPABILITY_KEYS,
+  PROVIDER_CAPABILITY_REQUIRED_FIELDS,
   PROVIDER_ENDPOINT_KEYS,
+  PROVIDER_ENDPOINT_REQUIRED_FIELDS,
   PROVIDER_TYPES,
   ROUTING_STRATEGIES,
   SENSITIVE_KEY_PATTERN,
@@ -80,6 +87,67 @@ function validateMetadata(value, result, path = 'metadata') {
     const keyPath = `${path}.${key}`;
     if (PROTOTYPE_NAMES_PATTERN.test(key)) {
       addError(result, 'policy_denied', keyPath, `prototype-sensitive property forbidden in metadata: ${key}`);
+    }
+  }
+}
+
+const EXTENDED_SENSITIVE_KEY_PATTERN =
+  /(?:api[_-]?key|apiKey|authorization|access[_-]?token|refresh[_-]?token|auth[_-]?token|bearer[_-]?token|session[_-]?token|id[_-]?token|^token$|secret|credential|password|cookie|set-cookie|private[_-]?key|client[_-]?secret|stack(?:[_-]?trace)?|raw[_-]?(?:response|headers)|(?:request|response)[_-]?headers|^environment$|^env$)/i;
+
+const ABSOLUTE_PATH_REGEX = /^(?:[a-zA-Z]:[\\\/]|\/[^\/])/;
+
+function validateRequiredFields(obj, requiredFields, result, prefix = '') {
+  if (!isObject(obj)) return;
+  for (const field of requiredFields) {
+    if (obj[field] === undefined || obj[field] === null) {
+      const fieldPath = prefix ? `${prefix}.${field}` : field;
+      addError(result, 'invalid_request', fieldPath, `${fieldPath} is required`);
+    }
+  }
+}
+
+function validateSafeMetadata(value, result, path = 'metadata', depth = 0, nodeCount = { count: 0 }) {
+  if (value === undefined || value === null) return;
+  if (depth > 10) {
+    addError(result, 'policy_denied', path, `metadata depth limit exceeded at ${path}`);
+    return;
+  }
+  nodeCount.count++;
+  if (nodeCount.count > 100) {
+    addError(result, 'policy_denied', path, `metadata node size limit exceeded at ${path}`);
+    return;
+  }
+  if (!isObject(value) && !Array.isArray(value)) {
+    if (path === 'metadata') {
+      addError(result, 'invalid_request', path, `${path} must be an object`);
+    }
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    for (const [index, item] of value.entries()) {
+      const itemPath = `${path}[${index}]`;
+      if (typeof item === 'string' && ABSOLUTE_PATH_REGEX.test(item.trim())) {
+        addError(result, 'policy_denied', itemPath, `absolute path forbidden in metadata: ${item}`);
+      } else if (isObject(item) || Array.isArray(item)) {
+        validateSafeMetadata(item, result, itemPath, depth + 1, nodeCount);
+      }
+    }
+    return;
+  }
+
+  for (const [key, val] of Object.entries(value)) {
+    const keyPath = `${path}.${key}`;
+    if (PROTOTYPE_NAMES_PATTERN.test(key)) {
+      addError(result, 'policy_denied', keyPath, `prototype-sensitive property forbidden in metadata: ${key}`);
+    } else if (EXTENDED_SENSITIVE_KEY_PATTERN.test(key)) {
+      addError(result, 'policy_denied', keyPath, `sensitive property forbidden in metadata: ${key}`);
+    } else {
+      if (typeof val === 'string' && ABSOLUTE_PATH_REGEX.test(val.trim())) {
+        addError(result, 'policy_denied', keyPath, `absolute path forbidden in metadata: ${val}`);
+      } else if (isObject(val) || Array.isArray(val)) {
+        validateSafeMetadata(val, result, keyPath, depth + 1, nodeCount);
+      }
     }
   }
 }
@@ -465,6 +533,7 @@ export function validateCredentialRef(ref) {
   }
   validateAllowedKeys(ref, CREDENTIAL_REF_KEYS, result);
   validateContractVersion(ref, result);
+  validateRequiredFields(ref, CREDENTIAL_REF_REQUIRED_FIELDS, result);
   if (ref.source !== 'environment') {
     addError(result, 'authentication_required', 'source', 'source must be environment');
   }
@@ -495,6 +564,7 @@ export function validateProviderEndpoint(endpoint) {
   }
   validateAllowedKeys(endpoint, PROVIDER_ENDPOINT_KEYS, result);
   validateContractVersion(endpoint, result);
+  validateRequiredFields(endpoint, PROVIDER_ENDPOINT_REQUIRED_FIELDS, result);
   if (!isString(endpoint.url)) {
     addError(result, 'configuration_error', 'url', 'url must be a non-empty string');
   } else {
@@ -547,6 +617,7 @@ export function validateExecutionPolicy(policy) {
   }
   validateAllowedKeys(policy, EXECUTION_POLICY_KEYS, result);
   validateContractVersion(policy, result);
+  validateRequiredFields(policy, EXECUTION_POLICY_REQUIRED_FIELDS, result);
   if (policy.enabled !== undefined && typeof policy.enabled !== 'boolean') {
     addError(result, 'configuration_error', 'enabled', 'enabled must be a boolean');
   }
@@ -582,7 +653,7 @@ export function validateExecutionPolicy(policy) {
   if (policy.observability_policy_id !== undefined && policy.observability_policy_id !== null && !isString(policy.observability_policy_id)) {
     addError(result, 'configuration_error', 'observability_policy_id', 'observability_policy_id must be null or a string');
   }
-  validateMetadata(policy.metadata, result);
+  validateSafeMetadata(policy.metadata, result);
   return result;
 }
 
@@ -594,6 +665,7 @@ export function validateProviderExecutionCapability(capability) {
   }
   validateAllowedKeys(capability, PROVIDER_CAPABILITY_KEYS, result);
   validateContractVersion(capability, result);
+  validateRequiredFields(capability, PROVIDER_CAPABILITY_REQUIRED_FIELDS, result);
   for (const field of [
     'chat_completions',
     'non_streaming',
@@ -611,7 +683,7 @@ export function validateProviderExecutionCapability(capability) {
   if (capability.supported_auth_schemes !== undefined) {
     validateStringArray(capability.supported_auth_schemes, result, 'supported_auth_schemes');
   }
-  validateMetadata(capability.metadata, result);
+  validateSafeMetadata(capability.metadata, result);
   return result;
 }
 
@@ -623,6 +695,7 @@ export function validateExecutionError(error) {
   }
   validateAllowedKeys(error, EXECUTION_ERROR_KEYS, result);
   validateContractVersion(error, result);
+  validateRequiredFields(error, EXECUTION_ERROR_REQUIRED_FIELDS, result);
   if (!isString(error.code) || !EXECUTION_ERROR_CATEGORIES.includes(error.code)) {
     addError(result, 'invalid_request', 'code', `code must be one of: ${EXECUTION_ERROR_CATEGORIES.join(', ')}`);
   }
@@ -648,7 +721,7 @@ export function validateExecutionError(error) {
     if (!isObject(error.details)) {
       addError(result, 'invalid_request', 'details', 'details must be an object or null');
     } else {
-      validateMetadata(error.details, result, 'details');
+      validateSafeMetadata(error.details, result, 'details');
     }
   }
   if (error.redacted !== true) {
@@ -665,6 +738,7 @@ export function validateExecutionRequest(request) {
   }
   validateAllowedKeys(request, EXECUTION_REQUEST_KEYS, result);
   validateContractVersion(request, result);
+  validateRequiredFields(request, EXECUTION_REQUEST_REQUIRED_FIELDS, result);
   if (!isString(request.request_id)) {
     addError(result, 'invalid_request', 'request_id', 'request_id must be a non-empty string');
   }
@@ -720,10 +794,16 @@ export function validateExecutionRequest(request) {
       addError(result, 'unsupported_capability', 'capability.sse_streaming', 'stream requested but provider capability sse_streaming is false');
     }
   }
-  if (request.options !== undefined) {
+  if (request.options !== undefined && request.options !== null) {
     if (!isObject(request.options)) {
       addError(result, 'invalid_request', 'options', 'options must be an object');
     } else {
+      const allowedOptions = ['timeout_ms', 'max_response_bytes', 'stream', 'follow_redirects'];
+      for (const key of Object.keys(request.options)) {
+        if (!allowedOptions.includes(key)) {
+          addError(result, 'unsupported_field', `options.${key}`, `unsupported option key: ${key}`);
+        }
+      }
       if (request.options.timeout_ms !== undefined && (!Number.isInteger(request.options.timeout_ms) || request.options.timeout_ms <= 0)) {
         addError(result, 'invalid_request', 'options.timeout_ms', 'timeout_ms must be a positive integer');
       }
@@ -738,7 +818,7 @@ export function validateExecutionRequest(request) {
       }
     }
   }
-  validateMetadata(request.metadata, result);
+  validateSafeMetadata(request.metadata, result);
   return result;
 }
 
@@ -750,6 +830,7 @@ export function validateExecutionResult(executionResult) {
   }
   validateAllowedKeys(executionResult, EXECUTION_RESULT_KEYS, result);
   validateContractVersion(executionResult, result);
+  validateRequiredFields(executionResult, EXECUTION_RESULT_REQUIRED_FIELDS, result);
   if (!isString(executionResult.request_id)) {
     addError(result, 'invalid_request', 'request_id', 'request_id must be a non-empty string');
   }
@@ -821,6 +902,6 @@ export function validateExecutionResult(executionResult) {
   if (executionResult.redacted !== true) {
     addError(result, 'policy_denied', 'redacted', 'redacted must be true on execution results');
   }
-  validateMetadata(executionResult.metadata, result);
+  validateSafeMetadata(executionResult.metadata, result);
   return result;
 }

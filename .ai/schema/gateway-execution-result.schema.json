@@ -3,7 +3,15 @@
   "title": "Gateway Execution Result",
   "type": "object",
   "additionalProperties": false,
-  "required": ["contract_version", "request_id", "provider_id", "model_id", "state", "redacted"],
+  "required": [
+    "contract_version",
+    "request_id",
+    "provider_id",
+    "model_id",
+    "state",
+    "attempt_count",
+    "redacted"
+  ],
   "properties": {
     "contract_version": { "type": "string", "enum": ["2026-07-15.sprint-a"] },
     "execution_id": { "type": ["string", "null"] },
@@ -14,11 +22,17 @@
       "type": "string",
       "enum": ["pending", "executing", "completed", "failed", "cancelled", "timed_out"]
     },
-    "attempt_count": { "type": "integer", "enum": [0, 1] },
+    "attempt_count": { "type": "integer", "minimum": 0, "maximum": 1 },
     "gateway_response": { "type": ["object", "null"] },
-    "error": { "type": ["object", "null"] },
+    "error": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "gateway-execution-error.schema.json" }
+      ]
+    },
     "timing": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "started_at": { "type": ["number", "null"], "minimum": 0 },
         "completed_at": { "type": ["number", "null"], "minimum": 0 },

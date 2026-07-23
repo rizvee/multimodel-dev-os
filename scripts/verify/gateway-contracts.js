@@ -149,9 +149,61 @@ export function checkGatewayContracts() {
     'tests/fixtures/gateway/invalid-execution-error.json',
   ];
 
+  const criticalTestSuites = [
+    'tests/unit/execution-contracts.test.js',
+    'tests/unit/execution-security.test.js',
+    'tests/unit/version-verifier.test.js',
+    'tests/unit/gateway-contracts.test.js',
+    'tests/unit/prepublish-guard.test.js',
+  ];
+
   checkFilesExist(sourceFiles, 'Gateway contract source files exist');
   checkJsonFilesParse(schemaFiles, 'Gateway schemas parse');
   checkJsonFilesParse(fixtureFiles, 'Gateway fixtures parse');
+  checkFilesExist(criticalTestSuites, 'Critical test suite baseline files exist');
+
+  // Verify Sprint A test group names
+  const execContractTestContent = readFileSync(join(projectRoot, 'tests/unit/execution-contracts.test.js'), 'utf8');
+  const requiredExecContractGroups = [
+    'execution contracts',
+    'credential reference',
+    'provider endpoint',
+    'execution policy',
+    'provider execution capability',
+    'normalized execution error',
+    'execution request',
+    'execution result',
+  ];
+  let execGroupsPresent = true;
+  for (const group of requiredExecContractGroups) {
+    if (!execContractTestContent.includes(group)) {
+      execGroupsPresent = false;
+      fail(`execution-contracts.test.js missing required test group: ${group}`);
+    }
+  }
+  if (execGroupsPresent) {
+    pass('execution-contracts.test.js contains all required Sprint A test groups');
+  }
+
+  const execSecTestContent = readFileSync(join(projectRoot, 'tests/unit/execution-security.test.js'), 'utf8');
+  const requiredSecGroups = [
+    'execution security contracts',
+    'credential reference security',
+    'provider endpoint security',
+    'execution result security',
+    'recursive sensitive-field and metadata security',
+    'execution defaults security',
+  ];
+  let secGroupsPresent = true;
+  for (const group of requiredSecGroups) {
+    if (!execSecTestContent.includes(group)) {
+      secGroupsPresent = false;
+      fail(`execution-security.test.js missing required test group: ${group}`);
+    }
+  }
+  if (secGroupsPresent) {
+    pass('execution-security.test.js contains all required security test groups');
+  }
 
   // Verify JSON Schema unique IDs
   const schemaIds = new Set();

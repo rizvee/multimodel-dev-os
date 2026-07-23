@@ -3,7 +3,18 @@
   "title": "Gateway Provider Capability",
   "type": "object",
   "additionalProperties": false,
-  "required": ["contract_version", "chat_completions", "non_streaming", "sse_streaming", "usage_reporting", "tool_calls", "structured_output", "system_messages", "custom_endpoint_support"],
+  "required": [
+    "contract_version",
+    "chat_completions",
+    "non_streaming",
+    "sse_streaming",
+    "usage_reporting",
+    "tool_calls",
+    "structured_output",
+    "system_messages",
+    "custom_endpoint_support",
+    "supported_auth_schemes"
+  ],
   "properties": {
     "contract_version": { "type": "string", "enum": ["2026-07-15.sprint-a"] },
     "chat_completions": { "type": "boolean" },

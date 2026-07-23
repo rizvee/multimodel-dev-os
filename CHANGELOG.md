@@ -1,12 +1,13 @@
 # Changelog
 
 - **v4.3.0 Development Lane Bootstrapped**: Opened `4.3.0-dev.0` development lane focused on the Governed Provider Execution Foundation.
-- **v4.3 Sprint A — Execution Contracts & Threat Model**:
+- **v4.3 Sprint A — Execution Contracts, Schemas & Validator Parity**:
   - Implemented 7 governed execution contracts (`execution-request.js`, `execution-result.js`, `credential-ref.js`, `provider-endpoint.js`, `execution-policy.js`, `provider-execution-capability.js`, `execution-error.js`).
-  - Added 7 formal JSON Schemas under `.ai/schema/`.
+  - Added 7 formal JSON Schemas under `.ai/schema/` with local `$ref` composition and strict `additionalProperties: false`.
+  - Reconciled runtime validators with schema-required fields and implemented recursive safe-metadata validation screening secret key taxonomy, prototype keys, and absolute paths.
   - Enforced factory secure defaults and forced `redacted: true` result protections.
-  - Enforced strict environment variable name validation (`^[A-Z_][A-Z0-9_]{0,127}$`) and prototype property rejection.
   - Added Governed Provider Execution Threat Model matrix to `docs/security-threat-model.md`.
+  - Reconciled test baseline (102 test files / 498 tests) and added deterministic suite baseline verification.
 
 
 ## [4.2.0] - 2026-07-17

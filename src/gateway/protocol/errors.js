@@ -1,4 +1,4 @@
-import { ERROR_CODES, SENSITIVE_KEY_PATTERN } from './constants.js';
+import { SENSITIVE_KEY_PATTERN } from './constants.js';
 
 export const ERROR_DEFINITIONS = Object.freeze({
   invalid_request: { type: 'invalid_request_error', status: 400, retryable: false },
@@ -21,6 +21,8 @@ export const ERROR_DEFINITIONS = Object.freeze({
   configuration_error: { type: 'configuration_error', status: 500, retryable: false },
   internal_error: { type: 'internal_error', status: 500, retryable: false },
 });
+
+export const ERROR_CODES = Object.keys(ERROR_DEFINITIONS);
 
 export function redactSensitiveValue(value) {
   if (Array.isArray(value)) {

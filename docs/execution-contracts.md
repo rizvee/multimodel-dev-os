@@ -11,14 +11,15 @@ These contracts define the structural boundaries and security requirements for g
 1. **Local-First Security**: Outbound execution contracts enforce strict HTTPS-only transport, zero redirect following, mandatory SSRF checks, and loopback/private network address rejection by default.
 2. **Credential Redaction**: Credentials are referenced strictly by environment variable name (`credential_ref.env_var`). Raw API keys or authorization tokens are never accepted in contract definitions or stored in execution objects.
 3. **Redacted Execution Results**: All execution result objects explicitly set `redacted: true`, ensuring downstream loggers and observability modules treat payload summaries as sanitized.
-4. **Zero Dependencies**: All validators and factory functions use pure Node.js standard primitives and internal gateway utilities.
+4. **Recursive Sensitive-Field Screening**: Metadata and error details are recursively screened (`validateSafeObject`) to reject secret key names (`api_key`, `secret`, `token`, `password`, `bearer`, etc.), stack traces, and absolute local filesystem paths.
+5. **Zero Dependencies & Zero Transport**: All validators and factory functions use pure Node.js standard primitives and internal gateway utilities. No network primitives or external calls exist in Sprint A.
 
 ---
 
 ## 2. Complete Contract Set
 
 ### Execution Request (`createExecutionRequest`)
-Defines a complete unit of work handed to a provider execution engine.
+Defines a complete unit of work handed to a provider execution engine. All sub-objects (`policy`, `capability`, etc.) use strict composition.
 
 ### Execution Result (`createExecutionResult`)
 Represents the output lifecycle state of an execution request with mandatory `redacted: true`.
@@ -40,7 +41,15 @@ Standardized error object taxonomy (`code`, `category`, `message`, `retryable`, 
 
 ---
 
-## 3. Validation API Usage
+## 3. Schema & Validator Parity
+
+- **Local Composition**: All 7 JSON Schemas (`.ai/schema/gateway-*.schema.json`) use local relative `$ref` composition. No remote HTTP schema URLs are used.
+- **Strict Keys**: `additionalProperties: false` is enforced across all security-sensitive contract objects and schema definitions.
+- **Required Fields**: Every field required by JSON Schema is enforced by runtime validators (`validateRequiredFields`).
+
+---
+
+## 4. Validation API Usage
 
 Import contracts directly from local gateway modules or deep package paths:
 

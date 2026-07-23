@@ -1,11 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import {
   createCredentialRef,
+  createExecutionError,
+  createExecutionPolicy,
+  createExecutionRequest,
   createExecutionResult,
   createProviderEndpoint,
+  createProviderExecutionCapability,
   validateCredentialRef,
+  validateExecutionError,
+  validateExecutionPolicy,
+  validateExecutionRequest,
   validateExecutionResult,
   validateProviderEndpoint,
+  validateProviderExecutionCapability,
   ALLOWED_TRANSPORT_HEADERS,
   EXECUTION_CONTRACT_VERSION,
   EXECUTION_DEFAULTS,
@@ -27,6 +35,7 @@ describe('execution security contracts', () => {
         contract_version: EXECUTION_CONTRACT_VERSION,
         source: 'environment',
         env_var: longSecretLikeVar,
+        required: true,
       });
       expect(result.success).toBe(false);
       expect(result.errors).toContainEqual(expect.objectContaining({
@@ -41,6 +50,7 @@ describe('execution security contracts', () => {
           contract_version: EXECUTION_CONTRACT_VERSION,
           source: badSource,
           env_var: 'KEY',
+          required: true,
         });
         expect(result.success).toBe(false);
       }
@@ -141,6 +151,7 @@ describe('execution security contracts', () => {
         provider_id: 'test',
         model_id: 'test-model',
         state: 'pending',
+        attempt_count: 0,
         redacted: false,
         metadata: {},
       });
@@ -158,12 +169,124 @@ describe('execution security contracts', () => {
         provider_id: 'test',
         model_id: 'test-model',
         state: 'pending',
+        attempt_count: 0,
         metadata: {},
       });
       expect(result.success).toBe(false);
       expect(result.errors).toContainEqual(expect.objectContaining({
         path: 'redacted',
       }));
+    });
+  });
+
+  describe('recursive sensitive-field and metadata security', () => {
+    it('passes safe nested metadata', () => {
+      const request = createExecutionRequest({
+        request_id: 'req-001',
+        provider_id: 'openai',
+        model_id: 'gpt-4o',
+        gateway_request: { model: 'gpt-4o', messages: [{ role: 'user', content: 'hi' }] },
+        metadata: {
+          source: 'gateway',
+          operation: 'chat-completion',
+          trace_id: 'trace-001',
+          nested: {
+            tags: ['test', 'unit'],
+            count: 5,
+          },
+        },
+      });
+      const result = validateExecutionRequest(request);
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects secret-bearing keys in metadata recursively', () => {
+      const secretKeys = [
+        'api_key',
+        'apiKey',
+        'authorization',
+        'token',
+        'access_token',
+        'refresh_token',
+        'secret',
+        'credential',
+        'password',
+        'cookie',
+        'set-cookie',
+        'private_key',
+        'client_secret',
+      ];
+      for (const secretKey of secretKeys) {
+        const request = createExecutionRequest({
+          request_id: 'req-001',
+          provider_id: 'openai',
+          model_id: 'gpt-4o',
+          gateway_request: { model: 'gpt-4o', messages: [{ role: 'user', content: 'hi' }] },
+          metadata: {
+            nested: {
+              [secretKey]: 'sk-secret-1234',
+            },
+          },
+        });
+        const result = validateExecutionRequest(request);
+        expect(result.success).toBe(false);
+        expect(result.errors).toContainEqual(expect.objectContaining({
+          code: 'policy_denied',
+          path: expect.stringContaining(secretKey),
+        }));
+      }
+    });
+
+    it('rejects prototype keys at any nesting depth in metadata', () => {
+      for (const protoKey of ['__proto__', 'constructor', 'prototype']) {
+        const request = createExecutionRequest({
+          request_id: 'req-001',
+          provider_id: 'openai',
+          model_id: 'gpt-4o',
+          gateway_request: { model: 'gpt-4o', messages: [{ role: 'user', content: 'hi' }] },
+          metadata: {
+            deep: {
+              layer2: {
+                [protoKey]: 'malicious',
+              },
+            },
+          },
+        });
+        const result = validateExecutionRequest(request);
+        expect(result.success).toBe(false);
+        expect(result.errors).toContainEqual(expect.objectContaining({
+          code: 'policy_denied',
+        }));
+      }
+    });
+
+    it('rejects secret-bearing fields in execution error details recursively', () => {
+      const err = createExecutionError({
+        code: 'timeout',
+        message: 'Timeout',
+        details: {
+          upstream_error: {
+            raw_response: '{"token": "secret-value"}',
+            stack_trace: 'Error stack trace',
+          },
+        },
+      });
+      const result = validateExecutionError(err);
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects absolute local file paths in metadata values', () => {
+      const request = createExecutionRequest({
+        request_id: 'req-001',
+        provider_id: 'openai',
+        model_id: 'gpt-4o',
+        gateway_request: { model: 'gpt-4o', messages: [{ role: 'user', content: 'hi' }] },
+        metadata: {
+          config_file: '/etc/passwd',
+        },
+      });
+      const result = validateExecutionRequest(request);
+      expect(result.success).toBe(false);
     });
   });
 

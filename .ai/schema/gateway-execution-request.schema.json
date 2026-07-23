@@ -3,20 +3,39 @@
   "title": "Gateway Execution Request",
   "type": "object",
   "additionalProperties": false,
-  "required": ["contract_version", "request_id", "provider_id", "model_id", "gateway_request", "options"],
+  "required": [
+    "contract_version",
+    "request_id",
+    "provider_id",
+    "model_id",
+    "gateway_request",
+    "options",
+    "policy",
+    "capability"
+  ],
   "properties": {
     "contract_version": { "type": "string", "enum": ["2026-07-15.sprint-a"] },
     "request_id": { "type": "string", "minLength": 1 },
     "provider_id": { "type": "string", "minLength": 1 },
     "model_id": { "type": "string", "minLength": 1 },
     "gateway_request": { "type": "object" },
-    "credential_ref": { "type": ["object", "null"] },
-    "endpoint": { "type": ["object", "null"] },
-    "policy": { "type": ["object", "null"] },
-    "capability": { "type": ["object", "null"] },
+    "credential_ref": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "gateway-credential-reference.schema.json" }
+      ]
+    },
+    "endpoint": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "gateway-provider-endpoint.schema.json" }
+      ]
+    },
+    "policy": { "$ref": "gateway-execution-policy.schema.json" },
+    "capability": { "$ref": "gateway-provider-capability.schema.json" },
     "options": {
       "type": "object",
-      "additionalProperties": true,
+      "additionalProperties": false,
       "properties": {
         "timeout_ms": { "type": "integer", "minimum": 1 },
         "max_response_bytes": { "type": "integer", "minimum": 1 },

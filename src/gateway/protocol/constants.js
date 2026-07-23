@@ -271,3 +271,77 @@ export const EXECUTION_ERROR_KEYS = [
   'details',
   'redacted',
 ];
+
+export const CREDENTIAL_REF_REQUIRED_FIELDS = [
+  'contract_version',
+  'source',
+  'env_var',
+  'required',
+];
+
+export const PROVIDER_ENDPOINT_REQUIRED_FIELDS = [
+  'contract_version',
+  'url',
+  'protocol',
+  'follow_redirects',
+  'ssrf_check_required',
+];
+
+export const EXECUTION_POLICY_REQUIRED_FIELDS = [
+  'contract_version',
+  'enabled',
+  'allowed_provider_ids',
+  'require_https',
+  'allow_private_networks',
+  'follow_redirects',
+  'max_attempts',
+  'request_timeout_ms',
+  'response_timeout_ms',
+  'max_request_bytes',
+  'max_response_bytes',
+  'retry_enabled',
+  'fallback_enabled',
+];
+
+export const PROVIDER_CAPABILITY_REQUIRED_FIELDS = [
+  'contract_version',
+  'chat_completions',
+  'non_streaming',
+  'sse_streaming',
+  'usage_reporting',
+  'tool_calls',
+  'structured_output',
+  'system_messages',
+  'custom_endpoint_support',
+  'supported_auth_schemes',
+];
+
+export const EXECUTION_REQUEST_REQUIRED_FIELDS = [
+  'contract_version',
+  'request_id',
+  'provider_id',
+  'model_id',
+  'gateway_request',
+  'options',
+  'policy',
+  'capability',
+];
+
+export const EXECUTION_RESULT_REQUIRED_FIELDS = [
+  'contract_version',
+  'request_id',
+  'provider_id',
+  'model_id',
+  'state',
+  'attempt_count',
+  'redacted',
+];
+
+export const EXECUTION_ERROR_REQUIRED_FIELDS = [
+  'contract_version',
+  'code',
+  'category',
+  'message',
+  'retryable',
+  'redacted',
+];

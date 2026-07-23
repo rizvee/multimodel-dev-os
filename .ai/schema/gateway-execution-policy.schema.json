@@ -3,7 +3,21 @@
   "title": "Gateway Execution Policy",
   "type": "object",
   "additionalProperties": false,
-  "required": ["contract_version", "enabled", "require_https", "allow_private_networks", "follow_redirects", "max_attempts", "retry_enabled", "fallback_enabled"],
+  "required": [
+    "contract_version",
+    "enabled",
+    "allowed_provider_ids",
+    "require_https",
+    "allow_private_networks",
+    "follow_redirects",
+    "max_attempts",
+    "request_timeout_ms",
+    "response_timeout_ms",
+    "max_request_bytes",
+    "max_response_bytes",
+    "retry_enabled",
+    "fallback_enabled"
+  ],
   "properties": {
     "contract_version": { "type": "string", "enum": ["2026-07-15.sprint-a"] },
     "enabled": { "type": "boolean" },

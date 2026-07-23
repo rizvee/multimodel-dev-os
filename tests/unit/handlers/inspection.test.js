@@ -95,9 +95,12 @@ describe('Inspection Handlers Suite', () => {
 
   afterAll(() => {
     if (existsSync(tempDir)) {
-      rmSync(tempDir, { recursive: true, force: true });
+      try {
+        rmSync(tempDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+      } catch (_) {}
     }
   });
+
 
   beforeEach(() => {
     logOutput = [];

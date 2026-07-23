@@ -4,8 +4,11 @@ export {
 
 import { EXECUTION_CONTRACT_VERSION, EXECUTION_DEFAULTS } from '../protocol/constants.js';
 
+import { createExecutionPolicy } from './execution-policy.js';
+import { createProviderExecutionCapability } from './provider-execution-capability.js';
+
 export function createExecutionRequest(overrides = {}) {
-  const { options, contract_version, ...rest } = overrides || {};
+  const { options, policy, capability, contract_version, ...rest } = overrides || {};
   const opts = options || {};
   const { follow_redirects, ...optsRest } = opts;
   return {
@@ -16,14 +19,13 @@ export function createExecutionRequest(overrides = {}) {
     gateway_request: null,
     credential_ref: null,
     endpoint: null,
-    policy: null,
-    capability: null,
+    policy: policy !== undefined ? policy : createExecutionPolicy(),
+    capability: capability !== undefined ? capability : createProviderExecutionCapability(),
     options: {
       timeout_ms: EXECUTION_DEFAULTS.timeout_ms,
       max_response_bytes: EXECUTION_DEFAULTS.max_response_bytes,
-      stream: EXECUTION_DEFAULTS.stream,
-      ...optsRest,
       follow_redirects: false,
+      ...optsRest,
     },
     metadata: {},
     ...rest,
