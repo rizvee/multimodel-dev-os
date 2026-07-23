@@ -1,0 +1,1 @@
+data: {"id":"chatcmpl-frag1","object":"chat.completion.chunk","created":1720000021,"model":"gpt-4o","choices":[{"index":0,"delta":{"content":"Part 1"},"finish_reason":null}]}

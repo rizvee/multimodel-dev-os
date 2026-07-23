@@ -1,0 +1,9 @@
+{
+  "status": 429,
+  "error": {
+    "message": "You have exceeded your quota limit for this month.",
+    "type": "insufficient_quota",
+    "param": null,
+    "code": "insufficient_quota"
+  }
+}

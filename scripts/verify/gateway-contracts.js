@@ -23,6 +23,10 @@ import {
   validateProviderAdapter,
   validateProviderEndpoint,
   validateProviderExecutionCapability,
+  normalizeOpenAIExecutionRequest,
+  normalizeOpenAIResponse,
+  normalizeOpenAIError,
+  createOpenAISSEParser,
 } from '../../src/gateway/index.js';
 import { mockProvider } from '../../tests/fixtures/gateway/mock-provider.js';
 import { stats, GREEN, RED, NC, projectRoot } from './utils.js';
@@ -385,4 +389,73 @@ export function checkGatewayContracts() {
   } else {
     fail('Execution request validator should reject invalid fixture');
   }
+
+  // Sprint B: Generic OpenAI-compatible Adapter Normalization Core
+  console.log('\nOpenAI-Compatible Adapter Normalization Verification:');
+
+  const adapterSourceFiles = [
+    'src/gateway/adapters/openai-compatible/request.js',
+    'src/gateway/adapters/openai-compatible/response.js',
+    'src/gateway/adapters/openai-compatible/error.js',
+    'src/gateway/adapters/openai-compatible/sse.js',
+    'src/gateway/adapters/openai-compatible/index.js',
+  ];
+  const adapterFixtureFiles = [
+    'tests/fixtures/gateway/adapters/openai-compatible/valid-non-stream-request.json',
+    'tests/fixtures/gateway/adapters/openai-compatible/valid-stream-request.json',
+    'tests/fixtures/gateway/adapters/openai-compatible/normal-response.json',
+    'tests/fixtures/gateway/adapters/openai-compatible/tool-call-response.json',
+    'tests/fixtures/gateway/adapters/openai-compatible/provider-reported-usage.json',
+    'tests/fixtures/gateway/adapters/openai-compatible/error-400-invalid.json',
+    'tests/fixtures/gateway/adapters/openai-compatible/error-401-auth.json',
+    'tests/fixtures/gateway/adapters/openai-compatible/error-429-rate-limit.json',
+    'tests/fixtures/gateway/adapters/openai-compatible/error-429-quota.json',
+    'tests/fixtures/gateway/adapters/openai-compatible/error-500-server.json',
+    'tests/fixtures/gateway/adapters/openai-compatible/error-secret-bearing.json',
+    'tests/fixtures/gateway/adapters/openai-compatible/sse-normal-sequence.txt',
+    'tests/fixtures/gateway/adapters/openai-compatible/sse-fragmented-sequence.txt',
+    'tests/fixtures/gateway/adapters/openai-compatible/sse-multiple-events.txt',
+    'tests/fixtures/gateway/adapters/openai-compatible/sse-done.txt',
+    'tests/fixtures/gateway/adapters/openai-compatible/sse-malformed-json.txt',
+    'tests/fixtures/gateway/adapters/openai-compatible/sse-oversized-event.txt',
+    'tests/fixtures/gateway/adapters/openai-compatible/unsupported-streaming-request.json',
+    'tests/fixtures/gateway/adapters/openai-compatible/unsupported-tool-calls-request.json',
+  ];
+
+  checkFilesExist(adapterSourceFiles, 'OpenAI adapter source files exist');
+  checkFilesExist(adapterFixtureFiles, 'OpenAI adapter fixture files exist');
+  checkNoNetworkPrimitives('src/gateway/adapters/openai-compatible', 'No network primitives in OpenAI adapter modules');
+
+  const openAIReqFixture = readJson('tests/fixtures/gateway/adapters/openai-compatible/valid-non-stream-request.json');
+  const openAIReqResult = normalizeOpenAIExecutionRequest(openAIReqFixture);
+  if (openAIReqResult.success && openAIReqResult.payload && openAIReqResult.payload.model === 'gpt-4o') {
+    pass('OpenAI request normalizer converts execution request into valid payload');
+  } else {
+    fail('OpenAI request normalizer failed on valid fixture');
+  }
+
+  const openAIRespFixture = readJson('tests/fixtures/gateway/adapters/openai-compatible/normal-response.json');
+  const openAIRespResult = normalizeOpenAIResponse(openAIRespFixture, { request_id: 'verify-1' });
+  if (openAIRespResult.success && openAIRespResult.gateway_response && openAIRespResult.gateway_response.usage.provider_reported === true) {
+    pass('OpenAI response normalizer converts completion response with reported usage');
+  } else {
+    fail('OpenAI response normalizer failed on valid fixture');
+  }
+
+  const openAIErrFixture = readJson('tests/fixtures/gateway/adapters/openai-compatible/error-secret-bearing.json');
+  const openAIErrResult = normalizeOpenAIError(openAIErrFixture);
+  if (openAIErrResult.redacted === true && !openAIErrResult.message.includes('sk-proj')) {
+    pass('OpenAI error normalizer redacts sensitive tokens and local paths');
+  } else {
+    fail('OpenAI error normalizer must redact sensitive values');
+  }
+
+  const sseParser = createOpenAISSEParser({ max_buffer_size: 100 });
+  const sseEvents = sseParser.feed('data: ' + 'x'.repeat(150));
+  if (sseEvents.length === 1 && sseEvents[0].type === 'error' && sseEvents[0].error.code === 'stream_error') {
+    pass('OpenAI SSE parser enforces buffer bounds');
+  } else {
+    fail('OpenAI SSE parser must enforce buffer bounds');
+  }
+}
 }

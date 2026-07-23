@@ -106,7 +106,7 @@ function validateRequiredFields(obj, requiredFields, result, prefix = '') {
   }
 }
 
-function validateSafeMetadata(value, result, path = 'metadata', depth = 0, nodeCount = { count: 0 }) {
+export function validateSafeMetadata(value, result, path = 'metadata', depth = 0, nodeCount = { count: 0 }) {
   if (value === undefined || value === null) return;
   if (depth > 10) {
     addError(result, 'policy_denied', path, `metadata depth limit exceeded at ${path}`);

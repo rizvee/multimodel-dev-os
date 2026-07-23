@@ -1,0 +1,23 @@
+{
+  "id": "chatcmpl-8vXYZ123",
+  "object": "chat.completion",
+  "created": 1720000000,
+  "model": "gpt-4o",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Hello! How can I assist you today?"
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 12,
+    "completion_tokens": 9,
+    "total_tokens": 21
+  },
+  "system_fingerprint": "fp_44709d6fcb"
+}

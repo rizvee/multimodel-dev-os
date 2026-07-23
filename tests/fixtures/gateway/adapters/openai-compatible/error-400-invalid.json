@@ -1,0 +1,9 @@
+{
+  "status": 400,
+  "error": {
+    "message": "Invalid value for 'temperature': 2.5 is greater than 2.0",
+    "type": "invalid_request_error",
+    "param": "temperature",
+    "code": "parameter_invalid"
+  }
+}

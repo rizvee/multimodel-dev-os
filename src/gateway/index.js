@@ -18,3 +18,4 @@ export * from './resilience/index.js';
 export * from './runtime/index.js';
 export * from './clients/index.js';
 export * from './observability/index.js';
+export * from './adapters/openai-compatible/index.js';

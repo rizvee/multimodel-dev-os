@@ -1,0 +1,9 @@
+{
+  "status": 429,
+  "error": {
+    "message": "Rate limit reached for requests. Please slow down.",
+    "type": "requests",
+    "param": null,
+    "code": "rate_limit_exceeded"
+  }
+}
