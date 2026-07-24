@@ -35,6 +35,7 @@ import {
   createResolvedCredential,
   redactSensitiveValue,
   evaluateExecutionGate,
+  validateEndpointBinding,
   validateTransport,
   executeGovernedRequest,
 } from '../../src/gateway/index.js';
@@ -578,7 +579,7 @@ export function checkGatewayContracts() {
     version: '1.0.0',
     capabilities: ['chat'],
     credential_env: 'VERIFY_KEY',
-    base_url: 'https://api.example.com',
+    base_url: 'https://api.example.com/v1',
     models: ['m1'],
     validateConfig: () => ({ success: true }),
     listModels: () => [],
@@ -617,7 +618,7 @@ export function checkGatewayContracts() {
     fail('Secret-aware redaction failed to replace resolved credential value');
   }
 
-  // --- Sprint D Explicit Opt-In Execution Gate Checks ---
+  // --- Sprint D Governed Execution & Hardening Checks ---
   const executionSourceFiles = [
     'src/gateway/execution/execution-gate.js',
     'src/gateway/execution/transport-contract.js',
@@ -652,12 +653,54 @@ export function checkGatewayContracts() {
     provider_id: 'verify-provider',
     provider_adapter: testAdapter,
     request: { ...execReq, provider_id: 'verify-provider', credential_ref: createCredentialRef({ env_var: 'VERIFY_KEY' }) },
-    endpoint: createProviderEndpoint({ url: 'https://api.example.com/v1' }),
+    endpoint: createProviderEndpoint({ url: 'https://api.example.com/v1/chat' }),
     capability: createProviderExecutionCapability({ chat_completions: true, non_streaming: true }),
   });
   if (allowedGate.allowed === true && allowedGate.code === 'allowed') {
     pass('Execution gate passes valid explicit opt-in request');
   } else {
-    fail('Execution gate must pass valid explicit opt-in request');
+    fail(`Execution gate failed on valid explicit opt-in request: ${allowedGate.reason}`);
+  }
+
+  const endpointMismatchGate = evaluateExecutionGate({
+    policy: createExecutionPolicy({ enabled: true, allowed_provider_ids: ['verify-provider'] }),
+    provider_id: 'verify-provider',
+    provider_adapter: testAdapter,
+    request: execReq,
+    endpoint: createProviderEndpoint({ url: 'https://evil.example.com/v1' }),
+    capability: capReq,
+  });
+  if (endpointMismatchGate.allowed === false && endpointMismatchGate.code === 'endpoint_forbidden') {
+    pass('Execution gate rejects origin-mismatched endpoint binding');
+  } else {
+    fail('Execution gate must reject origin-mismatched endpoint binding');
+  }
+
+  const nativeAdapterGate = evaluateExecutionGate({
+    policy: createExecutionPolicy({ enabled: true, allowed_provider_ids: ['verify-provider'] }),
+    provider_id: 'verify-provider',
+    provider_adapter: { ...testAdapter, type: 'native' },
+    request: execReq,
+    endpoint: createProviderEndpoint({ url: 'https://api.example.com/v1' }),
+    capability: capReq,
+  });
+  if (nativeAdapterGate.allowed === false && nativeAdapterGate.code === 'provider_not_enabled') {
+    pass('Execution gate restricts execution to openai-compatible adapter type');
+  } else {
+    fail('Execution gate must restrict execution to openai-compatible adapter type');
+  }
+
+  const bindingValid = validateEndpointBinding({
+    endpoint: { url: 'https://api.example.com/v1/chat' },
+    base_url: 'https://api.example.com/v1',
+  });
+  const bindingPrefixInvalid = validateEndpointBinding({
+    endpoint: { url: 'https://api.example.com/v10/chat' },
+    base_url: 'https://api.example.com/v1',
+  });
+  if (bindingValid.success === true && bindingPrefixInvalid.success === false) {
+    pass('Trusted endpoint binding validator enforces exact base path or true path-segment descendant');
+  } else {
+    fail('Trusted endpoint binding validator failed path segment checks');
   }
 }

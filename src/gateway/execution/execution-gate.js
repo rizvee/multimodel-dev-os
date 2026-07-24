@@ -6,10 +6,91 @@ import { validateExecutionRequest } from '../contracts/execution-request.js';
 import { createExecutionError } from '../contracts/execution-error.js';
 import {
   EXECUTION_CONTRACT_VERSION,
-  PROVIDER_TYPES,
   STRICT_ENV_VAR_REGEX,
   PROTOTYPE_NAMES_PATTERN,
 } from '../protocol/constants.js';
+
+function isObject(val) {
+  return val !== null && typeof val === 'object' && !Array.isArray(val);
+}
+
+function isString(val) {
+  return typeof val === 'string';
+}
+
+export function validateEndpointBinding({ endpoint = null, base_url = null } = {}) {
+  if (!endpoint || !isObject(endpoint) || !isString(endpoint.url)) {
+    return { success: false, code: 'endpoint_invalid', reason: 'Endpoint URL is required and must be a string' };
+  }
+  if (!base_url || !isString(base_url)) {
+    return { success: false, code: 'endpoint_forbidden', reason: 'Trusted adapter base_url is required and must be a string' };
+  }
+
+  const rawEndpointUrl = endpoint.url.trim();
+  const rawBaseUrl = base_url.trim();
+
+  if (/%2e|%2f|\/\.\./i.test(rawEndpointUrl)) {
+    return { success: false, code: 'endpoint_forbidden', reason: 'Endpoint URL contains illegal path traversal' };
+  }
+
+  let endUrl;
+  let baseUrl;
+  try {
+    endUrl = new URL(rawEndpointUrl);
+    baseUrl = new URL(rawBaseUrl);
+  } catch (_) {
+    return { success: false, code: 'endpoint_invalid', reason: 'Invalid URL format' };
+  }
+
+  if (endUrl.protocol !== 'https:' || baseUrl.protocol !== 'https:') {
+    return { success: false, code: 'endpoint_forbidden', reason: 'HTTPS protocol is required' };
+  }
+
+  if (endUrl.hostname.toLowerCase() !== baseUrl.hostname.toLowerCase()) {
+    return { success: false, code: 'endpoint_forbidden', reason: `Endpoint origin hostname mismatch (${endUrl.hostname} vs ${baseUrl.hostname})` };
+  }
+
+  const endPort = endUrl.port || '443';
+  const basePort = baseUrl.port || '443';
+  if (endPort !== basePort) {
+    return { success: false, code: 'endpoint_forbidden', reason: `Endpoint port mismatch (${endPort} vs ${basePort})` };
+  }
+
+  if (endUrl.username || endUrl.password || baseUrl.username || baseUrl.password) {
+    return { success: false, code: 'endpoint_forbidden', reason: 'Embedded userinfo is forbidden in endpoint URL' };
+  }
+
+  if (endUrl.hash) {
+    return { success: false, code: 'endpoint_forbidden', reason: 'URL fragment identifier is forbidden' };
+  }
+
+  if (endUrl.search) {
+    return { success: false, code: 'endpoint_forbidden', reason: 'Query parameters are forbidden unless explicitly configured' };
+  }
+
+  const normBasePath = baseUrl.pathname.replace(/\/+$/, '');
+  const normEndPath = endUrl.pathname.replace(/\/+$/, '');
+
+  if (normEndPath === normBasePath) {
+    return { success: true };
+  }
+
+  if (normBasePath === '') {
+    if (normEndPath.startsWith('/')) {
+      return { success: true };
+    }
+  } else {
+    if (normEndPath.startsWith(`${normBasePath}/`)) {
+      return { success: true };
+    }
+  }
+
+  return {
+    success: false,
+    code: 'endpoint_forbidden',
+    reason: `Endpoint path ${normEndPath} is not a true path descendant of base path ${normBasePath}`,
+  };
+}
 
 export function evaluateExecutionGate({
   policy = null,
@@ -53,7 +134,7 @@ export function evaluateExecutionGate({
     };
   }
 
-  if (!policy || typeof policy !== 'object') {
+  if (!policy || !isObject(policy)) {
     return deny('execution_disabled', 'Execution policy missing or invalid', 'execution_disabled');
   }
 
@@ -94,7 +175,7 @@ export function evaluateExecutionGate({
     return deny('execution_disabled', 'Redirects must be disabled in execution policy', 'execution_disabled');
   }
 
-  if (!provider_adapter || typeof provider_adapter !== 'object') {
+  if (!provider_adapter || !isObject(provider_adapter)) {
     return deny('provider_not_enabled', 'Provider adapter is required for gate evaluation', 'provider_not_enabled');
   }
 
@@ -107,11 +188,11 @@ export function evaluateExecutionGate({
     return deny('provider_not_enabled', `Provider adapter ID mismatch (${provider_adapter.id} vs ${provId})`, 'provider_not_enabled');
   }
 
-  if (!PROVIDER_TYPES.includes(provider_adapter.type)) {
-    return deny('provider_not_enabled', `Provider adapter type ${provider_adapter.type} is not supported`, 'provider_not_enabled');
+  if (provider_adapter.type !== 'openai-compatible') {
+    return deny('provider_not_enabled', `Provider adapter type ${provider_adapter.type} is not supported by current executor`, 'provider_not_enabled');
   }
 
-  if (!request || typeof request !== 'object') {
+  if (!request || !isObject(request)) {
     return deny('request_invalid', 'Execution request object is required', 'request_invalid');
   }
 
@@ -121,13 +202,21 @@ export function evaluateExecutionGate({
   }
 
   const activeEndpoint = endpoint || request.endpoint;
-  if (!activeEndpoint || typeof activeEndpoint !== 'object') {
+  if (!activeEndpoint || !isObject(activeEndpoint)) {
     return deny('endpoint_invalid', 'Provider endpoint is required for gate evaluation', 'endpoint_invalid');
   }
 
   const endpointValidation = validateProviderEndpoint(activeEndpoint);
   if (!endpointValidation.success) {
     return deny('endpoint_invalid', 'Provider endpoint validation failed', 'endpoint_invalid');
+  }
+
+  const bindingResult = validateEndpointBinding({
+    endpoint: activeEndpoint,
+    base_url: provider_adapter.base_url,
+  });
+  if (!bindingResult.success) {
+    return deny(bindingResult.code, bindingResult.reason, bindingResult.code);
   }
 
   if (policy.require_https === true && activeEndpoint.protocol !== 'https') {
@@ -138,24 +227,8 @@ export function evaluateExecutionGate({
     return deny('endpoint_forbidden', 'Endpoint must have follow_redirects disabled', 'endpoint_forbidden');
   }
 
-  const parsedUrl = new URL(activeEndpoint.url);
-  const host = parsedUrl.hostname.toLowerCase();
-
-  if (policy.allow_private_networks === false) {
-    if (
-      host === 'localhost' ||
-      host === '127.0.0.1' ||
-      host === '::1' ||
-      host === '0.0.0.0' ||
-      host.endsWith('.local') ||
-      host.endsWith('.internal')
-    ) {
-      return deny('endpoint_forbidden', `Private/loopback endpoint host ${host} rejected by policy`, 'endpoint_forbidden');
-    }
-  }
-
   const activeCapability = capability || request.capability;
-  if (!activeCapability || typeof activeCapability !== 'object') {
+  if (!activeCapability || !isObject(activeCapability)) {
     return deny('unsupported_capability', 'Provider execution capability is required', 'unsupported_capability');
   }
 
@@ -164,18 +237,33 @@ export function evaluateExecutionGate({
     return deny('unsupported_capability', 'Provider capability validation failed', 'unsupported_capability');
   }
 
-  if (activeCapability.chat_completions !== true && activeCapability.non_streaming !== true) {
-    return deny('unsupported_capability', 'Provider does not support chat completions capability', 'unsupported_capability');
+  if (activeCapability.chat_completions !== true) {
+    return deny('unsupported_capability', 'Provider capability chat_completions must be true', 'unsupported_capability');
   }
 
   const isStreamRequest = request.gateway_request?.stream === true;
   if (isStreamRequest && activeCapability.sse_streaming !== true) {
     return deny('unsupported_capability', 'Streaming requested but provider capability sse_streaming is false', 'unsupported_capability');
   }
+  if (!isStreamRequest && activeCapability.non_streaming !== true) {
+    return deny('unsupported_capability', 'Non-streaming requested but provider capability non_streaming is false', 'unsupported_capability');
+  }
 
-  const hasToolsRequest = Array.isArray(request.gateway_request?.tools) && request.gateway_request.tools.length > 0;
+  const hasToolsRequest = (Array.isArray(request.gateway_request?.tools) && request.gateway_request.tools.length > 0) || request.gateway_request?.tool_choice !== undefined;
   if (hasToolsRequest && activeCapability.tool_calls !== true) {
-    return deny('unsupported_capability', 'Tool calls requested but provider capability tool_calls is false', 'unsupported_capability');
+    return deny('unsupported_capability', 'Tools or tool_choice requested but provider capability tool_calls is false', 'unsupported_capability');
+  }
+
+  if (Array.isArray(provider_adapter.capabilities)) {
+    if (activeCapability.chat_completions && !provider_adapter.capabilities.includes('chat')) {
+      return deny('unsupported_capability', 'Adapter capabilities vocabulary missing chat', 'unsupported_capability');
+    }
+    if (activeCapability.sse_streaming && isStreamRequest && !provider_adapter.capabilities.includes('streaming')) {
+      return deny('unsupported_capability', 'Adapter capabilities vocabulary missing streaming', 'unsupported_capability');
+    }
+    if (activeCapability.tool_calls && hasToolsRequest && !provider_adapter.capabilities.includes('tools')) {
+      return deny('unsupported_capability', 'Adapter capabilities vocabulary missing tools', 'unsupported_capability');
+    }
   }
 
   const approvedEnv = provider_adapter.credential_env;

@@ -850,8 +850,8 @@ export function validateExecutionResult(executionResult) {
   if (!EXECUTION_STATES.includes(executionResult.state)) {
     addError(result, 'invalid_request', 'state', `state must be one of: ${EXECUTION_STATES.join(', ')}`);
   }
-  if (executionResult.attempt_count !== undefined && executionResult.attempt_count !== 1 && (executionResult.state !== 'pending' || executionResult.attempt_count !== 0)) {
-    addError(result, 'policy_denied', 'attempt_count', 'attempt_count must be 1');
+  if (executionResult.attempt_count !== undefined && (!Number.isInteger(executionResult.attempt_count) || executionResult.attempt_count < 0 || executionResult.attempt_count > 1)) {
+    addError(result, 'policy_denied', 'attempt_count', 'attempt_count must be 0 or 1');
   }
   if (executionResult.state === 'completed') {
     if (!isObject(executionResult.gateway_response)) {

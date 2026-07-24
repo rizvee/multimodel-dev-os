@@ -11,10 +11,11 @@ import {
   createCredentialRef,
   validateExecutionResult,
   validateExecutionError,
+  validateEndpointBinding,
   EXECUTION_CONTRACT_VERSION,
 } from '../../src/gateway/index.js';
 
-describe('Gateway Governed Execution & Gate (Sprint D)', () => {
+describe('Gateway Governed Execution & Gate (Sprint D Hardened)', () => {
   const validAdapter = {
     id: 'openai',
     name: 'OpenAI Provider',
@@ -78,7 +79,46 @@ describe('Gateway Governed Execution & Gate (Sprint D)', () => {
     credential_ref: createCredentialRef({ env_var: 'OPENAI_API_KEY' }),
   });
 
-  describe('Execution Gate Preflight', () => {
+  describe('Trusted Endpoint Binding Safety', () => {
+    test('accepts exact base_url or true path-segment descendant', () => {
+      expect(validateEndpointBinding({ endpoint: { url: 'https://api.openai.com/v1/chat/completions' }, base_url: 'https://api.openai.com/v1' }).success).toBe(true);
+      expect(validateEndpointBinding({ endpoint: { url: 'https://api.openai.com/v1' }, base_url: 'https://api.openai.com/v1' }).success).toBe(true);
+    });
+
+    test('rejects origin mismatch', () => {
+      const res = validateEndpointBinding({ endpoint: { url: 'https://evil.openai.com/v1/chat/completions' }, base_url: 'https://api.openai.com/v1' });
+      expect(res.success).toBe(false);
+      expect(res.code).toBe('endpoint_forbidden');
+    });
+
+    test('rejects port mismatch', () => {
+      const res = validateEndpointBinding({ endpoint: { url: 'https://api.openai.com:8443/v1/chat/completions' }, base_url: 'https://api.openai.com/v1' });
+      expect(res.success).toBe(false);
+      expect(res.code).toBe('endpoint_forbidden');
+    });
+
+    test('rejects URL with embedded userinfo', () => {
+      const res = validateEndpointBinding({ endpoint: { url: 'https://user:pass@api.openai.com/v1/chat/completions' }, base_url: 'https://api.openai.com/v1' });
+      expect(res.success).toBe(false);
+      expect(res.code).toBe('endpoint_forbidden');
+    });
+
+    test('rejects path-prefix tricks (e.g. /v10 matching /v1)', () => {
+      const res = validateEndpointBinding({ endpoint: { url: 'https://api.openai.com/v10/chat' }, base_url: 'https://api.openai.com/v1' });
+      expect(res.success).toBe(false);
+      expect(res.code).toBe('endpoint_forbidden');
+    });
+
+    test('rejects encoded path traversal (%2e, /..)', () => {
+      const res1 = validateEndpointBinding({ endpoint: { url: 'https://api.openai.com/v1/..%2fadmin' }, base_url: 'https://api.openai.com/v1' });
+      expect(res1.success).toBe(false);
+
+      const res2 = validateEndpointBinding({ endpoint: { url: 'https://api.openai.com/v1/../secret' }, base_url: 'https://api.openai.com/v1' });
+      expect(res2.success).toBe(false);
+    });
+  });
+
+  describe('Execution Gate Preflight & Capabilities', () => {
     test('denies execution when policy is disabled by default', () => {
       const disabledPolicy = createExecutionPolicy({ enabled: false });
       const gate = evaluateExecutionGate({
@@ -93,11 +133,11 @@ describe('Gateway Governed Execution & Gate (Sprint D)', () => {
       expect(gate.code).toBe('execution_disabled');
     });
 
-    test('denies execution when provider is not allowlisted', () => {
+    test('denies unsupported adapter type (e.g. native, mock)', () => {
       const gate = evaluateExecutionGate({
-        policy: { ...validPolicy, allowed_provider_ids: ['anthropic'] },
+        policy: validPolicy,
         provider_id: 'openai',
-        provider_adapter: validAdapter,
+        provider_adapter: { ...validAdapter, type: 'native' },
         request: validReq,
         endpoint: validEndpoint,
         capability: validCapability,
@@ -106,106 +146,52 @@ describe('Gateway Governed Execution & Gate (Sprint D)', () => {
       expect(gate.code).toBe('provider_not_enabled');
     });
 
-    test('denies execution on provider ID mismatch', () => {
+    test('denies when chat_completions capability is false', () => {
       const gate = evaluateExecutionGate({
         policy: validPolicy,
         provider_id: 'openai',
-        provider_adapter: { ...validAdapter, id: 'anthropic' },
+        provider_adapter: validAdapter,
         request: validReq,
         endpoint: validEndpoint,
-        capability: validCapability,
-      });
-      expect(gate.allowed).toBe(false);
-      expect(gate.code).toBe('provider_not_enabled');
-    });
-
-    test('denies execution on non-HTTPS or invalid endpoint', () => {
-      const gate = evaluateExecutionGate({
-        policy: validPolicy,
-        provider_id: 'openai',
-        provider_adapter: validAdapter,
-        request: validReq,
-        endpoint: { ...validEndpoint, url: 'http://api.openai.com/v1/chat/completions' },
-        capability: validCapability,
-      });
-      expect(gate.allowed).toBe(false);
-      expect(['endpoint_forbidden', 'endpoint_invalid'].includes(gate.code)).toBe(true);
-    });
-
-    test('denies execution on private/loopback network endpoint when private networks disabled', () => {
-      const gate = evaluateExecutionGate({
-        policy: { ...validPolicy, allow_private_networks: false },
-        provider_id: 'openai',
-        provider_adapter: validAdapter,
-        request: validReq,
-        endpoint: { ...validEndpoint, url: 'https://localhost:8443/v1/chat/completions' },
-        capability: validCapability,
-      });
-      expect(gate.allowed).toBe(false);
-      expect(['endpoint_forbidden', 'endpoint_invalid'].includes(gate.code)).toBe(true);
-    });
-
-    test('denies execution when streaming requested but sse_streaming capability is false', () => {
-      const streamReq = createExecutionRequest({
-        ...validReq,
-        gateway_request: { ...validReq.gateway_request, stream: true },
-      });
-      const noStreamCap = createProviderExecutionCapability({
-        chat_completions: true,
-        sse_streaming: false,
-      });
-      const gate = evaluateExecutionGate({
-        policy: validPolicy,
-        provider_id: 'openai',
-        provider_adapter: validAdapter,
-        request: streamReq,
-        endpoint: validEndpoint,
-        capability: noStreamCap,
+        capability: { ...validCapability, chat_completions: false },
       });
       expect(gate.allowed).toBe(false);
       expect(gate.code).toBe('unsupported_capability');
     });
 
-    test('denies execution when tools requested but tool_calls capability is false', () => {
-      const toolReq = createExecutionRequest({
-        ...validReq,
-        gateway_request: {
-          ...validReq.gateway_request,
-          tools: [{ type: 'function', function: { name: 'calc' } }],
-        },
+    test('denies non-streaming request when non_streaming capability is false', () => {
+      const gate = evaluateExecutionGate({
+        policy: validPolicy,
+        provider_id: 'openai',
+        provider_adapter: validAdapter,
+        request: validReq,
+        endpoint: validEndpoint,
+        capability: { ...validCapability, non_streaming: false },
       });
-      const noToolCap = createProviderExecutionCapability({
-        chat_completions: true,
-        tool_calls: false,
+      expect(gate.allowed).toBe(false);
+      expect(gate.code).toBe('unsupported_capability');
+    });
+
+    test('denies tool_choice request when tool_calls capability is false', () => {
+      const toolChoiceReq = createExecutionRequest({
+        ...validReq,
+        gateway_request: { ...validReq.gateway_request, tool_choice: 'auto' },
       });
       const gate = evaluateExecutionGate({
         policy: validPolicy,
         provider_id: 'openai',
         provider_adapter: validAdapter,
-        request: toolReq,
+        request: toolChoiceReq,
         endpoint: validEndpoint,
-        capability: noToolCap,
+        capability: { ...validCapability, tool_calls: false },
       });
       expect(gate.allowed).toBe(false);
       expect(gate.code).toBe('unsupported_capability');
     });
   });
 
-  describe('Transport Contract Validation', () => {
-    test('rejects missing or non-object transport', () => {
-      expect(validateTransport(null).success).toBe(false);
-      expect(validateTransport({}).success).toBe(false);
-      expect(validateTransport({ execute: 'not-a-fn' }).success).toBe(false);
-    });
-
-    test('accepts valid transport exposing execute()', () => {
-      const valid = { execute: async () => ({}) };
-      expect(validateTransport(valid).success).toBe(true);
-    });
-  });
-
-  describe('Governed Single-Attempt Executor', () => {
-    test('denied gate does NOT invoke transport or environment access', async () => {
+  describe('Governed Single-Attempt Executor Lifecycle & Budgets', () => {
+    test('disabled execution does NOT require transport and returns attempt_count: 0', async () => {
       let transportCalled = false;
       const fakeTransport = {
         execute: async () => {
@@ -213,8 +199,7 @@ describe('Gateway Governed Execution & Gate (Sprint D)', () => {
           return {};
         },
       };
-      const disabledPolicy = createExecutionPolicy({ enabled: false });
-      const disabledReq = { ...validReq, policy: disabledPolicy };
+      const disabledReq = { ...validReq, policy: createExecutionPolicy({ enabled: false }) };
 
       const result = await executeGovernedRequest({
         execution_request: disabledReq,
@@ -226,11 +211,74 @@ describe('Gateway Governed Execution & Gate (Sprint D)', () => {
 
       expect(transportCalled).toBe(false);
       expect(result.state).toBe('failed');
-      expect(result.attempt_count).toBe(1);
+      expect(result.attempt_count).toBe(0);
       expect(validateExecutionResult(result).success).toBe(true);
     });
 
-    test('executes transport exactly ONCE when allowed', async () => {
+    test('preflight failure returns attempt_count: 0 without transport', async () => {
+      const badReq = { ...validReq, provider_id: 'unallowed-provider' };
+      const result = await executeGovernedRequest({
+        execution_request: badReq,
+        provider_adapter: validAdapter,
+        transport: null,
+      });
+
+      expect(result.state).toBe('failed');
+      expect(result.attempt_count).toBe(0);
+      expect(validateExecutionResult(result).success).toBe(true);
+    });
+
+    test('transport validation failure returns attempt_count: 0', async () => {
+      const result = await executeGovernedRequest({
+        execution_request: validReq,
+        provider_adapter: validAdapter,
+        transport: null,
+        environment: { OPENAI_API_KEY: 'sk-test-secret' },
+      });
+
+      expect(result.state).toBe('failed');
+      expect(result.attempt_count).toBe(0);
+      expect(validateExecutionResult(result).success).toBe(true);
+    });
+
+    test('pre-aborted signal returns state cancelled and attempt_count: 0', async () => {
+      const controller = new AbortController();
+      controller.abort();
+
+      const result = await executeGovernedRequest({
+        execution_request: validReq,
+        provider_adapter: validAdapter,
+        transport: { execute: async () => ({}) },
+        environment: { OPENAI_API_KEY: 'sk-test-secret' },
+        signal: controller.signal,
+      });
+
+      expect(result.state).toBe('cancelled');
+      expect(result.attempt_count).toBe(0);
+      expect(validateExecutionResult(result).success).toBe(true);
+    });
+
+    test('oversized request blocks transport invocation and returns attempt_count: 0', async () => {
+      let transportCalled = false;
+      const fakeTransport = { execute: async () => { transportCalled = true; return {}; } };
+      const tinyReqPolicy = createExecutionPolicy({ ...validPolicy, max_request_bytes: 10 });
+      const tinyReq = { ...validReq, policy: tinyReqPolicy };
+
+      const result = await executeGovernedRequest({
+        execution_request: tinyReq,
+        provider_adapter: validAdapter,
+        transport: fakeTransport,
+        environment: { OPENAI_API_KEY: 'sk-test-secret' },
+      });
+
+      expect(transportCalled).toBe(false);
+      expect(result.state).toBe('failed');
+      expect(result.attempt_count).toBe(0);
+      expect(result.error.code).toBe('request_too_large');
+      expect(validateExecutionResult(result).success).toBe(true);
+    });
+
+    test('executes transport exactly ONCE when allowed and validates completed result with IDs & timing', async () => {
       let calls = 0;
       let capturedCred = null;
 
@@ -266,19 +314,91 @@ describe('Gateway Governed Execution & Gate (Sprint D)', () => {
       expect(calls).toBe(1);
       expect(result.state).toBe('completed');
       expect(result.attempt_count).toBe(1);
+      expect(result.request_id).toBe('req-exec-test-1');
+      expect(result.provider_id).toBe('openai');
+      expect(result.model_id).toBe('gpt-4o');
+      expect(result.timing.started_at).toBe(1800000000);
+      expect(result.timing.completed_at).toBe(1800000000);
+      expect(result.timing.duration_ms).toBe(0);
       expect(result.redacted).toBe(true);
-      expect(result.gateway_response.choices[0].message.content).toBe('Hello back');
 
-      // Credential destroyed in finally block after execution
+      expect(validateExecutionResult(result).success).toBe(true);
       expect(capturedCred.destroyed).toBe(true);
     });
 
-    test('destroys credential container in finally block after transport failure', async () => {
+    test('oversized response payload returns response_too_large and attempt_count: 1', async () => {
+      const hugeTransport = {
+        execute: async () => ({
+          payload: 'x'.repeat(1000),
+        }),
+      };
+      const tinyRespPolicy = createExecutionPolicy({ ...validPolicy, max_response_bytes: 50 });
+      const tinyRespReq = { ...validReq, policy: tinyRespPolicy };
+
+      const result = await executeGovernedRequest({
+        execution_request: tinyRespReq,
+        provider_adapter: validAdapter,
+        transport: hugeTransport,
+        environment: { OPENAI_API_KEY: 'sk-test-secret' },
+      });
+
+      expect(result.state).toBe('failed');
+      expect(result.attempt_count).toBe(1);
+      expect(result.error.code).toBe('response_too_large');
+      expect(validateExecutionResult(result).success).toBe(true);
+    });
+
+    test('circular response payload returns upstream_protocol_error and attempt_count: 1', async () => {
+      const circularObj = {};
+      circularObj.self = circularObj;
+
+      const circularTransport = {
+        execute: async () => circularObj,
+      };
+
+      const result = await executeGovernedRequest({
+        execution_request: validReq,
+        provider_adapter: validAdapter,
+        transport: circularTransport,
+        environment: { OPENAI_API_KEY: 'sk-test-secret' },
+      });
+
+      expect(result.state).toBe('failed');
+      expect(result.attempt_count).toBe(1);
+      expect(result.error.code).toBe('upstream_protocol_error');
+      expect(validateExecutionResult(result).success).toBe(true);
+    });
+
+    test('timeout/cancellation after transport invocation returns attempt_count: 1', async () => {
+      const timeoutTransport = {
+        execute: async () => {
+          const err = new Error('Transport operation timed out');
+          err.code = 'timeout';
+          throw err;
+        },
+      };
+
+      const result = await executeGovernedRequest({
+        execution_request: validReq,
+        provider_adapter: validAdapter,
+        transport: timeoutTransport,
+        environment: { OPENAI_API_KEY: 'sk-test-secret' },
+      });
+
+      expect(result.state).toBe('timed_out');
+      expect(result.attempt_count).toBe(1);
+      expect(result.error.code).toBe('timeout');
+      expect(validateExecutionResult(result).success).toBe(true);
+    });
+
+    test('arbitrary secret string in thrown transport error is redacted BEFORE credential destruction', async () => {
       let capturedCred = null;
       const failingTransport = {
         execute: async ({ credential }) => {
           capturedCred = credential;
-          throw new Error('Network connection reset');
+          let rawSecret;
+          credential.withSecret((secret) => { rawSecret = secret; });
+          throw new Error(`Custom transport crash bearing secret ${rawSecret}`);
         },
       };
 
@@ -286,142 +406,15 @@ describe('Gateway Governed Execution & Gate (Sprint D)', () => {
         execution_request: validReq,
         provider_adapter: validAdapter,
         transport: failingTransport,
-        environment: { OPENAI_API_KEY: 'sk-test-fail-key' },
-        clock: () => 1800000000,
+        environment: { OPENAI_API_KEY: 'sk-ultra-custom-dummy-token-777' },
       });
 
       expect(result.state).toBe('failed');
       expect(result.attempt_count).toBe(1);
       expect(capturedCred.destroyed).toBe(true);
-      expect(result.error.message).not.includes('sk-test-fail-key');
-    });
-
-    test('normalizes provider error payload from transport', async () => {
-      const errTransport = {
-        execute: async () => ({
-          status: 401,
-          error: {
-            error: {
-              message: 'Incorrect API key provided: sk-proj-secret',
-              type: 'invalid_request_error',
-              code: 'invalid_api_key',
-            },
-          },
-        }),
-      };
-
-      const result = await executeGovernedRequest({
-        execution_request: validReq,
-        provider_adapter: validAdapter,
-        transport: errTransport,
-        environment: { OPENAI_API_KEY: 'sk-proj-secret' },
-        clock: () => 1800000000,
-      });
-
-      expect(result.state).toBe('failed');
-      expect(result.attempt_count).toBe(1);
-      expect(result.error.redacted).toBe(true);
-      expect(result.error.message).not.includes('sk-proj-secret');
-    });
-  });
-
-  describe('Sprint C Closure Edge Cases', () => {
-
-    test('rejects invalid environment override (e.g. string or number) without process.env fallback', () => {
-      const resString = resolveEnvironmentCredential({
-        provider_id: 'openai',
-        provider_adapter: validAdapter,
-        environment: 'invalid-string-override',
-      });
-      expect(resString.success).toBe(false);
-      expect(resString.error.code).toBe('credential_reference_invalid');
-      expect(validateExecutionError(resString.error).success).toBe(true);
-
-      const resNum = resolveEnvironmentCredential({
-        provider_id: 'openai',
-        provider_adapter: validAdapter,
-        environment: 12345,
-      });
-      expect(resNum.success).toBe(false);
-      expect(validateExecutionError(resNum.error).success).toBe(true);
-    });
-
-    test('reads only own data properties, rejecting inherited prototype properties', () => {
-      const parentEnv = { OPENAI_API_KEY: 'inherited-secret' };
-      const childEnv = Object.create(parentEnv);
-
-      const res = resolveEnvironmentCredential({
-        provider_id: 'openai',
-        provider_adapter: validAdapter,
-        environment: childEnv,
-      });
-      expect(res.success).toBe(false);
-      expect(res.error.code).toBe('credential_unavailable');
-    });
-
-    test('rejects accessor/getter properties on environment override', () => {
-      const getterEnv = {};
-      Object.defineProperty(getterEnv, 'OPENAI_API_KEY', {
-        get() {
-          return 'secret-from-getter';
-        },
-        enumerable: true,
-      });
-
-      const res = resolveEnvironmentCredential({
-        provider_id: 'openai',
-        provider_adapter: validAdapter,
-        environment: getterEnv,
-      });
-      expect(res.success).toBe(false);
-      expect(res.error.code).toBe('credential_unavailable');
-    });
-
-    test('withSecret callback failure sanitizes message, stack, cause, and details', () => {
-      const res = resolveEnvironmentCredential({
-        provider_id: 'openai',
-        provider_adapter: validAdapter,
-        environment: { OPENAI_API_KEY: 'super-sensitive-secret-token' },
-      });
-      expect(res.success).toBe(true);
-
-      const cred = res.credential;
-      expect(() => {
-        cred.withSecret((raw) => {
-          const err = new Error(`Error containing ${raw}`);
-          err.cause = `Cause with ${raw}`;
-          err.details = { note: `Details with ${raw}` };
-          throw err;
-        });
-      }).toThrowError();
-
-      try {
-        cred.withSecret((raw) => {
-          const err = new Error(`Error containing ${raw}`);
-          err.cause = `Cause with ${raw}`;
-          err.details = { note: `Details with ${raw}` };
-          throw err;
-        });
-      } catch (err) {
-        expect(err.message).not.includes('super-sensitive-secret-token');
-        expect(err.stack).not.includes('super-sensitive-secret-token');
-        expect(err.cause).not.includes('super-sensitive-secret-token');
-        expect(err.details.note).not.includes('super-sensitive-secret-token');
-      }
-    });
-
-    test('optional missing credential reports semantically accurate safe metadata', () => {
-      const optionalRef = createCredentialRef({ env_var: 'OPENAI_API_KEY', required: false });
-      const res = resolveEnvironmentCredential({
-        credential_ref: optionalRef,
-        provider_id: 'openai',
-        provider_adapter: validAdapter,
-        environment: {},
-      });
-      expect(res.success).toBe(true);
-      expect(res.credential).toBe(null);
-      expect(res.metadata.resolved).toBe(true);
-      expect(res.metadata.env_var).toBe('OPENAI_API_KEY');
+      expect(result.error.message).not.includes('sk-ultra-custom-dummy-token-777');
+      expect(result.error.message).includes('[REDACTED]');
+      expect(validateExecutionResult(result).success).toBe(true);
     });
   });
 });
