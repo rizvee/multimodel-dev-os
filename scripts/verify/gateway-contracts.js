@@ -773,4 +773,42 @@ export function checkGatewayContracts() {
   } else {
     fail('Execution dispatcher must hide target extraction path and encapsulate executeRoute');
   }
+
+  // --- Sprint E2 Governed External Streaming Verifier Assertions ---
+  const sprintE2Files = [
+    'src/gateway/execution/stream-executor.js',
+    'tests/integration/gateway-governed-runtime-stream.test.js',
+    'docs/gateway-streaming.md',
+  ];
+  checkFilesExist(sprintE2Files, 'Sprint E2 streaming source, test suite, and documentation exist');
+  checkAdapterForbiddenPrimitives('src/gateway/execution/stream-executor.js', 'No network, credential, env, or ambient time primitives in stream executor');
+
+  const safeConfigSummary = validateGovernedRuntimeConfig({
+    enabled: true,
+    transport: { execute: async () => ({}), stream: async () => ({}) },
+    providers: {
+      'verify-provider': {
+        provider_adapter: testAdapter,
+        endpoint: createProviderEndpoint({ url: 'https://api.example.com/v1/chat' }),
+        policy: createExecutionPolicy({ enabled: true, allowed_provider_ids: ['verify-provider'] }),
+        capability: createProviderExecutionCapability({ chat_completions: true, non_streaming: true, sse_streaming: true }),
+        credential_ref: createCredentialRef({ env_var: 'VERIFY_KEY' }),
+      },
+    },
+    model_routes: {
+      'm1': { provider_id: 'verify-provider', model_id: 'm1' },
+    },
+  });
+
+  if (safeConfigSummary.success === true && safeConfigSummary.transport === undefined && safeConfigSummary.credentials === undefined) {
+    pass('validateGovernedRuntimeConfig returns safe summary only without exposing private transport or credential containers');
+  } else {
+    fail('validateGovernedRuntimeConfig leaked private transport or credential containers');
+  }
+
+  if (typeof enabledDispatcher.executeStreamRoute === 'function') {
+    pass('Execution dispatcher encapsulates executeStreamRoute for governed streaming');
+  } else {
+    fail('Execution dispatcher missing encapsulated executeStreamRoute');
+  }
 }

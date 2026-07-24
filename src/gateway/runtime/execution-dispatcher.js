@@ -7,7 +7,10 @@ import { validateTransport } from '../execution/transport-contract.js';
 import { validateEndpointBinding } from '../execution/execution-gate.js';
 import { createExecutionRequest } from '../contracts/execution-request.js';
 import { executeGovernedRequest } from '../execution/executor.js';
+import { executeGovernedStream } from '../execution/stream-executor.js';
+import { createExecutionError } from '../contracts/execution-error.js';
 import { createRuntimeError } from './errors.js';
+import { EXECUTION_CONTRACT_VERSION } from '../protocol/constants.js';
 
 const RESERVED_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 const SAFE_ID_REGEX = /^[a-zA-Z0-9_\-.:]{1,128}$/;
@@ -48,10 +51,33 @@ function cloneStructural(obj) {
   return deepFreeze(JSON.parse(JSON.stringify(obj)));
 }
 
-export function validateGovernedRuntimeConfig(config = {}) {
+function freezeAdapterFacade(adapter) {
+  if (!adapter || typeof adapter !== 'object') return adapter;
+  return Object.freeze({
+    id: adapter.id,
+    name: adapter.name,
+    type: adapter.type,
+    version: adapter.version,
+    capabilities: Object.freeze(Array.isArray(adapter.capabilities) ? [...adapter.capabilities] : []),
+    credential_env: adapter.credential_env || null,
+    base_url: adapter.base_url,
+    models: Object.freeze(Array.isArray(adapter.models) ? [...adapter.models] : []),
+    validateConfig: adapter.validateConfig,
+    listModels: adapter.listModels,
+    normalizeRequest: adapter.normalizeRequest,
+    invoke: adapter.invoke,
+    normalizeResponse: adapter.normalizeResponse,
+    stream: adapter.stream,
+    classifyError: adapter.classifyError,
+    health: adapter.health,
+    redact: adapter.redact,
+  });
+}
+
+function compileGovernedRuntimeConfig(config = {}) {
   const errors = [];
   if (!isObject(config)) {
-    return { success: false, errors: [{ code: 'invalid_config', message: 'governed_execution must be an object' }] };
+    return { success: false, enabled: false, errors: [{ code: 'invalid_config', message: 'governed_execution must be an object' }] };
   }
 
   const enabled = config.enabled === true;
@@ -152,12 +178,18 @@ export function validateGovernedRuntimeConfig(config = {}) {
             errors.push({ code: 'unusable_capability', message: `Provider ${providerId} must support non_streaming or sse_streaming` });
             providerValid = false;
           }
+          if (pConfig.capability.sse_streaming === true && pConfig.capability.non_streaming !== true && enabled) {
+            if (typeof config.transport?.stream !== 'function') {
+              errors.push({ code: 'invalid_transport', message: `Provider ${providerId} requires streaming transport but transport.stream is not a function` });
+              providerValid = false;
+            }
+          }
         }
 
         const requiresCred = isString(pConfig.provider_adapter?.credential_env);
         if (requiresCred) {
           if (!pConfig.credential_ref) {
-            errors.push({ code: 'missing_credential_ref', message: `Provider ${providerId} requires credential_ref for ${pConfig.provider_adapter.credential_env}` });
+            errors.push({ code: 'missing_credential_ref', message: `Provider ${providerId} requires credential_ref` });
             providerValid = false;
           } else {
             const credCheck = validateCredentialRef(pConfig.credential_ref);
@@ -165,7 +197,7 @@ export function validateGovernedRuntimeConfig(config = {}) {
               errors.push({ code: 'invalid_credential_ref', message: `Provider ${providerId} credential_ref validation failed` });
               providerValid = false;
             } else if (pConfig.credential_ref.env_var !== pConfig.provider_adapter.credential_env) {
-              errors.push({ code: 'credential_ref_mismatch', message: `Provider ${providerId} credential_ref env_var (${pConfig.credential_ref.env_var}) must match adapter credential_env (${pConfig.provider_adapter.credential_env})` });
+              errors.push({ code: 'credential_ref_mismatch', message: `Provider ${providerId} credential_ref env_var must match adapter credential_env` });
               providerValid = false;
             }
           }
@@ -178,7 +210,7 @@ export function validateGovernedRuntimeConfig(config = {}) {
 
         if (providerValid) {
           validatedProviders[providerId] = Object.freeze({
-            provider_adapter: pConfig.provider_adapter,
+            provider_adapter: freezeAdapterFacade(pConfig.provider_adapter),
             endpoint: cloneStructural(pConfig.endpoint),
             policy: cloneStructural(pConfig.policy),
             capability: cloneStructural(pConfig.capability),
@@ -245,7 +277,7 @@ export function validateGovernedRuntimeConfig(config = {}) {
   }
 
   if (errors.length > 0) {
-    return { success: false, errors };
+    return { success: false, enabled: false, errors };
   }
 
   return {
@@ -259,24 +291,33 @@ export function validateGovernedRuntimeConfig(config = {}) {
   };
 }
 
-export function createExecutionDispatcher(governedConfig = {}) {
-  const validation = validateGovernedRuntimeConfig(governedConfig);
+export function validateGovernedRuntimeConfig(config = {}) {
+  const result = compileGovernedRuntimeConfig(config);
+  return {
+    success: result.success,
+    enabled: result.enabled === true,
+    errors: result.errors || [],
+  };
+}
 
-  const privateProviders = validation.providers;
-  const privateRoutes = validation.model_routes;
-  const privateTransport = validation.transport;
-  const privateEnvironment = validation.environment;
-  const privateClock = validation.clock;
+export function createExecutionDispatcher(governedConfig = {}) {
+  const compiled = compileGovernedRuntimeConfig(governedConfig);
+
+  const privateProviders = compiled.providers;
+  const privateRoutes = compiled.model_routes;
+  const privateTransport = compiled.transport;
+  const privateEnvironment = compiled.environment;
+  const privateClock = compiled.clock;
 
   return Object.freeze({
     get success() {
-      return validation.success;
+      return compiled.success;
     },
     get errors() {
-      return validation.errors || [];
+      return compiled.errors || [];
     },
     get enabled() {
-      return validation.enabled === true;
+      return compiled.enabled === true;
     },
     resolveRoute(requestedModel) {
       if (!requestedModel || typeof requestedModel !== 'string' || !isValidSafeKey(requestedModel)) {
@@ -286,13 +327,13 @@ export function createExecutionDispatcher(governedConfig = {}) {
           provider_id: null,
           requested_model: String(requestedModel || ''),
           resolved_model: null,
-          enabled: validation.enabled === true,
+          enabled: compiled.enabled === true,
         });
       }
 
       if (privateRoutes && Object.prototype.hasOwnProperty.call(privateRoutes, requestedModel)) {
         const route = privateRoutes[requestedModel];
-        if (!validation.enabled) {
+        if (!compiled.enabled) {
           return Object.freeze({
             type: 'disabled-external',
             strategy: 'governed-external',
@@ -329,11 +370,11 @@ export function createExecutionDispatcher(governedConfig = {}) {
         provider_id: null,
         requested_model: requestedModel,
         resolved_model: requestedModel,
-        enabled: validation.enabled === true,
+        enabled: compiled.enabled === true,
       });
     },
     async executeRoute({ requested_model, gateway_request, request_id, signal, runtime_timeout_ms = null } = {}) {
-      if (!validation.enabled) {
+      if (!compiled.enabled) {
         throw createRuntimeError({
           code: 'execution_disabled',
           message: `Governed execution is disabled for model ${requested_model}`,
@@ -392,8 +433,87 @@ export function createExecutionDispatcher(governedConfig = {}) {
         runtime_timeout_ms,
       });
     },
+    async executeStreamRoute({ requested_model, gateway_request, request_id, signal, runtime_timeout_ms = null, idle_timeout_ms = null } = {}) {
+      if (!compiled.enabled) {
+        return {
+          success: false,
+          error: createExecutionError({
+            contract_version: EXECUTION_CONTRACT_VERSION,
+            code: 'execution_disabled',
+            category: 'policy_error',
+            message: `Governed execution is disabled for model ${requested_model}`,
+            status: 403,
+            provider_id: null,
+            request_id: request_id || null,
+            redacted: true,
+          }),
+        };
+      }
+
+      if (!requested_model || !privateRoutes || !Object.prototype.hasOwnProperty.call(privateRoutes, requested_model)) {
+        return {
+          success: false,
+          error: createExecutionError({
+            contract_version: EXECUTION_CONTRACT_VERSION,
+            code: 'model_not_found',
+            category: 'not_found_error',
+            message: `Model not found: ${requested_model}`,
+            status: 404,
+            provider_id: null,
+            request_id: request_id || null,
+            redacted: true,
+          }),
+        };
+      }
+
+      const route = privateRoutes[requested_model];
+      const providerConfig = privateProviders ? privateProviders[route.provider_id] : null;
+      if (!providerConfig) {
+        return {
+          success: false,
+          error: createExecutionError({
+            contract_version: EXECUTION_CONTRACT_VERSION,
+            code: 'internal_execution_error',
+            category: 'internal_execution_error',
+            message: `Provider ${route.provider_id} configuration missing`,
+            status: 500,
+            provider_id: route.provider_id,
+            request_id: request_id || null,
+            redacted: true,
+          }),
+        };
+      }
+
+      const gatewayPayload = {
+        ...gateway_request,
+        model: route.model_id,
+      };
+
+      const execReq = createExecutionRequest({
+        request_id,
+        provider_id: route.provider_id,
+        model_id: route.model_id,
+        gateway_request: gatewayPayload,
+        policy: providerConfig.policy,
+        endpoint: providerConfig.endpoint,
+        capability: providerConfig.capability,
+        credential_ref: providerConfig.credential_ref,
+      });
+
+      return executeGovernedStream({
+        execution_request: execReq,
+        provider_adapter: providerConfig.provider_adapter,
+        transport: privateTransport,
+        environment: privateEnvironment,
+        clock: privateClock,
+        requestId: request_id,
+        signal,
+        runtime_timeout_ms,
+        idle_timeout_ms,
+      });
+    },
     listExternalModels() {
-      if (!validation.enabled || !privateRoutes || !privateProviders) {
+      if (!compiled.enabled || !privateRoutes || !privateProviders) {
         return [];
       }
       const models = [];

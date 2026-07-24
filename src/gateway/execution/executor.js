@@ -208,7 +208,7 @@ export async function executeGovernedRequest({
       error: createExecutionError({
         contract_version: EXECUTION_CONTRACT_VERSION,
         code: 'transport_invalid',
-        category: 'transport_invalid',
+        category: 'internal_execution_error',
         message: 'Injected transport contract validation failed',
         provider_id: provId,
         request_id: execReqId,
@@ -235,7 +235,7 @@ export async function executeGovernedRequest({
           contract_version: EXECUTION_CONTRACT_VERSION,
           code: 'credential_unavailable',
           category: 'credential_unavailable',
-          message: credResolution.error?.message || `Credential environment variable (${execution_request.credential_ref.env_var}) is unavailable`,
+          message: credResolution.error?.message || 'Required environment credential is unavailable for execution',
           status: 503,
           provider_id: provId,
           request_id: execReqId,

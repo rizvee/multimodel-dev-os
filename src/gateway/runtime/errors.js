@@ -59,12 +59,18 @@ export function createRuntimeError(options = {}) {
 
 export function toRuntimeError(error, fallback = {}) {
   if (error instanceof GatewayRuntimeError) return error;
+  const rawCode = error?.error?.code || (error?.category && STATUS_BY_CODE[error.category] ? error.category : error?.code) || fallback.code || 'internal_error';
+  const code = STATUS_BY_CODE[rawCode] ? rawCode : 'internal_error';
+  const rawStatus = error?.error?.status || error?.status || fallback.status || null;
+  const status = (rawStatus && rawStatus !== 500) ? rawStatus : (STATUS_BY_CODE[code] || rawStatus || 500);
+  const message = error?.error?.message || error?.message || fallback.message || 'Gateway runtime error';
   return createRuntimeError({
-    code: fallback.code || 'internal_error',
-    message: fallback.message || error?.message || 'Gateway runtime error',
-    request_id: fallback.request_id || null,
-    details: fallback.details || null,
-    cause: error?.name || fallback.cause || 'unknown',
+    code,
+    status,
+    message,
+    request_id: fallback.request_id || error?.request_id || null,
+    details: fallback.details || error?.details || null,
+    cause: error?.name || fallback.cause || code,
   });
 }
 

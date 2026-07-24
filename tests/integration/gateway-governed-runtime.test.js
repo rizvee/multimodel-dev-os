@@ -354,7 +354,7 @@ describe('Sprint E1 — Governed Runtime Integration (Non-Stream)', () => {
             provider_adapter: validAdapter,
             endpoint: validEndpoint,
             policy: validPolicy,
-            capability: validCapability,
+            capability: createProviderExecutionCapability({ chat_completions: true, non_streaming: true, sse_streaming: false }),
             credential_ref: validCredentialRef,
           },
         },

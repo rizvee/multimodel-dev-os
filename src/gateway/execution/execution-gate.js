@@ -198,7 +198,9 @@ export function evaluateExecutionGate({
 
   const requestValidation = validateExecutionRequest(request);
   if (!requestValidation.success) {
-    return deny('request_invalid', 'Execution request contract validation failed', 'request_invalid');
+    const firstErr = requestValidation.errors?.[0];
+    const errCode = (firstErr?.code && EXECUTION_ERROR_CATEGORIES.includes(firstErr.code)) ? firstErr.code : 'request_invalid';
+    return deny(errCode, firstErr?.message || 'Execution request contract validation failed', errCode);
   }
 
   const activeEndpoint = endpoint || request.endpoint;

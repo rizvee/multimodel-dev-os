@@ -60,6 +60,34 @@ function healthResponse({ provider, state, startTime, context, dispatcher }) {
   };
 }
 
+function waitForDrain(response, signal) {
+  if (!response || response.writableEnded || response.destroyed || signal?.aborted) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    const onDrain = () => {
+      cleanup();
+      resolve();
+    };
+    const onAbort = () => {
+      cleanup();
+      resolve();
+    };
+    const cleanup = () => {
+      response.removeListener('drain', onDrain);
+      response.removeListener('close', onDrain);
+      if (signal) {
+        signal.removeEventListener('abort', onAbort);
+      }
+    };
+    response.once('drain', onDrain);
+    response.once('close', onDrain);
+    if (signal) {
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+  });
+}
+
 function safeRecord(callback) {
   try {
     return callback();
@@ -244,16 +272,6 @@ export function createGatewayApp({
       if (routeDecision.type === 'governed-external') {
         const body = sanitizeClientBody(rawBody);
 
-        if (body.stream === true) {
-          throw createRuntimeError({
-            code: 'unsupported_capability',
-            message: 'External streaming is not supported in Sprint E1',
-            request_id: context.request_id,
-            status: 400,
-            cause: 'external_streaming_deferred',
-          });
-        }
-
         const reqValidation = validateGatewayRequest(body);
         if (!reqValidation.success) throw routeError({ ...reqValidation, value: body }, context);
 
@@ -278,6 +296,196 @@ export function createGatewayApp({
         });
         if (planned?.event_id) eventIds.push(planned.event_id);
 
+        const runtimeTimeoutMs = config?.provider_timeout_ms || 30000;
+
+        // Governed Streaming Branch
+        if (body.stream === true) {
+          const abortController = new AbortController();
+          let timeoutTimer = null;
+
+          const cleanupListeners = () => {
+            if (timeoutTimer) {
+              clearTimeout(timeoutTimer);
+              timeoutTimer = null;
+            }
+            request.removeListener('aborted', onAbort);
+            response.removeListener('close', onClose);
+            request.socket?.removeListener('close', onClose);
+          };
+
+          const onAbort = () => {
+            if (!abortController.signal.aborted) {
+              abortController.abort(createRuntimeError({
+                code: 'cancelled',
+                message: 'Client request aborted during stream',
+                request_id: context.request_id,
+                status: 499,
+                cause: 'client_aborted',
+              }));
+            }
+          };
+
+          const onClose = () => {
+            if (!response.writableEnded && !response.finished && !abortController.signal.aborted) {
+              if (!request.readableEnded || !response.headersSent) {
+                abortController.abort(createRuntimeError({
+                  code: 'cancelled',
+                  message: 'Client connection closed before stream completed',
+                  request_id: context.request_id,
+                  status: 499,
+                  cause: 'socket_closed',
+                }));
+              }
+            }
+          };
+
+          request.once('aborted', onAbort);
+          response.once('close', onClose);
+          request.socket?.once('close', onClose);
+
+          timeoutTimer = setTimeout(() => {
+            if (!abortController.signal.aborted) {
+              abortController.abort(createRuntimeError({
+                code: 'timeout',
+                message: `Governed stream execution timed out after ${runtimeTimeoutMs}ms`,
+                request_id: context.request_id,
+                status: 504,
+                cause: 'runtime_timeout',
+              }));
+            }
+          }, runtimeTimeoutMs);
+          if (timeoutTimer.unref) timeoutTimer.unref();
+
+          let streamResult = null;
+          try {
+            streamResult = await dispatcher.executeStreamRoute({
+              requested_model: rawBody?.model,
+              gateway_request: body,
+              request_id: context.request_id,
+              signal: abortController.signal,
+              runtime_timeout_ms: runtimeTimeoutMs,
+            });
+          } catch (err) {
+            cleanupListeners();
+            throw err;
+          }
+
+          if (!streamResult || !streamResult.success) {
+            cleanupListeners();
+            const errToThrow = streamResult?.error || createRuntimeError({
+              code: 'internal_execution_error',
+              message: 'Governed stream execution failed preflight',
+              request_id: context.request_id,
+              status: 500,
+            });
+            throw toRuntimeError(errToThrow, { request_id: context.request_id });
+          }
+
+          // Write SSE Headers
+          response.writeHead(200, {
+            'content-type': 'text/event-stream; charset=utf-8',
+            'cache-control': 'no-cache',
+            'connection': 'keep-alive',
+            'x-request-id': context.request_id,
+          });
+
+          const started = observeEvent(collector, {
+            trace_id: traceId,
+            request_id: context.request_id,
+            type: 'governed-stream-started',
+            provider_id: routeDecision.provider_id,
+            model_id: routeDecision.resolved_model,
+            route_strategy: 'governed-external',
+          });
+          if (started?.event_id) eventIds.push(started.event_id);
+
+          let chunkCount = 0;
+          let byteCount = 0;
+
+          try {
+            for await (const chunkEvent of streamResult.session.event_stream) {
+              if (chunkEvent.type === 'chunk') {
+                chunkCount++;
+                const payload = `data: ${JSON.stringify(chunkEvent.gateway_response)}\n\n`;
+                byteCount += Buffer.byteLength(payload, 'utf8');
+                const canWrite = response.write(payload);
+                if (!canWrite) {
+                  await waitForDrain(response, abortController.signal);
+                }
+
+                const chunkObs = observeEvent(collector, {
+                  trace_id: traceId,
+                  request_id: context.request_id,
+                  type: 'governed-stream-chunk',
+                  provider_id: routeDecision.provider_id,
+                  model_id: routeDecision.resolved_model,
+                  route_strategy: 'governed-external',
+                  metadata: { chunk_index: chunkCount },
+                });
+                if (chunkObs?.event_id) eventIds.push(chunkObs.event_id);
+              }
+            }
+
+            if (!response.writableEnded) {
+              response.write('data: [DONE]\n\n');
+            }
+
+            const timestamp = Date.now();
+            const durationMs = Math.max(0, timestamp - context.start_time);
+            recordProviderHealth(collector, { success: true, providerId: routeDecision.provider_id, timestamp, durationMs });
+
+            const compEvent = observeEvent(collector, {
+              trace_id: traceId,
+              request_id: context.request_id,
+              type: 'governed-stream-completed',
+              provider_id: routeDecision.provider_id,
+              model_id: routeDecision.resolved_model,
+              route_strategy: 'governed-external',
+              metadata: { chunk_count: chunkCount, byte_count: byteCount },
+            });
+            if (compEvent?.event_id) eventIds.push(compEvent.event_id);
+
+            traceComplete(collector, traceId, context, { status_code: 200, success: true, event_ids: eventIds });
+          } catch (streamErr) {
+            const timestamp = Date.now();
+            const durationMs = Math.max(0, timestamp - context.start_time);
+            const isTimeout = streamErr?.code === 'timeout' || streamErr?.category === 'timeout';
+            const isCancel = streamErr?.code === 'cancelled' || streamErr?.category === 'cancelled' || abortController.signal.aborted;
+
+            recordProviderHealth(collector, { success: false, providerId: routeDecision.provider_id, timestamp, durationMs });
+
+            const failEventType = isTimeout ? 'governed-stream-timed-out' : (isCancel ? 'governed-stream-cancelled' : 'governed-stream-failed');
+            const failEvent = observeEvent(collector, {
+              trace_id: traceId,
+              request_id: context.request_id,
+              type: failEventType,
+              provider_id: routeDecision.provider_id,
+              model_id: routeDecision.resolved_model,
+              route_strategy: 'governed-external',
+              metadata: { chunk_count: chunkCount, byte_count: byteCount, error_code: streamErr?.code || 'stream_error' },
+            });
+            if (failEvent?.event_id) eventIds.push(failEvent.event_id);
+
+            traceComplete(collector, traceId, context, { status_code: isTimeout ? 504 : (isCancel ? 499 : 502), success: false, event_ids: eventIds });
+
+            if (!response.writableEnded) {
+              const safeRuntimeErr = toRuntimeError(streamErr, { request_id: context.request_id });
+              response.write(`data: ${JSON.stringify({ error: safeRuntimeErr.gatewayError.error })}\n\n`);
+              response.write('data: [DONE]\n\n');
+            }
+          } finally {
+            cleanupListeners();
+            if (streamResult.session?.cancel) {
+              streamResult.session.cancel();
+            }
+            if (!response.writableEnded) {
+              response.end();
+            }
+          }
+          return;
+        }
+
+        // Non-stream governed external branch
         const started = observeEvent(collector, {
           trace_id: traceId,
           request_id: context.request_id,
@@ -288,9 +496,6 @@ export function createGatewayApp({
         });
         if (started?.event_id) eventIds.push(started.event_id);
 
-        const runtimeTimeoutMs = config?.provider_timeout_ms || 30000;
-
-        // AbortController setup & runtime timeout handling
         const abortController = new AbortController();
         let timeoutTimer = null;
 

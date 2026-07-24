@@ -90,6 +90,8 @@ const result = await executeGovernedRequest({
   },
   environment: process.env,
 });
+```
+
 ### Signal & Timeout Behavior
 
 - The executor races `transport.execute(...)` against the supplied `AbortSignal`.
