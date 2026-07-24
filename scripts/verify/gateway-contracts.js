@@ -1,50 +1,56 @@
-import { readdirSync, readFileSync, existsSync } from 'fs';
+import { existsSync, readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import {
+  createChatCompletionResponse,
+  createCredentialRef,
+  createExecutionError,
+  createExecutionPolicy,
+  createExecutionRequest,
+  createExecutionResult,
+  createProviderEndpoint,
+  createProviderExecutionCapability,
+  DEFAULT_GATEWAY_CONFIG,
   EXECUTION_CONTRACT_VERSION,
+  EXECUTION_DEFAULTS,
   EXECUTION_ERROR_CATEGORIES,
   EXECUTION_REQUEST_REQUIRED_FIELDS,
   EXECUTION_RESULT_REQUIRED_FIELDS,
   EXECUTION_ERROR_REQUIRED_FIELDS,
-} from '../../src/gateway/protocol/constants.js';
-import {
+  validateCredentialRef,
+  validateExecutionError,
+  validateExecutionPolicy,
   validateExecutionRequest,
   validateExecutionResult,
-  validateExecutionError,
-} from '../../src/gateway/protocol/validation.js';
-import { createExecutionResult } from '../../src/gateway/contracts/execution-result.js';
-import { createExecutionError } from '../../src/gateway/contracts/execution-error.js';
-import {
+  validateGatewayConfig,
+  validateGatewayRequest,
+  validateGatewayResponse,
+  validateProviderAdapter,
+  validateProviderEndpoint,
+  validateProviderExecutionCapability,
   normalizeOpenAIExecutionRequest,
   normalizeOpenAIResponse,
   normalizeOpenAIError,
   createOpenAISSEParser,
-} from '../../src/gateway/adapters/openai-compatible/index.js';
+} from '../../src/gateway/index.js';
+import { mockProvider } from '../../tests/fixtures/gateway/mock-provider.js';
+import { stats, GREEN, RED, NC, projectRoot } from './utils.js';
 
-const projectRoot = process.cwd();
-
-function pass(label) {
-  console.log(`  [ok] ${label}`);
+function pass(message) {
+  console.log(`  ${GREEN}[ok]${NC} ${message}`);
+  stats.pass++;
 }
 
-function fail(label) {
-  console.error(`  [FAIL] ${label}`);
-  process.exit(1);
+function fail(message) {
+  console.error(`  ${RED}[x]${NC} ${message}`);
+  stats.fail++;
 }
 
 function readJson(relPath) {
-  const fullPath = join(projectRoot, relPath);
-  return JSON.parse(readFileSync(fullPath, 'utf8'));
+  return JSON.parse(readFileSync(join(projectRoot, relPath), 'utf8'));
 }
 
-function checkFilesExist(files, label) {
-  const missing = [];
-  for (const relPath of files) {
-    const fullPath = join(projectRoot, relPath);
-    if (!existsSync(fullPath)) {
-      missing.push(relPath);
-    }
-  }
+function checkFilesExist(paths, label) {
+  const missing = paths.filter((relPath) => !existsSync(join(projectRoot, relPath)));
   if (missing.length === 0) {
     pass(label);
   } else {
@@ -52,9 +58,9 @@ function checkFilesExist(files, label) {
   }
 }
 
-function checkJsonSchemasParse(schemaFiles, label) {
+function checkJsonFilesParse(paths, label) {
   try {
-    for (const relPath of schemaFiles) {
+    for (const relPath of paths) {
       readJson(relPath);
     }
     pass(label);
@@ -90,10 +96,21 @@ function checkNoNetworkPrimitives(relDir, label) {
   }
 }
 
-function checkNoAmbientTimePrimitives(relDir, label) {
+export function checkAdapterForbiddenPrimitives(relDir, label) {
   const root = join(projectRoot, relDir);
   const matches = [];
-  const blocked = /Date\.now|new\s+Date/;
+
+  const forbiddenPatterns = [
+    { name: 'fetch', regex: /\bfetch\s*\(/ },
+    { name: 'node:http or node:https', regex: /\bnode:(?:http|https)\b/ },
+    { name: 'http.request or https.request', regex: /\bhttps?\.request\b/ },
+    { name: 'node:net, node:tls, or node:dns', regex: /\bnode:(?:net|tls|dns)\b/ },
+    { name: 'connection/server primitive', regex: /\b(?:createConnection|connect|createServer|listen)\s*\(/ },
+    { name: 'process.env', regex: /\bprocess\.env\b/ },
+    { name: 'Authorization header construction', regex: /['"]?Authorization['"]?\s*:/i },
+    { name: 'Bearer header value construction', regex: /['"]Bearer\s+[^'"]+['"]/i },
+    { name: 'Date.now or new Date', regex: /\b(?:Date\.now|new\s+Date)\b/ },
+  ];
 
   function walk(dir) {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -101,9 +118,18 @@ function checkNoAmbientTimePrimitives(relDir, label) {
       if (entry.isDirectory()) {
         walk(fullPath);
       } else if (entry.isFile() && entry.name.endsWith('.js')) {
-        const content = readFileSync(fullPath, 'utf8');
-        if (blocked.test(content)) {
-          matches.push(fullPath.replace(projectRoot, '').replace(/^[/\\]/, ''));
+        const rawContent = readFileSync(fullPath, 'utf8');
+        let cleanCode = rawContent
+          .replace(/\/\*[\s\S]*?\*\//g, '')
+          .replace(/\/\/.*/g, '');
+
+        cleanCode = cleanCode.replace(/\.replace\(\s*\/[^\n\r/]+\/[a-z]*/g, '.replace(');
+
+        for (const { name, regex } of forbiddenPatterns) {
+          if (regex.test(cleanCode)) {
+            const relFilePath = fullPath.replace(projectRoot, '').replace(/^[/\\]/, '');
+            matches.push(`${relFilePath} [${name}]`);
+          }
         }
       }
     }
@@ -113,7 +139,7 @@ function checkNoAmbientTimePrimitives(relDir, label) {
   if (matches.length === 0) {
     pass(label);
   } else {
-    fail(`${label}: ${matches.join(', ')}`);
+    fail(`${label}: detected ${matches.join(', ')}`);
   }
 }
 
@@ -124,113 +150,295 @@ export function checkGatewayContracts() {
     'src/gateway/protocol/constants.js',
     'src/gateway/protocol/validation.js',
     'src/gateway/protocol/normalize.js',
+    'src/gateway/protocol/errors.js',
+    'src/gateway/contracts/gateway-request.js',
+    'src/gateway/contracts/gateway-response.js',
+    'src/gateway/contracts/provider-adapter.js',
+    'src/gateway/contracts/routing-request.js',
+    'src/gateway/contracts/route-decision.js',
+    'src/gateway/contracts/usage.js',
+    'src/gateway/contracts/execution-request.js',
+    'src/gateway/contracts/execution-result.js',
     'src/gateway/contracts/credential-ref.js',
     'src/gateway/contracts/provider-endpoint.js',
     'src/gateway/contracts/execution-policy.js',
     'src/gateway/contracts/provider-execution-capability.js',
-    'src/gateway/contracts/execution-request.js',
-    'src/gateway/contracts/execution-result.js',
     'src/gateway/contracts/execution-error.js',
+    'src/gateway/contracts/config.js',
+    'src/gateway/index.js',
   ];
-
   const schemaFiles = [
+    '.ai/schema/gateway-request.schema.json',
+    '.ai/schema/gateway-response.schema.json',
+    '.ai/schema/provider-adapter.schema.json',
+    '.ai/schema/routing-request.schema.json',
+    '.ai/schema/route-decision.schema.json',
+    '.ai/schema/gateway-error.schema.json',
+    '.ai/schema/gateway-config.schema.json',
+    '.ai/schema/gateway-usage.schema.json',
+    '.ai/schema/gateway-execution-request.schema.json',
+    '.ai/schema/gateway-execution-result.schema.json',
     '.ai/schema/gateway-credential-reference.schema.json',
     '.ai/schema/gateway-provider-endpoint.schema.json',
     '.ai/schema/gateway-execution-policy.schema.json',
     '.ai/schema/gateway-provider-capability.schema.json',
-    '.ai/schema/gateway-execution-request.schema.json',
-    '.ai/schema/gateway-execution-result.schema.json',
     '.ai/schema/gateway-execution-error.schema.json',
   ];
-
   const fixtureFiles = [
+    'tests/fixtures/gateway/valid-chat-request.json',
+    'tests/fixtures/gateway/invalid-chat-request.json',
+    'tests/fixtures/gateway/valid-chat-response.json',
+    'tests/fixtures/gateway/valid-routing-request.json',
+    'tests/fixtures/gateway/valid-route-decision.json',
+    'tests/fixtures/gateway/normalized-errors.json',
+    'tests/fixtures/gateway/valid-execution-request.json',
+    'tests/fixtures/gateway/valid-execution-result.json',
     'tests/fixtures/gateway/valid-credential-ref.json',
     'tests/fixtures/gateway/valid-provider-endpoint.json',
     'tests/fixtures/gateway/valid-execution-policy.json',
+    'tests/fixtures/gateway/invalid-execution-policy.json',
     'tests/fixtures/gateway/valid-provider-capability.json',
-    'tests/fixtures/gateway/valid-execution-request.json',
-    'tests/fixtures/gateway/valid-execution-result.json',
+    'tests/fixtures/gateway/invalid-execution-request.json',
     'tests/fixtures/gateway/valid-execution-error.json',
+    'tests/fixtures/gateway/invalid-execution-error.json',
   ];
 
   checkFilesExist(sourceFiles, 'Gateway contract source modules exist');
-  checkJsonSchemasParse(schemaFiles, 'Gateway formal JSON Schemas parse');
+  checkJsonFilesParse(schemaFiles, 'Gateway formal JSON Schemas parse');
   checkFilesExist(fixtureFiles, 'Gateway contract JSON fixtures exist');
-  checkNoNetworkPrimitives('src/gateway/contracts', 'No network primitives in gateway contract modules');
 
-  // Verify contract version alignment
   if (EXECUTION_CONTRACT_VERSION === '2026-07-15.sprint-a') {
     pass('Execution contract version is set to 2026-07-15.sprint-a');
   } else {
     fail(`Execution contract version mismatch: ${EXECUTION_CONTRACT_VERSION}`);
   }
 
-  // Verify category count
   if (EXECUTION_ERROR_CATEGORIES.length >= 20) {
     pass('Execution error taxonomy contains 20+ defined categories');
   } else {
     fail(`Execution error taxonomy underpopulated: ${EXECUTION_ERROR_CATEGORIES.length}`);
   }
 
-  // Schema & contract validation checks
-  const validRequest = readJson('tests/fixtures/gateway/valid-execution-request.json');
-  const reqResult = validateExecutionRequest(validRequest);
-  if (reqResult.success) {
-    pass('Valid execution-request fixture validates');
-  } else {
-    fail(`Valid execution-request fixture failed validation: ${reqResult.errors.map((e) => e.message).join(', ')}`);
+  const execTestContent = readFileSync(join(projectRoot, 'tests/unit/execution-contracts.test.js'), 'utf8');
+  const requiredExecGroups = [
+    'credential reference',
+    'provider endpoint',
+    'execution policy',
+    'provider execution capability',
+    'execution request',
+    'execution result',
+    'execution error',
+  ];
+  let execGroupsPresent = true;
+  for (const group of requiredExecGroups) {
+    if (!execTestContent.includes(group)) {
+      execGroupsPresent = false;
+      fail(`execution-contracts.test.js missing required test group: ${group}`);
+    }
+  }
+  if (execGroupsPresent) {
+    pass('execution-contracts.test.js contains all required Sprint A test groups');
   }
 
-  const validResult = readJson('tests/fixtures/gateway/valid-execution-result.json');
-  const resResult = validateExecutionResult(validResult);
-  if (resResult.success) {
-    pass('Valid execution-result fixture validates');
-  } else {
-    fail(`Valid execution-result fixture failed validation: ${resResult.errors.map((e) => e.message).join(', ')}`);
+  const execSecTestContent = readFileSync(join(projectRoot, 'tests/unit/execution-security.test.js'), 'utf8');
+  const requiredSecGroups = [
+    'execution security contracts',
+    'credential reference security',
+    'provider endpoint security',
+    'execution result security',
+    'recursive sensitive-field and metadata security',
+    'execution defaults security',
+  ];
+  let secGroupsPresent = true;
+  for (const group of requiredSecGroups) {
+    if (!execSecTestContent.includes(group)) {
+      secGroupsPresent = false;
+      fail(`execution-security.test.js missing required test group: ${group}`);
+    }
+  }
+  if (secGroupsPresent) {
+    pass('execution-security.test.js contains all required security test groups');
   }
 
-  const validError = readJson('tests/fixtures/gateway/valid-execution-error.json');
-  const errResult = validateExecutionError(validError);
+  const schemaIds = new Set();
+  let schemaIdsValid = true;
+  for (const schemaPath of schemaFiles) {
+    const json = readJson(schemaPath);
+    if (!json.$id || typeof json.$id !== 'string' || !json.$id.startsWith('mmdo.')) {
+      schemaIdsValid = false;
+      fail(`Schema ${schemaPath} lacks valid mmdo. $id`);
+    } else {
+      if (schemaIds.has(json.$id)) {
+        schemaIdsValid = false;
+        fail(`Duplicate schema $id: ${json.$id}`);
+      }
+      schemaIds.add(json.$id);
+    }
+  }
+  if (schemaIdsValid) {
+    pass('Gateway JSON Schemas have unique mmdo. $id identifiers');
+  }
+
+  const requestResult = validateGatewayRequest(readJson('tests/fixtures/gateway/valid-chat-request.json'));
+  if (requestResult.success) {
+    pass('Gateway request validator accepts valid fixture');
+  } else {
+    fail(`Gateway request validator accepts valid fixture: ${requestResult.errors.map((error) => error.message).join('; ')}`);
+  }
+
+  const response = createChatCompletionResponse({
+    id: 'chatcmpl-verify',
+    request_id: 'req-verify',
+    provider_id: 'mock-provider',
+    model_id: 'mock-chat',
+    message: {
+      role: 'assistant',
+      content: 'ok',
+    },
+    created: 1800000000,
+  });
+  const responseResult = validateGatewayResponse(response);
+  if (responseResult.success) {
+    pass('Gateway response validator accepts normalized response');
+  } else {
+    fail(`Gateway response validator accepts normalized response: ${responseResult.errors.map((error) => error.message).join('; ')}`);
+  }
+
+  const adapterResult = validateProviderAdapter(mockProvider);
+  if (adapterResult.success) {
+    pass('Provider adapter interface validates');
+  } else {
+    fail(`Provider adapter interface validates: ${adapterResult.errors.map((error) => error.message).join('; ')}`);
+  }
+
+  const mockProviderSource = readFileSync(join(projectRoot, 'tests/fixtures/gateway/mock-provider.js'), 'utf8');
+  if (!/\bfetch\s*\(|https\.request|http\.request|createServer\s*\(|\.listen\s*\(/.test(mockProviderSource)) {
+    pass('Mock provider contains no network imports or calls');
+  } else {
+    fail('Mock provider contains network primitives');
+  }
+
+  const configResult = validateGatewayConfig(DEFAULT_GATEWAY_CONFIG);
+  if (configResult.success && DEFAULT_GATEWAY_CONFIG.host === '127.0.0.1') {
+    pass('Gateway defaults bind to localhost');
+  } else {
+    fail('Gateway defaults bind to localhost');
+  }
+
+  if (DEFAULT_GATEWAY_CONFIG.redact_prompts === true) {
+    pass('Prompt redaction defaults to enabled');
+  } else {
+    fail('Prompt redaction defaults to enabled');
+  }
+
+  checkNoNetworkPrimitives('src/gateway/protocol', 'No provider API calls exist in gateway protocol modules');
+  checkNoNetworkPrimitives('src/gateway/contracts', 'No provider API calls exist in gateway contract modules');
+
+  const packageJson = readJson('package.json');
+  if (!packageJson.dependencies || Object.keys(packageJson.dependencies).length === 0) {
+    pass('No runtime dependencies added for gateway contracts');
+  } else {
+    fail('Runtime dependencies were added');
+  }
+
+  const credRef = createCredentialRef({ env_var: 'OPENAI_API_KEY' });
+  const credResult = validateCredentialRef(credRef);
+  if (credResult.success) {
+    pass('Credential reference validator accepts valid ref');
+  } else {
+    fail(`Credential reference validator: ${credResult.errors.map((e) => e.message).join('; ')}`);
+  }
+
+  const endpoint = createProviderEndpoint({ url: 'https://api.openai.com/v1/chat/completions' });
+  const endpointResult = validateProviderEndpoint(endpoint);
+  if (endpointResult.success) {
+    pass('Provider endpoint validator accepts valid HTTPS endpoint');
+  } else {
+    fail(`Provider endpoint validator: ${endpointResult.errors.map((e) => e.message).join('; ')}`);
+  }
+
+  const httpEndpointResult = validateProviderEndpoint({
+    contract_version: EXECUTION_CONTRACT_VERSION,
+    url: 'http://insecure.example.com',
+    protocol: 'https',
+    follow_redirects: false,
+    ssrf_check_required: true,
+  });
+  if (!httpEndpointResult.success) {
+    pass('Provider endpoint validator rejects HTTP endpoints');
+  } else {
+    fail('Provider endpoint validator should reject HTTP endpoints');
+  }
+
+  const execReq = readJson('tests/fixtures/gateway/valid-execution-request.json');
+  const execReqResult = validateExecutionRequest(execReq);
+  if (execReqResult.success) {
+    pass('Execution request validator accepts valid fixture');
+  } else {
+    fail(`Execution request validator: ${execReqResult.errors.map((e) => e.message).join('; ')}`);
+  }
+
+  const execRes = readJson('tests/fixtures/gateway/valid-execution-result.json');
+  const execResResult = validateExecutionResult(execRes);
+  if (execResResult.success) {
+    pass('Execution result validator accepts valid fixture');
+  } else {
+    fail(`Execution result validator: ${execResResult.errors.map((e) => e.message).join('; ')}`);
+  }
+
+  const policyReq = readJson('tests/fixtures/gateway/valid-execution-policy.json');
+  const policyResult = validateExecutionPolicy(policyReq);
+  if (policyResult.success) {
+    pass('Execution policy validator accepts valid fixture');
+  } else {
+    fail(`Execution policy validator: ${policyResult.errors.map((e) => e.message).join('; ')}`);
+  }
+
+  const invalidPolicyReq = readJson('tests/fixtures/gateway/invalid-execution-policy.json');
+  const invalidPolicyResult = validateExecutionPolicy(invalidPolicyReq);
+  if (!invalidPolicyResult.success) {
+    pass('Execution policy validator rejects invalid fixture');
+  } else {
+    fail('Execution policy validator should reject invalid fixture');
+  }
+
+  const capReq = readJson('tests/fixtures/gateway/valid-provider-capability.json');
+  const capResult = validateProviderExecutionCapability(capReq);
+  if (capResult.success) {
+    pass('Provider execution capability validator accepts valid fixture');
+  } else {
+    fail(`Provider execution capability validator: ${capResult.errors.map((e) => e.message).join('; ')}`);
+  }
+
+  const errReq = readJson('tests/fixtures/gateway/valid-execution-error.json');
+  const errResult = validateExecutionError(errReq);
   if (errResult.success) {
-    pass('Valid execution-error fixture validates');
+    pass('Execution error validator accepts valid fixture');
   } else {
-    fail(`Valid execution-error fixture failed validation: ${errResult.errors.map((e) => e.message).join(', ')}`);
+    fail(`Execution error validator: ${errResult.errors.map((e) => e.message).join('; ')}`);
   }
 
-  // Reject additional properties assertion
-  const requestWithExtra = { ...validRequest, forbidden_property: 'unauthorized' };
-  const extraResult = validateExecutionRequest(requestWithExtra);
-  if (!extraResult.success) {
-    pass('Validator rejects additionalProperties on execution request');
+  const forcedRedactedResult = createExecutionResult({ redacted: false });
+  if (forcedRedactedResult.redacted === true) {
+    pass('Execution results factory forces redacted: true invariant');
   } else {
-    fail('Validator allowed additionalProperties on execution request');
+    fail('Execution results factory must force redacted: true invariant');
   }
 
-  // Secure defaults assertion
-  const constructedResult = createExecutionResult({
-    request_id: 'req-1',
-    provider_id: 'p-1',
-    model_id: 'm-1',
-    state: 'completed',
-  });
-  if (constructedResult.redacted === true) {
-    pass('createExecutionResult enforces redacted: true default');
+  if (EXECUTION_DEFAULTS.follow_redirects === false && EXECUTION_DEFAULTS.ssrf_check_required === true) {
+    pass('Execution defaults enforce no-redirect and SSRF check');
   } else {
-    fail('createExecutionResult failed to enforce redacted: true default');
+    fail('Execution defaults must enforce no-redirect and SSRF check');
   }
 
-  const constructedError = createExecutionError({
-    code: 'internal_execution_error',
-    category: 'internal_execution_error',
-    message: 'Test error',
-  });
-  if (constructedError.redacted === true) {
-    pass('createExecutionError enforces redacted: true default');
+  const invalidExecReq = readJson('tests/fixtures/gateway/invalid-execution-request.json');
+  const invalidExecReqResult = validateExecutionRequest(invalidExecReq);
+  if (!invalidExecReqResult.success) {
+    pass('Execution request validator rejects invalid fixture');
   } else {
-    fail('createExecutionError failed to enforce redacted: true default');
+    fail('Execution request validator should reject invalid fixture');
   }
 
-  // Verify mandatory schema fields match validator requirements
   const requestSchema = readJson('.ai/schema/gateway-execution-request.schema.json');
   const requestRequiredMatch = EXECUTION_REQUEST_REQUIRED_FIELDS.every((f) => requestSchema.required.includes(f));
 
@@ -287,8 +495,7 @@ export function checkGatewayContracts() {
     'tests/unit/adapters/openai-compatible/openai-sse-parser.test.js',
   ], 'OpenAI adapter documentation and test suites exist');
 
-  checkNoNetworkPrimitives('src/gateway/adapters/openai-compatible', 'No network primitives in OpenAI adapter modules');
-  checkNoAmbientTimePrimitives('src/gateway/adapters/openai-compatible', 'No Date.now or new Date in OpenAI adapter source');
+  checkAdapterForbiddenPrimitives('src/gateway/adapters/openai-compatible', 'No network, credential, env, or ambient time primitives in OpenAI adapter source');
 
   const openAIReqFixture = readJson('tests/fixtures/gateway/adapters/openai-compatible/valid-non-stream-request.json');
   const openAIReqResult = normalizeOpenAIExecutionRequest(openAIReqFixture);
