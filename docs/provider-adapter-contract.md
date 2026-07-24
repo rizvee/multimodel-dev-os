@@ -15,9 +15,18 @@ Adapters declare:
 | `type` | Provider kind, such as `openai-compatible`, `native`, `local`, or `mock`. |
 | `version` | Adapter contract version. |
 | `capabilities` | Supported capability vocabulary. |
-| `credential_env` | Name of the future credential environment variable, or `null`. |
+| `credential_env` | Strict uppercase environment variable name (matching `^[A-Z_][A-Z0-9_]{0,127}$`), or `null`. |
 | `base_url` | Provider endpoint metadata. |
 | `models` | Model metadata exposed by the adapter. |
+
+## Governed Credential Resolution (v4.3 Sprint C)
+
+Provider adapters authorize environment credential resolution strictly through `credential_env`:
+- `credential_env` must be `null` or a strict uppercase environment variable name.
+- Prototype-sensitive names (`__proto__`, `prototype`, `constructor`) are rejected.
+- Resolution via `resolveEnvironmentCredential()` reads ONLY `environment[adapter.credential_env]`.
+- Environment variable enumeration, spreading, or logging is strictly forbidden.
+
 
 Capability vocabulary:
 

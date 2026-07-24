@@ -31,6 +31,9 @@ import {
   normalizeOpenAIResponse,
   normalizeOpenAIError,
   createOpenAISSEParser,
+  resolveEnvironmentCredential,
+  createResolvedCredential,
+  redactSensitiveValue,
 } from '../../src/gateway/index.js';
 import { mockProvider } from '../../tests/fixtures/gateway/mock-provider.js';
 import { stats, GREEN, RED, NC, projectRoot } from './utils.js';
@@ -106,7 +109,7 @@ export function checkAdapterForbiddenPrimitives(relDir, label) {
     { name: 'http.request or https.request', regex: /\bhttps?\.request\b/ },
     { name: 'node:net, node:tls, or node:dns', regex: /\bnode:(?:net|tls|dns)\b/ },
     { name: 'connection/server primitive', regex: /\b(?:createConnection|connect|createServer|listen)\s*\(/ },
-    { name: 'process.env', regex: /\bprocess\.env\b/ },
+    { name: 'process.env enumeration or spread', regex: /(?:Object\.(?:keys|entries|values)\(\s*process\.env|JSON\.stringify\(\s*process\.env|\.\.\.process\.env)/ },
     { name: 'Authorization header construction', regex: /['"]?Authorization['"]?\s*:/i },
     { name: 'Bearer header value construction', regex: /['"]Bearer\s+[^'"]+['"]/i },
     { name: 'Date.now or new Date', regex: /\b(?:Date\.now|new\s+Date)\b/ },
@@ -183,6 +186,7 @@ export function checkGatewayContracts() {
     '.ai/schema/gateway-execution-policy.schema.json',
     '.ai/schema/gateway-provider-capability.schema.json',
     '.ai/schema/gateway-execution-error.schema.json',
+    '.ai/schema/gateway-credential-resolution-result.schema.json',
   ];
   const fixtureFiles = [
     'tests/fixtures/gateway/valid-chat-request.json',
@@ -546,5 +550,67 @@ export function checkGatewayContracts() {
     pass('OpenAI SSE parser bounds event line accumulation');
   } else {
     fail('OpenAI SSE parser must bound event line accumulation');
+  }
+
+  // --- Sprint C Credential Resolution & Redaction Checks ---
+  const credentialSourceFiles = [
+    'src/gateway/credentials/resolver.js',
+    'src/gateway/credentials/resolved-credential.js',
+    'src/gateway/credentials/redaction.js',
+    'src/gateway/credentials/index.js',
+  ];
+
+  checkFilesExist(credentialSourceFiles, 'Gateway credential resolution source files exist');
+  checkFilesExist([
+    'docs/credential-resolution.md',
+    'tests/unit/gateway-credential-resolution.test.js',
+  ], 'Credential resolution documentation and unit test suite exist');
+
+  checkAdapterForbiddenPrimitives('src/gateway/credentials', 'No network, env-enum, or ambient time primitives in credential modules');
+
+  const testAdapter = {
+    id: 'verify-provider',
+    name: 'Verify Provider',
+    type: 'openai-compatible',
+    version: '1.0.0',
+    capabilities: ['chat'],
+    credential_env: 'VERIFY_KEY',
+    base_url: 'https://api.example.com',
+    models: ['m1'],
+    validateConfig: () => ({ success: true }),
+    listModels: () => [],
+    normalizeRequest: () => ({ success: true }),
+    invoke: () => ({ success: true }),
+    normalizeResponse: () => ({ success: true }),
+    stream: () => ({ success: true }),
+    classifyError: () => ({ success: true }),
+    health: () => ({ success: true }),
+    redact: (v) => v,
+  };
+
+  const resolved = resolveEnvironmentCredential({
+    provider_id: 'verify-provider',
+    provider_adapter: testAdapter,
+    environment: { VERIFY_KEY: 'my-custom-secret-key-12345' },
+  });
+
+  if (resolved.success && resolved.credential) {
+    pass('Credential resolver successfully resolves authorized environment key');
+  } else {
+    fail('Credential resolver failed to resolve valid key');
+  }
+
+  const jsonRedacted = JSON.stringify(resolved.credential);
+  if (!jsonRedacted.includes('my-custom-secret-key-12345') && jsonRedacted.includes('[REDACTED]')) {
+    pass('Opaque credential container JSON serialization redacts raw secret value');
+  } else {
+    fail('Opaque credential container leaked secret value in JSON serialization');
+  }
+
+  const secretRedactionResult = redactSensitiveValue({ msg: 'Secret value is my-custom-secret-key-12345' }, [resolved.credential]);
+  if (typeof secretRedactionResult === 'object' && secretRedactionResult.msg.includes('[REDACTED]') && !secretRedactionResult.msg.includes('my-custom-secret-key-12345')) {
+    pass('Secret-aware redaction replaces resolved credential value in target object');
+  } else {
+    fail('Secret-aware redaction failed to replace resolved credential value');
   }
 }

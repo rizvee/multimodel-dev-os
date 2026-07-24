@@ -19,3 +19,8 @@ export * from './runtime/index.js';
 export * from './clients/index.js';
 export * from './observability/index.js';
 export * from './adapters/openai-compatible/index.js';
+export {
+  ResolvedCredential,
+  createResolvedCredential,
+  resolveEnvironmentCredential,
+} from './credentials/index.js';

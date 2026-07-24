@@ -352,8 +352,15 @@ export function validateProviderAdapter(adapter) {
 
   for (const field of ['id', 'name', 'type', 'version', 'credential_env', 'base_url']) {
     if (field === 'credential_env') {
-      if (adapter[field] !== null && adapter[field] !== undefined && !isString(adapter[field])) {
-        addError(result, 'configuration_error', field, `${field} must be null or a string`);
+      const envVal = adapter[field];
+      if (envVal !== null && envVal !== undefined) {
+        if (typeof envVal !== 'string') {
+          addError(result, 'configuration_error', field, `${field} must be null or a string`);
+        } else if (PROTOTYPE_NAMES_PATTERN.test(envVal)) {
+          addError(result, 'policy_denied', field, `prototype-sensitive property forbidden as credential_env: ${envVal}`);
+        } else if (!STRICT_ENV_VAR_REGEX.test(envVal)) {
+          addError(result, 'configuration_error', field, `${field} must match uppercase env var pattern ${STRICT_ENV_VAR_REGEX.source}`);
+        }
       }
     } else if (!isString(adapter[field])) {
       addError(result, 'configuration_error', field, `${field} must be a non-empty string`);

@@ -24,21 +24,10 @@ export const ERROR_DEFINITIONS = Object.freeze({
 
 export const ERROR_CODES = Object.keys(ERROR_DEFINITIONS);
 
-export function redactSensitiveValue(value) {
-  if (Array.isArray(value)) {
-    return value.map((entry) => redactSensitiveValue(entry));
-  }
+import { redactSensitiveValue } from '../credentials/redaction.js';
+export { redactSensitiveValue };
 
-  if (value && typeof value === 'object') {
-    const redacted = {};
-    for (const [key, entry] of Object.entries(value)) {
-      redacted[key] = SENSITIVE_KEY_PATTERN.test(key) ? '[REDACTED]' : redactSensitiveValue(entry);
-    }
-    return redacted;
-  }
 
-  return value;
-}
 
 export function createGatewayError({
   code,

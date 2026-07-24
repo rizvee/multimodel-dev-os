@@ -14,8 +14,15 @@
   - Hardened error normalizer using `EXECUTION_CONTRACT_VERSION`, safe circular object cleaning, throwing getter guards, path redaction, and non-throwing error handling.
   - Hardened incremental SSE parser with option validation, UTF-8 streaming decoder (`TextDecoder`), byte-bounded accounting (`Buffer.byteLength`), multi-line `data:` joining (`\n`), terminal `[DONE]` state, and multi-choice delta allowlisting.
   - Added unit test suites and JSON/text test fixtures.
-  - Extended gateway verifiers with ambient time ban, terminal DONE enforcement, and event accumulation bounds.
-
+- **v4.3 Sprint C — Governed Credential Resolution & Secret-Aware Redaction**:
+  - Implemented explicit environment credential resolver (`resolveEnvironmentCredential`) in `src/gateway/credentials/resolver.js`.
+  - Enforced strict provider adapter metadata binding (`credential_env`) and exact property lookup without environment enumeration.
+  - Created Opaque Credential Container (`ResolvedCredential`) using private class fields (`#secret`), controlled `withSecret()` callback access, and `destroy()`.
+  - Implemented secret-aware redaction utility (`redactSensitiveValue`) in `src/gateway/credentials/redaction.js` sanitizing objects, circular references, throwing getters, error stacks, and messages.
+  - Hardened `validateProviderAdapter` with strict `STRICT_ENV_VAR_REGEX` and prototype property checks on `credential_env`.
+  - Added formal JSON schema `.ai/schema/gateway-credential-resolution-result.schema.json`.
+  - Added unit test suite `tests/unit/gateway-credential-resolution.test.js`.
+  - Extended gateway verifier with Sprint C credential checks (process.env enumeration ban, opaque container redaction, and secret-aware redaction assertions).
 
 ## [4.2.0] - 2026-07-17
 

@@ -77,6 +77,8 @@ Explore the local OpenAI-compatible mock gateway:
 | SSE streaming support | [Gateway Streaming](gateway-streaming.md) | Server-Sent Events (SSE) streaming format verification. |
 | Local observability & tracing | [Gateway Observability](gateway-observability.md) & [Usage Accounting](gateway-usage-accounting.md) | Local, bounded, redacted, in-memory metrics and cost estimation. |
 | Execution contracts reference | [Execution Contracts](execution-contracts.md) | Governed outbound request, result, endpoint, credential ref, and error contracts. |
+| OpenAI adapter normalization | [OpenAI Adapter Normalization](openai-adapter-normalization.md) | Request/response/error payload normalization & SSE parsing. |
+| Credential resolution architecture | [Credential Resolution](credential-resolution.md) | Governed environment credential resolution & secret redaction. |
 | Known limits of v4.2 | [v4.2 Known Limitations](v4.2-known-limitations.md) | Explicit boundaries (mock-only provider, preview-only configs). |
 
 
