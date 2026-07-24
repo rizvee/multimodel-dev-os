@@ -1,17 +1,61 @@
 import { createChatCompletionChunk, createUsage } from '../../protocol/normalize.js';
 import { normalizeOpenAIError } from './error.js';
 
+const ALLOWED_ROLES = ['system', 'user', 'assistant', 'tool', 'developer'];
+const ALLOWED_FINISH_REASONS = ['stop', 'length', 'tool_calls', 'content_filter', 'error'];
+
+function deepCloneJSON(val) {
+  if (val === null || val === undefined || typeof val !== 'object') {
+    return val;
+  }
+  if (Array.isArray(val)) {
+    return val.map((item) => deepCloneJSON(item));
+  }
+  const copy = {};
+  for (const key of Object.keys(val)) {
+    const v = val[key];
+    if (v !== undefined) {
+      copy[key] = deepCloneJSON(v);
+    }
+  }
+  return copy;
+}
+
+function resolveTimestamp(upstreamCreated, contextCreated) {
+  if (typeof upstreamCreated === 'number' && Number.isFinite(upstreamCreated) && upstreamCreated > 0) {
+    return Math.floor(upstreamCreated);
+  }
+  if (typeof contextCreated === 'number' && Number.isFinite(contextCreated) && contextCreated > 0) {
+    return Math.floor(contextCreated);
+  }
+  return 0;
+}
+
 export function createOpenAISSEParser(options = {}) {
-  const maxBufferSize = options.max_buffer_size || 1048576; // 1MB
-  const maxEventSize = options.max_event_size || 524288;   // 512KB
+  const maxBufferSize = options.max_buffer_size ?? 1048576; // 1MB default
+  const maxEventSize = options.max_event_size ?? 524288;   // 512KB default
+
+  if (!Number.isInteger(maxBufferSize) || maxBufferSize <= 0 || maxBufferSize > 16777216) {
+    throw new TypeError('max_buffer_size must be a positive integer <= 16MB');
+  }
+  if (!Number.isInteger(maxEventSize) || maxEventSize <= 0 || maxEventSize > 8388608) {
+    throw new TypeError('max_event_size must be a positive integer <= 8MB');
+  }
+
   const context = options.context || {};
 
+  let decoder = new TextDecoder('utf-8', { fatal: false });
   let buffer = '';
   let eventLines = [];
+  let eventByteCount = 0;
+  let isDone = false;
 
   function reset() {
+    decoder = new TextDecoder('utf-8', { fatal: false });
     buffer = '';
     eventLines = [];
+    eventByteCount = 0;
+    isDone = false;
   }
 
   function parseEventData(dataString) {
@@ -21,13 +65,14 @@ export function createOpenAISSEParser(options = {}) {
     }
 
     if (trimmed === '[DONE]') {
+      isDone = true;
       return [{ type: 'done' }];
     }
 
     let parsed;
     try {
       parsed = JSON.parse(trimmed);
-    } catch (err) {
+    } catch (_) {
       const errorObj = normalizeOpenAIError('Malformed SSE JSON payload', {
         ...context,
         code: 'stream_error',
@@ -42,43 +87,80 @@ export function createOpenAISSEParser(options = {}) {
     const events = [];
 
     if (Array.isArray(parsed.choices) && parsed.choices.length > 0) {
-      const primaryChoice = parsed.choices[0];
-      const delta = primaryChoice?.delta || {};
-      const finish_reason = primaryChoice?.finish_reason ?? null;
-
-      const normalizedDelta = {
-        role: typeof delta.role === 'string' ? delta.role : undefined,
-        content: delta.content ?? undefined,
-      };
-
-      if (Array.isArray(delta.tool_calls) && delta.tool_calls.length > 0) {
-        normalizedDelta.tool_calls = delta.tool_calls.map((tc) => ({
-          index: typeof tc.index === 'number' ? tc.index : undefined,
-          id: tc.id || undefined,
-          type: tc.type || 'function',
-          function: {
-            name: tc.function?.name || undefined,
-            arguments: tc.function?.arguments || undefined,
-          },
-        }));
+      for (let idx = 0; idx < parsed.choices.length; idx++) {
+        const ch = parsed.choices[idx];
+        if (!ch || typeof ch !== 'object') {
+          continue;
+        }
+        const delta = ch.delta || {};
+        if (Array.isArray(delta.tool_calls) && delta.tool_calls.length > 0) {
+          if (context.capability && typeof context.capability === 'object' && context.capability.tool_calls !== true) {
+            const errorObj = normalizeOpenAIError('tool calls present in stream delta but provider capability tool_calls is false', {
+              ...context,
+              code: 'unsupported_capability',
+            });
+            return [{ type: 'error', error: errorObj }];
+          }
+        }
       }
+
+      const normalizedChoices = parsed.choices.map((ch, idx) => {
+        const delta = ch.delta || {};
+        const role = typeof delta.role === 'string' && ALLOWED_ROLES.includes(delta.role) ? delta.role : undefined;
+
+        let content;
+        if (typeof delta.content === 'string') {
+          content = delta.content;
+        } else if (delta.content !== null && delta.content !== undefined && typeof delta.content === 'object') {
+          content = deepCloneJSON(delta.content);
+        }
+
+        const cleanDelta = {
+          role,
+          content,
+        };
+
+        if (Array.isArray(delta.tool_calls) && delta.tool_calls.length > 0) {
+          cleanDelta.tool_calls = delta.tool_calls.map((tc) => ({
+            index: typeof tc.index === 'number' && Number.isInteger(tc.index) ? tc.index : undefined,
+            id: typeof tc.id === 'string' ? tc.id : undefined,
+            type: tc.type || 'function',
+            function: {
+              name: typeof tc.function?.name === 'string' ? tc.function.name : undefined,
+              arguments: tc.function?.arguments !== undefined ? deepCloneJSON(tc.function.arguments) : undefined,
+            },
+          }));
+        }
+
+        let finish_reason = null;
+        if (typeof ch.finish_reason === 'string') {
+          finish_reason = ALLOWED_FINISH_REASONS.includes(ch.finish_reason) ? ch.finish_reason : 'stop';
+        }
+
+        const index = typeof ch.index === 'number' && Number.isInteger(ch.index) ? ch.index : idx;
+
+        return {
+          index,
+          delta: cleanDelta,
+          finish_reason,
+        };
+      });
+
+      const primaryChoice = normalizedChoices[0];
+      const created = resolveTimestamp(parsed.created, context.created);
 
       const chunk = createChatCompletionChunk({
         id: typeof parsed.id === 'string' ? parsed.id : 'chatcmpl-stream',
         request_id: context.request_id || null,
         provider_id: context.provider_id || null,
         model_id: typeof parsed.model === 'string' ? parsed.model : (context.model_id || 'unknown'),
-        delta: normalizedDelta,
-        finish_reason,
-        created: typeof parsed.created === 'number' ? parsed.created : Math.floor(Date.now() / 1000),
+        delta: primaryChoice.delta,
+        finish_reason: primaryChoice.finish_reason,
+        created,
       });
 
-      if (parsed.choices.length > 1) {
-        chunk.choices = parsed.choices.map((ch, idx) => ({
-          index: typeof ch.index === 'number' ? ch.index : idx,
-          delta: ch.delta || {},
-          finish_reason: ch.finish_reason ?? null,
-        }));
+      if (normalizedChoices.length > 1) {
+        chunk.choices = normalizedChoices;
       }
 
       events.push({ type: 'chunk', data: chunk });
@@ -111,12 +193,15 @@ export function createOpenAISSEParser(options = {}) {
         if (content.startsWith(' ')) {
           content = content.slice(1);
         }
-        dataContent += content;
+        dataContent += (dataContent.length > 0 ? '\n' : '') + content;
       }
     }
     eventLines = [];
+    eventByteCount = 0;
 
-    if (dataContent.length > maxEventSize) {
+    const dataByteLen = Buffer.byteLength(dataContent, 'utf-8');
+    if (dataByteLen > maxEventSize) {
+      reset();
       const errorObj = normalizeOpenAIError('Oversized SSE event payload', {
         ...context,
         code: 'stream_error',
@@ -128,14 +213,38 @@ export function createOpenAISSEParser(options = {}) {
   }
 
   function feed(chunkInput) {
-    if (!chunkInput) {
+    if (chunkInput === undefined || chunkInput === null) {
       return [];
     }
 
-    const chunkStr = typeof chunkInput === 'string' ? chunkInput : chunkInput.toString('utf8');
+    let chunkStr = '';
+    if (typeof chunkInput === 'string') {
+      chunkStr = chunkInput;
+    } else if (Buffer.isBuffer(chunkInput) || chunkInput instanceof Uint8Array) {
+      chunkStr = decoder.decode(chunkInput, { stream: true });
+    } else {
+      const errorObj = normalizeOpenAIError('Invalid SSE chunk input type', {
+        ...context,
+        code: 'stream_error',
+      });
+      return [{ type: 'error', error: errorObj }];
+    }
+
+    if (!chunkStr) {
+      return [];
+    }
+
+    if (isDone) {
+      const errorObj = normalizeOpenAIError('Received stream payload after terminal [DONE]', {
+        ...context,
+        code: 'stream_error',
+      });
+      return [{ type: 'error', error: errorObj }];
+    }
+
     buffer += chunkStr;
 
-    if (buffer.length > maxBufferSize) {
+    if (Buffer.byteLength(buffer, 'utf-8') > maxBufferSize) {
       reset();
       const errorObj = normalizeOpenAIError('SSE buffer capacity exceeded limit', {
         ...context,
@@ -159,9 +268,23 @@ export function createOpenAISSEParser(options = {}) {
         if (line.length === 0) {
           const emitted = processEventLines();
           events.push(...emitted);
+          if (isDone) {
+            buffer = '';
+            return events;
+          }
         } else if (line.startsWith(':')) {
-          // Ignore SSE comment line
+          // Comment line ignored
         } else {
+          const lineBytes = Buffer.byteLength(line, 'utf-8');
+          eventByteCount += lineBytes;
+          if (eventByteCount > maxEventSize) {
+            reset();
+            const errorObj = normalizeOpenAIError('Oversized SSE event payload', {
+              ...context,
+              code: 'stream_error',
+            });
+            return [{ type: 'error', error: errorObj }];
+          }
           eventLines.push(line);
         }
       }
@@ -172,6 +295,11 @@ export function createOpenAISSEParser(options = {}) {
   }
 
   function flush() {
+    if (isDone) {
+      reset();
+      return [];
+    }
+
     const events = [];
     if (buffer.length > 0) {
       let line = buffer;

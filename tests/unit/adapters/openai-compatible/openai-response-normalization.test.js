@@ -39,6 +39,48 @@ describe('OpenAI-compatible Response Normalization', () => {
     expect(resp.logprobs).toBeUndefined();
   });
 
+  it('normalizes deterministic fallback timestamps without Date.now/new Date', () => {
+    const upstream = readJsonFixture('normal-response.json');
+    delete upstream.created;
+
+    // Test with context.created
+    const resWithContext = normalizeOpenAIResponse(upstream, { created: 1700000000 });
+    expect(resWithContext.success).toBe(true);
+    expect(resWithContext.gateway_response.created).toBe(1700000000);
+
+    // Test without context.created (defaults to 0)
+    const resWithoutContext = normalizeOpenAIResponse(upstream);
+    expect(resWithoutContext.success).toBe(true);
+    expect(resWithoutContext.gateway_response.created).toBe(0);
+  });
+
+  it('fails safely when secondary choice is malformed', () => {
+    const upstream = readJsonFixture('normal-response.json');
+    upstream.choices.push(null); // Invalid secondary choice
+
+    const result = normalizeOpenAIResponse(upstream);
+    expect(result.success).toBe(false);
+    expect(result.errors[0].code).toBe('upstream_protocol_error');
+    expect(result.errors[0].path).toBe('choices[1].message');
+  });
+
+  it('validates tool call capability context when response contains tool calls', () => {
+    const upstream = readJsonFixture('tool-call-response.json');
+
+    // Denied capability
+    const resultDenied = normalizeOpenAIResponse(upstream, {
+      capability: { tool_calls: false },
+    });
+    expect(resultDenied.success).toBe(false);
+    expect(resultDenied.errors[0].code).toBe('unsupported_capability');
+
+    // Allowed capability
+    const resultAllowed = normalizeOpenAIResponse(upstream, {
+      capability: { tool_calls: true },
+    });
+    expect(resultAllowed.success).toBe(true);
+  });
+
   it('normalizes a tool-call chat completion response', () => {
     const upstream = readJsonFixture('tool-call-response.json');
     const result = normalizeOpenAIResponse(upstream, {

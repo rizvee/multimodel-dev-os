@@ -30,11 +30,125 @@ describe('OpenAI-compatible Incremental SSE Parser', () => {
     expect(events[3].type).toBe('done');
   });
 
+  it('throws TypeError for invalid parser options', () => {
+    expect(() => createOpenAISSEParser({ max_buffer_size: -10 })).toThrow(TypeError);
+    expect(() => createOpenAISSEParser({ max_buffer_size: 0 })).toThrow(TypeError);
+    expect(() => createOpenAISSEParser({ max_event_size: 'invalid' })).toThrow(TypeError);
+  });
+
+  it('rejects arbitrary object input without calling .toString()', () => {
+    const parser = createOpenAISSEParser();
+    const badInput = { toString() { throw new Error('should not be called'); } };
+
+    const events = parser.feed(badInput);
+    expect(events.length).toBe(1);
+    expect(events[0].type).toBe('error');
+    expect(events[0].error.code).toBe('stream_error');
+    expect(events[0].error.message).toContain('Invalid SSE chunk input type');
+  });
+
+  it('correctly handles multi-byte UTF-8 character split across byte chunks', () => {
+    const parser = createOpenAISSEParser();
+    // Multi-byte character '🚀' is 4 bytes: 0xF0, 0x9F, 0x99, 0x80
+    // JSON: {"choices":[{"delta":{"content":"🚀"}}]}
+    const jsonStr = JSON.stringify({ choices: [{ delta: { content: '🚀' } }] });
+    const fullLine = `data: ${jsonStr}\n\n`;
+    const fullBuffer = Buffer.from(fullLine, 'utf-8');
+
+    // Split right inside the 4-byte UTF-8 emoji
+    const emojiPos = fullBuffer.indexOf(Buffer.from('🚀'));
+    const chunk1 = fullBuffer.subarray(0, emojiPos + 2);
+    const chunk2 = fullBuffer.subarray(emojiPos + 2);
+
+    const events1 = parser.feed(chunk1);
+    expect(events1.length).toBe(0);
+
+    const events2 = parser.feed(chunk2);
+    expect(events2.length).toBe(1);
+    expect(events2[0].type).toBe('chunk');
+    expect(events2[0].data.choices[0].delta.content).toBe('🚀');
+  });
+
+  it('enforces eventLines accumulation byte limit without blank delimiter', () => {
+    const parser = createOpenAISSEParser({ max_event_size: 100 });
+    // Feed multiple lines without a blank line \n\n delimiter
+    parser.feed('data: line1\n');
+    parser.feed('data: line2\n');
+    const events = parser.feed('data: ' + 'x'.repeat(100) + '\n');
+
+    expect(events.length).toBe(1);
+    expect(events[0].type).toBe('error');
+    expect(events[0].error.code).toBe('stream_error');
+    expect(events[0].error.message).toContain('Oversized SSE event payload');
+  });
+
+  it('joins multi-line data fields with newlines per SSE specification', () => {
+    const parser = createOpenAISSEParser();
+    const payloadStr = JSON.stringify({ choices: [{ delta: { content: 'line1\nline2' } }] });
+    // Splitting JSON payload across multiple data: lines within the same event block
+    const sseText = `data: {"choices":[{"delta":{"content":\ndata: "line1\\nline2"}}]}\n\n`;
+
+    const events = parser.feed(sseText);
+    expect(events.length).toBe(1);
+    expect(events[0].type).toBe('chunk');
+    expect(events[0].data.choices[0].delta.content).toBe('line1\nline2');
+  });
+
+  it('enforces terminal [DONE] state, feed after [DONE], and reset after [DONE]', () => {
+    const parser = createOpenAISSEParser();
+    const eventsDone = parser.feed('data: [DONE]\n\n');
+    expect(eventsDone.length).toBe(1);
+    expect(eventsDone[0].type).toBe('done');
+
+    // Feed after [DONE] emits stream error
+    const eventsAfterDone = parser.feed('data: {"choices":[{"delta":{"content":"after"}}]}\n\n');
+    expect(eventsAfterDone.length).toBe(1);
+    expect(eventsAfterDone[0].type).toBe('error');
+    expect(eventsAfterDone[0].error.message).toContain('terminal [DONE]');
+
+    // reset() clears done state
+    parser.reset();
+    const eventsAfterReset = parser.feed('data: {"choices":[{"delta":{"content":"fresh"}}]}\n\n');
+    expect(eventsAfterReset.length).toBe(1);
+    expect(eventsAfterReset[0].type).toBe('chunk');
+    expect(eventsAfterReset[0].data.choices[0].delta.content).toBe('fresh');
+  });
+
+  it('supports multi-choice delta allowlisting', () => {
+    const parser = createOpenAISSEParser();
+    const multiChoiceJson = JSON.stringify({
+      choices: [
+        { index: 0, delta: { role: 'assistant', content: 'Choice 0' } },
+        { index: 1, delta: { role: 'assistant', content: 'Choice 1' } },
+      ],
+    });
+
+    const events = parser.feed(`data: ${multiChoiceJson}\n\n`);
+    expect(events.length).toBe(1);
+    expect(events[0].type).toBe('chunk');
+    expect(events[0].data.choices).toHaveLength(2);
+    expect(events[0].data.choices[0].delta.content).toBe('Choice 0');
+    expect(events[0].data.choices[1].delta.content).toBe('Choice 1');
+  });
+
+  it('emits error for unsupported tool-call delta when capability is false', () => {
+    const parser = createOpenAISSEParser({
+      context: { capability: { tool_calls: false } },
+    });
+    const toolDeltaJson = JSON.stringify({
+      choices: [{ delta: { tool_calls: [{ id: 'call_1', type: 'function' }] } }],
+    });
+
+    const events = parser.feed(`data: ${toolDeltaJson}\n\n`);
+    expect(events.length).toBe(1);
+    expect(events[0].type).toBe('error');
+    expect(events[0].error.code).toBe('unsupported_capability');
+  });
+
   it('handles fragmented SSE chunks across multiple feed calls', () => {
     const text = readTextFixture('sse-normal-sequence.txt');
     const parser = createOpenAISSEParser();
 
-    // Split text into small fragments of 10 characters
     const allEvents = [];
     for (let i = 0; i < text.length; i += 10) {
       const fragment = text.slice(i, i + 10);

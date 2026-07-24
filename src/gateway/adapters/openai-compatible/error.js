@@ -1,7 +1,7 @@
 import { createExecutionError, validateExecutionError } from '../../contracts/execution-error.js';
 import { redactSensitiveValue } from '../../protocol/errors.js';
 import { validateSafeMetadata } from '../../protocol/validation.js';
-import { SENSITIVE_KEY_PATTERN } from '../../protocol/constants.js';
+import { SENSITIVE_KEY_PATTERN, PROTOTYPE_NAMES_PATTERN, EXECUTION_CONTRACT_VERSION } from '../../protocol/constants.js';
 
 const ABSOLUTE_PATH_PATTERN = /(?:[a-zA-Z]:[\\\/][^:\s\n\r]+|\/[a-zA-Z0-9_.-]+(?:\/[a-zA-Z0-9_.-]+)+)/g;
 
@@ -20,30 +20,75 @@ function sanitizeMessage(msg) {
   return clean || 'An upstream execution error occurred';
 }
 
+function safeCleanObject(obj, seen = new WeakSet(), depth = 0) {
+  if (obj === null || typeof obj !== 'object' || depth > 5) {
+    return null;
+  }
+  if (seen.has(obj)) {
+    return '[CIRCULAR]';
+  }
+  seen.add(obj);
+
+  if (Array.isArray(obj)) {
+    return obj.slice(0, 50).map((item) => {
+      if (item === null || typeof item !== 'object') return item;
+      return safeCleanObject(item, seen, depth + 1);
+    });
+  }
+
+  const result = {};
+  let keys = [];
+  try {
+    keys = Object.getOwnPropertyNames(obj);
+  } catch (_) {
+    return null;
+  }
+
+  for (const key of keys) {
+    if (PROTOTYPE_NAMES_PATTERN.test(key) || SENSITIVE_KEY_PATTERN.test(key)) {
+      continue;
+    }
+    if (['stack', 'trace', 'raw_body', 'headers', 'url'].includes(key.toLowerCase())) {
+      continue;
+    }
+    try {
+      const val = obj[key];
+      if (typeof val === 'function') {
+        continue;
+      }
+      if (typeof val === 'string') {
+        result[key] = sanitizeMessage(val);
+      } else if (val === null || typeof val !== 'object') {
+        result[key] = val;
+      } else {
+        result[key] = safeCleanObject(val, seen, depth + 1);
+      }
+    } catch (_) {
+      // Ignore getters throwing errors
+    }
+  }
+  return result;
+}
+
 function sanitizeDetails(detailsInput) {
   if (!detailsInput || typeof detailsInput !== 'object') {
     return null;
   }
-  const redacted = redactSensitiveValue(detailsInput);
-  if (redacted && typeof redacted === 'object') {
-    delete redacted.stack;
-    delete redacted.trace;
-    delete redacted.raw_body;
-    delete redacted.headers;
-    delete redacted.url;
-    for (const key of Object.keys(redacted)) {
-      if (SENSITIVE_KEY_PATTERN.test(key)) {
-        delete redacted[key];
-      }
+  try {
+    const cleaned = safeCleanObject(detailsInput);
+    if (!cleaned || typeof cleaned !== 'object') {
+      return null;
     }
+    const redacted = redactSensitiveValue(cleaned);
+    const dummyResult = { success: true, errors: [] };
+    validateSafeMetadata(redacted, dummyResult, 'details');
+    if (!dummyResult.success) {
+      return { redacted_reason: 'unsafe_fields_stripped' };
+    }
+    return redacted;
+  } catch (_) {
+    return { redacted_reason: 'unparseable_error_details' };
   }
-
-  const dummyResult = { success: true, errors: [] };
-  validateSafeMetadata(redacted, dummyResult, 'details');
-  if (!dummyResult.success) {
-    return { redacted_reason: 'unsafe_fields_stripped' };
-  }
-  return redacted;
 }
 
 export function normalizeOpenAIError(errorInput, context = {}) {
@@ -55,19 +100,23 @@ export function normalizeOpenAIError(errorInput, context = {}) {
     let detailsObj = null;
 
     if (errorInput && typeof errorInput === 'object') {
-      if (typeof errorInput.status === 'number') {
-        status = errorInput.status;
-      }
-      if (errorInput.error && typeof errorInput.error === 'object') {
-        rawMsg = errorInput.error.message || errorInput.message;
-        rawCode = errorInput.error.code || errorInput.code;
-        rawType = errorInput.error.type || errorInput.type;
-        detailsObj = { ...errorInput.error };
-      } else {
-        rawMsg = errorInput.message;
-        rawCode = errorInput.code;
-        rawType = errorInput.type;
-        detailsObj = { ...errorInput };
+      try {
+        if (typeof errorInput.status === 'number') {
+          status = errorInput.status;
+        }
+        if (errorInput.error && typeof errorInput.error === 'object') {
+          rawMsg = typeof errorInput.error.message === 'string' ? errorInput.error.message : errorInput.message;
+          rawCode = typeof errorInput.error.code === 'string' ? errorInput.error.code : errorInput.code;
+          rawType = typeof errorInput.error.type === 'string' ? errorInput.error.type : errorInput.type;
+          detailsObj = errorInput.error;
+        } else {
+          rawMsg = errorInput.message;
+          rawCode = errorInput.code;
+          rawType = errorInput.type;
+          detailsObj = errorInput;
+        }
+      } catch (_) {
+        rawMsg = 'Malformed error object';
       }
     } else if (typeof errorInput === 'string') {
       rawMsg = errorInput;
@@ -81,11 +130,15 @@ export function normalizeOpenAIError(errorInput, context = {}) {
     let category = 'internal_execution_error';
     let retryable = false;
 
-    const lowerMsg = (rawMsg || '').toLowerCase();
-    const lowerCode = (rawCode || '').toLowerCase();
-    const lowerType = (rawType || '').toLowerCase();
+    const lowerMsg = typeof rawMsg === 'string' ? rawMsg.toLowerCase() : '';
+    const lowerCode = typeof rawCode === 'string' ? rawCode.toLowerCase() : '';
+    const lowerType = typeof rawType === 'string' ? rawType.toLowerCase() : '';
 
-    if (context.code === 'stream_error' || lowerCode === 'stream_error' || lowerMsg.includes('stream') || lowerMsg.includes('sse')) {
+    if (context.code === 'unsupported_capability' || lowerCode === 'unsupported_capability') {
+      code = 'unsupported_capability';
+      category = 'unsupported_capability';
+      retryable = false;
+    } else if (context.code === 'stream_error' || lowerCode === 'stream_error' || lowerMsg.includes('stream') || lowerMsg.includes('sse')) {
       code = 'stream_error';
       category = 'stream_error';
       retryable = true;
@@ -133,7 +186,7 @@ export function normalizeOpenAIError(errorInput, context = {}) {
     const safeDetails = sanitizeDetails(detailsObj);
 
     const execErr = createExecutionError({
-      contract_version: '2026-07-15.sprint-a',
+      contract_version: EXECUTION_CONTRACT_VERSION,
       code,
       category,
       message: sanitizedMsg,
@@ -148,7 +201,7 @@ export function normalizeOpenAIError(errorInput, context = {}) {
     const validationCheck = validateExecutionError(execErr);
     if (!validationCheck.success) {
       return createExecutionError({
-        contract_version: '2026-07-15.sprint-a',
+        contract_version: EXECUTION_CONTRACT_VERSION,
         code: 'internal_execution_error',
         category: 'internal_execution_error',
         message: 'Normalized execution error failed validation',
@@ -162,9 +215,9 @@ export function normalizeOpenAIError(errorInput, context = {}) {
     }
 
     return execErr;
-  } catch (err) {
+  } catch (_) {
     return createExecutionError({
-      contract_version: '2026-07-15.sprint-a',
+      contract_version: EXECUTION_CONTRACT_VERSION,
       code: 'internal_execution_error',
       category: 'internal_execution_error',
       message: 'Failed to normalize error safely',

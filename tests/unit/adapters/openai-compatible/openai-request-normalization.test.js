@@ -78,6 +78,49 @@ describe('OpenAI-compatible Request Normalization', () => {
     expect(JSON.stringify(req)).toBe(originalJson);
   });
 
+  it('enforces request deep-reference isolation and deep-copy for stop, tools, tool_choice', () => {
+    const req = readJsonFixture('valid-non-stream-request.json');
+    req.gateway_request.stop = ['STOP1', 'STOP2'];
+    req.gateway_request.tools = [
+      {
+        type: 'function',
+        function: {
+          name: 'get_weather',
+          description: 'Get weather data',
+          parameters: { type: 'object', properties: { location: { type: 'string' } } },
+        },
+      },
+    ];
+    req.gateway_request.tool_choice = { type: 'function', function: { name: 'get_weather' } };
+
+    const result = normalizeOpenAIExecutionRequest(req);
+    expect(result.success).toBe(true);
+
+    // Mutate output payload
+    result.payload.stop.push('MUTATED');
+    result.payload.tools[0].function.parameters.properties.location.type = 'number';
+    result.payload.tool_choice.function.name = 'MUTATED';
+
+    // Verify input request is completely unchanged
+    expect(req.gateway_request.stop).toEqual(['STOP1', 'STOP2']);
+    expect(req.gateway_request.tools[0].function.parameters.properties.location.type).toBe('string');
+    expect(req.gateway_request.tool_choice.function.name).toBe('get_weather');
+  });
+
+  it('removes undefined properties from emitted payload', () => {
+    const req = readJsonFixture('valid-non-stream-request.json');
+    delete req.gateway_request.temperature;
+    delete req.gateway_request.top_p;
+    delete req.gateway_request.user;
+
+    const result = normalizeOpenAIExecutionRequest(req);
+    expect(result.success).toBe(true);
+
+    expect(Object.prototype.hasOwnProperty.call(result.payload, 'temperature')).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(result.payload, 'top_p')).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(result.payload, 'user')).toBe(false);
+  });
+
   it('returns validation errors for invalid execution request', () => {
     const invalidReq = { contract_version: 'invalid' };
     const result = normalizeOpenAIExecutionRequest(invalidReq);

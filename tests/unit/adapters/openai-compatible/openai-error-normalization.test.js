@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { normalizeOpenAIError } from '../../../../src/gateway/adapters/openai-compatible/error.js';
+import { EXECUTION_CONTRACT_VERSION } from '../../../../src/gateway/protocol/constants.js';
 
 const fixtureDir = join(process.cwd(), 'tests/fixtures/gateway/adapters/openai-compatible');
 
@@ -17,7 +18,7 @@ describe('OpenAI-compatible Error Normalization', () => {
       provider_id: 'openai-provider',
     });
 
-    expect(result.contract_version).toBe('2026-07-15.sprint-a');
+    expect(result.contract_version).toBe(EXECUTION_CONTRACT_VERSION);
     expect(result.code).toBe('request_invalid');
     expect(result.category).toBe('request_invalid');
     expect(result.status).toBe(400);
@@ -96,7 +97,7 @@ describe('OpenAI-compatible Error Normalization', () => {
     expect(result.retryable).toBe(false);
   });
 
-  it('never throws even when passed null, circular, or garbage input', () => {
+  it('safely handles circular input objects and throwing getters without throwing', () => {
     expect(() => normalizeOpenAIError(null)).not.toThrow();
     expect(() => normalizeOpenAIError(undefined)).not.toThrow();
     expect(() => normalizeOpenAIError('random string error')).not.toThrow();
@@ -106,8 +107,24 @@ describe('OpenAI-compatible Error Normalization', () => {
     circularObj.self = circularObj;
     expect(() => normalizeOpenAIError(circularObj)).not.toThrow();
 
-    const res = normalizeOpenAIError(circularObj);
+    const throwingGetterObj = {
+      message: 'test error',
+    };
+    Object.defineProperty(throwingGetterObj, 'throwingProp', {
+      get() {
+        throw new Error('getter exception');
+      },
+      enumerable: true,
+    });
+    expect(() => normalizeOpenAIError(throwingGetterObj)).not.toThrow();
+
+    const res = normalizeOpenAIError(throwingGetterObj);
     expect(res.code).toBe('internal_execution_error');
     expect(res.redacted).toBe(true);
+  });
+
+  it('uses EXECUTION_CONTRACT_VERSION constant instead of hardcoded strings', () => {
+    const res = normalizeOpenAIError('test');
+    expect(res.contract_version).toBe(EXECUTION_CONTRACT_VERSION);
   });
 });

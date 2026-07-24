@@ -7,14 +7,14 @@
   - Reconciled runtime validators with schema-required fields and implemented recursive safe-metadata validation screening secret key taxonomy, prototype keys, and absolute paths.
   - Enforced factory secure defaults and forced `redacted: true` result protections.
   - Added Governed Provider Execution Threat Model matrix to `docs/security-threat-model.md`.
-- **v4.3 Sprint B — Generic OpenAI-Compatible Adapter Normalization Core**:
-  - Implemented request, response, error, and SSE stream normalizer modules under `src/gateway/adapters/openai-compatible/`.
-  - Added request payload normalizer converting execution requests into OpenAI-compatible JSON payloads with allowlisted fields and capability checks.
-  - Added response normalizer mapping choices, messages, finish reasons, and usage (`provider_reported: true`).
-  - Added error normalizer mapping HTTP 400-599 and stream errors to Sprint A execution errors with mandatory redaction and safe metadata validation.
-  - Added stateful, transport-independent incremental SSE parser with CRLF/LF, fragmentation, `[DONE]`, multi-event chunk, and 1MB/512KB buffer/event limit guards.
-  - Added 19 JSON/text test fixtures and 4 unit test suites (106 test files / 527 tests).
-  - Extended gateway verifiers to 503 passing checks.
+- **v4.3 Sprint B — Generic OpenAI-Compatible Adapter Normalization & Safety Hardening**:
+  - Implemented pure request, response, error, and SSE stream normalizer modules under `src/gateway/adapters/openai-compatible/`.
+  - Hardened request payload normalizer with deep-reference isolation, allowlisted fields, capability assertions, and undefined property removal.
+  - Hardened response normalizer with multi-choice validation, tool-call capability checks, allowlisted roles/finish reasons, and deterministic fallback timestamps (removed `Date.now()` / `new Date()`).
+  - Hardened error normalizer using `EXECUTION_CONTRACT_VERSION`, safe circular object cleaning, throwing getter guards, path redaction, and non-throwing error handling.
+  - Hardened incremental SSE parser with option validation, UTF-8 streaming decoder (`TextDecoder`), byte-bounded accounting (`Buffer.byteLength`), multi-line `data:` joining (`\n`), terminal `[DONE]` state, and multi-choice delta allowlisting.
+  - Added unit test suites and JSON/text test fixtures.
+  - Extended gateway verifiers with ambient time ban, terminal DONE enforcement, and event accumulation bounds.
 
 
 ## [4.2.0] - 2026-07-17
