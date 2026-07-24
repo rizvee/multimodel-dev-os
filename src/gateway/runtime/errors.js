@@ -16,6 +16,7 @@ const STATUS_BY_CODE = Object.freeze({
   timeout: 408,
   upstream_timeout: 504,
   upstream_error: 502,
+  upstream_server_error: 502,
   stream_error: 502,
   policy_denied: 403,
   configuration_error: 500,

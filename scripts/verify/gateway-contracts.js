@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from 'fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import {
   createChatCompletionResponse,
@@ -38,6 +38,8 @@ import {
   validateEndpointBinding,
   validateTransport,
   executeGovernedRequest,
+  createExecutionDispatcher,
+  validateGovernedRuntimeConfig,
 } from '../../src/gateway/index.js';
 import { mockProvider } from '../../tests/fixtures/gateway/mock-provider.js';
 import { stats, GREEN, RED, NC, projectRoot } from './utils.js';
@@ -119,25 +121,35 @@ export function checkAdapterForbiddenPrimitives(relDir, label) {
     { name: 'Date.now or new Date', regex: /\b(?:Date\.now|new\s+Date)\b/ },
   ];
 
+  function inspectFile(fullPath) {
+    const rawContent = readFileSync(fullPath, 'utf8');
+    let cleanCode = rawContent
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/.*/g, '');
+
+    cleanCode = cleanCode.replace(/\.replace\(\s*\/[^\n\r/]+\/[a-z]*/g, '.replace(');
+
+    for (const { name, regex } of forbiddenPatterns) {
+      if (regex.test(cleanCode)) {
+        const relFilePath = fullPath.replace(projectRoot, '').replace(/^[/\\]/, '');
+        matches.push(`${relFilePath} [${name}]`);
+      }
+    }
+  }
+
   function walk(dir) {
+    if (!existsSync(dir)) return;
+    const stat = statSync(dir);
+    if (stat.isFile()) {
+      inspectFile(dir);
+      return;
+    }
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const fullPath = join(dir, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);
       } else if (entry.isFile() && entry.name.endsWith('.js')) {
-        const rawContent = readFileSync(fullPath, 'utf8');
-        let cleanCode = rawContent
-          .replace(/\/\*[\s\S]*?\*\//g, '')
-          .replace(/\/\/.*/g, '');
-
-        cleanCode = cleanCode.replace(/\.replace\(\s*\/[^\n\r/]+\/[a-z]*/g, '.replace(');
-
-        for (const { name, regex } of forbiddenPatterns) {
-          if (regex.test(cleanCode)) {
-            const relFilePath = fullPath.replace(projectRoot, '').replace(/^[/\\]/, '');
-            matches.push(`${relFilePath} [${name}]`);
-          }
-        }
+        inspectFile(fullPath);
       }
     }
   }
@@ -702,5 +714,43 @@ export function checkGatewayContracts() {
     pass('Trusted endpoint binding validator enforces exact base path or true path-segment descendant');
   } else {
     fail('Trusted endpoint binding validator failed path segment checks');
+  }
+
+  // --- Sprint E1 Governed Runtime Integration Checks ---
+  const runtimeIntegrationFiles = [
+    'src/gateway/runtime/execution-dispatcher.js',
+    'tests/integration/gateway-governed-runtime.test.js',
+  ];
+  checkFilesExist(runtimeIntegrationFiles, 'Sprint E1 runtime integration source and test suite exist');
+  checkAdapterForbiddenPrimitives('src/gateway/runtime/execution-dispatcher.js', 'No outbound transport or credential primitives in execution dispatcher');
+
+  const defaultDispatcher = createExecutionDispatcher({});
+  if (defaultDispatcher.enabled === false && defaultDispatcher.resolveRoute('mock-chat').type === 'mock') {
+    pass('Execution dispatcher defaults to disabled external execution with mock fallback');
+  } else {
+    fail('Execution dispatcher must default to disabled external execution with mock fallback');
+  }
+
+  const enabledDispatcher = createExecutionDispatcher({
+    enabled: true,
+    transport: { execute: async () => ({}) },
+    providers: {
+      'verify-provider': {
+        provider_adapter: testAdapter,
+        endpoint: createProviderEndpoint({ url: 'https://api.example.com/v1/chat' }),
+        policy: createExecutionPolicy({ enabled: true, allowed_provider_ids: ['verify-provider'] }),
+        capability: createProviderExecutionCapability({ chat_completions: true, non_streaming: true }),
+        credential_ref: createCredentialRef({ env_var: 'VERIFY_KEY' }),
+      },
+    },
+    model_routes: {
+      'm1': { provider_id: 'verify-provider', model_id: 'm1' },
+    },
+  });
+
+  if (enabledDispatcher.enabled === true && enabledDispatcher.resolveRoute('m1').type === 'governed-external') {
+    pass('Execution dispatcher resolves trusted external model route when enabled');
+  } else {
+    fail('Execution dispatcher failed to resolve trusted external model route');
   }
 }

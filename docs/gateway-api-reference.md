@@ -53,14 +53,16 @@ Resilience APIs use caller-supplied simulated outcomes. They do not sleep, retry
 
 ## Runtime
 
-Status: mock-only.
+Status: local mock & governed non-stream (v4.3 Sprint E1).
 
 - `createGatewayServer`
+- `createExecutionDispatcher`
+- `validateGovernedRuntimeConfig`
 - Gateway runtime config validation.
-- Mock provider.
+- Mock provider & governed non-stream dispatcher.
 - Request body, response, SSE, timeout, auth, and lifecycle helpers.
 
-The runtime supports localhost mock `/health`, `/v1/models`, and `/v1/chat/completions`. External providers remain metadata-only.
+The runtime supports localhost mock `/health`, `/v1/models`, and `/v1/chat/completions` (both mock non-stream/stream and governed external non-stream execution via injected transport). External streaming is deferred to Sprint E2.
 
 ## Clients
 

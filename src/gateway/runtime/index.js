@@ -2,6 +2,7 @@ export * from './app.js';
 export * from './auth.js';
 export * from './body-reader.js';
 export * from './errors.js';
+export * from './execution-dispatcher.js';
 export * from './lifecycle.js';
 export * from './limits.js';
 export * from './mock-provider.js';

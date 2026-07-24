@@ -10,6 +10,10 @@ import { writeError, writeJson } from './response-writer.js';
 import { matchGatewayRoute } from './router.js';
 import { writeSseStream } from './sse.js';
 import { withRuntimeTimeout } from './timeouts.js';
+import { createExecutionDispatcher } from './execution-dispatcher.js';
+import { executeGovernedRequest } from '../execution/executor.js';
+import { createExecutionRequest } from '../contracts/execution-request.js';
+import { validateGatewayRequest } from '../protocol/validation.js';
 
 function routeError(result, context) {
   return createRuntimeError({
@@ -31,14 +35,16 @@ function providerTimeout(requestId) {
   });
 }
 
-function modelList(provider) {
+function modelList(provider, dispatcher) {
+  const baseData = provider.listModels().map(({ id, object, created, owned_by }) => ({ id, object, created, owned_by }));
+  const externalData = dispatcher.enabled ? dispatcher.listExternalModels() : [];
   return {
     object: 'list',
-    data: provider.listModels().map(({ id, object, created, owned_by }) => ({ id, object, created, owned_by })),
+    data: [...baseData, ...externalData],
   };
 }
 
-function healthResponse({ provider, state, startTime, context }) {
+function healthResponse({ provider, state, startTime, context, dispatcher }) {
   return {
     object: 'gateway.health',
     status: 'ok',
@@ -48,6 +54,9 @@ function healthResponse({ provider, state, startTime, context }) {
     state,
     uptime_ms: Math.max(0, Date.now() - startTime),
     request_id: context.request_id,
+    governed_execution: {
+      enabled: dispatcher.enabled === true,
+    },
   };
 }
 
@@ -94,12 +103,13 @@ function recordProviderHealth(collector, {
   durationMs = null,
 } = {}) {
   if (!collector) return null;
+  const isMock = providerId === 'mock';
   const current = collector.getHealth()[providerId] || {};
   return safeRecord(() => collector.updateHealth({
     provider_id: providerId,
     status: success ? 'healthy' : 'degraded',
     executable: true,
-    local: true,
+    local: isMock,
     last_success_at: success ? timestamp : current.last_success_at || null,
     last_failure_at: success ? current.last_failure_at || null : timestamp,
     consecutive_successes: success ? (current.consecutive_successes || 0) + 1 : 0,
@@ -107,7 +117,7 @@ function recordProviderHealth(collector, {
     request_count: (current.request_count || 0) + 1,
     error_count: (current.error_count || 0) + (success ? 0 : 1),
     latencies: durationMs !== null ? [durationMs] : [],
-    metadata: { mock: true },
+    metadata: { mock: isMock, governed: !isMock },
   }));
 }
 
@@ -135,7 +145,10 @@ export function createGatewayApp({
   startTime,
   requestIdFactory = null,
   observability = null,
+  governed_execution = null,
 } = {}) {
+  const dispatcher = createExecutionDispatcher(governed_execution || {});
+
   return async function handleGatewayRequest(request, response) {
     const context = createRequestContext(request, { requestIdFactory });
     const collector = observability || null;
@@ -181,17 +194,195 @@ export function createGatewayApp({
 
       if (route.name === 'health') {
         traceComplete(collector, traceId, context, { status_code: 200, success: true, event_ids: eventIds });
-        writeJson(response, 200, healthResponse({ provider, state: state(), startTime, context }), context);
+        writeJson(response, 200, healthResponse({ provider, state: state(), startTime, context, dispatcher }), context);
         return;
       }
 
       if (route.name === 'models') {
         traceComplete(collector, traceId, context, { status_code: 200, success: true, event_ids: eventIds });
-        writeJson(response, 200, modelList(provider), context);
+        writeJson(response, 200, modelList(provider, dispatcher), context);
         return;
       }
 
       const body = await readJsonBody(request, context, config);
+      const routeDecision = dispatcher.resolveRoute(body?.model);
+
+      if (routeDecision.type === 'disabled-external') {
+        throw createRuntimeError({
+          code: 'execution_disabled',
+          message: `Governed execution is disabled for model ${body?.model}`,
+          request_id: context.request_id,
+          status: 403,
+          cause: 'execution_disabled',
+        });
+      }
+
+      if (routeDecision.type === 'unknown') {
+        throw createRuntimeError({
+          code: 'model_not_found',
+          message: `Model not found: ${body?.model}`,
+          request_id: context.request_id,
+          status: 404,
+          cause: 'unknown_model',
+        });
+      }
+
+      if (routeDecision.type === 'governed-external') {
+        if (body.stream === true) {
+          throw createRuntimeError({
+            code: 'unsupported_capability',
+            message: 'External streaming is not supported in Sprint E1',
+            request_id: context.request_id,
+            status: 400,
+            cause: 'external_streaming_deferred',
+          });
+        }
+
+        const reqValidation = validateGatewayRequest(body);
+        if (!reqValidation.success) throw routeError({ ...reqValidation, value: body }, context);
+
+        const validated = observeEvent(collector, {
+          trace_id: traceId,
+          request_id: context.request_id,
+          type: 'request-validated',
+          provider_id: routeDecision.provider_id,
+          model_id: routeDecision.model_id,
+          metadata: { validation: 'passed' },
+        });
+        if (validated?.event_id) eventIds.push(validated.event_id);
+
+        const planned = observeEvent(collector, {
+          trace_id: traceId,
+          request_id: context.request_id,
+          type: 'route-selected',
+          provider_id: routeDecision.provider_id,
+          model_id: routeDecision.model_id,
+          route_strategy: 'governed-external',
+          metadata: { strategy: 'governed-external' },
+        });
+        if (planned?.event_id) eventIds.push(planned.event_id);
+
+        const execReq = createExecutionRequest({
+          request_id: context.request_id,
+          provider_id: routeDecision.provider_id,
+          model_id: routeDecision.model_id,
+          gateway_request: body,
+          policy: routeDecision.policy,
+          endpoint: routeDecision.endpoint,
+          capability: routeDecision.capability,
+          credential_ref: routeDecision.credential_ref,
+        });
+
+        const started = observeEvent(collector, {
+          trace_id: traceId,
+          request_id: context.request_id,
+          type: 'execution-started',
+          provider_id: routeDecision.provider_id,
+          model_id: routeDecision.model_id,
+          route_strategy: 'governed-external',
+        });
+        if (started?.event_id) eventIds.push(started.event_id);
+
+        const execResult = await executeGovernedRequest({
+          execution_request: execReq,
+          provider_adapter: routeDecision.provider_adapter,
+          transport: routeDecision.transport,
+          environment: routeDecision.environment,
+          clock: routeDecision.clock,
+          requestId: context.request_id,
+        });
+
+        const timestamp = Date.now();
+        const durationMs = execResult.timing?.duration_ms || Math.max(0, timestamp - context.start_time);
+
+        if (execResult.state === 'completed') {
+          const usage = normalizeGatewayUsageRecord({
+            usage: { ...execResult.gateway_response.usage, estimated: false, provider_reported: true },
+            provider_id: routeDecision.provider_id,
+            model_id: routeDecision.model_id,
+            request_id: context.request_id,
+            trace_id: traceId,
+            timestamp,
+            metadata: { governed: true },
+          });
+          const cost = estimateGatewayCost({ usage, model: { input_cost: null, output_cost: null, currency: null } });
+          collector?.recordUsage({ ...usage, cost_estimate: cost });
+          recordProviderHealth(collector, { success: true, providerId: routeDecision.provider_id, timestamp, durationMs });
+
+          const compEvent = observeEvent(collector, {
+            trace_id: traceId,
+            request_id: context.request_id,
+            type: 'execution-completed',
+            provider_id: routeDecision.provider_id,
+            model_id: routeDecision.model_id,
+            route_strategy: 'governed-external',
+            status: 'success',
+            usage,
+            cost_estimate: cost,
+          });
+          if (compEvent?.event_id) eventIds.push(compEvent.event_id);
+
+          traceComplete(collector, traceId, context, {
+            completed_at: timestamp,
+            status_code: 200,
+            provider_id: routeDecision.provider_id,
+            model_id: routeDecision.model_id,
+            route_strategy: 'governed-external',
+            streamed: false,
+            success: true,
+            usage,
+            cost_estimate: cost,
+            event_ids: eventIds,
+            metadata: { strategy: 'governed-external' },
+          });
+
+          writeJson(response, 200, execResult.gateway_response, context);
+          return;
+        }
+
+        recordProviderHealth(collector, { success: false, providerId: routeDecision.provider_id, timestamp, durationMs });
+
+        let eventType = 'execution-failed';
+        if (execResult.state === 'cancelled') eventType = 'execution-cancelled';
+        if (execResult.state === 'timed_out') eventType = 'execution-timed-out';
+
+        const failEvent = observeEvent(collector, {
+          trace_id: traceId,
+          request_id: context.request_id,
+          type: eventType,
+          provider_id: routeDecision.provider_id,
+          model_id: routeDecision.model_id,
+          route_strategy: 'governed-external',
+          status: execResult.state,
+          error_code: execResult.error?.code,
+        });
+        if (failEvent?.event_id) eventIds.push(failEvent.event_id);
+
+        const status = execResult.error?.status || statusForGatewayError({ error: execResult.error }) || 502;
+        traceComplete(collector, traceId, context, {
+          completed_at: timestamp,
+          status_code: status,
+          provider_id: routeDecision.provider_id,
+          model_id: routeDecision.model_id,
+          route_strategy: 'governed-external',
+          success: false,
+          error: execResult.error,
+          event_ids: eventIds,
+        });
+
+        const runtimeError = createRuntimeError({
+          code: 'upstream_error',
+          message: execResult.error?.message || 'Governed execution failed',
+          request_id: context.request_id,
+          status,
+          cause: 'governed_execution_failed',
+        });
+
+        writeError(response, runtimeError, context);
+        return;
+      }
+
+      // Default mock provider route
       const validation = provider.validateRequest(body);
       if (!validation.success) throw routeError({ ...validation, value: body }, context);
 

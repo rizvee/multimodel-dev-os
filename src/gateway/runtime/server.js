@@ -4,6 +4,7 @@ import { createRuntimeError } from './errors.js';
 import { createMockGatewayProvider } from './mock-provider.js';
 import { normalizeGatewayRuntimeConfig, validateGatewayRuntimeConfig } from './limits.js';
 import { createGatewayObservabilityCollector } from '../observability/collector.js';
+import { createExecutionDispatcher } from './execution-dispatcher.js';
 
 function serverAddress(server) {
   const address = server.address();
@@ -16,6 +17,7 @@ export function createGatewayServer({
   provider = null,
   logger = null,
   observability = null,
+  governed_execution = null,
 } = {}) {
   const configResult = validateGatewayRuntimeConfig(config);
   const runtimeConfig = normalizeGatewayRuntimeConfig(config);
@@ -25,6 +27,18 @@ export function createGatewayServer({
       ? createGatewayObservabilityCollector({ config: runtimeConfig.observability })
       : null
   );
+
+  if (governed_execution !== null && governed_execution !== undefined) {
+    const checkDispatcher = createExecutionDispatcher(governed_execution);
+    if (!checkDispatcher.success) {
+      throw createRuntimeError({
+        code: 'configuration_error',
+        message: checkDispatcher.errors.map((e) => e.message).join('; '),
+        cause: 'invalid_governed_runtime_config',
+      });
+    }
+  }
+
   const connections = new Set();
   let stateValue = 'created';
   let httpServer = null;
@@ -60,6 +74,7 @@ export function createGatewayServer({
       startTime,
       requestIdFactory: runtimeConfig.request_id_factory,
       observability: runtimeObservability,
+      governed_execution,
     });
     httpServer = createServer(app);
     httpServer.on('connection', (socket) => {

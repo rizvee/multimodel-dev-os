@@ -332,19 +332,25 @@ export async function executeGovernedRequest({
   if (transportError) {
     let errCode = 'upstream_server_error';
     let errState = 'failed';
+    let errStatus = 502;
 
     if (signal?.aborted || transportError.name === 'AbortError' || transportError.code === 'cancelled') {
       errCode = 'cancelled';
       errState = 'cancelled';
+      errStatus = 499;
     } else if (transportError.code === 'timeout' || transportError.name === 'TimeoutError') {
       errCode = 'timeout';
       errState = 'timed_out';
+      errStatus = 504;
     } else if (transportError.code === 'request_too_large') {
       errCode = 'request_too_large';
+      errStatus = 413;
     } else if (transportError.code === 'response_too_large') {
       errCode = 'response_too_large';
+      errStatus = 502;
     } else if (EXECUTION_ERROR_CATEGORIES.includes(transportError.code)) {
       errCode = transportError.code;
+      if (typeof transportError.status === 'number') errStatus = transportError.status;
     }
 
     return buildSafeResult({
@@ -355,6 +361,7 @@ export async function executeGovernedRequest({
         code: errCode,
         category: errCode,
         message: isString(transportError.message) ? transportError.message : 'Transport execution error',
+        status: errStatus,
         provider_id: provId,
         request_id: execReqId,
         redacted: true,

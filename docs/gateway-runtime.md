@@ -1,31 +1,52 @@
-# Gateway Runtime
+# Gateway Runtime & Governed Integration (v4.3 Sprint E1)
 
-v4.2 Sprint E introduces the first real local HTTP gateway runtime.
+The Gateway runtime provides a local HTTP gateway server (`src/gateway/runtime/`) that supports mock execution and opt-in governed external model dispatching.
 
-Current scope:
+---
 
-- localhost-only by default
-- mock provider only
-- minimal OpenAI-compatible endpoint subset
-- non-streaming chat completions
-- deterministic mock SSE streaming
-- model listing
-- health endpoint
-- bounded request limits and timeouts
-- normalized errors
-- clean lifecycle start/stop
+## Architectural Principles & Scope
 
-The runtime does not call external model providers, load provider credentials, execute retry/fallback chains, persist logs, persist circuit-breaker state, or enforce Skill OS permissions globally.
+1. **Mock Provider Default**: The local mock provider (`mock-chat`, `mock-model`) remains the default executable route and fallback is never executed automatically.
+2. **Governed External Execution (Sprint E1)**: Opt-in governed execution routes non-stream chat completion requests to configured external providers using an explicitly injected transport object.
+3. **Disabled by Default**: Governed external execution is disabled by default (`governed_execution.enabled === false`).
+4. **No Built-in Outbound HTTP Transport**: The runtime does not include built-in `fetch` or HTTP transport primitives. An injected transport contract (`transport.execute(...)`) is required.
+5. **No External Streaming in E1**: Streaming (`stream: true`) for external governed models is explicitly deferred to Sprint E2 and returns HTTP 400 `unsupported_capability` with 0 transport calls.
+6. **No Retries or Fallback**: External provider failures do not automatically retry or fall back to mock or other providers.
+7. **SSRF Guard**: Trusted endpoint binding validates HTTPS, hostname, and path-segment descendants. DNS-level SSRF protection remains deferred.
 
-## Runtime API
+---
+
+## Runtime Configuration API
 
 ```js
-import { createGatewayServer } from 'multimodel-dev-os/src/gateway';
+import { createGatewayServer, createExecutionPolicy, createProviderEndpoint, createProviderExecutionCapability } from 'multimodel-dev-os/src/gateway';
 
 const gateway = createGatewayServer({
   config: {
     host: '127.0.0.1',
     port: 0
+  },
+  governed_execution: {
+    enabled: true,
+    transport: {
+      async execute({ payload, credential }) {
+        // Injected test transport
+        return { ... };
+      }
+    },
+    environment: process.env,
+    providers: {
+      openai: {
+        provider_adapter: openAIAdapter,
+        endpoint: createProviderEndpoint({ url: 'https://api.openai.com/v1/chat/completions' }),
+        policy: createExecutionPolicy({ enabled: true, allowed_provider_ids: ['openai'] }),
+        capability: createProviderExecutionCapability({ chat_completions: true, non_streaming: true }),
+        credential_ref: { env_var: 'OPENAI_API_KEY' },
+      }
+    },
+    model_routes: {
+      'gpt-4o': { provider_id: 'openai', model_id: 'gpt-4o' }
+    }
   }
 });
 
@@ -33,7 +54,7 @@ const address = await gateway.start();
 await gateway.stop();
 ```
 
-`port: 0` is useful for tests because the operating system assigns an ephemeral local port.
+---
 
 ## Lifecycle States
 
@@ -44,16 +65,12 @@ await gateway.stop();
 - `stopped`
 - `failed`
 
-The server does not start on import and does not create a daemon or background process.
+The server does not start on import and does not create daemon or background processes.
 
-## CLI Boundary
+---
 
-Sprint E does not add gateway CLI startup commands. The runtime is exposed through the JavaScript API and test/docs examples only. This keeps existing CLI behavior unchanged while the security boundary is validated.
+## Endpoint Behavior
 
-## Client Integration Boundary
-
-Sprint F adds preview-only client integration planning on top of this runtime. Generated client plans target the localhost mock gateway and report `writes_performed: false`. They do not install clients, write global settings, or activate external providers.
-
-## Observability Boundary
-
-Sprint G adds bounded in-memory observability for the local mock runtime. It can record redacted request lifecycle events, traces, usage records, metrics, and mock-provider health snapshots. It does not persist request logs, upload telemetry, retain prompts or completions by default, probe external providers, or execute live retry/fallback behavior.
+- `POST /v1/chat/completions`: Handles mock non-stream/stream requests and governed external non-stream requests. External stream requests return HTTP 400.
+- `GET /v1/models`: Returns mock models and valid configured external models (metadata only; no transport probes or credential resolution).
+- `GET /health`: Returns runtime health metadata including `governed_execution: { enabled: boolean }`.
