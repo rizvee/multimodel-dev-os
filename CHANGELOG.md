@@ -26,8 +26,16 @@
   - Defined injected transport contract (`validateTransport`) in `src/gateway/execution/transport-contract.js`.
   - Implemented single-attempt governed executor (`executeGovernedRequest`) in `src/gateway/execution/executor.js` with ephemeral credential cleanup in `finally` blocks.
   - Hardened Sprint D execution lifecycle ordering (11 steps), attempt count semantics (0 before transport, 1 after transport), trusted endpoint binding (`validateEndpointBinding`), request/response byte limits, OpenAI-compatible adapter restriction, secret-aware transport error sanitization before credential destruction, and fail-safe result validation.
-  - Performed Sprint C closure audit: hardened resolver against invalid environment override primitives, enforced own-property lookups, verified `validateExecutionError` compliance across all resolver errors, and sanitized `withSecret` error `cause` and `details`.
-  - Added unit test suite `tests/unit/gateway-execution.test.js` and created `docs/governed-execution.md`.
+- **v4.3 Sprint E1 — Governed Runtime Integration & Trust Boundary Hardening**:
+  - Integrated governed non-stream execution into local HTTP gateway server (`src/gateway/runtime/`).
+  - Fully encapsulated dispatcher execution target configuration; removed public `getExecutionTarget()` and exposed `executeRoute()` in `src/gateway/runtime/execution-dispatcher.js`.
+  - Hardened runtime configuration validation with prototype safety, reserved-key rejection, object snapshotting/freezing (`cloneStructural`), and environment/clock type checks.
+  - Implemented Signal & Timeout Race (`Promise.race`) in `executeGovernedRequest` with pre-abort checks, prompt credential destruction, and uncooperative transport output suppression.
+  - Hardened HTTP client disconnect handling with guarded `aborted` / `close` listeners.
+  - Hardened request ID sanitization (`validateAndSanitizeRequestId`) ensuring both client header IDs and custom `requestIdFactory()` outputs conform to ASCII length/pattern rules or fall back to UUIDs.
+  - Aligned formal JSON schemas (`gateway-error.schema.json` and `gateway-runtime-error.schema.json`) with `additionalProperties: false` at outer/inner levels.
+  - External streaming remains explicitly deferred to Sprint E2.
+
   - Extended gateway verifier with Sprint D execution gate and hardening checks (522 verifier assertions).
 
 

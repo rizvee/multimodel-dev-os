@@ -2,10 +2,12 @@
   "$id": "mmdo.gateway-error",
   "title": "Gateway Error",
   "type": "object",
+  "additionalProperties": false,
   "required": ["error"],
   "properties": {
     "error": {
       "type": "object",
+      "additionalProperties": false,
       "required": ["code", "message", "type", "status", "retryable"],
       "properties": {
         "code": {
@@ -50,7 +52,7 @@
         "provider": { "type": ["string", "null"] },
         "model": { "type": ["string", "null"] },
         "request_id": { "type": ["string", "null"] },
-        "details": { "type": "object" },
+        "details": { "type": ["object", "null"] },
         "cause": { "type": ["string", "null"] }
       }
     }

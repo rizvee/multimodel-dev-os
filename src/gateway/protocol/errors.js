@@ -50,6 +50,13 @@ export function createGatewayError({
 } = {}) {
   const safeCode = ERROR_CODES.includes(code) ? code : 'internal_error';
   const definition = ERROR_DEFINITIONS[safeCode];
+  const safeDetails = details !== null && typeof details === 'object' && !Array.isArray(details)
+    ? redactSensitiveValue(details)
+    : null;
+  const safeCause = typeof cause === 'string'
+    ? cause
+    : (cause?.message || cause?.name || safeCode);
+
   return {
     error: {
       code: safeCode,
@@ -57,11 +64,11 @@ export function createGatewayError({
       type: definition.type,
       status: typeof status === 'number' ? status : definition.status,
       retryable: definition.retryable,
-      provider,
-      model,
-      request_id,
-      details: details === null ? null : redactSensitiveValue(details),
-      cause: cause || safeCode,
+      provider: typeof provider === 'string' ? provider : null,
+      model: typeof model === 'string' ? model : null,
+      request_id: typeof request_id === 'string' ? request_id : null,
+      details: safeDetails,
+      cause: safeCause,
     },
   };
 }

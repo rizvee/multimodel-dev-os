@@ -242,17 +242,6 @@ export function createGatewayApp({
       }
 
       if (routeDecision.type === 'governed-external') {
-        const targetConfig = dispatcher.getExecutionTarget(rawBody?.model);
-        if (!targetConfig) {
-          throw createRuntimeError({
-            code: 'internal_error',
-            message: 'Governed execution target configuration missing',
-            request_id: context.request_id,
-            status: 500,
-            cause: 'target_missing',
-          });
-        }
-
         const body = sanitizeClientBody(rawBody);
 
         if (body.stream === true) {
@@ -289,22 +278,6 @@ export function createGatewayApp({
         });
         if (planned?.event_id) eventIds.push(planned.event_id);
 
-        const gatewayPayload = {
-          ...body,
-          model: targetConfig.resolved_model,
-        };
-
-        const execReq = createExecutionRequest({
-          request_id: context.request_id,
-          provider_id: targetConfig.provider_id,
-          model_id: targetConfig.resolved_model,
-          gateway_request: gatewayPayload,
-          policy: targetConfig.policy,
-          endpoint: targetConfig.endpoint,
-          capability: targetConfig.capability,
-          credential_ref: targetConfig.credential_ref,
-        });
-
         const started = observeEvent(collector, {
           trace_id: traceId,
           request_id: context.request_id,
@@ -314,6 +287,8 @@ export function createGatewayApp({
           route_strategy: 'governed-external',
         });
         if (started?.event_id) eventIds.push(started.event_id);
+
+        const runtimeTimeoutMs = config?.provider_timeout_ms || 30000;
 
         // AbortController setup & runtime timeout handling
         const abortController = new AbortController();
@@ -325,7 +300,7 @@ export function createGatewayApp({
             timeoutTimer = null;
           }
           request.removeListener('aborted', onAbort);
-          request.removeListener('close', onClose);
+          response.removeListener('close', onClose);
           request.socket?.removeListener('close', onClose);
         };
 
@@ -342,45 +317,44 @@ export function createGatewayApp({
         };
 
         const onClose = () => {
-          if (!response.writableEnded && !abortController.signal.aborted) {
-            abortController.abort(createRuntimeError({
-              code: 'cancelled',
-              message: 'Client socket closed prematurely',
-              request_id: context.request_id,
-              status: 499,
-              cause: 'socket_closed',
-            }));
+          if (!response.writableEnded && !response.finished && !abortController.signal.aborted) {
+            if (!request.readableEnded || !response.headersSent) {
+              abortController.abort(createRuntimeError({
+                code: 'cancelled',
+                message: 'Client connection closed before response completed',
+                request_id: context.request_id,
+                status: 499,
+                cause: 'socket_closed',
+              }));
+            }
           }
         };
 
         request.once('aborted', onAbort);
-        request.once('close', onClose);
+        response.once('close', onClose);
         request.socket?.once('close', onClose);
 
-        const timeoutMs = targetConfig.policy?.request_timeout_ms || config.provider_timeout_ms || 30000;
         timeoutTimer = setTimeout(() => {
           if (!abortController.signal.aborted) {
             abortController.abort(createRuntimeError({
               code: 'timeout',
-              message: `Governed execution timed out after ${timeoutMs}ms`,
+              message: `Governed execution timed out after ${runtimeTimeoutMs}ms`,
               request_id: context.request_id,
               status: 504,
               cause: 'runtime_timeout',
             }));
           }
-        }, timeoutMs);
+        }, runtimeTimeoutMs);
         if (timeoutTimer.unref) timeoutTimer.unref();
 
         let execResult = null;
         try {
-          execResult = await executeGovernedRequest({
-            execution_request: execReq,
-            provider_adapter: targetConfig.provider_adapter,
-            transport: targetConfig.transport,
-            environment: targetConfig.environment,
-            clock: targetConfig.clock,
-            requestId: context.request_id,
+          execResult = await dispatcher.executeRoute({
+            requested_model: rawBody?.model,
+            gateway_request: body,
+            request_id: context.request_id,
             signal: abortController.signal,
+            runtime_timeout_ms: runtimeTimeoutMs,
           });
         } finally {
           cleanupListeners();

@@ -27,6 +27,7 @@ export async function executeGovernedRequest({
   clock = null,
   requestId = null,
   signal = null,
+  runtime_timeout_ms = null,
 } = {}) {
   const getNow = typeof clock === 'function' ? clock : () => 1800000000;
   const startTime = getNow();
@@ -51,27 +52,20 @@ export async function executeGovernedRequest({
     usage = null,
     metadata = {},
   } = {}) {
-    const endT = end_time || getNow();
-    const startT = start_time || startTime;
-    const duration_ms = Math.max(0, endT - startT);
-
-    let cleanError = null;
-    if (state !== 'completed') {
-      if (error && isObject(error) && isString(error.contract_version)) {
-        cleanError = redactSensitiveValue(error);
-      } else {
-        cleanError = createExecutionError({
-          contract_version: EXECUTION_CONTRACT_VERSION,
-          code: 'internal_execution_error',
-          category: 'internal_execution_error',
-          message: isString(error) ? error : 'Execution failed',
-          provider_id: provId,
-          request_id: execReqId,
-          redacted: true,
-        });
-      }
+    let cleanError = error;
+    if (state !== 'completed' && (!cleanError || !isObject(cleanError))) {
+      cleanError = createExecutionError({
+        contract_version: EXECUTION_CONTRACT_VERSION,
+        code: 'internal_execution_error',
+        category: 'internal_execution_error',
+        message: 'Unspecified execution failure',
+        provider_id: provId,
+        request_id: execReqId,
+        redacted: true,
+      });
     }
 
+    const duration_ms = Math.max(0, end_time - start_time);
     const safeAttemptCount = Number.isInteger(attempt_count) ? Math.min(Math.max(0, attempt_count), 1) : 0;
 
     const result = {
@@ -85,8 +79,8 @@ export async function executeGovernedRequest({
       gateway_response: state === 'completed' ? gateway_response : null,
       error: state === 'completed' ? null : cleanError,
       timing: {
-        started_at: startT,
-        completed_at: endT,
+        started_at: start_time,
+        completed_at: end_time,
         duration_ms,
       },
       usage: state === 'completed' ? usage : null,
@@ -115,8 +109,8 @@ export async function executeGovernedRequest({
           redacted: true,
         }),
         timing: {
-          started_at: startT,
-          completed_at: endT,
+          started_at: start_time,
+          completed_at: end_time,
           duration_ms,
         },
         usage: null,
@@ -181,16 +175,23 @@ export async function executeGovernedRequest({
     });
   }
 
-  // 3. Cancellation Pre-Check
+  // 3. Cancellation pre-check before transport validation
   if (signal?.aborted) {
+    const abortCode = signal.reason?.gatewayError?.error?.code || signal.reason?.code || 'cancelled';
+    const isTimeout = abortCode === 'timeout';
+    const errCode = isTimeout ? 'timeout' : 'cancelled';
+    const errState = isTimeout ? 'timed_out' : 'cancelled';
+    const errStatus = isTimeout ? 504 : 499;
+
     return buildSafeResult({
-      state: 'cancelled',
+      state: errState,
       attempt_count: 0,
       error: createExecutionError({
         contract_version: EXECUTION_CONTRACT_VERSION,
-        code: 'cancelled',
-        category: 'cancelled',
-        message: 'Execution request pre-aborted by caller signal',
+        code: errCode,
+        category: errCode,
+        message: isTimeout ? 'Governed execution timed out before transport validation' : 'Governed execution cancelled before transport validation',
+        status: errStatus,
         provider_id: provId,
         request_id: execReqId,
         redacted: true,
@@ -204,40 +205,49 @@ export async function executeGovernedRequest({
     return buildSafeResult({
       state: 'failed',
       attempt_count: 0,
-      error: transportCheck.error,
+      error: createExecutionError({
+        contract_version: EXECUTION_CONTRACT_VERSION,
+        code: 'transport_invalid',
+        category: 'transport_invalid',
+        message: 'Injected transport contract validation failed',
+        provider_id: provId,
+        request_id: execReqId,
+        redacted: true,
+      }),
     });
   }
 
   // 5. Credential Resolution
   let resolvedCredential = null;
-  const approvedEnv = provider_adapter?.credential_env;
-  if (approvedEnv !== null && approvedEnv !== undefined) {
-    const credResolve = resolveEnvironmentCredential({
+  if (execution_request.credential_ref) {
+    const credResolution = resolveEnvironmentCredential({
       credential_ref: execution_request.credential_ref,
       provider_id: provId,
       provider_adapter,
       environment,
     });
 
-    if (credResolve.success !== true || !credResolve.credential) {
+    if (!credResolution.success || !credResolution.credential) {
       return buildSafeResult({
         state: 'failed',
         attempt_count: 0,
-        error: credResolve.error || createExecutionError({
+        error: createExecutionError({
           contract_version: EXECUTION_CONTRACT_VERSION,
           code: 'credential_unavailable',
           category: 'credential_unavailable',
-          message: 'Failed to resolve required environment credential',
+          message: credResolution.error?.message || `Credential environment variable (${execution_request.credential_ref.env_var}) is unavailable`,
+          status: 503,
           provider_id: provId,
           request_id: execReqId,
           redacted: true,
         }),
       });
     }
-    resolvedCredential = credResolve.credential;
+
+    resolvedCredential = credResolution.credential;
   }
 
-  // 6. Request Normalization and Request-Size Enforcement
+  // 6. Request Normalization & Request-Size Enforcement
   let normalizedReq = null;
   let reqByteLength = 0;
   try {
@@ -296,30 +306,88 @@ export async function executeGovernedRequest({
     });
   }
 
-  // 7. Exactly One Transport Invocation
+  // Effective timeout calculation: minimum of runtime timeout cap and policy request timeout
+  const policyTimeout = execution_request.policy.request_timeout_ms || 30000;
+  const runtimeCap = runtime_timeout_ms || Infinity;
+  const effectiveTimeoutMs = Math.min(policyTimeout, runtimeCap);
+
+  // Pre-check for already-aborted signal BEFORE transport invocation
+  if (signal?.aborted) {
+    if (resolvedCredential) resolvedCredential.destroy();
+    const abortCode = signal.reason?.gatewayError?.error?.code || signal.reason?.code || 'cancelled';
+    const isTimeout = abortCode === 'timeout';
+    const errCode = isTimeout ? 'timeout' : 'cancelled';
+    const errState = isTimeout ? 'timed_out' : 'cancelled';
+    const errStatus = isTimeout ? 504 : 499;
+
+    return buildSafeResult({
+      state: errState,
+      attempt_count: 0,
+      error: createExecutionError({
+        contract_version: EXECUTION_CONTRACT_VERSION,
+        code: errCode,
+        category: errCode,
+        message: isTimeout ? 'Governed execution timed out before invocation' : 'Governed execution cancelled before invocation',
+        status: errStatus,
+        provider_id: provId,
+        request_id: execReqId,
+        redacted: true,
+      }),
+      start_time: getNow(),
+      end_time: getNow(),
+    });
+  }
+
+  // 7. Exactly One Transport Invocation & Signal Race
   const execStart = getNow();
   let rawTransportResult = null;
   let transportError = null;
   const secretsToRedact = resolvedCredential ? [resolvedCredential] : [];
 
+  const transportPromise = Promise.resolve().then(() => transport.execute({
+    endpoint: execution_request.endpoint,
+    payload: normalizedReq,
+    credential: resolvedCredential,
+    signal,
+    request_timeout_ms: effectiveTimeoutMs,
+    response_timeout_ms: execution_request.policy.response_timeout_ms,
+    max_request_bytes: maxReqBytes,
+    max_response_bytes: execution_request.policy.max_response_bytes,
+    stream: execution_request.gateway_request?.stream === true,
+  }));
+
+  let signalListener = null;
+  const signalPromise = new Promise((_, reject) => {
+    if (signal) {
+      if (signal.aborted) {
+        const abortCode = signal.reason?.gatewayError?.error?.code || signal.reason?.code || 'cancelled';
+        const isTimeout = abortCode === 'timeout';
+        const err = new Error(isTimeout ? 'Governed execution timed out' : 'Governed execution cancelled');
+        err.code = isTimeout ? 'timeout' : 'cancelled';
+        reject(err);
+        return;
+      }
+      signalListener = () => {
+        const abortCode = signal.reason?.gatewayError?.error?.code || signal.reason?.code || 'cancelled';
+        const isTimeout = abortCode === 'timeout';
+        const err = new Error(isTimeout ? 'Governed execution timed out' : 'Governed execution cancelled');
+        err.code = isTimeout ? 'timeout' : 'cancelled';
+        reject(err);
+      };
+      signal.addEventListener('abort', signalListener, { once: true });
+    }
+  });
+
   try {
-    rawTransportResult = await transport.execute({
-      endpoint: execution_request.endpoint,
-      payload: normalizedReq,
-      credential: resolvedCredential,
-      signal,
-      request_timeout_ms: execution_request.policy.request_timeout_ms,
-      response_timeout_ms: execution_request.policy.response_timeout_ms,
-      max_request_bytes: maxReqBytes,
-      max_response_bytes: execution_request.policy.max_response_bytes,
-      stream: execution_request.gateway_request?.stream === true,
-    });
-    // 8. Secret-aware transport result sanitization BEFORE credential destruction
+    rawTransportResult = await Promise.race([transportPromise, signalPromise]);
     rawTransportResult = redactSensitiveValue(rawTransportResult, secretsToRedact);
   } catch (err) {
-    // 8. Secret-aware transport error sanitization BEFORE credential destruction
     transportError = redactSensitiveValue(err, secretsToRedact);
   } finally {
+    if (signal && signalListener) {
+      signal.removeEventListener('abort', signalListener);
+    }
+    transportPromise.catch(() => {});
     // 9. Credential destruction in finally
     if (resolvedCredential) {
       resolvedCredential.destroy();

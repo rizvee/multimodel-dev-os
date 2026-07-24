@@ -7,18 +7,53 @@
   "properties": {
     "error": {
       "type": "object",
-      "required": ["code", "message", "type", "status", "retryable", "request_id"],
+      "additionalProperties": false,
+      "required": ["code", "message", "type", "status", "retryable"],
       "properties": {
-        "code": { "type": "string" },
-        "message": { "type": "string" },
-        "type": { "type": "string" },
+        "code": {
+          "type": "string",
+          "enum": [
+            "invalid_request",
+            "unsupported_field",
+            "unsupported_capability",
+            "model_not_found",
+            "provider_not_found",
+            "provider_unavailable",
+            "authentication_required",
+            "authentication_failed",
+            "rate_limited",
+            "quota_exceeded",
+            "context_length_exceeded",
+            "request_too_large",
+            "response_too_large",
+            "timeout",
+            "upstream_timeout",
+            "upstream_error",
+            "upstream_server_error",
+            "upstream_client_error",
+            "upstream_authentication",
+            "upstream_rate_limit",
+            "upstream_quota",
+            "upstream_protocol_error",
+            "stream_error",
+            "policy_denied",
+            "execution_disabled",
+            "provider_not_enabled",
+            "credential_unavailable",
+            "cancelled",
+            "configuration_error",
+            "internal_error"
+          ]
+        },
+        "message": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "minLength": 1 },
         "status": { "type": "integer" },
         "retryable": { "type": "boolean" },
         "provider": { "type": ["string", "null"] },
         "model": { "type": ["string", "null"] },
         "request_id": { "type": ["string", "null"] },
-        "details": {},
-        "cause": { "type": "string" }
+        "details": { "type": ["object", "null"] },
+        "cause": { "type": ["string", "null"] }
       }
     }
   }

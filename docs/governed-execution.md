@@ -90,4 +90,8 @@ const result = await executeGovernedRequest({
   },
   environment: process.env,
 });
-```
+### Signal & Timeout Behavior
+
+- The executor races `transport.execute(...)` against the supplied `AbortSignal`.
+- An uncooperative in-process transport may continue its own work after abort, but MultiModel Dev OS returns the cancellation result (`timed_out` / HTTP 504 or `cancelled` / HTTP 499), destroys its credential container, and discards late output.
+- External streaming remains explicitly deferred to Sprint E2.

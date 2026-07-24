@@ -767,4 +767,10 @@ export function checkGatewayContracts() {
   } else {
     fail('resolveRoute failed to reject reserved prototype keys safely');
   }
+
+  if (enabledDispatcher.getExecutionTarget === undefined && typeof enabledDispatcher.executeRoute === 'function') {
+    pass('Execution dispatcher hides target extraction path and encapsulates executeRoute');
+  } else {
+    fail('Execution dispatcher must hide target extraction path and encapsulate executeRoute');
+  }
 }

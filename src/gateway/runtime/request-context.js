@@ -3,22 +3,33 @@ import { normalizeRemoteAddress } from './limits.js';
 
 const SAFE_REQUEST_ID_REGEX = /^[a-zA-Z0-9_\-.:]{1,128}$/;
 
+function isValidSafeRequestId(val) {
+  if (typeof val !== 'string') return false;
+  const trimmed = val.trim();
+  if (trimmed.length === 0 || trimmed.length > 128) return false;
+  if (!SAFE_REQUEST_ID_REGEX.test(trimmed)) return false;
+  if (trimmed.includes('/') || trimmed.includes('\\') || trimmed.includes('..')) return false;
+  if (/[\x00-\x1F\x7F-\x9F]/.test(trimmed)) return false;
+  return true;
+}
+
 export function validateAndSanitizeRequestId(rawId, requestIdFactory = null) {
-  if (typeof rawId === 'string') {
-    const trimmed = rawId.trim();
-    if (
-      trimmed.length > 0 &&
-      trimmed.length <= 128 &&
-      SAFE_REQUEST_ID_REGEX.test(trimmed) &&
-      !trimmed.includes('/') &&
-      !trimmed.includes('\\') &&
-      !trimmed.includes('..') &&
-      !/[\x00-\x1F\x7F-\x9F]/.test(trimmed)
-    ) {
-      return trimmed;
+  if (isValidSafeRequestId(rawId)) {
+    return rawId.trim();
+  }
+
+  if (typeof requestIdFactory === 'function') {
+    try {
+      const generatedId = requestIdFactory();
+      if (isValidSafeRequestId(generatedId)) {
+        return generatedId.trim();
+      }
+    } catch {
+      // Custom requestIdFactory threw an error, fall back to randomUUID
     }
   }
-  return requestIdFactory ? requestIdFactory() : randomUUID();
+
+  return randomUUID();
 }
 
 export function createRequestContext(request, { requestIdFactory = null, now = () => Date.now() } = {}) {
