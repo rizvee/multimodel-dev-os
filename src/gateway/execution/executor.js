@@ -334,14 +334,16 @@ export async function executeGovernedRequest({
     let errState = 'failed';
     let errStatus = 502;
 
-    if (signal?.aborted || transportError.name === 'AbortError' || transportError.code === 'cancelled') {
-      errCode = 'cancelled';
-      errState = 'cancelled';
-      errStatus = 499;
-    } else if (transportError.code === 'timeout' || transportError.name === 'TimeoutError') {
+    const abortCode = signal?.reason?.gatewayError?.error?.code || signal?.reason?.code;
+
+    if (abortCode === 'timeout' || transportError.code === 'timeout' || transportError.name === 'TimeoutError') {
       errCode = 'timeout';
       errState = 'timed_out';
       errStatus = 504;
+    } else if (abortCode === 'cancelled' || signal?.aborted || transportError.name === 'AbortError' || transportError.code === 'cancelled') {
+      errCode = 'cancelled';
+      errState = 'cancelled';
+      errStatus = 499;
     } else if (transportError.code === 'request_too_large') {
       errCode = 'request_too_large';
       errStatus = 413;

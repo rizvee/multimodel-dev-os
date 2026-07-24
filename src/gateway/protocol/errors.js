@@ -1,4 +1,5 @@
 import { SENSITIVE_KEY_PATTERN } from './constants.js';
+import { redactSensitiveValue } from '../credentials/redaction.js';
 
 export const ERROR_DEFINITIONS = Object.freeze({
   invalid_request: { type: 'invalid_request_error', status: 400, retryable: false },
@@ -13,21 +14,29 @@ export const ERROR_DEFINITIONS = Object.freeze({
   quota_exceeded: { type: 'quota_error', status: 429, retryable: false },
   context_length_exceeded: { type: 'invalid_request_error', status: 400, retryable: false },
   request_too_large: { type: 'invalid_request_error', status: 413, retryable: false },
-  timeout: { type: 'timeout_error', status: 408, retryable: true },
+  response_too_large: { type: 'response_limit_error', status: 502, retryable: false },
+  timeout: { type: 'timeout_error', status: 504, retryable: true },
   upstream_timeout: { type: 'upstream_error', status: 504, retryable: true },
   upstream_error: { type: 'upstream_error', status: 502, retryable: true },
+  upstream_server_error: { type: 'upstream_error', status: 502, retryable: true },
+  upstream_client_error: { type: 'invalid_request_error', status: 400, retryable: false },
+  upstream_authentication: { type: 'authentication_error', status: 401, retryable: false },
+  upstream_rate_limit: { type: 'rate_limit_error', status: 429, retryable: true },
+  upstream_quota: { type: 'quota_error', status: 429, retryable: false },
+  upstream_protocol_error: { type: 'upstream_error', status: 502, retryable: true },
   stream_error: { type: 'stream_error', status: 502, retryable: true },
   policy_denied: { type: 'policy_error', status: 403, retryable: false },
+  execution_disabled: { type: 'policy_error', status: 403, retryable: false },
+  provider_not_enabled: { type: 'policy_error', status: 403, retryable: false },
+  credential_unavailable: { type: 'authentication_error', status: 503, retryable: false },
+  cancelled: { type: 'client_closed_error', status: 499, retryable: false },
   configuration_error: { type: 'configuration_error', status: 500, retryable: false },
   internal_error: { type: 'internal_error', status: 500, retryable: false },
 });
 
 export const ERROR_CODES = Object.keys(ERROR_DEFINITIONS);
 
-import { redactSensitiveValue } from '../credentials/redaction.js';
 export { redactSensitiveValue };
-
-
 
 export function createGatewayError({
   code,
@@ -37,6 +46,7 @@ export function createGatewayError({
   request_id = null,
   details = null,
   cause = null,
+  status = null,
 } = {}) {
   const safeCode = ERROR_CODES.includes(code) ? code : 'internal_error';
   const definition = ERROR_DEFINITIONS[safeCode];
@@ -45,7 +55,7 @@ export function createGatewayError({
       code: safeCode,
       message: message || safeCode.replace(/_/g, ' '),
       type: definition.type,
-      status: definition.status,
+      status: typeof status === 'number' ? status : definition.status,
       retryable: definition.retryable,
       provider,
       model,

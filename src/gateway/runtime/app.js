@@ -138,6 +138,20 @@ function observeEndpointPayload(route, collector, request) {
   return { object: 'gateway.trace.list', data: collector.getTraces({ limit: traceLimitFrom(request.url) }) };
 }
 
+function sanitizeClientBody(body) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return body;
+  const copy = { ...body };
+  delete copy.provider_id;
+  delete copy.endpoint;
+  delete copy.base_url;
+  delete copy.policy;
+  delete copy.credential_ref;
+  delete copy.capability;
+  delete copy.transport;
+  delete copy.environment;
+  return copy;
+}
+
 export function createGatewayApp({
   config,
   provider,
@@ -204,13 +218,13 @@ export function createGatewayApp({
         return;
       }
 
-      const body = await readJsonBody(request, context, config);
-      const routeDecision = dispatcher.resolveRoute(body?.model);
+      const rawBody = await readJsonBody(request, context, config);
+      const routeDecision = dispatcher.resolveRoute(rawBody?.model);
 
       if (routeDecision.type === 'disabled-external') {
         throw createRuntimeError({
           code: 'execution_disabled',
-          message: `Governed execution is disabled for model ${body?.model}`,
+          message: `Governed execution is disabled for model ${rawBody?.model}`,
           request_id: context.request_id,
           status: 403,
           cause: 'execution_disabled',
@@ -220,7 +234,7 @@ export function createGatewayApp({
       if (routeDecision.type === 'unknown') {
         throw createRuntimeError({
           code: 'model_not_found',
-          message: `Model not found: ${body?.model}`,
+          message: `Model not found: ${rawBody?.model}`,
           request_id: context.request_id,
           status: 404,
           cause: 'unknown_model',
@@ -228,6 +242,19 @@ export function createGatewayApp({
       }
 
       if (routeDecision.type === 'governed-external') {
+        const targetConfig = dispatcher.getExecutionTarget(rawBody?.model);
+        if (!targetConfig) {
+          throw createRuntimeError({
+            code: 'internal_error',
+            message: 'Governed execution target configuration missing',
+            request_id: context.request_id,
+            status: 500,
+            cause: 'target_missing',
+          });
+        }
+
+        const body = sanitizeClientBody(rawBody);
+
         if (body.stream === true) {
           throw createRuntimeError({
             code: 'unsupported_capability',
@@ -246,7 +273,7 @@ export function createGatewayApp({
           request_id: context.request_id,
           type: 'request-validated',
           provider_id: routeDecision.provider_id,
-          model_id: routeDecision.model_id,
+          model_id: routeDecision.resolved_model,
           metadata: { validation: 'passed' },
         });
         if (validated?.event_id) eventIds.push(validated.event_id);
@@ -256,21 +283,26 @@ export function createGatewayApp({
           request_id: context.request_id,
           type: 'route-selected',
           provider_id: routeDecision.provider_id,
-          model_id: routeDecision.model_id,
+          model_id: routeDecision.resolved_model,
           route_strategy: 'governed-external',
-          metadata: { strategy: 'governed-external' },
+          metadata: { strategy: 'governed-external', requested_model: routeDecision.requested_model },
         });
         if (planned?.event_id) eventIds.push(planned.event_id);
 
+        const gatewayPayload = {
+          ...body,
+          model: targetConfig.resolved_model,
+        };
+
         const execReq = createExecutionRequest({
           request_id: context.request_id,
-          provider_id: routeDecision.provider_id,
-          model_id: routeDecision.model_id,
-          gateway_request: body,
-          policy: routeDecision.policy,
-          endpoint: routeDecision.endpoint,
-          capability: routeDecision.capability,
-          credential_ref: routeDecision.credential_ref,
+          provider_id: targetConfig.provider_id,
+          model_id: targetConfig.resolved_model,
+          gateway_request: gatewayPayload,
+          policy: targetConfig.policy,
+          endpoint: targetConfig.endpoint,
+          capability: targetConfig.capability,
+          credential_ref: targetConfig.credential_ref,
         });
 
         const started = observeEvent(collector, {
@@ -278,19 +310,81 @@ export function createGatewayApp({
           request_id: context.request_id,
           type: 'execution-started',
           provider_id: routeDecision.provider_id,
-          model_id: routeDecision.model_id,
+          model_id: routeDecision.resolved_model,
           route_strategy: 'governed-external',
         });
         if (started?.event_id) eventIds.push(started.event_id);
 
-        const execResult = await executeGovernedRequest({
-          execution_request: execReq,
-          provider_adapter: routeDecision.provider_adapter,
-          transport: routeDecision.transport,
-          environment: routeDecision.environment,
-          clock: routeDecision.clock,
-          requestId: context.request_id,
-        });
+        // AbortController setup & runtime timeout handling
+        const abortController = new AbortController();
+        let timeoutTimer = null;
+
+        const cleanupListeners = () => {
+          if (timeoutTimer) {
+            clearTimeout(timeoutTimer);
+            timeoutTimer = null;
+          }
+          request.removeListener('aborted', onAbort);
+          request.removeListener('close', onClose);
+          request.socket?.removeListener('close', onClose);
+        };
+
+        const onAbort = () => {
+          if (!abortController.signal.aborted) {
+            abortController.abort(createRuntimeError({
+              code: 'cancelled',
+              message: 'Client request aborted',
+              request_id: context.request_id,
+              status: 499,
+              cause: 'client_aborted',
+            }));
+          }
+        };
+
+        const onClose = () => {
+          if (!response.writableEnded && !abortController.signal.aborted) {
+            abortController.abort(createRuntimeError({
+              code: 'cancelled',
+              message: 'Client socket closed prematurely',
+              request_id: context.request_id,
+              status: 499,
+              cause: 'socket_closed',
+            }));
+          }
+        };
+
+        request.once('aborted', onAbort);
+        request.once('close', onClose);
+        request.socket?.once('close', onClose);
+
+        const timeoutMs = targetConfig.policy?.request_timeout_ms || config.provider_timeout_ms || 30000;
+        timeoutTimer = setTimeout(() => {
+          if (!abortController.signal.aborted) {
+            abortController.abort(createRuntimeError({
+              code: 'timeout',
+              message: `Governed execution timed out after ${timeoutMs}ms`,
+              request_id: context.request_id,
+              status: 504,
+              cause: 'runtime_timeout',
+            }));
+          }
+        }, timeoutMs);
+        if (timeoutTimer.unref) timeoutTimer.unref();
+
+        let execResult = null;
+        try {
+          execResult = await executeGovernedRequest({
+            execution_request: execReq,
+            provider_adapter: targetConfig.provider_adapter,
+            transport: targetConfig.transport,
+            environment: targetConfig.environment,
+            clock: targetConfig.clock,
+            requestId: context.request_id,
+            signal: abortController.signal,
+          });
+        } finally {
+          cleanupListeners();
+        }
 
         const timestamp = Date.now();
         const durationMs = execResult.timing?.duration_ms || Math.max(0, timestamp - context.start_time);
@@ -299,7 +393,7 @@ export function createGatewayApp({
           const usage = normalizeGatewayUsageRecord({
             usage: { ...execResult.gateway_response.usage, estimated: false, provider_reported: true },
             provider_id: routeDecision.provider_id,
-            model_id: routeDecision.model_id,
+            model_id: routeDecision.resolved_model,
             request_id: context.request_id,
             trace_id: traceId,
             timestamp,
@@ -314,7 +408,7 @@ export function createGatewayApp({
             request_id: context.request_id,
             type: 'execution-completed',
             provider_id: routeDecision.provider_id,
-            model_id: routeDecision.model_id,
+            model_id: routeDecision.resolved_model,
             route_strategy: 'governed-external',
             status: 'success',
             usage,
@@ -326,7 +420,7 @@ export function createGatewayApp({
             completed_at: timestamp,
             status_code: 200,
             provider_id: routeDecision.provider_id,
-            model_id: routeDecision.model_id,
+            model_id: routeDecision.resolved_model,
             route_strategy: 'governed-external',
             streamed: false,
             success: true,
@@ -351,19 +445,21 @@ export function createGatewayApp({
           request_id: context.request_id,
           type: eventType,
           provider_id: routeDecision.provider_id,
-          model_id: routeDecision.model_id,
+          model_id: routeDecision.resolved_model,
           route_strategy: 'governed-external',
           status: execResult.state,
           error_code: execResult.error?.code,
         });
         if (failEvent?.event_id) eventIds.push(failEvent.event_id);
 
+        const errCode = execResult.error?.code || 'upstream_error';
         const status = execResult.error?.status || statusForGatewayError({ error: execResult.error }) || 502;
+
         traceComplete(collector, traceId, context, {
           completed_at: timestamp,
           status_code: status,
           provider_id: routeDecision.provider_id,
-          model_id: routeDecision.model_id,
+          model_id: routeDecision.resolved_model,
           route_strategy: 'governed-external',
           success: false,
           error: execResult.error,
@@ -371,11 +467,13 @@ export function createGatewayApp({
         });
 
         const runtimeError = createRuntimeError({
-          code: 'upstream_error',
+          code: errCode,
           message: execResult.error?.message || 'Governed execution failed',
           request_id: context.request_id,
+          provider: routeDecision.provider_id,
+          model: routeDecision.resolved_model,
           status,
-          cause: 'governed_execution_failed',
+          cause: execResult.error?.category || 'governed_execution_failed',
         });
 
         writeError(response, runtimeError, context);
@@ -383,15 +481,15 @@ export function createGatewayApp({
       }
 
       // Default mock provider route
-      const validation = provider.validateRequest(body);
-      if (!validation.success) throw routeError({ ...validation, value: body }, context);
+      const validation = provider.validateRequest(rawBody);
+      if (!validation.success) throw routeError({ ...validation, value: rawBody }, context);
 
       const validated = observeEvent(collector, {
         trace_id: traceId,
         request_id: context.request_id,
         type: 'request-validated',
         provider_id: 'mock',
-        model_id: body.model,
+        model_id: rawBody.model,
         metadata: { validation: 'passed' },
       });
       if (validated?.event_id) eventIds.push(validated.event_id);
@@ -400,23 +498,23 @@ export function createGatewayApp({
         request_id: context.request_id,
         type: 'route-planned',
         provider_id: 'mock',
-        model_id: body.model,
+        model_id: rawBody.model,
         route_strategy: 'mock-local',
         metadata: { strategy: 'mock-local' },
       });
       if (planned?.event_id) eventIds.push(planned.event_id);
 
-      if (body.stream === true) {
+      if (rawBody.stream === true) {
         const streamStarted = observeEvent(collector, {
           trace_id: traceId,
           request_id: context.request_id,
           type: 'stream-started',
           provider_id: 'mock',
-          model_id: body.model,
+          model_id: rawBody.model,
           route_strategy: 'mock-local',
         });
         if (streamStarted?.event_id) eventIds.push(streamStarted.event_id);
-        const chunks = provider.stream(body, context);
+        const chunks = provider.stream(rawBody, context);
         await writeSseStream(response, chunks, context, config, {
           onChunk: (_chunk, index) => {
             const event = observeEvent(collector, {
@@ -424,7 +522,7 @@ export function createGatewayApp({
               request_id: context.request_id,
               type: 'stream-chunk',
               provider_id: 'mock',
-              model_id: body.model,
+              model_id: rawBody.model,
               metadata: { chunk_count: index + 1 },
             });
             if (event?.event_id) eventIds.push(event.event_id);
@@ -434,7 +532,7 @@ export function createGatewayApp({
             const usage = normalizeGatewayUsageRecord({
               usage: { input_tokens: 2, output_tokens: 2, total_tokens: 4, estimated: false, provider_reported: true },
               provider_id: 'mock',
-              model_id: body.model,
+              model_id: rawBody.model,
               request_id: context.request_id,
               trace_id: traceId,
               timestamp,
@@ -447,7 +545,7 @@ export function createGatewayApp({
               request_id: context.request_id,
               type: 'stream-completed',
               provider_id: 'mock',
-              model_id: body.model,
+              model_id: rawBody.model,
               status: 'success',
               usage,
               metadata: { chunk_count },
@@ -457,7 +555,7 @@ export function createGatewayApp({
               completed_at: timestamp,
               status_code: 200,
               provider_id: 'mock',
-              model_id: body.model,
+              model_id: rawBody.model,
               route_strategy: 'mock-local',
               streamed: true,
               success: true,
@@ -474,12 +572,12 @@ export function createGatewayApp({
         request_id: context.request_id,
         type: 'mock-provider-started',
         provider_id: 'mock',
-        model_id: body.model,
+        model_id: rawBody.model,
         route_strategy: 'mock-local',
       });
       if (providerStarted?.event_id) eventIds.push(providerStarted.event_id);
       const result = await withRuntimeTimeout(
-        Promise.resolve().then(() => provider.invoke(body, context)),
+        Promise.resolve().then(() => provider.invoke(rawBody, context)),
         { timeoutMs: config.provider_timeout_ms, requestId: context.request_id, createTimeoutError: providerTimeout },
       );
       if (result?.error) {
@@ -489,7 +587,7 @@ export function createGatewayApp({
           completed_at: timestamp,
           status_code: result.error.status || 502,
           provider_id: 'mock',
-          model_id: body.model,
+          model_id: rawBody.model,
           route_strategy: 'mock-local',
           success: false,
           error: result.error,

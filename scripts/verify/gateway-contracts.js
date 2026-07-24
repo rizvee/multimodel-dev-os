@@ -105,8 +105,8 @@ function checkNoNetworkPrimitives(relDir, label) {
   }
 }
 
-export function checkAdapterForbiddenPrimitives(relDir, label) {
-  const root = join(projectRoot, relDir);
+export function checkAdapterForbiddenPrimitives(relTarget, label) {
+  const fullRoot = join(projectRoot, relTarget);
   const matches = [];
 
   const forbiddenPatterns = [
@@ -154,7 +154,7 @@ export function checkAdapterForbiddenPrimitives(relDir, label) {
     }
   }
 
-  walk(root);
+  walk(fullRoot);
   if (matches.length === 0) {
     pass(label);
   } else {
@@ -748,9 +748,23 @@ export function checkGatewayContracts() {
     },
   });
 
-  if (enabledDispatcher.enabled === true && enabledDispatcher.resolveRoute('m1').type === 'governed-external') {
+  const routeDecision = enabledDispatcher.resolveRoute('m1');
+  if (enabledDispatcher.enabled === true && routeDecision.type === 'governed-external') {
     pass('Execution dispatcher resolves trusted external model route when enabled');
   } else {
     fail('Execution dispatcher failed to resolve trusted external model route');
+  }
+
+  if (routeDecision.transport === undefined && routeDecision.provider_adapter === undefined && routeDecision.endpoint === undefined) {
+    pass('resolveRoute decision returns safe metadata only without private transport or endpoint objects');
+  } else {
+    fail('resolveRoute decision leaked private transport or endpoint objects');
+  }
+
+  const protoRoute = enabledDispatcher.resolveRoute('__proto__');
+  if (protoRoute.type === 'unknown') {
+    pass('resolveRoute rejects reserved prototype keys safely');
+  } else {
+    fail('resolveRoute failed to reject reserved prototype keys safely');
   }
 }

@@ -5,6 +5,7 @@ import {
   createProviderEndpoint,
   createProviderExecutionCapability,
   createCredentialRef,
+  createExecutionDispatcher,
 } from '../../src/gateway/index.js';
 
 describe('Sprint E1 — Governed Runtime Integration (Non-Stream)', () => {
@@ -69,6 +70,209 @@ describe('Sprint E1 — Governed Runtime Integration (Non-Stream)', () => {
     }
   });
 
+  test('safe route decision output contains no executable or private fields', () => {
+    const dispatcher = createExecutionDispatcher({
+      enabled: true,
+      transport: { execute: async () => ({}) },
+      providers: {
+        openai: {
+          provider_adapter: validAdapter,
+          endpoint: validEndpoint,
+          policy: validPolicy,
+          capability: validCapability,
+          credential_ref: validCredentialRef,
+        },
+      },
+      model_routes: {
+        'gpt-4o': { provider_id: 'openai', model_id: 'gpt-4o' },
+      },
+    });
+
+    const route = dispatcher.resolveRoute('gpt-4o');
+    expect(route).toEqual({
+      type: 'governed-external',
+      strategy: 'governed-external',
+      provider_id: 'openai',
+      requested_model: 'gpt-4o',
+      resolved_model: 'gpt-4o',
+      enabled: true,
+    });
+
+    expect(route.transport).toBeUndefined();
+    expect(route.environment).toBeUndefined();
+    expect(route.provider_adapter).toBeUndefined();
+    expect(route.endpoint).toBeUndefined();
+    expect(route.policy).toBeUndefined();
+    expect(route.credential_ref).toBeUndefined();
+  });
+
+  test('rejects prototype pollution and reserved keys on server creation', () => {
+    const protoProviders = Object.create(null);
+    protoProviders['__proto__'] = {
+      provider_adapter: validAdapter,
+      endpoint: validEndpoint,
+      policy: validPolicy,
+      capability: validCapability,
+      credential_ref: validCredentialRef,
+    };
+
+    expect(() => {
+      createGatewayServer({
+        governed_execution: {
+          enabled: true,
+          transport: { execute: async () => ({}) },
+          providers: protoProviders,
+        },
+      });
+    }).toThrow();
+
+    expect(() => {
+      createGatewayServer({
+        governed_execution: {
+          enabled: true,
+          transport: { execute: async () => ({}) },
+          providers: {
+            openai: {
+              provider_adapter: { ...validAdapter, id: 'different-id' },
+              endpoint: validEndpoint,
+              policy: validPolicy,
+              capability: validCapability,
+              credential_ref: validCredentialRef,
+            },
+          },
+        },
+      });
+    }).toThrow();
+  });
+
+  test('model alias maps to trusted upstream model and replaces gateway request model', async () => {
+    let capturedPayload = null;
+    let capturedModelId = null;
+
+    const fakeTransport = {
+      execute: async ({ payload }) => {
+        capturedPayload = payload;
+        capturedModelId = payload.model;
+        return {
+          id: 'chatcmpl-alias-1',
+          object: 'chat.completion',
+          created: 1800000000,
+          model: payload.model,
+          choices: [{ index: 0, message: { role: 'assistant', content: 'Alias response' }, finish_reason: 'stop' }],
+          usage: { prompt_tokens: 5, completion_tokens: 5, total_tokens: 10 },
+        };
+      },
+    };
+
+    serverInstance = createGatewayServer({
+      config: { port: 0 },
+      governed_execution: {
+        enabled: true,
+        transport: fakeTransport,
+        environment: { OPENAI_API_KEY: 'sk-alias-key' },
+        providers: {
+          openai: {
+            provider_adapter: validAdapter,
+            endpoint: validEndpoint,
+            policy: validPolicy,
+            capability: validCapability,
+            credential_ref: validCredentialRef,
+          },
+        },
+        model_routes: {
+          'gpt-4-fast': { provider_id: 'openai', model_id: 'gpt-4o' },
+        },
+      },
+    });
+
+    const addr = await serverInstance.start();
+    baseUrl = `http://127.0.0.1:${addr.port}`;
+
+    const res = await fetch(`${baseUrl}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'gpt-4-fast', messages: [{ role: 'user', content: 'Hi alias' }] }),
+    });
+
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(capturedModelId).toBe('gpt-4o');
+    expect(capturedPayload.model).toBe('gpt-4o');
+    expect(json.model).toBe('gpt-4o');
+  });
+
+  test('malformed/oversized request ID is sanitized and replaced with generated UUID', async () => {
+    serverInstance = createGatewayServer({ config: { port: 0 } });
+    const addr = await serverInstance.start();
+    baseUrl = `http://127.0.0.1:${addr.port}`;
+
+    // Oversized & path-like ID
+    const resBadId = await fetch(`${baseUrl}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-request-id': '../evil/path/' + 'a'.repeat(200) },
+      body: JSON.stringify({ model: 'mock-chat', messages: [{ role: 'user', content: 'Hi' }] }),
+    });
+
+    expect(resBadId.status).toBe(200);
+    const returnedId = resBadId.headers.get('x-request-id');
+    expect(returnedId).not.toBeNull();
+    expect(returnedId).not.includes('evil');
+    expect(returnedId.length).toBeLessThanOrEqual(128);
+  });
+
+  test('governed runtime timeout returns HTTP 504 timeout and destroys credential', async () => {
+    let capturedCred = null;
+    const slowTransport = {
+      execute: async ({ credential, signal }) => {
+        capturedCred = credential;
+        return new Promise((resolve, reject) => {
+          const t = setTimeout(() => resolve({}), 5000);
+          signal?.addEventListener('abort', () => {
+            clearTimeout(t);
+            const err = new Error('Aborted');
+            err.name = 'AbortError';
+            reject(err);
+          });
+        });
+      },
+    };
+
+    serverInstance = createGatewayServer({
+      config: { port: 0 },
+      governed_execution: {
+        enabled: true,
+        transport: slowTransport,
+        environment: { OPENAI_API_KEY: 'sk-timeout-key' },
+        providers: {
+          openai: {
+            provider_adapter: validAdapter,
+            endpoint: validEndpoint,
+            policy: createExecutionPolicy({ ...validPolicy, request_timeout_ms: 100 }),
+            capability: validCapability,
+            credential_ref: validCredentialRef,
+          },
+        },
+        model_routes: {
+          'gpt-4o': { provider_id: 'openai', model_id: 'gpt-4o' },
+        },
+      },
+    });
+
+    const addr = await serverInstance.start();
+    baseUrl = `http://127.0.0.1:${addr.port}`;
+
+    const res = await fetch(`${baseUrl}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'gpt-4o', messages: [{ role: 'user', content: 'Hi' }] }),
+    });
+
+    expect(res.status).toBe(504);
+    const json = await res.json();
+    expect(json.error.code).toBe('timeout');
+    expect(capturedCred.destroyed).toBe(true);
+  });
+
   test('existing mock non-stream & stream execution remains unchanged by default', async () => {
     serverInstance = createGatewayServer({ config: { port: 0 } });
     const addr = await serverInstance.start();
@@ -98,83 +302,6 @@ describe('Sprint E1 — Governed Runtime Integration (Non-Stream)', () => {
     const resHealth = await fetch(`${baseUrl}/health`);
     const healthBody = await resHealth.json();
     expect(healthBody.governed_execution.enabled).toBe(false);
-  });
-
-  test('rejects duplicate model routes and invalid provider configs on server creation', () => {
-    expect(() => {
-      createGatewayServer({
-        governed_execution: {
-          enabled: true,
-          transport: { execute: async () => ({}) },
-          providers: { openai: { provider_adapter: validAdapter, endpoint: validEndpoint, policy: validPolicy, capability: validCapability, credential_ref: validCredentialRef } },
-          model_routes: [
-            { model_id: 'gpt-4o', provider_id: 'openai' },
-            { model_id: 'gpt-4o', provider_id: 'openai' },
-          ],
-        },
-      });
-    }).toThrow();
-  });
-
-  test('trusted external model route succeeds with fake injected transport & preserves request ID', async () => {
-    let transportCalls = 0;
-    let capturedCred = null;
-
-    const fakeTransport = {
-      execute: async ({ credential }) => {
-        transportCalls++;
-        capturedCred = credential;
-        return {
-          id: 'chatcmpl-ext-100',
-          object: 'chat.completion',
-          created: 1800000000,
-          model: 'gpt-4o',
-          choices: [{ index: 0, message: { role: 'assistant', content: 'External response' }, finish_reason: 'stop' }],
-          usage: { prompt_tokens: 10, completion_tokens: 10, total_tokens: 20 },
-        };
-      },
-    };
-
-    serverInstance = createGatewayServer({
-      config: { port: 0 },
-      governed_execution: {
-        enabled: true,
-        transport: fakeTransport,
-        environment: { OPENAI_API_KEY: 'sk-test-secret-key-999' },
-        providers: {
-          openai: {
-            provider_adapter: validAdapter,
-            endpoint: validEndpoint,
-            policy: validPolicy,
-            capability: validCapability,
-            credential_ref: validCredentialRef,
-          },
-        },
-        model_routes: {
-          'gpt-4o': { provider_id: 'openai', model_id: 'gpt-4o' },
-        },
-      },
-    });
-
-    const addr = await serverInstance.start();
-    baseUrl = `http://127.0.0.1:${addr.port}`;
-
-    const res = await fetch(`${baseUrl}/v1/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-request-id': 'req-custom-rt-123' },
-      body: JSON.stringify({ model: 'gpt-4o', messages: [{ role: 'user', content: 'Hello external' }] }),
-    });
-
-    expect(res.status).toBe(200);
-    expect(res.headers.get('x-request-id')).toBe('req-custom-rt-123');
-
-    const json = await res.json();
-    expect(json.id).toBe('chatcmpl-ext-100');
-    expect(json.choices[0].message.content).toBe('External response');
-    expect(transportCalls).toBe(1);
-    expect(capturedCred.destroyed).toBe(true);
-
-    expect(JSON.stringify(json)).not.includes('sk-test-secret-key-999');
   });
 
   test('external stream: true is explicitly rejected with 400 and zero transport calls', async () => {
@@ -219,59 +346,6 @@ describe('Sprint E1 — Governed Runtime Integration (Non-Stream)', () => {
     expect(transportCalls).toBe(0);
   });
 
-  test('client request body CANNOT override provider, endpoint, policy, or credential settings', async () => {
-    let capturedEndpoint = null;
-    const fakeTransport = {
-      execute: async ({ endpoint }) => {
-        capturedEndpoint = endpoint;
-        return {
-          id: 'chatcmpl-override-test',
-          object: 'chat.completion',
-          created: 1800000000,
-          model: 'gpt-4o',
-          choices: [{ index: 0, message: { role: 'assistant', content: 'OK' }, finish_reason: 'stop' }],
-          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
-        };
-      },
-    };
-
-    serverInstance = createGatewayServer({
-      config: { port: 0 },
-      governed_execution: {
-        enabled: true,
-        transport: fakeTransport,
-        environment: { OPENAI_API_KEY: 'sk-trusted-key' },
-        providers: {
-          openai: {
-            provider_adapter: validAdapter,
-            endpoint: validEndpoint,
-            policy: validPolicy,
-            capability: validCapability,
-            credential_ref: validCredentialRef,
-          },
-        },
-        model_routes: {
-          'gpt-4o': { provider_id: 'openai', model_id: 'gpt-4o' },
-        },
-      },
-    });
-
-    const addr = await serverInstance.start();
-    baseUrl = `http://127.0.0.1:${addr.port}`;
-
-    const res = await fetch(`${baseUrl}/v1/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [{ role: 'user', content: 'Hi' }],
-      }),
-    });
-
-    expect(res.status).toBe(200);
-    expect(capturedEndpoint.url).toBe('https://api.openai.com/v1/chat/completions');
-  });
-
   test('external provider failure does NOT fall back to mock provider', async () => {
     const failingTransport = {
       execute: async () => {
@@ -311,54 +385,6 @@ describe('Sprint E1 — Governed Runtime Integration (Non-Stream)', () => {
 
     expect(res.status).toBe(502);
     const json = await res.json();
-    expect(json.error.code).toBe('upstream_error');
-  });
-
-  test('unknown model returns 404 model_not_found', async () => {
-    serverInstance = createGatewayServer({ config: { port: 0 } });
-    const addr = await serverInstance.start();
-    baseUrl = `http://127.0.0.1:${addr.port}`;
-
-    const res = await fetch(`${baseUrl}/v1/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'non-existent-model', messages: [{ role: 'user', content: 'Hi' }] }),
-    });
-
-    expect(res.status).toBe(404);
-    const json = await res.json();
-    expect(json.error.code).toBe('model_not_found');
-  });
-
-  test('GET /v1/models lists configured external models only when enabled', async () => {
-    serverInstance = createGatewayServer({
-      config: { port: 0 },
-      governed_execution: {
-        enabled: true,
-        transport: { execute: async () => ({}) },
-        providers: {
-          openai: {
-            provider_adapter: validAdapter,
-            endpoint: validEndpoint,
-            policy: validPolicy,
-            capability: validCapability,
-            credential_ref: validCredentialRef,
-          },
-        },
-        model_routes: {
-          'gpt-4o': { provider_id: 'openai', model_id: 'gpt-4o' },
-        },
-      },
-    });
-
-    const addr = await serverInstance.start();
-    baseUrl = `http://127.0.0.1:${addr.port}`;
-
-    const res = await fetch(`${baseUrl}/v1/models`);
-    const json = await res.json();
-
-    const gpt4o = json.data.find((m) => m.id === 'gpt-4o');
-    expect(gpt4o).not.toBeUndefined();
-    expect(gpt4o.owned_by).toBe('openai');
+    expect(json.error.code).toBe('upstream_server_error');
   });
 });

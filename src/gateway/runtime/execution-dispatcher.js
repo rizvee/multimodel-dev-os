@@ -6,12 +6,24 @@ import { validateCredentialRef } from '../contracts/credential-ref.js';
 import { validateTransport } from '../execution/transport-contract.js';
 import { validateEndpointBinding } from '../execution/execution-gate.js';
 
+const RESERVED_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+const SAFE_ID_REGEX = /^[a-zA-Z0-9_\-.:]{1,128}$/;
+
 function isObject(val) {
   return val !== null && typeof val === 'object' && !Array.isArray(val);
 }
 
 function isString(val) {
   return typeof val === 'string' && val.length > 0;
+}
+
+function isValidSafeKey(key) {
+  if (!isString(key) || key.length > 128) return false;
+  if (RESERVED_KEYS.has(key)) return false;
+  if (!SAFE_ID_REGEX.test(key)) return false;
+  if (key.includes('/') || key.includes('\\') || key.includes('..')) return false;
+  if (/[\x00-\x1F\x7F-\x9F]/.test(key)) return false;
+  return true;
 }
 
 export function validateGovernedRuntimeConfig(config = {}) {
@@ -33,21 +45,31 @@ export function validateGovernedRuntimeConfig(config = {}) {
     }
   }
 
-  const validatedProviders = {};
+  const validatedProviders = Object.create(null);
   if (config.providers !== undefined) {
     if (!isObject(config.providers)) {
       errors.push({ code: 'invalid_providers', message: 'providers mapping must be an object' });
     } else {
       for (const [providerId, pConfig] of Object.entries(config.providers)) {
+        if (!isValidSafeKey(providerId)) {
+          errors.push({ code: 'invalid_provider_id', message: `Invalid or reserved provider ID: ${providerId}` });
+          continue;
+        }
         if (!isObject(pConfig)) {
           errors.push({ code: 'invalid_provider_config', message: `Provider ${providerId} config must be an object` });
           continue;
         }
+
         const adapterCheck = validateProviderAdapter(pConfig.provider_adapter);
         if (!adapterCheck.success) {
           errors.push({ code: 'invalid_adapter', message: `Provider ${providerId} adapter validation failed` });
-        } else if (pConfig.provider_adapter.type !== 'openai-compatible') {
+          continue;
+        }
+        if (pConfig.provider_adapter.type !== 'openai-compatible') {
           errors.push({ code: 'invalid_adapter_type', message: `Provider ${providerId} adapter type must be openai-compatible` });
+        }
+        if (providerId !== pConfig.provider_adapter.id) {
+          errors.push({ code: 'provider_id_mismatch', message: `Provider key (${providerId}) must match provider_adapter.id (${pConfig.provider_adapter.id})` });
         }
 
         const endpointCheck = validateProviderEndpoint(pConfig.endpoint);
@@ -68,17 +90,33 @@ export function validateGovernedRuntimeConfig(config = {}) {
         const policyCheck = validateExecutionPolicy(pConfig.policy);
         if (!policyCheck.success) {
           errors.push({ code: 'invalid_policy', message: `Provider ${providerId} policy validation failed` });
+        } else {
+          if (pConfig.policy.enabled !== true) {
+            errors.push({ code: 'provider_not_enabled', message: `Provider ${providerId} policy enabled must be true` });
+          }
+          if (!Array.isArray(pConfig.policy.allowed_provider_ids) || !pConfig.policy.allowed_provider_ids.includes(providerId)) {
+            errors.push({ code: 'provider_not_allowed', message: `Provider ${providerId} must be in allowed_provider_ids` });
+          }
         }
 
         const capCheck = validateProviderExecutionCapability(pConfig.capability);
         if (!capCheck.success) {
           errors.push({ code: 'invalid_capability', message: `Provider ${providerId} capability validation failed` });
+        } else {
+          if (pConfig.capability.chat_completions !== true) {
+            errors.push({ code: 'unusable_capability', message: `Provider ${providerId} must support chat_completions` });
+          }
+          if (pConfig.capability.non_streaming !== true && pConfig.capability.sse_streaming !== true) {
+            errors.push({ code: 'unusable_capability', message: `Provider ${providerId} must support non_streaming or sse_streaming` });
+          }
         }
 
         if (pConfig.credential_ref) {
           const credCheck = validateCredentialRef(pConfig.credential_ref);
           if (!credCheck.success) {
             errors.push({ code: 'invalid_credential_ref', message: `Provider ${providerId} credential_ref validation failed` });
+          } else if (pConfig.credential_ref.env_var !== pConfig.provider_adapter.credential_env) {
+            errors.push({ code: 'credential_ref_mismatch', message: `Provider ${providerId} credential_ref env_var (${pConfig.credential_ref.env_var}) must match adapter credential_env (${pConfig.provider_adapter.credential_env})` });
           }
         }
 
@@ -93,48 +131,24 @@ export function validateGovernedRuntimeConfig(config = {}) {
     }
   }
 
-  const validatedRoutes = {};
+  const validatedRoutes = Object.create(null);
   const seenModels = new Set();
 
   if (config.model_routes !== undefined) {
-    if (Array.isArray(config.model_routes)) {
-      for (const route of config.model_routes) {
-        if (!isObject(route) || !isString(route.model_key || route.model_id)) {
-          errors.push({ code: 'invalid_model_route', message: 'Model route entry must be an object with model_id' });
+    const routeEntries = Array.isArray(config.model_routes)
+      ? config.model_routes.map((r) => [r?.model_key || r?.model_id, r])
+      : isObject(config.model_routes)
+      ? Object.entries(config.model_routes)
+      : null;
+
+    if (!routeEntries) {
+      errors.push({ code: 'invalid_model_routes', message: 'model_routes must be an object or array' });
+    } else {
+      for (const [modelKey, rConfig] of routeEntries) {
+        if (!isValidSafeKey(modelKey)) {
+          errors.push({ code: 'invalid_model_key', message: `Invalid or reserved model route key: ${modelKey}` });
           continue;
         }
-        const key = route.model_key || route.model_id;
-        if (seenModels.has(key)) {
-          errors.push({ code: 'duplicate_model_route', message: `Duplicate model route for ${key}` });
-          continue;
-        }
-        seenModels.add(key);
-
-        if (!isString(route.provider_id) || !isString(route.model_id)) {
-          errors.push({ code: 'invalid_model_route', message: `Model route ${key} must contain provider_id and model_id` });
-          continue;
-        }
-
-        const targetProvider = validatedProviders[route.provider_id];
-        if (enabled && !targetProvider) {
-          errors.push({ code: 'unconfigured_provider', message: `Model route ${key} references unconfigured provider ${route.provider_id}` });
-          continue;
-        }
-
-        if (targetProvider) {
-          const adapterModels = targetProvider.provider_adapter?.models || [];
-          if (!adapterModels.includes(route.model_id)) {
-            errors.push({ code: 'unknown_model', message: `Model ${route.model_id} not found in provider ${route.provider_id} metadata models` });
-          }
-        }
-
-        validatedRoutes[key] = {
-          provider_id: route.provider_id,
-          model_id: route.model_id,
-        };
-      }
-    } else if (isObject(config.model_routes)) {
-      for (const [modelKey, rConfig] of Object.entries(config.model_routes)) {
         if (seenModels.has(modelKey)) {
           errors.push({ code: 'duplicate_model_route', message: `Duplicate model route for ${modelKey}` });
           continue;
@@ -143,6 +157,11 @@ export function validateGovernedRuntimeConfig(config = {}) {
 
         if (!isObject(rConfig) || !isString(rConfig.provider_id) || !isString(rConfig.model_id)) {
           errors.push({ code: 'invalid_model_route', message: `Model route ${modelKey} must contain provider_id and model_id` });
+          continue;
+        }
+
+        if (!isValidSafeKey(rConfig.provider_id) || !isValidSafeKey(rConfig.model_id)) {
+          errors.push({ code: 'invalid_model_route', message: `Model route ${modelKey} provider_id or model_id is invalid or reserved` });
           continue;
         }
 
@@ -164,8 +183,6 @@ export function validateGovernedRuntimeConfig(config = {}) {
           model_id: rConfig.model_id,
         };
       }
-    } else {
-      errors.push({ code: 'invalid_model_routes', message: 'model_routes must be an object or array' });
     }
   }
 
@@ -198,36 +215,80 @@ export function createExecutionDispatcher(governedConfig = {}) {
       return validation.enabled === true;
     },
     resolveRoute(requestedModel) {
-      if (!requestedModel || typeof requestedModel !== 'string') {
-        return { type: 'unknown', route: null };
+      if (!requestedModel || typeof requestedModel !== 'string' || !isValidSafeKey(requestedModel)) {
+        return Object.freeze({
+          type: 'unknown',
+          strategy: 'none',
+          provider_id: null,
+          requested_model: String(requestedModel || ''),
+          resolved_model: null,
+          enabled: validation.enabled === true,
+        });
       }
 
-      if (validation.model_routes && validation.model_routes[requestedModel]) {
+      if (validation.model_routes && Object.prototype.hasOwnProperty.call(validation.model_routes, requestedModel)) {
         const route = validation.model_routes[requestedModel];
         if (!validation.enabled) {
-          return { type: 'disabled-external', provider_id: route.provider_id, model_id: route.model_id };
+          return Object.freeze({
+            type: 'disabled-external',
+            strategy: 'governed-external',
+            provider_id: route.provider_id,
+            requested_model: requestedModel,
+            resolved_model: route.model_id,
+            enabled: false,
+          });
         }
-        const providerConfig = validation.providers[route.provider_id];
-        return {
+        return Object.freeze({
           type: 'governed-external',
+          strategy: 'governed-external',
           provider_id: route.provider_id,
-          model_id: route.model_id,
-          provider_adapter: providerConfig.provider_adapter,
-          endpoint: providerConfig.endpoint,
-          policy: providerConfig.policy,
-          capability: providerConfig.capability,
-          credential_ref: providerConfig.credential_ref,
-          transport: validation.transport,
-          environment: validation.environment,
-          clock: validation.clock,
-        };
+          requested_model: requestedModel,
+          resolved_model: route.model_id,
+          enabled: true,
+        });
       }
 
       if (requestedModel.startsWith('mock') || requestedModel === 'gpt-3.5-turbo' || requestedModel === 'gpt-4') {
-        return { type: 'mock', provider_id: 'mock', model_id: requestedModel };
+        return Object.freeze({
+          type: 'mock',
+          strategy: 'mock-local',
+          provider_id: 'mock',
+          requested_model: requestedModel,
+          resolved_model: requestedModel,
+          enabled: true,
+        });
       }
 
-      return { type: 'unknown', route: null };
+      return Object.freeze({
+        type: 'unknown',
+        strategy: 'none',
+        provider_id: null,
+        requested_model: requestedModel,
+        resolved_model: null,
+        enabled: validation.enabled === true,
+      });
+    },
+    getExecutionTarget(requestedModel) {
+      if (!validation.enabled || !validation.model_routes || !Object.prototype.hasOwnProperty.call(validation.model_routes, requestedModel)) {
+        return null;
+      }
+      const route = validation.model_routes[requestedModel];
+      const providerConfig = validation.providers ? validation.providers[route.provider_id] : null;
+      if (!providerConfig) return null;
+
+      return {
+        provider_id: route.provider_id,
+        requested_model: requestedModel,
+        resolved_model: route.model_id,
+        provider_adapter: providerConfig.provider_adapter,
+        endpoint: providerConfig.endpoint,
+        policy: providerConfig.policy,
+        capability: providerConfig.capability,
+        credential_ref: providerConfig.credential_ref,
+        transport: validation.transport,
+        environment: validation.environment,
+        clock: validation.clock,
+      };
     },
     listExternalModels() {
       if (!validation.enabled || !validation.model_routes || !validation.providers) {
@@ -236,12 +297,14 @@ export function createExecutionDispatcher(governedConfig = {}) {
       const models = [];
       for (const [modelKey, route] of Object.entries(validation.model_routes)) {
         const providerConfig = validation.providers[route.provider_id];
-        models.push({
-          id: modelKey,
-          object: 'model',
-          created: 1800000000,
-          owned_by: providerConfig ? providerConfig.provider_adapter.id : 'external',
-        });
+        if (providerConfig && providerConfig.policy?.enabled === true) {
+          models.push({
+            id: modelKey,
+            object: 'model',
+            created: 1800000000,
+            owned_by: providerConfig.provider_adapter.id,
+          });
+        }
       }
       return models;
     },
