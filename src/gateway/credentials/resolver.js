@@ -17,7 +17,7 @@ export function resolveEnvironmentCredential({
       credential: null,
       error: createExecutionError({
         contract_version: EXECUTION_CONTRACT_VERSION,
-        code: 'configuration_error',
+        code: 'credential_reference_invalid',
         category: 'credential_reference_invalid',
         message: 'Invalid provider adapter supplied to credential resolver',
         provider_id: provider_id || null,
@@ -32,10 +32,25 @@ export function resolveEnvironmentCredential({
       credential: null,
       error: createExecutionError({
         contract_version: EXECUTION_CONTRACT_VERSION,
-        code: 'configuration_error',
+        code: 'credential_reference_invalid',
         category: 'credential_reference_invalid',
         message: 'Provider ID mismatch between request and adapter',
         provider_id: provider_id || null,
+        redacted: true,
+      }),
+    };
+  }
+
+  if (environment !== null && environment !== undefined && (typeof environment !== 'object' || Array.isArray(environment))) {
+    return {
+      success: false,
+      credential: null,
+      error: createExecutionError({
+        contract_version: EXECUTION_CONTRACT_VERSION,
+        code: 'credential_reference_invalid',
+        category: 'credential_reference_invalid',
+        message: 'Invalid environment override object supplied to credential resolver',
+        provider_id,
         redacted: true,
       }),
     };
@@ -110,8 +125,19 @@ export function resolveEnvironmentCredential({
     };
   }
 
-  const envObj = environment && typeof environment === 'object' ? environment : process.env;
-  const rawValue = envObj[approvedEnvName];
+  const envObj = environment ?? process.env;
+
+  let rawValue;
+  try {
+    const desc = Object.getOwnPropertyDescriptor(envObj, approvedEnvName);
+    if (!desc || typeof desc.get === 'function' || typeof desc.set === 'function') {
+      rawValue = undefined;
+    } else {
+      rawValue = desc.value;
+    }
+  } catch (_) {
+    rawValue = undefined;
+  }
 
   if (rawValue === undefined || rawValue === null || rawValue === '') {
     if (!isRequired) {

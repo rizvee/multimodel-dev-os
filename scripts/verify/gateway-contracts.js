@@ -34,6 +34,9 @@ import {
   resolveEnvironmentCredential,
   createResolvedCredential,
   redactSensitiveValue,
+  evaluateExecutionGate,
+  validateTransport,
+  executeGovernedRequest,
 } from '../../src/gateway/index.js';
 import { mockProvider } from '../../tests/fixtures/gateway/mock-provider.js';
 import { stats, GREEN, RED, NC, projectRoot } from './utils.js';
@@ -612,5 +615,49 @@ export function checkGatewayContracts() {
     pass('Secret-aware redaction replaces resolved credential value in target object');
   } else {
     fail('Secret-aware redaction failed to replace resolved credential value');
+  }
+
+  // --- Sprint D Explicit Opt-In Execution Gate Checks ---
+  const executionSourceFiles = [
+    'src/gateway/execution/execution-gate.js',
+    'src/gateway/execution/transport-contract.js',
+    'src/gateway/execution/executor.js',
+    'src/gateway/execution/index.js',
+  ];
+
+  checkFilesExist(executionSourceFiles, 'Gateway execution gate source files exist');
+  checkFilesExist([
+    'docs/governed-execution.md',
+    'tests/unit/gateway-execution.test.js',
+  ], 'Governed execution documentation and unit test suite exist');
+
+  checkAdapterForbiddenPrimitives('src/gateway/execution', 'No network, auth-header, or ambient time primitives in execution gate modules');
+
+  const disabledGate = evaluateExecutionGate({
+    policy: createExecutionPolicy({ enabled: false }),
+    provider_id: 'openai',
+    provider_adapter: testAdapter,
+    request: execReq,
+    endpoint,
+    capability: capReq,
+  });
+  if (disabledGate.allowed === false && disabledGate.code === 'execution_disabled') {
+    pass('Execution gate enforces default-disabled policy state');
+  } else {
+    fail('Execution gate must enforce default-disabled policy state');
+  }
+
+  const allowedGate = evaluateExecutionGate({
+    policy: createExecutionPolicy({ enabled: true, allowed_provider_ids: ['verify-provider'], max_attempts: 1, retry_enabled: false, fallback_enabled: false }),
+    provider_id: 'verify-provider',
+    provider_adapter: testAdapter,
+    request: { ...execReq, provider_id: 'verify-provider', credential_ref: createCredentialRef({ env_var: 'VERIFY_KEY' }) },
+    endpoint: createProviderEndpoint({ url: 'https://api.example.com/v1' }),
+    capability: createProviderExecutionCapability({ chat_completions: true, non_streaming: true }),
+  });
+  if (allowedGate.allowed === true && allowedGate.code === 'allowed') {
+    pass('Execution gate passes valid explicit opt-in request');
+  } else {
+    fail('Execution gate must pass valid explicit opt-in request');
   }
 }

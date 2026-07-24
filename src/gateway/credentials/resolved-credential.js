@@ -39,6 +39,12 @@ export class ResolvedCredential {
         if (typeof error.stack === 'string') {
           error.stack = redactSensitiveValue(error.stack, [secret]);
         }
+        if (error.cause !== undefined) {
+          error.cause = redactSensitiveValue(error.cause, [secret]);
+        }
+        if (error.details !== undefined) {
+          error.details = redactSensitiveValue(error.details, [secret]);
+        }
       }
       throw error;
     }

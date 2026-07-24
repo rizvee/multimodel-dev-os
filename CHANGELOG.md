@@ -21,8 +21,14 @@
   - Implemented secret-aware redaction utility (`redactSensitiveValue`) in `src/gateway/credentials/redaction.js` sanitizing objects, circular references, throwing getters, error stacks, and messages.
   - Hardened `validateProviderAdapter` with strict `STRICT_ENV_VAR_REGEX` and prototype property checks on `credential_env`.
   - Added formal JSON schema `.ai/schema/gateway-credential-resolution-result.schema.json`.
-  - Added unit test suite `tests/unit/gateway-credential-resolution.test.js`.
-  - Extended gateway verifier with Sprint C credential checks (process.env enumeration ban, opaque container redaction, and secret-aware redaction assertions).
+- **v4.3 Sprint D — Explicit Opt-In Execution Gate & Governed Executor**:
+  - Implemented preflight execution gate (`evaluateExecutionGate`) in `src/gateway/execution/execution-gate.js` enforcing default-disabled policies, provider allowlisting, capability assertions, HTTPS, no-redirects, SSRF flags, and size/timeout budgets.
+  - Defined injected transport contract (`validateTransport`) in `src/gateway/execution/transport-contract.js`.
+  - Implemented single-attempt governed executor (`executeGovernedRequest`) in `src/gateway/execution/executor.js` with ephemeral credential cleanup in `finally` blocks.
+  - Performed Sprint C closure audit: hardened resolver against invalid environment override primitives, enforced own-property lookups, verified `validateExecutionError` compliance across all resolver errors, and sanitized `withSecret` error `cause` and `details`.
+  - Added unit test suite `tests/unit/gateway-execution.test.js` and created `docs/governed-execution.md`.
+  - Extended gateway verifier with Sprint D execution gate checks.
+
 
 ## [4.2.0] - 2026-07-17
 

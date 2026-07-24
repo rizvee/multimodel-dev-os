@@ -24,3 +24,4 @@ export {
   createResolvedCredential,
   resolveEnvironmentCredential,
 } from './credentials/index.js';
+export * from './execution/index.js';

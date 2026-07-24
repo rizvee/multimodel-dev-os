@@ -79,7 +79,9 @@ Explore the local OpenAI-compatible mock gateway:
 | Execution contracts reference | [Execution Contracts](execution-contracts.md) | Governed outbound request, result, endpoint, credential ref, and error contracts. |
 | OpenAI adapter normalization | [OpenAI Adapter Normalization](openai-adapter-normalization.md) | Request/response/error payload normalization & SSE parsing. |
 | Credential resolution architecture | [Credential Resolution](credential-resolution.md) | Governed environment credential resolution & secret redaction. |
+| Governed opt-in execution gate | [Governed Execution](governed-execution.md) | Governed preflight execution gate & single-attempt executor. |
 | Known limits of v4.2 | [v4.2 Known Limitations](v4.2-known-limitations.md) | Explicit boundaries (mock-only provider, preview-only configs). |
+
 
 
 ---
