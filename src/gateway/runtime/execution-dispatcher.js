@@ -444,7 +444,7 @@ export function createExecutionDispatcher(governedConfig = {}) {
           error: createExecutionError({
             contract_version: EXECUTION_CONTRACT_VERSION,
             code: 'execution_disabled',
-            category: 'policy_denied',
+            category: 'execution_disabled',
             message: `Governed execution is disabled for model ${requested_model}`,
             status: 403,
             provider_id: null,
@@ -459,7 +459,7 @@ export function createExecutionDispatcher(governedConfig = {}) {
           success: false,
           error: createExecutionError({
             contract_version: EXECUTION_CONTRACT_VERSION,
-            code: 'model_not_found',
+            code: 'request_invalid',
             category: 'request_invalid',
             message: `Model not found: ${requested_model}`,
             status: 404,

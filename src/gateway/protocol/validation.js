@@ -706,8 +706,8 @@ export function validateExecutionError(error) {
   if (!isString(error.code) || !EXECUTION_ERROR_CATEGORIES.includes(error.code)) {
     addError(result, 'invalid_request', 'code', `code must be one of: ${EXECUTION_ERROR_CATEGORIES.join(', ')}`);
   }
-  if (!isString(error.category)) {
-    addError(result, 'invalid_request', 'category', 'category must be a non-empty string');
+  if (!isString(error.category) || !EXECUTION_ERROR_CATEGORIES.includes(error.category)) {
+    addError(result, 'invalid_request', 'category', `category must be one of: ${EXECUTION_ERROR_CATEGORIES.join(', ')}`);
   }
   if (!isString(error.message)) {
     addError(result, 'invalid_request', 'message', 'message must be a non-empty string');

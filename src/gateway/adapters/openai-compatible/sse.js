@@ -239,11 +239,14 @@ export function createOpenAISSEParser(options = {}) {
     }
 
     if (isDone) {
-      const errorObj = normalizeOpenAIError('Received stream payload after terminal [DONE]', {
-        ...context,
-        code: 'stream_error',
-      });
-      return [{ type: 'error', error: errorObj }];
+      if (chunkStr.trim().length > 0) {
+        const errorObj = normalizeOpenAIError('Received stream payload after terminal [DONE]', {
+          ...context,
+          code: 'stream_error',
+        });
+        return [{ type: 'error', error: errorObj }];
+      }
+      return [];
     }
 
     buffer += chunkStr;
@@ -273,7 +276,15 @@ export function createOpenAISSEParser(options = {}) {
           const emitted = processEventLines();
           events.push(...emitted);
           if (isDone) {
+            const trailingContent = buffer.slice(lineStart).trim();
             buffer = '';
+            if (trailingContent.length > 0) {
+              const errorObj = normalizeOpenAIError('Received trailing SSE payload after terminal [DONE]', {
+                ...context,
+                code: 'stream_error',
+              });
+              events.push({ type: 'error', error: errorObj });
+            }
             return events;
           }
         } else if (line.startsWith(':')) {
@@ -300,7 +311,15 @@ export function createOpenAISSEParser(options = {}) {
 
   function flush() {
     if (isDone) {
+      const trailingContent = buffer.trim() || (eventLines.length > 0 ? eventLines.join('') : '');
       reset();
+      if (trailingContent.length > 0) {
+        const errorObj = normalizeOpenAIError('Received trailing SSE payload after terminal [DONE]', {
+          ...context,
+          code: 'stream_error',
+        });
+        return [{ type: 'error', error: errorObj }];
+      }
       return [];
     }
 

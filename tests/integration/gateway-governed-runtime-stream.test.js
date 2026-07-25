@@ -404,4 +404,185 @@ describe('v4.3 Sprint E2 — Governed External Streaming Integration & Hardening
     const text = await res.text();
     expect(text).toContain('data: [DONE]\n\n');
   });
+
+  test('opaque-container secret redaction & upstream error with non-pattern dummy secret sanitized before destroy', async () => {
+    let destroyed = false;
+    const dummySecret = 'super-custom-secret-xyz-789';
+
+    const secretTransport = {
+      execute: async () => ({ status: 200, body: '{}' }),
+      stream: async (input) => {
+        const origDestroy = input.credential.destroy.bind(input.credential);
+        input.credential.destroy = () => {
+          destroyed = true;
+          origDestroy();
+        };
+        return {
+          status: 500,
+          error: { message: `Upstream error with secret token ${dummySecret}` },
+        };
+      },
+    };
+
+    const mockRequest = createExecutionRequest({
+      request_id: 'test-secret-redaction',
+      provider_id: 'openai',
+      model_id: 'gpt-4o',
+      gateway_request: { model: 'gpt-4o', stream: true, messages: [{ role: 'user', content: 'Hi' }] },
+      endpoint: validEndpoint,
+      policy: validPolicy,
+      capability: validCapability,
+      credential_ref: validCredentialRef,
+    });
+
+    const result = await executeGovernedStream({
+      execution_request: mockRequest,
+      provider_adapter: validAdapter,
+      transport: secretTransport,
+      environment: { OPENAI_API_KEY: dummySecret },
+      clock: () => Date.now(),
+      requestId: 'test-secret-redaction',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error.message).not.toContain(dummySecret);
+    expect(result.error.message).toContain('[REDACTED]');
+    expect(destroyed).toBe(true);
+  });
+
+  test('unused session expires, destroys credential, and sets completion promise state to timed_out', async () => {
+    let destroyed = false;
+    async function* slowStream() {
+      yield 'data: {"id":"1","object":"chat.completion.chunk","created":1,"model":"m","choices":[{"index":0,"delta":{"content":"a"},"finish_reason":null}]}\n\n';
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+
+    const mockTransport = {
+      execute: async () => ({ status: 200, body: '{}' }),
+      stream: async (input) => {
+        const origDestroy = input.credential.destroy.bind(input.credential);
+        input.credential.destroy = () => {
+          destroyed = true;
+          origDestroy();
+        };
+        return { status: 200, body: slowStream() };
+      },
+    };
+
+    const mockRequest = createExecutionRequest({
+      request_id: 'test-unused-session',
+      provider_id: 'openai',
+      model_id: 'gpt-4o',
+      gateway_request: { model: 'gpt-4o', stream: true, messages: [{ role: 'user', content: 'Hi' }] },
+      endpoint: validEndpoint,
+      policy: createExecutionPolicy({ ...validPolicy, request_timeout_ms: 30 }),
+      capability: validCapability,
+      credential_ref: validCredentialRef,
+    });
+
+    const result = await executeGovernedStream({
+      execution_request: mockRequest,
+      provider_adapter: validAdapter,
+      transport: mockTransport,
+      environment: { OPENAI_API_KEY: 'sk-test' },
+      clock: () => Date.now(),
+      requestId: 'test-unused-session',
+      runtime_timeout_ms: 30,
+    });
+
+    expect(result.success).toBe(true);
+    expect(typeof result.session.completion.then).toBe('function');
+
+    const summary = await result.session.completion;
+    expect(summary.state).toBe('timed_out');
+    expect(destroyed).toBe(true);
+  });
+
+  test('cancel after completion is a no-op and does not retroactively alter state', async () => {
+    async function* doneStream() {
+      yield 'data: {"id":"1","object":"chat.completion.chunk","created":1,"model":"m","choices":[{"index":0,"delta":{"content":"a"},"finish_reason":"stop"}]}\n\n';
+      yield 'data: [DONE]\n\n';
+    }
+
+    const mockTransport = {
+      execute: async () => ({ status: 200, body: '{}' }),
+      stream: async () => ({ status: 200, body: doneStream() }),
+    };
+
+    const mockRequest = createExecutionRequest({
+      request_id: 'test-cancel-noop',
+      provider_id: 'openai',
+      model_id: 'gpt-4o',
+      gateway_request: { model: 'gpt-4o', stream: true, messages: [{ role: 'user', content: 'Hi' }] },
+      endpoint: validEndpoint,
+      policy: validPolicy,
+      capability: validCapability,
+      credential_ref: validCredentialRef,
+    });
+
+    const result = await executeGovernedStream({
+      execution_request: mockRequest,
+      provider_adapter: validAdapter,
+      transport: mockTransport,
+      environment: { OPENAI_API_KEY: 'sk-test' },
+      clock: () => Date.now(),
+      requestId: 'test-cancel-noop',
+    });
+
+    expect(result.success).toBe(true);
+    for await (const chunk of result.session.event_stream) {
+      // consume to end
+    }
+
+    const summaryBefore = result.session.getSummary();
+    expect(summaryBefore.state).toBe('completed');
+
+    result.session.cancel(); // should be no-op
+    const summaryAfter = result.session.getSummary();
+    expect(summaryAfter.state).toBe('completed');
+  });
+
+  test('SSE parser rejects DONE plus trailing event in the same fragment', async () => {
+    async function* trailingDataStream() {
+      yield 'data: [DONE]\n\ndata: {"extra":"data"}\n\n';
+    }
+
+    const mockTransport = {
+      execute: async () => ({ status: 200, body: '{}' }),
+      stream: async () => ({ status: 200, body: trailingDataStream() }),
+    };
+
+    const mockRequest = createExecutionRequest({
+      request_id: 'test-done-trailing',
+      provider_id: 'openai',
+      model_id: 'gpt-4o',
+      gateway_request: { model: 'gpt-4o', stream: true, messages: [{ role: 'user', content: 'Hi' }] },
+      endpoint: validEndpoint,
+      policy: validPolicy,
+      capability: validCapability,
+      credential_ref: validCredentialRef,
+    });
+
+    const result = await executeGovernedStream({
+      execution_request: mockRequest,
+      provider_adapter: validAdapter,
+      transport: mockTransport,
+      environment: { OPENAI_API_KEY: 'sk-test' },
+      clock: () => Date.now(),
+      requestId: 'test-done-trailing',
+    });
+
+    expect(result.success).toBe(true);
+    let errorThrown = null;
+    try {
+      for await (const chunk of result.session.event_stream) {
+        // consume
+      }
+    } catch (err) {
+      errorThrown = err;
+    }
+
+    expect(errorThrown).not.toBeNull();
+    expect(errorThrown.code).toBe('stream_error');
+  });
 });

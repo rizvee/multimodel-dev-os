@@ -820,10 +820,10 @@ export async function checkGatewayContracts() {
   }
 
   const badCatDispatcherCheck = await enabledDispatcher.executeStreamRoute({ requested_model: 'unknown-model-invalid-test' });
-  if (badCatDispatcherCheck && badCatDispatcherCheck.error && EXECUTION_ERROR_CATEGORIES.includes(badCatDispatcherCheck.error.category)) {
-    pass('executeStreamRoute returns valid execution error category for unknown models');
+  if (badCatDispatcherCheck && badCatDispatcherCheck.error && validateExecutionError(badCatDispatcherCheck.error).success) {
+    pass('executeStreamRoute returns valid execution error code and category for unknown models');
   } else {
-    fail('executeStreamRoute returned invalid execution error category');
+    fail('executeStreamRoute returned invalid execution error code or category');
   }
 }
 

@@ -60,7 +60,7 @@ function healthResponse({ provider, state, startTime, context, dispatcher }) {
   };
 }
 
-function waitForDrain(response, signal) {
+function waitForDrain(response, signal, session = null) {
   if (!response || response.writableEnded || response.destroyed) {
     return Promise.reject(new Error('Response closed before drain'));
   }
@@ -69,6 +69,8 @@ function waitForDrain(response, signal) {
   }
   return new Promise((resolve, reject) => {
     let cleanedUp = false;
+    let onSessionCompletion = null;
+
     const onDrain = () => {
       cleanup();
       resolve();
@@ -81,6 +83,17 @@ function waitForDrain(response, signal) {
       cleanup();
       reject(signal.reason || new Error('Aborted while waiting for drain'));
     };
+
+    if (session?.completion && typeof session.completion.then === 'function') {
+      onSessionCompletion = (summary) => {
+        if (summary?.state === 'cancelled' || summary?.state === 'timed_out' || summary?.state === 'failed') {
+          cleanup();
+          reject(summary.safe_error || new Error(`Stream session ${summary.state}`));
+        }
+      };
+      session.completion.then(onSessionCompletion).catch(() => {});
+    }
+
     const cleanup = () => {
       if (cleanedUp) return;
       cleanedUp = true;
@@ -91,6 +104,7 @@ function waitForDrain(response, signal) {
         signal.removeEventListener('abort', onAbort);
       }
     };
+
     response.once('drain', onDrain);
     response.once('close', onClose);
     response.once('error', onClose);
@@ -422,7 +436,7 @@ export function createGatewayApp({
                 byteCount += Buffer.byteLength(payload, 'utf8');
                 const canWrite = response.write(payload);
                 if (!canWrite) {
-                  await waitForDrain(response, abortController.signal);
+                  await waitForDrain(response, abortController.signal, streamResult.session);
                 }
 
                 const chunkObs = observeEvent(collector, {
