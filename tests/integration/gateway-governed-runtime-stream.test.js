@@ -5,9 +5,11 @@ import { createProviderEndpoint } from '../../src/gateway/contracts/provider-end
 import { createExecutionPolicy } from '../../src/gateway/contracts/execution-policy.js';
 import { createCredentialRef } from '../../src/gateway/contracts/credential-ref.js';
 import { createExecutionRequest } from '../../src/gateway/contracts/execution-request.js';
+import { validateExecutionError } from '../../src/gateway/contracts/execution-error.js';
+import { validateGovernedRuntimeConfig } from '../../src/gateway/runtime/execution-dispatcher.js';
 import { executeGovernedStream } from '../../src/gateway/execution/stream-executor.js';
 
-describe('v4.3 Sprint E2 — Governed External Streaming Integration', () => {
+describe('v4.3 Sprint E2 — Governed External Streaming Integration & Hardening', () => {
   let serverInstance = null;
   let baseUrl = '';
 
@@ -37,7 +39,7 @@ describe('v4.3 Sprint E2 — Governed External Streaming Integration', () => {
       type: 'chunk',
       gateway_response: chunk,
     }),
-    classifyError: () => ({ success: true }),
+    classifyError: (err) => ({ code: 'upstream_server_error', message: err?.message || 'Upstream error' }),
     health: () => ({ success: true }),
     redact: (v) => v,
   };
@@ -84,6 +86,30 @@ describe('v4.3 Sprint E2 — Governed External Streaming Integration', () => {
       await serverInstance.stop();
       serverInstance = null;
     }
+  });
+
+  test('stream method required during configuration when sse_streaming is true', () => {
+    const configWithoutStream = {
+      enabled: true,
+      transport: { execute: async () => ({ status: 200, body: '{}' }) },
+      environment: { OPENAI_API_KEY: 'sk-test' },
+      providers: {
+        openai: {
+          provider_adapter: validAdapter,
+          endpoint: validEndpoint,
+          policy: validPolicy,
+          capability: validCapability,
+          credential_ref: validCredentialRef,
+        },
+      },
+      model_routes: {
+        'gpt-4o': { provider_id: 'openai', model_id: 'gpt-4o' },
+      },
+    };
+
+    const val = validateGovernedRuntimeConfig(configWithoutStream);
+    expect(val.success).toBe(false);
+    expect(val.errors.some(e => e.code === 'invalid_transport')).toBe(true);
   });
 
   test('successful governed external streaming returns text/event-stream, chunks, terminal [DONE], and destroys credentials', async () => {
@@ -150,52 +176,11 @@ describe('v4.3 Sprint E2 — Governed External Streaming Integration', () => {
     expect(streamCalls).toBe(1);
     expect(text).toContain('data: {"id":"chatcmpl-stream-123"');
     expect(text).toContain('data: [DONE]\n\n');
+    expect(text.match(/data: \[DONE\]/g).length).toBe(1);
     expect(destroyed).toBe(true);
   });
 
-  test('missing transport.stream returns 500 internal_execution_error when stream: true requested', async () => {
-    let executeCalls = 0;
-    const nonStreamOnlyTransport = {
-      execute: async () => { executeCalls++; return { status: 200, body: '{}' }; },
-    };
-
-    serverInstance = createGatewayServer({
-      config: { port: 0 },
-      governed_execution: {
-        enabled: true,
-        transport: nonStreamOnlyTransport,
-        environment: { OPENAI_API_KEY: 'sk-test-key' },
-        providers: {
-          openai: {
-            provider_adapter: validAdapter,
-            endpoint: validEndpoint,
-            policy: validPolicy,
-            capability: validCapability,
-            credential_ref: validCredentialRef,
-          },
-        },
-        model_routes: {
-          'gpt-4o': { provider_id: 'openai', model_id: 'gpt-4o' },
-        },
-      },
-    });
-
-    const addr = await serverInstance.start();
-    baseUrl = `http://127.0.0.1:${addr.port}`;
-
-    const res = await fetch(`${baseUrl}/v1/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'gpt-4o', stream: true, messages: [{ role: 'user', content: 'Hi' }] }),
-    });
-
-    expect(res.status).toBe(500);
-    const json = await res.json();
-    expect(json.error.code).toBe('internal_error');
-    expect(executeCalls).toBe(0);
-  });
-
-  test('mid-stream transport error emits safe error SSE event, [DONE], and closes response', async () => {
+  test('mid-stream transport error emits safe error SSE event, NO [DONE], and closes response', async () => {
     let destroyed = false;
 
     async function* generateFaultySSE() {
@@ -253,23 +238,13 @@ describe('v4.3 Sprint E2 — Governed External Streaming Integration', () => {
     const text = await res.text();
     expect(text).toContain('data: {"id":"chatcmpl-stream-123"');
     expect(text).toContain('data: {"error":');
-    expect(text).toContain('data: [DONE]\n\n');
+    expect(text).not.toContain('data: [DONE]\n\n');
     expect(destroyed).toBe(true);
   });
 
-  test('unit executeGovernedStream handles premature EOF and destroys credentials', async () => {
+  test('unit executeGovernedStream handles acquisition timeout and destroys credentials', async () => {
     let destroyed = false;
-    let returnCalled = false;
-
-    async function* prematureGenerator() {
-      try {
-        yield 'data: {"id":"chatcmpl-stream-123","object":"chat.completion.chunk","created":1700000000,"model":"gpt-4o","choices":[{"index":0,"delta":{"content":"part 1"},"finish_reason":null}]}\n\n';
-      } finally {
-        returnCalled = true;
-      }
-    }
-
-    const mockTransport = {
+    const slowTransport = {
       execute: async () => ({ status: 200, body: '{}' }),
       stream: async (input) => {
         const origDestroy = input.credential.destroy.bind(input.credential);
@@ -277,15 +252,112 @@ describe('v4.3 Sprint E2 — Governed External Streaming Integration', () => {
           destroyed = true;
           origDestroy();
         };
-        return {
-          status: 200,
-          body: prematureGenerator(),
-        };
+        await new Promise((r) => setTimeout(r, 100));
+        return { status: 200, body: (async function* () { yield 'data: [DONE]\n\n'; })() };
       },
     };
 
     const mockRequest = createExecutionRequest({
-      request_id: 'test-req-eof',
+      request_id: 'test-acq-timeout',
+      provider_id: 'openai',
+      model_id: 'gpt-4o',
+      gateway_request: { model: 'gpt-4o', stream: true, messages: [{ role: 'user', content: 'Hi' }] },
+      endpoint: validEndpoint,
+      policy: createExecutionPolicy({ ...validPolicy, request_timeout_ms: 20 }),
+      capability: validCapability,
+      credential_ref: validCredentialRef,
+    });
+
+    const result = await executeGovernedStream({
+      execution_request: mockRequest,
+      provider_adapter: validAdapter,
+      transport: slowTransport,
+      environment: { OPENAI_API_KEY: 'sk-secret-key-123' },
+      clock: () => Date.now(),
+      requestId: 'test-acq-timeout',
+      runtime_timeout_ms: 20,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error.category).toBe('timeout');
+    expect(result.error.message).not.toContain('OPENAI_API_KEY');
+    expect(result.error.message).not.toContain('sk-secret-key-123');
+    expect(validateExecutionError(result.error).success).toBe(true);
+    expect(destroyed).toBe(true);
+  });
+
+  test('unit executeGovernedStream handles tool_calls capability denial', async () => {
+    const noToolsCapability = createProviderExecutionCapability({
+      ...validCapability,
+      tool_calls: false,
+    });
+
+    async function* toolCallsGenerator() {
+      yield 'data: {"id":"chatcmpl-stream-tc","object":"chat.completion.chunk","created":1700000000,"model":"gpt-4o","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"get_weather","arguments":"{}"}}]},"finish_reason":null}]}\n\n';
+      yield 'data: [DONE]\n\n';
+    }
+
+    const mockTransport = {
+      execute: async () => ({ status: 200, body: '{}' }),
+      stream: async () => ({ status: 200, body: toolCallsGenerator() }),
+    };
+
+    const mockRequest = createExecutionRequest({
+      request_id: 'test-tc-denial',
+      provider_id: 'openai',
+      model_id: 'gpt-4o',
+      gateway_request: { model: 'gpt-4o', stream: true, messages: [{ role: 'user', content: 'Hi' }] },
+      endpoint: validEndpoint,
+      policy: validPolicy,
+      capability: noToolsCapability,
+      credential_ref: validCredentialRef,
+    });
+
+    const result = await executeGovernedStream({
+      execution_request: mockRequest,
+      provider_adapter: validAdapter,
+      transport: mockTransport,
+      environment: { OPENAI_API_KEY: 'sk-test' },
+      clock: () => Date.now(),
+      requestId: 'test-tc-denial',
+    });
+
+    expect(result.success).toBe(true);
+
+    let thrownError = null;
+    try {
+      for await (const chunk of result.session.event_stream) {
+        // should fail on iteration
+      }
+    } catch (err) {
+      thrownError = err;
+    }
+
+    expect(thrownError).not.toBeNull();
+    expect(thrownError.code).toBe('unsupported_capability');
+    expect(validateExecutionError(thrownError).success).toBe(true);
+  });
+
+  test('idempotent cancel on safe stream session', async () => {
+    let returnCalled = 0;
+    async function* infiniteGen() {
+      try {
+        while (true) {
+          yield 'data: {"id":"1","object":"chat.completion.chunk","created":1,"model":"m","choices":[{"index":0,"delta":{"content":"a"},"finish_reason":null}]}\n\n';
+          await new Promise((r) => setTimeout(r, 10));
+        }
+      } finally {
+        returnCalled++;
+      }
+    }
+
+    const mockTransport = {
+      execute: async () => ({ status: 200, body: '{}' }),
+      stream: async () => ({ status: 200, body: infiniteGen() }),
+    };
+
+    const mockRequest = createExecutionRequest({
+      request_id: 'test-cancel',
       provider_id: 'openai',
       model_id: 'gpt-4o',
       gateway_request: { model: 'gpt-4o', stream: true, messages: [{ role: 'user', content: 'Hi' }] },
@@ -295,31 +367,41 @@ describe('v4.3 Sprint E2 — Governed External Streaming Integration', () => {
       credential_ref: validCredentialRef,
     });
 
-    const streamResult = await executeGovernedStream({
+    const result = await executeGovernedStream({
       execution_request: mockRequest,
       provider_adapter: validAdapter,
       transport: mockTransport,
       environment: { OPENAI_API_KEY: 'sk-test' },
-      clock: { now: () => Date.now() },
-      requestId: 'test-req-eof',
+      clock: () => Date.now(),
+      requestId: 'test-cancel',
     });
 
-    expect(streamResult.success).toBe(true);
-    const chunks = [];
-    let thrownError = null;
+    expect(result.success).toBe(true);
+    expect(typeof result.session.cancel).toBe('function');
+    expect(typeof result.session.getSummary).toBe('function');
 
-    try {
-      for await (const event of streamResult.session.event_stream) {
-        chunks.push(event);
-      }
-    } catch (err) {
-      thrownError = err;
-    }
+    result.session.cancel();
+    result.session.cancel(); // idempotent call
+    expect(result.session.getSummary().state).toBe('cancelled');
+  });
 
-    expect(thrownError).not.toBeNull();
-    expect(thrownError.category || thrownError.code).toBe('stream_error');
-    expect(chunks.length).toBe(1);
-    expect(destroyed).toBe(true);
-    expect(returnCalled).toBe(true);
+  test('mock provider streaming remains fully compatible and unchanged', async () => {
+    serverInstance = createGatewayServer({
+      config: { port: 0 },
+    });
+
+    const addr = await serverInstance.start();
+    baseUrl = `http://127.0.0.1:${addr.port}`;
+
+    const res = await fetch(`${baseUrl}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'mock-stream', stream: true, messages: [{ role: 'user', content: 'Hi' }] }),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toContain('text/event-stream');
+    const text = await res.text();
+    expect(text).toContain('data: [DONE]\n\n');
   });
 });

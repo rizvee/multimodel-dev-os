@@ -89,8 +89,12 @@ export function createOpenAISSEParser(options = {}) {
     if (Array.isArray(parsed.choices) && parsed.choices.length > 0) {
       for (let idx = 0; idx < parsed.choices.length; idx++) {
         const ch = parsed.choices[idx];
-        if (!ch || typeof ch !== 'object') {
-          continue;
+        if (!ch || typeof ch !== 'object' || Array.isArray(ch)) {
+          const errorObj = normalizeOpenAIError('Malformed choice object in SSE choices payload', {
+            ...context,
+            code: 'stream_error',
+          });
+          return [{ type: 'error', error: errorObj }];
         }
         const delta = ch.delta || {};
         if (Array.isArray(delta.tool_calls) && delta.tool_calls.length > 0) {

@@ -178,8 +178,12 @@ function compileGovernedRuntimeConfig(config = {}) {
             errors.push({ code: 'unusable_capability', message: `Provider ${providerId} must support non_streaming or sse_streaming` });
             providerValid = false;
           }
-          if (pConfig.capability.sse_streaming === true && pConfig.capability.non_streaming !== true && enabled) {
-            if (typeof config.transport?.stream !== 'function') {
+          if (enabled) {
+            if (pConfig.capability.non_streaming === true && typeof config.transport?.execute !== 'function') {
+              errors.push({ code: 'invalid_transport', message: `Provider ${providerId} requires non-streaming transport but transport.execute is not a function` });
+              providerValid = false;
+            }
+            if (pConfig.capability.sse_streaming === true && typeof config.transport?.stream !== 'function') {
               errors.push({ code: 'invalid_transport', message: `Provider ${providerId} requires streaming transport but transport.stream is not a function` });
               providerValid = false;
             }
@@ -440,7 +444,7 @@ export function createExecutionDispatcher(governedConfig = {}) {
           error: createExecutionError({
             contract_version: EXECUTION_CONTRACT_VERSION,
             code: 'execution_disabled',
-            category: 'policy_error',
+            category: 'policy_denied',
             message: `Governed execution is disabled for model ${requested_model}`,
             status: 403,
             provider_id: null,
@@ -456,7 +460,7 @@ export function createExecutionDispatcher(governedConfig = {}) {
           error: createExecutionError({
             contract_version: EXECUTION_CONTRACT_VERSION,
             code: 'model_not_found',
-            category: 'not_found_error',
+            category: 'request_invalid',
             message: `Model not found: ${requested_model}`,
             status: 404,
             provider_id: null,

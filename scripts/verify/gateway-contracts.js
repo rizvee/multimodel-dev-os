@@ -162,7 +162,7 @@ export function checkAdapterForbiddenPrimitives(relTarget, label) {
   }
 }
 
-export function checkGatewayContracts() {
+export async function checkGatewayContracts() {
   console.log('\nGateway Protocol Contract Verification:');
 
   const sourceFiles = [
@@ -811,4 +811,19 @@ export function checkGatewayContracts() {
   } else {
     fail('Execution dispatcher missing encapsulated executeStreamRoute');
   }
+
+  const streamValCheck = validateTransport({ execute: async () => ({}) }, { requiresStream: true });
+  if (!streamValCheck.success && streamValCheck.error?.code === 'internal_execution_error') {
+    pass('validateTransport requires stream() method when requiresStream is true');
+  } else {
+    fail('validateTransport should fail when stream() method is missing and requiresStream is true');
+  }
+
+  const badCatDispatcherCheck = await enabledDispatcher.executeStreamRoute({ requested_model: 'unknown-model-invalid-test' });
+  if (badCatDispatcherCheck && badCatDispatcherCheck.error && EXECUTION_ERROR_CATEGORIES.includes(badCatDispatcherCheck.error.category)) {
+    pass('executeStreamRoute returns valid execution error category for unknown models');
+  } else {
+    fail('executeStreamRoute returned invalid execution error category');
+  }
 }
+

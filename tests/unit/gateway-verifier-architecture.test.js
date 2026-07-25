@@ -7,11 +7,11 @@ import { checkGatewayContracts, checkAdapterForbiddenPrimitives } from '../../sc
 const projectRoot = process.cwd();
 
 describe('gateway verifier architecture & coverage restoration', () => {
-  it('gateway contract check increments shared stats pass count', () => {
+  it('gateway contract check increments shared stats pass count', async () => {
     const initialPass = stats.pass;
     const initialFail = stats.fail;
 
-    checkGatewayContracts();
+    await checkGatewayContracts();
 
     expect(stats.pass).toBeGreaterThanOrEqual(initialPass + 40);
     expect(stats.fail).toBe(initialFail);

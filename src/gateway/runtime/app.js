@@ -61,27 +61,39 @@ function healthResponse({ provider, state, startTime, context, dispatcher }) {
 }
 
 function waitForDrain(response, signal) {
-  if (!response || response.writableEnded || response.destroyed || signal?.aborted) {
-    return Promise.resolve();
+  if (!response || response.writableEnded || response.destroyed) {
+    return Promise.reject(new Error('Response closed before drain'));
   }
-  return new Promise((resolve) => {
+  if (signal?.aborted) {
+    return Promise.reject(signal.reason || new Error('Aborted while waiting for drain'));
+  }
+  return new Promise((resolve, reject) => {
+    let cleanedUp = false;
     const onDrain = () => {
       cleanup();
       resolve();
     };
+    const onClose = () => {
+      cleanup();
+      reject(new Error('Premature close while waiting for drain'));
+    };
     const onAbort = () => {
       cleanup();
-      resolve();
+      reject(signal.reason || new Error('Aborted while waiting for drain'));
     };
     const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
       response.removeListener('drain', onDrain);
-      response.removeListener('close', onDrain);
+      response.removeListener('close', onClose);
+      response.removeListener('error', onClose);
       if (signal) {
         signal.removeEventListener('abort', onAbort);
       }
     };
     response.once('drain', onDrain);
-    response.once('close', onDrain);
+    response.once('close', onClose);
+    response.once('error', onClose);
     if (signal) {
       signal.addEventListener('abort', onAbort, { once: true });
     }
@@ -468,17 +480,16 @@ export function createGatewayApp({
 
             traceComplete(collector, traceId, context, { status_code: isTimeout ? 504 : (isCancel ? 499 : 502), success: false, event_ids: eventIds });
 
-            if (!response.writableEnded) {
+            if (!response.writableEnded && !response.destroyed && !isCancel) {
               const safeRuntimeErr = toRuntimeError(streamErr, { request_id: context.request_id });
               response.write(`data: ${JSON.stringify({ error: safeRuntimeErr.gatewayError.error })}\n\n`);
-              response.write('data: [DONE]\n\n');
             }
           } finally {
             cleanupListeners();
             if (streamResult.session?.cancel) {
               streamResult.session.cancel();
             }
-            if (!response.writableEnded) {
+            if (!response.writableEnded && !response.destroyed) {
               response.end();
             }
           }

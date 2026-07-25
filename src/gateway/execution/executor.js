@@ -536,8 +536,17 @@ export async function executeGovernedRequest({
     });
   }
 
+  let parsedPayload = rawPayload;
+  if (typeof rawPayload === 'string') {
+    try {
+      parsedPayload = JSON.parse(rawPayload);
+    } catch (_) {
+      parsedPayload = null;
+    }
+  }
+
   // 10. Response Normalization with Complete Safe Context
-  const normResp = normalizeOpenAIResponse(rawPayload, {
+  const normResp = normalizeOpenAIResponse(parsedPayload, {
     request_id: execReqId,
     provider_id: provId,
     model_id: modId,

@@ -1,12 +1,10 @@
 import { validateExecutionRequest } from '../contracts/execution-request.js';
-import { createExecutionResult, validateExecutionResult } from '../contracts/execution-result.js';
-import { createExecutionError } from '../contracts/execution-error.js';
+import { createExecutionError, validateExecutionError } from '../contracts/execution-error.js';
 import { evaluateExecutionGate } from './execution-gate.js';
 import { validateTransport } from './transport-contract.js';
 import { resolveEnvironmentCredential } from '../credentials/resolver.js';
 import { redactSensitiveValue } from '../credentials/redaction.js';
 import { normalizeOpenAIExecutionRequest } from '../adapters/openai-compatible/request.js';
-import { normalizeOpenAIResponse } from '../adapters/openai-compatible/response.js';
 import { createOpenAISSEParser } from '../adapters/openai-compatible/sse.js';
 import { validateGatewayResponse } from '../protocol/validation.js';
 import { EXECUTION_CONTRACT_VERSION, EXECUTION_ERROR_CATEGORIES } from '../protocol/constants.js';
@@ -23,6 +21,17 @@ function isAsyncIterable(val) {
   return val !== null && typeof val === 'object' && typeof val[Symbol.asyncIterator] === 'function';
 }
 
+function isRawSocketOrStream(val) {
+  if (!val || typeof val !== 'object') return false;
+  if (typeof val.pipe === 'function' || typeof val.read === 'function' || typeof val.addListener === 'function') {
+    return true;
+  }
+  if (val._readableState !== undefined || val.socket !== undefined || val.net !== undefined) {
+    return true;
+  }
+  return false;
+}
+
 export async function executeGovernedStream({
   execution_request = null,
   provider_adapter = null,
@@ -34,7 +43,7 @@ export async function executeGovernedStream({
   runtime_timeout_ms = null,
   idle_timeout_ms = null,
 } = {}) {
-  const getNow = typeof clock === 'function' ? clock : () => 1800000000;
+  const getNow = typeof clock === 'function' ? clock : (typeof clock?.now === 'function' ? () => clock.now() : () => 1800000000);
   const startTime = getNow();
   const execReqId = isString(requestId) && requestId.length > 0
     ? requestId
@@ -46,20 +55,29 @@ export async function executeGovernedStream({
     ? execution_request.model_id
     : 'unknown-model';
 
+  let secretsToRedact = [];
+
+  function sanitizeMsg(msg) {
+    if (!isString(msg)) return 'Stream execution error';
+    return redactSensitiveValue(msg, secretsToRedact);
+  }
+
   function buildPreflightError(code, message, status = 400, category = null) {
     const safeCategory = EXECUTION_ERROR_CATEGORIES.includes(category || code) ? (category || code) : 'internal_execution_error';
+    const cleanMsg = sanitizeMsg(message);
+    const err = createExecutionError({
+      contract_version: EXECUTION_CONTRACT_VERSION,
+      code,
+      category: safeCategory,
+      message: cleanMsg,
+      status,
+      provider_id: provId,
+      request_id: execReqId,
+      redacted: true,
+    });
     return {
       success: false,
-      error: createExecutionError({
-        contract_version: EXECUTION_CONTRACT_VERSION,
-        code,
-        category: safeCategory,
-        message,
-        status,
-        provider_id: provId,
-        request_id: execReqId,
-        redacted: true,
-      }),
+      error: err,
     };
   }
 
@@ -103,13 +121,18 @@ export async function executeGovernedStream({
   }
 
   // 4. Transport Validation
-  if (!transport || typeof transport !== 'object' || typeof transport.stream !== 'function') {
-    return buildPreflightError('internal_execution_error', 'Injected transport stream contract validation failed', 500, 'internal_execution_error');
+  const transportVal = validateTransport(transport, { requiresStream: true, requiresExecute: false });
+  if (!transportVal.success) {
+    return {
+      success: false,
+      error: transportVal.error,
+    };
   }
 
   // 5. Cancellation Pre-check
   if (signal?.aborted) {
-    const abortCode = signal.reason?.gatewayError?.error?.code || signal.reason?.code || 'cancelled';
+    const abortReason = signal.reason;
+    const abortCode = abortReason?.gatewayError?.error?.code || abortReason?.code || 'cancelled';
     const isTimeout = abortCode === 'timeout';
     const errCode = isTimeout ? 'timeout' : 'cancelled';
     const errStatus = isTimeout ? 504 : 499;
@@ -136,111 +159,11 @@ export async function executeGovernedStream({
       );
     }
     resolvedCredential = credResolution.credential;
-  }
-
-  // 7. Request Normalization & Byte Limit
-  let normalizedReq = null;
-  try {
-    const normResult = normalizeOpenAIExecutionRequest(execution_request);
-    if (!normResult.success) {
-      if (resolvedCredential) resolvedCredential.destroy();
-      return buildPreflightError('request_invalid', 'Failed to normalize execution request payload', 400, 'request_invalid');
+    if (resolvedCredential && isString(resolvedCredential.secret)) {
+      secretsToRedact.push(resolvedCredential.secret);
     }
-    normalizedReq = normResult.payload;
-    const reqBytes = Buffer.byteLength(JSON.stringify(normalizedReq), 'utf8');
-    if (reqBytes > execution_request.policy.max_request_bytes) {
-      if (resolvedCredential) resolvedCredential.destroy();
-      return buildPreflightError('request_too_large', `Normalized request size (${reqBytes} bytes) exceeds policy max_request_bytes`, 413, 'request_too_large');
-    }
-  } catch (err) {
-    if (resolvedCredential) resolvedCredential.destroy();
-    return buildPreflightError('request_invalid', `Request normalization error: ${err.message}`, 400, 'request_invalid');
   }
 
-  // 8. Stream Acquisition (Race transport.stream against signal abort & timeout)
-  const policyTimeout = execution_request.policy.request_timeout_ms || 30000;
-  const runtimeCap = runtime_timeout_ms || Infinity;
-  const effectiveTimeoutMs = Math.min(policyTimeout, runtimeCap);
-  const effectiveIdleTimeoutMs = idle_timeout_ms || execution_request.policy.response_timeout_ms || 30000;
-
-  let rawStreamResult = null;
-  let acquisitionError = null;
-
-  const streamPromise = Promise.resolve().then(() => transport.stream({
-    endpoint: execution_request.endpoint,
-    payload: normalizedReq,
-    credential: resolvedCredential,
-    signal,
-    request_timeout_ms: effectiveTimeoutMs,
-    response_timeout_ms: effectiveIdleTimeoutMs,
-    max_request_bytes: execution_request.policy.max_request_bytes,
-    max_response_bytes: execution_request.policy.max_response_bytes,
-    stream: true,
-  }));
-
-  let signalListener = null;
-  const signalPromise = new Promise((_, reject) => {
-    if (signal) {
-      if (signal.aborted) {
-        const abortCode = signal.reason?.gatewayError?.error?.code || signal.reason?.code || 'cancelled';
-        const isTimeout = abortCode === 'timeout';
-        const err = new Error(isTimeout ? 'Governed stream acquisition timed out' : 'Governed stream acquisition cancelled');
-        err.code = isTimeout ? 'timeout' : 'cancelled';
-        reject(err);
-        return;
-      }
-      signalListener = () => {
-        const abortCode = signal.reason?.gatewayError?.error?.code || signal.reason?.code || 'cancelled';
-        const isTimeout = abortCode === 'timeout';
-        const err = new Error(isTimeout ? 'Governed stream acquisition timed out' : 'Governed stream acquisition cancelled');
-        err.code = isTimeout ? 'timeout' : 'cancelled';
-        reject(err);
-      };
-      signal.addEventListener('abort', signalListener, { once: true });
-    }
-  });
-
-  try {
-    rawStreamResult = await Promise.race([streamPromise, signalPromise]);
-  } catch (err) {
-    acquisitionError = err;
-  } finally {
-    if (signal && signalListener) {
-      signal.removeEventListener('abort', signalListener);
-    }
-    streamPromise.catch(() => {});
-  }
-
-  if (acquisitionError) {
-    if (resolvedCredential) resolvedCredential.destroy();
-    const isTimeout = acquisitionError.code === 'timeout' || acquisitionError.name === 'TimeoutError';
-    const isCancel = acquisitionError.code === 'cancelled' || acquisitionError.name === 'AbortError' || signal?.aborted;
-    const errCode = isTimeout ? 'timeout' : (isCancel ? 'cancelled' : 'stream_error');
-    const errStatus = isTimeout ? 504 : (isCancel ? 499 : 502);
-
-    return buildPreflightError(errCode, acquisitionError.message || 'Stream acquisition failed', errStatus, errCode);
-  }
-
-  if (!rawStreamResult || typeof rawStreamResult !== 'object' || typeof rawStreamResult.status !== 'number') {
-    if (resolvedCredential) resolvedCredential.destroy();
-    return buildPreflightError('stream_error', 'Invalid transport stream result object', 502, 'stream_error');
-  }
-
-  if (rawStreamResult.status >= 400) {
-    if (resolvedCredential) resolvedCredential.destroy();
-    const rawError = rawStreamResult.error || { message: `Upstream HTTP ${rawStreamResult.status}` };
-    const normErr = provider_adapter.classifyError ? provider_adapter.classifyError(rawError) : { code: 'upstream_server_error' };
-    const errCode = EXECUTION_ERROR_CATEGORIES.includes(normErr.code) ? normErr.code : 'upstream_server_error';
-
-    return buildPreflightError(errCode, isString(rawError.message) ? rawError.message : `Upstream HTTP ${rawStreamResult.status}`, rawStreamResult.status, errCode);
-  }
-
-  if (!isAsyncIterable(rawStreamResult.body)) {
-    if (resolvedCredential) resolvedCredential.destroy();
-    return buildPreflightError('stream_error', 'Transport stream body must be an AsyncIterable', 502, 'stream_error');
-  }
-
-  // 9. Incremental Consumption Stream Generator & Encapsulated Session
   let credentialDestroyed = false;
   const destroyCredOnce = () => {
     if (!credentialDestroyed) {
@@ -251,6 +174,165 @@ export async function executeGovernedStream({
     }
   };
 
+  // 7. Request Normalization & Byte Limit Check
+  let normalizedReq = null;
+  try {
+    const normResult = normalizeOpenAIExecutionRequest(execution_request);
+    if (!normResult.success) {
+      destroyCredOnce();
+      return buildPreflightError('request_invalid', 'Failed to normalize execution request payload', 400, 'request_invalid');
+    }
+    normalizedReq = normResult.payload;
+    const reqBytes = Buffer.byteLength(JSON.stringify(normalizedReq), 'utf8');
+    if (reqBytes > execution_request.policy.max_request_bytes) {
+      destroyCredOnce();
+      return buildPreflightError('request_too_large', `Normalized request size (${reqBytes} bytes) exceeds policy max_request_bytes`, 413, 'request_too_large');
+    }
+  } catch (err) {
+    destroyCredOnce();
+    return buildPreflightError('request_invalid', `Request normalization error: ${err.message}`, 400, 'request_invalid');
+  }
+
+  // 8. Session Abort & Timeout Lifecycle
+  const sessionController = new AbortController();
+
+  let onCallerAbort = null;
+  if (signal) {
+    onCallerAbort = () => {
+      if (!sessionController.signal.aborted) {
+        sessionController.abort(signal.reason || new Error('Caller aborted stream'));
+      }
+    };
+    if (signal.aborted) {
+      onCallerAbort();
+    } else {
+      signal.addEventListener('abort', onCallerAbort, { once: true });
+    }
+  }
+
+  const policyTimeout = execution_request.policy.request_timeout_ms || 30000;
+  const runtimeCap = runtime_timeout_ms || Infinity;
+  const effectiveTimeoutMs = Math.min(policyTimeout, runtimeCap);
+  const effectiveIdleTimeoutMs = idle_timeout_ms || execution_request.policy.response_timeout_ms || 30000;
+
+  let totalTimeoutTimer = setTimeout(() => {
+    if (!sessionController.signal.aborted) {
+      const err = createExecutionError({
+        contract_version: EXECUTION_CONTRACT_VERSION,
+        code: 'timeout',
+        category: 'timeout',
+        message: `Governed stream execution timed out after ${effectiveTimeoutMs}ms`,
+        status: 504,
+        provider_id: provId,
+        request_id: execReqId,
+        redacted: true,
+      });
+      sessionController.abort(err);
+    }
+  }, effectiveTimeoutMs);
+  if (totalTimeoutTimer.unref) totalTimeoutTimer.unref();
+
+  // 9. Stream Acquisition
+  if (sessionController.signal.aborted) {
+    destroyCredOnce();
+    if (totalTimeoutTimer) clearTimeout(totalTimeoutTimer);
+    if (signal && onCallerAbort) signal.removeEventListener('abort', onCallerAbort);
+    const reason = sessionController.signal.reason;
+    const isTimeout = reason?.code === 'timeout' || reason?.category === 'timeout';
+    return buildPreflightError(isTimeout ? 'timeout' : 'cancelled', isTimeout ? 'Governed stream timed out' : 'Governed stream cancelled', isTimeout ? 504 : 499, isTimeout ? 'timeout' : 'cancelled');
+  }
+
+  let rawStreamResult = null;
+  let acquisitionError = null;
+
+  const streamPromise = Promise.resolve().then(() => transport.stream({
+    endpoint: execution_request.endpoint,
+    payload: normalizedReq,
+    credential: resolvedCredential,
+    signal: sessionController.signal,
+    request_timeout_ms: effectiveTimeoutMs,
+    response_timeout_ms: effectiveIdleTimeoutMs,
+    max_request_bytes: execution_request.policy.max_request_bytes,
+    max_response_bytes: execution_request.policy.max_response_bytes,
+    stream: true,
+  }));
+  streamPromise.catch(() => {});
+
+  const acqSignalPromise = new Promise((_, reject) => {
+    if (sessionController.signal.aborted) {
+      reject(sessionController.signal.reason);
+      return;
+    }
+    const onAcqAbort = () => reject(sessionController.signal.reason);
+    sessionController.signal.addEventListener('abort', onAcqAbort, { once: true });
+  });
+  acqSignalPromise.catch(() => {});
+
+  try {
+    rawStreamResult = await Promise.race([streamPromise, acqSignalPromise]);
+  } catch (err) {
+    acquisitionError = err;
+  }
+
+  if (acquisitionError) {
+    destroyCredOnce();
+    if (totalTimeoutTimer) clearTimeout(totalTimeoutTimer);
+    if (signal && onCallerAbort) signal.removeEventListener('abort', onCallerAbort);
+
+    const isTimeout = acquisitionError.code === 'timeout' || acquisitionError.category === 'timeout' || acquisitionError.name === 'TimeoutError';
+    const isCancel = acquisitionError.code === 'cancelled' || acquisitionError.category === 'cancelled' || acquisitionError.name === 'AbortError' || sessionController.signal.aborted;
+    const errCode = isTimeout ? 'timeout' : (isCancel ? 'cancelled' : 'stream_error');
+    const errStatus = isTimeout ? 504 : (isCancel ? 499 : 502);
+
+    return buildPreflightError(errCode, acquisitionError.message || 'Stream acquisition failed', errStatus, errCode);
+  }
+
+  if (!rawStreamResult || typeof rawStreamResult !== 'object' || typeof rawStreamResult.status !== 'number' || !Number.isInteger(rawStreamResult.status) || rawStreamResult.status < 100 || rawStreamResult.status > 599) {
+    destroyCredOnce();
+    if (totalTimeoutTimer) clearTimeout(totalTimeoutTimer);
+    if (signal && onCallerAbort) signal.removeEventListener('abort', onCallerAbort);
+    return buildPreflightError('stream_error', 'Invalid transport stream result status code', 502, 'stream_error');
+  }
+
+  if (rawStreamResult.status >= 400) {
+    destroyCredOnce();
+    if (totalTimeoutTimer) clearTimeout(totalTimeoutTimer);
+    if (signal && onCallerAbort) signal.removeEventListener('abort', onCallerAbort);
+
+    const rawError = rawStreamResult.error || { message: `Upstream HTTP ${rawStreamResult.status}` };
+    const normErr = provider_adapter.classifyError ? provider_adapter.classifyError(rawError) : { code: 'upstream_server_error' };
+    const errCode = EXECUTION_ERROR_CATEGORIES.includes(normErr.code) ? normErr.code : 'upstream_server_error';
+
+    return buildPreflightError(errCode, isString(rawError.message) ? rawError.message : `Upstream HTTP ${rawStreamResult.status}`, rawStreamResult.status, errCode);
+  }
+
+  if (!isAsyncIterable(rawStreamResult.body) || isRawSocketOrStream(rawStreamResult.body)) {
+    destroyCredOnce();
+    if (totalTimeoutTimer) clearTimeout(totalTimeoutTimer);
+    if (signal && onCallerAbort) signal.removeEventListener('abort', onCallerAbort);
+    return buildPreflightError('stream_error', 'Transport stream body must be an AsyncIterable and not a raw socket/stream', 502, 'stream_error');
+  }
+
+  const rawIterator = rawStreamResult.body[Symbol.asyncIterator]();
+  if (!rawIterator || typeof rawIterator !== 'object' || typeof rawIterator.next !== 'function') {
+    destroyCredOnce();
+    if (totalTimeoutTimer) clearTimeout(totalTimeoutTimer);
+    if (signal && onCallerAbort) signal.removeEventListener('abort', onCallerAbort);
+    return buildPreflightError('stream_error', 'Transport stream body iterator is missing next() function', 502, 'stream_error');
+  }
+
+  // 10. Session Summary & Incremental Consumption Generator
+  let sessionState = 'active'; // 'completed' | 'failed' | 'cancelled'
+  let attemptCount = 1;
+  let chunkCount = 0;
+  let cumulativeBytes = 0;
+  let terminalDoneReceived = false;
+  let finalFinishReason = null;
+  let capturedUsage = null;
+  let sessionError = null;
+  const startedAt = startTime;
+  let completedAt = null;
+
   const maxResponseBytes = execution_request.policy.max_response_bytes || 5242880;
   const sseParser = createOpenAISSEParser({
     max_buffer_size: maxResponseBytes,
@@ -259,33 +341,49 @@ export async function executeGovernedStream({
       request_id: execReqId,
       provider_id: provId,
       model_id: modId,
+      capability: execution_request.capability,
+      created: startTime,
     },
   });
 
-  let cumulativeBytes = 0;
-  let chunkCount = 0;
-  let terminalDoneReceived = false;
-
-  const rawIterator = rawStreamResult.body[Symbol.asyncIterator]();
-
-  const cancelSession = () => {
+  const cancelSession = (reason) => {
+    if (sessionState === 'active') {
+      sessionState = 'cancelled';
+      completedAt = getNow();
+    }
     destroyCredOnce();
-    if (typeof rawIterator.return === 'function') {
-      rawIterator.return().catch(() => {});
+    if (!sessionController.signal.aborted) {
+      const err = reason || createExecutionError({
+        contract_version: EXECUTION_CONTRACT_VERSION,
+        code: 'cancelled',
+        category: 'cancelled',
+        message: 'Governed stream cancelled by client',
+        status: 499,
+        provider_id: provId,
+        request_id: execReqId,
+        redacted: true,
+      });
+      sessionController.abort(err);
+    }
+    if (rawIterator && typeof rawIterator.return === 'function') {
+      try {
+        const retP = rawIterator.return();
+        if (retP && typeof retP.catch === 'function') retP.catch(() => {});
+      } catch (_) {}
     }
   };
 
   async function* safeEventGenerator() {
     try {
       while (!terminalDoneReceived) {
-        if (signal?.aborted) {
-          const abortCode = signal.reason?.gatewayError?.error?.code || signal.reason?.code || 'cancelled';
-          const isTimeout = abortCode === 'timeout';
+        if (sessionController.signal.aborted) {
+          const reason = sessionController.signal.reason;
+          const isTimeout = reason?.code === 'timeout' || reason?.category === 'timeout';
           const err = createExecutionError({
             contract_version: EXECUTION_CONTRACT_VERSION,
             code: isTimeout ? 'timeout' : 'cancelled',
             category: isTimeout ? 'timeout' : 'cancelled',
-            message: isTimeout ? 'Governed stream timed out during iteration' : 'Governed stream cancelled by client',
+            message: isTimeout ? 'Governed stream execution timed out during iteration' : 'Governed stream cancelled by client',
             status: isTimeout ? 504 : 499,
             provider_id: provId,
             request_id: execReqId,
@@ -294,12 +392,10 @@ export async function executeGovernedStream({
           throw err;
         }
 
-        // Race iterator.next() against signal abort and idle timeout
-        let nextResult;
         let idleTimer = null;
         const idlePromise = new Promise((_, reject) => {
           idleTimer = setTimeout(() => {
-            const err = createExecutionError({
+            reject(createExecutionError({
               contract_version: EXECUTION_CONTRACT_VERSION,
               code: 'timeout',
               category: 'timeout',
@@ -308,22 +404,54 @@ export async function executeGovernedStream({
               provider_id: provId,
               request_id: execReqId,
               redacted: true,
-            });
-            reject(err);
+            }));
           }, effectiveIdleTimeoutMs);
           if (idleTimer.unref) idleTimer.unref();
         });
+        idlePromise.catch(() => {});
 
-        const iterPromise = rawIterator.next();
+        const iterSignalPromise = new Promise((_, reject) => {
+          if (sessionController.signal.aborted) {
+            reject(sessionController.signal.reason);
+            return;
+          }
+          const onIterAbort = () => reject(sessionController.signal.reason);
+          sessionController.signal.addEventListener('abort', onIterAbort, { once: true });
+        });
+        iterSignalPromise.catch(() => {});
+
+        const iterPromise = Promise.resolve().then(() => rawIterator.next());
         iterPromise.catch(() => {});
 
+        let nextResult;
         try {
-          nextResult = await Promise.race([iterPromise, idlePromise]);
+          nextResult = await Promise.race([iterPromise, idlePromise, iterSignalPromise]);
         } finally {
           if (idleTimer) clearTimeout(idleTimer);
         }
 
+        if (!nextResult || typeof nextResult !== 'object') {
+          throw createExecutionError({
+            contract_version: EXECUTION_CONTRACT_VERSION,
+            code: 'stream_error',
+            category: 'stream_error',
+            message: 'Malformed iterator next() result object',
+            status: 502,
+            provider_id: provId,
+            request_id: execReqId,
+            redacted: true,
+          });
+        }
+
         if (nextResult.done) {
+          if (!terminalDoneReceived) {
+            const flushedEvents = sseParser.flush();
+            for (const ev of flushedEvents) {
+              if (ev.type === 'done') {
+                terminalDoneReceived = true;
+              }
+            }
+          }
           if (!terminalDoneReceived) {
             throw createExecutionError({
               contract_version: EXECUTION_CONTRACT_VERSION,
@@ -380,14 +508,16 @@ export async function executeGovernedStream({
           } else if (ev.type === 'error') {
             throw createExecutionError({
               contract_version: EXECUTION_CONTRACT_VERSION,
-              code: 'stream_error',
-              category: 'stream_error',
-              message: ev.error?.message || 'Upstream SSE parse error',
-              status: 502,
+              code: ev.error?.code || 'stream_error',
+              category: EXECUTION_ERROR_CATEGORIES.includes(ev.error?.category || ev.error?.code) ? (ev.error?.category || ev.error?.code) : 'stream_error',
+              message: sanitizeMsg(ev.error?.message || 'Upstream SSE parse error'),
+              status: ev.error?.status || 502,
               provider_id: provId,
               request_id: execReqId,
               redacted: true,
             });
+          } else if (ev.type === 'usage') {
+            capturedUsage = ev.data;
           } else if (ev.type === 'chunk') {
             if (terminalDoneReceived) {
               throw createExecutionError({
@@ -402,29 +532,7 @@ export async function executeGovernedStream({
               });
             }
 
-            let normalizedChunk = ev.data;
-            if (typeof provider_adapter.stream === 'function') {
-              const streamRes = provider_adapter.stream(ev.data);
-              if (streamRes && streamRes.type === 'chunk' && streamRes.gateway_response) {
-                normalizedChunk = streamRes.gateway_response;
-              } else if (streamRes && streamRes.success === false) {
-                normalizedChunk = null;
-              }
-            }
-
-            if (!normalizedChunk) {
-              throw createExecutionError({
-                contract_version: EXECUTION_CONTRACT_VERSION,
-                code: 'stream_error',
-                category: 'stream_error',
-                message: 'Failed to normalize stream chunk payload',
-                status: 502,
-                provider_id: provId,
-                request_id: execReqId,
-                redacted: true,
-              });
-            }
-
+            const normalizedChunk = ev.data;
             const val = validateGatewayResponse(normalizedChunk);
             if (!val.success) {
               throw createExecutionError({
@@ -439,6 +547,10 @@ export async function executeGovernedStream({
               });
             }
 
+            if (normalizedChunk.choices?.[0]?.finish_reason) {
+              finalFinishReason = normalizedChunk.choices[0].finish_reason;
+            }
+
             chunkCount++;
             yield {
               type: 'chunk',
@@ -447,22 +559,70 @@ export async function executeGovernedStream({
           }
         }
       }
+
+      sessionState = 'completed';
+      completedAt = getNow();
+    } catch (err) {
+      if (sessionState === 'active') {
+        const isTimeout = err?.code === 'timeout' || err?.category === 'timeout';
+        sessionState = isTimeout ? 'failed' : (err?.code === 'cancelled' || err?.category === 'cancelled' ? 'cancelled' : 'failed');
+        completedAt = getNow();
+      }
+      const safeCategory = EXECUTION_ERROR_CATEGORIES.includes(err?.category || err?.code) ? (err.category || err.code) : 'stream_error';
+      const safeErr = createExecutionError({
+        contract_version: EXECUTION_CONTRACT_VERSION,
+        code: err?.code || 'stream_error',
+        category: safeCategory,
+        message: sanitizeMsg(err?.message || 'Stream processing failed'),
+        status: err?.status || 502,
+        provider_id: provId,
+        request_id: execReqId,
+        redacted: true,
+      });
+      sessionError = safeErr;
+      throw safeErr;
     } finally {
+      if (totalTimeoutTimer) {
+        clearTimeout(totalTimeoutTimer);
+        totalTimeoutTimer = null;
+      }
+      if (signal && onCallerAbort) {
+        signal.removeEventListener('abort', onCallerAbort);
+      }
       destroyCredOnce();
-      if (typeof rawIterator.return === 'function') {
-        rawIterator.return().catch(() => {});
+      if (rawIterator && typeof rawIterator.return === 'function') {
+        try {
+          const retP = rawIterator.return();
+          if (retP && typeof retP.catch === 'function') retP.catch(() => {});
+        } catch (_) {}
       }
     }
   }
 
+  const sessionObj = Object.freeze({
+    event_stream: safeEventGenerator(),
+    request_id: execReqId,
+    provider_id: provId,
+    model_id: modId,
+    cancel: cancelSession,
+    getSummary: () => Object.freeze({
+      state: sessionState,
+      attempt_count: attemptCount,
+      chunk_count: chunkCount,
+      upstream_byte_count: cumulativeBytes,
+      timing: {
+        started_at: startedAt,
+        completed_at: completedAt || getNow(),
+        duration_ms: (completedAt || getNow()) - startedAt,
+      },
+      usage: capturedUsage,
+      finish_reason: finalFinishReason,
+      safe_error: sessionError ? validateExecutionError(sessionError).value : null,
+    }),
+  });
+
   return {
     success: true,
-    session: {
-      event_stream: safeEventGenerator(),
-      request_id: execReqId,
-      provider_id: provId,
-      model_id: modId,
-      cancel: cancelSession,
-    },
+    session: sessionObj,
   };
 }

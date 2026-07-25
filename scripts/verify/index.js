@@ -92,7 +92,7 @@ checkSignedRegistryE2E();
 checkSkillOsValidation();
 
 // 18. Gateway Protocol Contract Verification
-checkGatewayContracts();
+await checkGatewayContracts();
 
 // 19. Gateway Runtime Registry Verification
 checkGatewayRegistry();
