@@ -40,13 +40,17 @@
   - Integrated governed external streaming into `/v1/chat/completions` route in `src/gateway/runtime/app.js`.
   - Enforced preflight validation, mid-stream safe SSE error payloads, backpressure handling (`waitForDrain`), client disconnect / abort handling, single credential destruction, and zero network primitives in stream executor.
   - Added integration test suite `tests/integration/gateway-governed-runtime-stream.test.js` and documentation in `docs/gateway-streaming.md`.
-- **v4.3 Sprint F0 — Secure Outbound Transport Threat Model & Architecture Plan**:
-  - Completed read-only E2 acceptance audit confirming stream executor error normalization, summary determinism, canonical usage handling, and backpressure retention boundaries.
-  - Created `docs/secure-outbound-transport-threat-model.md` with complete STRIDE matrix and honest status mapping across contract, validator, executor, transport, and runtime layers.
+- **v4.3 Sprint F0 / E2.1 — Secure Outbound Transport Threat Model & E2 Contract Closure**:
+  - Implemented validator error category mapping (`mapValidatorErrorToCategory`) ensuring every preflight error code and category belongs to `EXECUTION_ERROR_CATEGORIES` with safe fallback to `request_invalid` or `internal_execution_error`.
+  - Hardened `buildPreflightError()` with fail-safe error validation preventing recursive failure loops.
+  - Hardened stream session summary (`buildSummary()`) returning a frozen summary object containing sanitized `safe_error` or `null` without mutating error objects or modifying timestamps post-finalization.
+  - Implemented bounded safe finalization subscription (`session.subscribeFinalization(listener) -> unsubscribe()`) preventing handler accumulation in `waitForDrain()` during long streams.
+  - Integrated provider-reported stream usage into gateway observability via `session.completion` resolution without emitting raw internal usage events over SSE.
+  - Created `docs/secure-outbound-transport-threat-model.md` with complete 24-row STRIDE matrix and canonical status mapping across contract, validator, gate, executor, transport, and runtime layers.
   - Designed zero-runtime-dependency native transport architecture (`docs/secure-outbound-transport-design.md`) selecting Option A (Native Pinned-Address HTTPS Transport) utilizing `node:https`, `node:dns/promises`, `node:net`, and `node:tls`.
-  - Defined canonical URL canonicalization, IPv4/IPv6 classification, DNS rebinding / TOCTOU protection via socket IP pinning, TLS verification (`rejectUnauthorized: true`), CR/LF header guards, Bearer auth construction boundary, and 6-phase resource limits.
-  - Defined local offline test strategy (`docs/secure-outbound-transport-test-plan.md`) utilizing mock DNS resolvers and loopback HTTPS servers.
-  - Updated gateway threat model in `docs/security-threat-model.md` and roadmap in `docs/v4.3-planning.md`.
+  - Defined canonical URL canonicalization rules, IPv4/IPv6 classification, DNS rebinding / TOCTOU protection via socket IP pinning, TLS verification (`rejectUnauthorized: true`), CR/LF header guards, Bearer auth construction boundary, and 6-phase resource limits.
+  - Defined local offline test strategy (`docs/secure-outbound-transport-test-plan.md`) with explicit test seam boundaries and synthetic certificate guidelines.
+  - Updated gateway threat model in `docs/security-threat-model.md`, architecture roadmap in `docs/v4.3-planning.md`, and streaming guide in `docs/gateway-streaming.md`.
 
 
 ## [4.2.0] - 2026-07-17

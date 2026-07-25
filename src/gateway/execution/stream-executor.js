@@ -62,12 +62,61 @@ export async function executeGovernedStream({
     return redactSensitiveValue(msg, secretsToRedact);
   }
 
-  function buildPreflightError(code, message, status = 400, category = null) {
-    const safeCategory = EXECUTION_ERROR_CATEGORIES.includes(category || code) ? (category || code) : 'internal_execution_error';
+  function mapValidatorErrorToCategory(code) {
+    if (!isString(code)) return 'request_invalid';
+    if (EXECUTION_ERROR_CATEGORIES.includes(code)) return code;
+
+    switch (code) {
+      case 'unsupported_field':
+      case 'missing_field':
+      case 'invalid_type':
+      case 'invalid_enum':
+      case 'invalid_pattern':
+      case 'invalid_format':
+      case 'invalid_contract':
+      case 'extra_properties_forbidden':
+        return 'request_invalid';
+
+      case 'configuration_error':
+      case 'invalid_policy':
+      case 'policy_error':
+      case 'policy_violation':
+        return 'internal_execution_error';
+
+      case 'policy_denied':
+      case 'policy_disabled':
+        return 'execution_disabled';
+
+      case 'endpoint_error':
+      case 'invalid_endpoint':
+      case 'invalid_url':
+        return 'endpoint_invalid';
+
+      case 'endpoint_unauthorized':
+      case 'endpoint_disallowed':
+        return 'endpoint_forbidden';
+
+      case 'capability_missing':
+      case 'capability_unsupported':
+        return 'unsupported_capability';
+
+      case 'credential_error':
+      case 'invalid_credential_ref':
+        return 'credential_reference_invalid';
+
+      default:
+        return 'request_invalid';
+    }
+  }
+
+  function buildPreflightError(rawCode, message, status = 400, rawCategory = null) {
+    const safeCode = EXECUTION_ERROR_CATEGORIES.includes(rawCode) ? rawCode : mapValidatorErrorToCategory(rawCode);
+    const safeCategory = EXECUTION_ERROR_CATEGORIES.includes(rawCategory) ? rawCategory : mapValidatorErrorToCategory(rawCategory || rawCode);
     const cleanMsg = sanitizeMsg(message);
+
     const err = createExecutionError({
       contract_version: EXECUTION_CONTRACT_VERSION,
-      code,
+      code: safeCode,
       category: safeCategory,
       message: cleanMsg,
       status,
@@ -75,9 +124,29 @@ export async function executeGovernedStream({
       request_id: execReqId,
       redacted: true,
     });
+
+    const validation = validateExecutionError(err);
+    if (validation.success) {
+      return {
+        success: false,
+        error: err,
+      };
+    }
+
+    const fallbackErr = createExecutionError({
+      contract_version: EXECUTION_CONTRACT_VERSION,
+      code: 'internal_execution_error',
+      category: 'internal_execution_error',
+      message: 'Fail-safe preflight error validation fallback',
+      status: 500,
+      provider_id: provId,
+      request_id: execReqId,
+      redacted: true,
+    });
+
     return {
       success: false,
-      error: err,
+      error: fallbackErr,
     };
   }
 
@@ -217,13 +286,36 @@ export async function executeGovernedStream({
   let rawIterator = null;
 
   let isFinalized = false;
+  let cachedFrozenSummary = null;
+  const finalizationListeners = new Set();
+
   let resolveCompletion = null;
   const completionPromise = new Promise((resolve) => {
     resolveCompletion = resolve;
   });
 
   function buildSummary() {
-    return Object.freeze({
+    if (cachedFrozenSummary) return cachedFrozenSummary;
+
+    let safeErr = null;
+    if (sessionError) {
+      const errVal = validateExecutionError(sessionError);
+      if (errVal.success) {
+        safeErr = Object.freeze(JSON.parse(JSON.stringify(sessionError)));
+      } else {
+        safeErr = Object.freeze(createExecutionError({
+          contract_version: EXECUTION_CONTRACT_VERSION,
+          code: 'internal_execution_error',
+          category: 'internal_execution_error',
+          message: 'Safe stream error fallback',
+          provider_id: provId,
+          request_id: execReqId,
+          redacted: true,
+        }));
+      }
+    }
+
+    const summary = Object.freeze({
       state: sessionState,
       attempt_count: attemptCount,
       chunk_count: chunkCount,
@@ -233,10 +325,16 @@ export async function executeGovernedStream({
         completed_at: completedAt || getNow(),
         duration_ms: (completedAt || getNow()) - startTime,
       }),
-      usage: capturedUsage ? Object.freeze({ ...capturedUsage }) : null,
+      usage: capturedUsage ? Object.freeze(JSON.parse(JSON.stringify(capturedUsage))) : null,
       finish_reason: finalFinishReason,
-      safe_error: sessionError ? (validateExecutionError(sessionError).success ? sessionError : validateExecutionError(sessionError).value || null) : null,
+      safe_error: safeErr,
     });
+
+    if (isFinalized) {
+      cachedFrozenSummary = summary;
+    }
+
+    return summary;
   }
 
   const finalizeOnce = (newState, err = null) => {
@@ -279,9 +377,18 @@ export async function executeGovernedStream({
       } catch (_) {}
     }
 
+    const finalSummary = buildSummary();
+
     if (resolveCompletion) {
-      resolveCompletion(buildSummary());
+      resolveCompletion(finalSummary);
     }
+
+    for (const listener of Array.from(finalizationListeners)) {
+      try {
+        listener(finalSummary);
+      } catch (_) {}
+    }
+    finalizationListeners.clear();
   };
 
   const cancelSession = (reason = null) => {
@@ -530,9 +637,11 @@ export async function executeGovernedStream({
   if (unusedSessionTimer.unref) unusedSessionTimer.unref();
 
   const maxResponseBytes = execution_request.policy.max_response_bytes || 5242880;
+  const safeEventSizeCap = Math.min(maxResponseBytes, 8388608);
+  const safeBufferSizeCap = Math.min(maxResponseBytes, 16777216);
   const sseParser = createOpenAISSEParser({
-    max_buffer_size: maxResponseBytes,
-    max_event_size: maxResponseBytes,
+    max_buffer_size: safeBufferSizeCap,
+    max_event_size: safeEventSizeCap,
     context: {
       request_id: execReqId,
       provider_id: provId,
@@ -765,6 +874,20 @@ export async function executeGovernedStream({
     }
   }
 
+  const subscribeFinalization = (listener) => {
+    if (typeof listener !== 'function') return () => {};
+    if (isFinalized) {
+      try {
+        listener(buildSummary());
+      } catch (_) {}
+      return () => {};
+    }
+    finalizationListeners.add(listener);
+    return () => {
+      finalizationListeners.delete(listener);
+    };
+  };
+
   const sessionObj = Object.freeze({
     event_stream: safeEventGenerator(),
     request_id: execReqId,
@@ -773,6 +896,7 @@ export async function executeGovernedStream({
     cancel: cancelSession,
     completion: completionPromise,
     getSummary: () => buildSummary(),
+    subscribeFinalization,
   });
 
   return {

@@ -69,7 +69,7 @@ function waitForDrain(response, signal, session = null) {
   }
   return new Promise((resolve, reject) => {
     let cleanedUp = false;
-    let onSessionCompletion = null;
+    let unsubscribeFinalization = null;
 
     const onDrain = () => {
       cleanup();
@@ -84,14 +84,17 @@ function waitForDrain(response, signal, session = null) {
       reject(signal.reason || new Error('Aborted while waiting for drain'));
     };
 
-    if (session?.completion && typeof session.completion.then === 'function') {
-      onSessionCompletion = (summary) => {
-        if (summary?.state === 'cancelled' || summary?.state === 'timed_out' || summary?.state === 'failed') {
-          cleanup();
-          reject(summary.safe_error || new Error(`Stream session ${summary.state}`));
-        }
-      };
-      session.completion.then(onSessionCompletion).catch(() => {});
+    const handleSummary = (summary) => {
+      if (summary?.state === 'cancelled' || summary?.state === 'timed_out' || summary?.state === 'failed') {
+        cleanup();
+        reject(summary.safe_error || new Error(`Stream session ${summary.state}`));
+      }
+    };
+
+    if (typeof session?.subscribeFinalization === 'function') {
+      unsubscribeFinalization = session.subscribeFinalization(handleSummary);
+    } else if (session?.completion && typeof session.completion.then === 'function') {
+      session.completion.then(handleSummary).catch(() => {});
     }
 
     const cleanup = () => {
@@ -102,6 +105,10 @@ function waitForDrain(response, signal, session = null) {
       response.removeListener('error', onClose);
       if (signal) {
         signal.removeEventListener('abort', onAbort);
+      }
+      if (typeof unsubscribeFinalization === 'function') {
+        unsubscribeFinalization();
+        unsubscribeFinalization = null;
       }
     };
 
@@ -460,6 +467,27 @@ export function createGatewayApp({
             const durationMs = Math.max(0, timestamp - context.start_time);
             recordProviderHealth(collector, { success: true, providerId: routeDecision.provider_id, timestamp, durationMs });
 
+            let finalUsage = null;
+            let costEstimate = null;
+            if (streamResult.session?.completion && typeof streamResult.session.completion.then === 'function') {
+              try {
+                const summary = await streamResult.session.completion;
+                if (summary?.usage && typeof summary.usage === 'object') {
+                  finalUsage = normalizeGatewayUsageRecord({
+                    usage: { ...summary.usage, estimated: false, provider_reported: true },
+                    provider_id: routeDecision.provider_id,
+                    model_id: routeDecision.resolved_model,
+                    request_id: context.request_id,
+                    trace_id: traceId,
+                    timestamp,
+                    metadata: { governed: true, stream: true },
+                  });
+                  costEstimate = estimateGatewayCost({ usage: finalUsage, model: { input_cost: null, output_cost: null, currency: null } });
+                  collector?.recordUsage({ ...finalUsage, cost_estimate: costEstimate });
+                }
+              } catch (_) {}
+            }
+
             const compEvent = observeEvent(collector, {
               trace_id: traceId,
               request_id: context.request_id,
@@ -467,6 +495,8 @@ export function createGatewayApp({
               provider_id: routeDecision.provider_id,
               model_id: routeDecision.resolved_model,
               route_strategy: 'governed-external',
+              usage: finalUsage,
+              cost_estimate: costEstimate,
               metadata: { chunk_count: chunkCount, byte_count: byteCount },
             });
             if (compEvent?.event_id) eventIds.push(compEvent.event_id);

@@ -63,3 +63,9 @@ Returns:
 2. **Post-Header Failures**: Mid-stream errors emit a safe SSE error payload (`data: {"error":{...}}\n\n`), write terminal `data: [DONE]\n\n`, and close response without attempting JSON response writes.
 3. **Client Disconnect**: Aborts execution signal, invokes `rawIterator.return()`, destroys credential container, and records `governed-stream-cancelled` observability event.
 4. **Credential Safety**: Credential container `destroy()` method is invoked exactly once across all success, error, timeout, and cancellation paths.
+
+## Session Usage & Backpressure Subscriptions (v4.3 Sprint E2.1 Hardening)
+
+1. **Stream Usage Integration**: Provider-reported stream usage is captured from upstream SSE payloads, emitted in `session.completion` / `session.getSummary()`, and recorded into the observability collector upon stream completion without emitting raw internal usage events over SSE.
+2. **Backpressure Drain Subscription**: `waitForDrain()` subscribes to session finalization via `session.subscribeFinalization(listener)`, which registers a single-execution callback and returns an `unsubscribe()` function called immediately upon drain, socket close, or abort.
+3. **Deterministic Summary & Safe Errors**: `session.getSummary()` returns a frozen summary object containing sanitized `safe_error` (or `null`), frozen timing metrics, and frozen usage objects. Repeated calls return the identical frozen reference.

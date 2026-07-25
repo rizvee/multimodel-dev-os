@@ -309,4 +309,162 @@ describe('execution security contracts', () => {
       expect(EXECUTION_DEFAULTS.max_response_bytes).toBeGreaterThan(0);
     });
   });
+
+  describe('stream executor E2.1 contract hardening', () => {
+    it('maps validator errors to EXECUTION_ERROR_CATEGORIES and passes validateExecutionError', async () => {
+      const { executeGovernedStream } = await import('../../src/gateway/execution/stream-executor.js');
+      const badReq = {
+        contract_version: EXECUTION_CONTRACT_VERSION,
+        request_id: 'req-bad',
+        provider_id: 'openai',
+        model_id: 'gpt-4o',
+        gateway_request: { stream: true },
+        options: {},
+        policy: { enabled: true },
+        capability: { sse_streaming: true },
+        extra_unsupported: 'bad',
+      };
+
+      const res = await executeGovernedStream({ execution_request: badReq });
+      expect(res.success).toBe(false);
+      expect(res.error).toBeDefined();
+      expect(validateExecutionError(res.error).success).toBe(true);
+      expect(res.error.code).toBe('request_invalid');
+      expect(res.error.category).toBe('request_invalid');
+    });
+
+    it('returns a safe frozen summary with deterministic state and safe_error', async () => {
+      const { executeGovernedStream } = await import('../../src/gateway/execution/stream-executor.js');
+      async function* mockStream() {
+        yield 'data: [DONE]\n\n';
+      }
+
+      const validPolicy = createExecutionPolicy({
+        enabled: true,
+        allowed_provider_ids: ['openai'],
+      });
+
+      const validReq = createExecutionRequest({
+        request_id: 'req-sum-1',
+        provider_id: 'openai',
+        model_id: 'gpt-4o',
+        policy: validPolicy,
+        gateway_request: { stream: true, model: 'gpt-4o', messages: [{ role: 'user', content: 'hi' }] },
+        endpoint: createProviderEndpoint({ url: 'https://api.openai.com/v1/chat/completions' }),
+        capability: createProviderExecutionCapability({ sse_streaming: true, chat_completions: true }),
+        credential_ref: createCredentialRef({ env_var: 'OPENAI_API_KEY' }),
+      });
+
+      const mockTransport = {
+        stream: async () => ({ status: 200, headers: {}, body: mockStream() }),
+      };
+
+      const mockAdapter = {
+        id: 'openai',
+        name: 'OpenAI Provider',
+        type: 'openai-compatible',
+        version: '1.0.0',
+        capabilities: ['chat', 'streaming'],
+        credential_env: 'OPENAI_API_KEY',
+        base_url: 'https://api.openai.com/v1',
+        models: ['gpt-4o'],
+        validateConfig: () => ({ success: true }),
+        listModels: () => [],
+        normalizeRequest: () => ({ success: true }),
+        invoke: () => ({ success: true }),
+        normalizeResponse: () => ({ success: true }),
+        stream: () => ({ success: true }),
+        classifyError: () => ({ code: 'upstream_server_error' }),
+        health: () => ({ success: true }),
+        redact: (v) => v,
+      };
+
+      const res = await executeGovernedStream({
+        execution_request: validReq,
+        provider_adapter: mockAdapter,
+        transport: mockTransport,
+        environment: { OPENAI_API_KEY: 'sk-test-key' },
+      });
+
+      if (!res.success) console.error('Gate error:', res.error);
+
+      expect(res.success).toBe(true);
+      for await (const chunk of res.session.event_stream) {}
+
+      const summary1 = res.session.getSummary();
+      const summary2 = res.session.getSummary();
+
+      expect(summary1).toBe(summary2);
+      expect(Object.isFrozen(summary1)).toBe(true);
+      expect(Object.isFrozen(summary1.timing)).toBe(true);
+      expect(summary1.state).toBe('completed');
+      expect(summary1.safe_error).toBeNull();
+    });
+
+    it('notifies subscribeFinalization listeners and allows unsubscribing', async () => {
+      const { executeGovernedStream } = await import('../../src/gateway/execution/stream-executor.js');
+      async function* mockStream() {
+        yield 'data: [DONE]\n\n';
+      }
+
+      const validPolicy = createExecutionPolicy({
+        enabled: true,
+        allowed_provider_ids: ['openai'],
+      });
+
+      const validReq = createExecutionRequest({
+        request_id: 'req-sub-1',
+        provider_id: 'openai',
+        model_id: 'gpt-4o',
+        policy: validPolicy,
+        gateway_request: { stream: true, model: 'gpt-4o', messages: [{ role: 'user', content: 'hi' }] },
+        endpoint: createProviderEndpoint({ url: 'https://api.openai.com/v1/chat/completions' }),
+        capability: createProviderExecutionCapability({ sse_streaming: true, chat_completions: true }),
+        credential_ref: createCredentialRef({ env_var: 'OPENAI_API_KEY' }),
+      });
+
+      const mockTransport = {
+        stream: async () => ({ status: 200, headers: {}, body: mockStream() }),
+      };
+
+      const mockAdapter = {
+        id: 'openai',
+        name: 'OpenAI Provider',
+        type: 'openai-compatible',
+        version: '1.0.0',
+        capabilities: ['chat', 'streaming'],
+        credential_env: 'OPENAI_API_KEY',
+        base_url: 'https://api.openai.com/v1',
+        models: ['gpt-4o'],
+        validateConfig: () => ({ success: true }),
+        listModels: () => [],
+        normalizeRequest: () => ({ success: true }),
+        invoke: () => ({ success: true }),
+        normalizeResponse: () => ({ success: true }),
+        stream: () => ({ success: true }),
+        classifyError: () => ({ code: 'upstream_server_error' }),
+        health: () => ({ success: true }),
+        redact: (v) => v,
+      };
+
+      const res = await executeGovernedStream({
+        execution_request: validReq,
+        provider_adapter: mockAdapter,
+        transport: mockTransport,
+        environment: { OPENAI_API_KEY: 'sk-test-key' },
+      });
+
+      expect(res.success).toBe(true);
+
+      let notifiedSummary = null;
+      const unsub = res.session.subscribeFinalization((sum) => {
+        notifiedSummary = sum;
+      });
+
+      for await (const chunk of res.session.event_stream) {}
+
+      expect(notifiedSummary).not.toBeNull();
+      expect(notifiedSummary.state).toBe('completed');
+    });
+  });
 });

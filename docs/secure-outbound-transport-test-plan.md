@@ -1,16 +1,18 @@
 # Secure Outbound Transport Test Plan
 
-This document describes the test strategy and local test harness design for verifying the built-in outbound transport in MultiModel Dev OS.
+This document describes the test strategy, local test harness design, and test-seam boundaries for verifying the built-in outbound transport in MultiModel Dev OS.
 
 ---
 
-## 1. Test Harness Architecture
+## 1. Test Harness Architecture & Test Seam Boundaries
 
-To uphold the project's zero-dependency, local-first safety posture:
-- **No External Network Calls**: All tests run strictly offline against in-memory fixtures or local node servers.
-- **Localhost HTTP/HTTPS Servers**: Mock servers instantiated on ephemeral loopback ports (`127.0.0.1:0`).
-- **Injected DNS Resolver Fixtures**: Mock DNS lookups injecting controlled IPv4/IPv6 responses to test classification and fail-closed behavior without modifying system DNS.
-- **No Real Credentials**: Synthetic API tokens used exclusively.
+To uphold the project's zero-dependency, local-first safety posture while enabling local testing against loopback servers:
+
+- **No Public `allowPrivateNetworks` Override**: Production destination policy strictly rejects private/loopback IP addresses (`127.0.0.0/8`, `::1`, `10.0.0.0/8`). There is no environment variable, public CLI flag, or runtime configuration parameter that allows bypassing private-network rejection in production.
+- **Injected Connector / Socket Factory Seam**: Integration tests connect to local test servers (`127.0.0.1:0`) via an internal, test-only injected connector or socket factory seam.
+- **Internal Helper Isolation**: Test helpers and mock connectors are internal to `tests/` fixtures and are **never** exported through the package public API (`src/index.js` or `src/gateway/index.js`).
+- **Verifier Assertion**: Release verifiers assert that no test connector or private-network bypass capability reaches production runtime code.
+- **Certificate Management**: Test certificates for TLS testing are static synthetic fixtures stored in `tests/fixtures/certs/` or generated dynamically using Node.js standard-library `node:crypto` primitives. The test suite has zero dependency on globally installed `openssl` CLI executables.
 
 ---
 
@@ -47,4 +49,4 @@ export function createMockResolver(mappings = {}) {
 ```
 
 ### Mock HTTPS Server Fixture
-Local HTTPS server initialized with ephemeral self-signed certificates (for TLS failure testing) and local mock routes returning 200 OK, 302 Found, or slow streaming chunks.
+Local HTTPS server initialized with synthetic test certificates (for TLS testing) and local mock routes returning 200 OK, 302 Found, or slow streaming chunks.
