@@ -34,9 +34,19 @@
   - Hardened HTTP client disconnect handling with guarded `aborted` / `close` listeners.
   - Hardened request ID sanitization (`validateAndSanitizeRequestId`) ensuring both client header IDs and custom `requestIdFactory()` outputs conform to ASCII length/pattern rules or fall back to UUIDs.
   - Aligned formal JSON schemas (`gateway-error.schema.json` and `gateway-runtime-error.schema.json`) with `additionalProperties: false` at outer/inner levels.
-  - External streaming remains explicitly deferred to Sprint E2.
-
-  - Extended gateway verifier with Sprint D execution gate and hardening checks (522 verifier assertions).
+- **v4.3 Sprint E2 — Governed External SSE Streaming Integration**:
+  - Implemented governed external SSE streaming executor (`executeGovernedStream`) in `src/gateway/execution/stream-executor.js`.
+  - Extended transport interface (`transport.stream()`) supporting status, headers, async iterable body, and credential destruction.
+  - Integrated governed external streaming into `/v1/chat/completions` route in `src/gateway/runtime/app.js`.
+  - Enforced preflight validation, mid-stream safe SSE error payloads, backpressure handling (`waitForDrain`), client disconnect / abort handling, single credential destruction, and zero network primitives in stream executor.
+  - Added integration test suite `tests/integration/gateway-governed-runtime-stream.test.js` and documentation in `docs/gateway-streaming.md`.
+- **v4.3 Sprint F0 — Secure Outbound Transport Threat Model & Architecture Plan**:
+  - Completed read-only E2 acceptance audit confirming stream executor error normalization, summary determinism, canonical usage handling, and backpressure retention boundaries.
+  - Created `docs/secure-outbound-transport-threat-model.md` with complete STRIDE matrix and honest status mapping across contract, validator, executor, transport, and runtime layers.
+  - Designed zero-runtime-dependency native transport architecture (`docs/secure-outbound-transport-design.md`) selecting Option A (Native Pinned-Address HTTPS Transport) utilizing `node:https`, `node:dns/promises`, `node:net`, and `node:tls`.
+  - Defined canonical URL canonicalization, IPv4/IPv6 classification, DNS rebinding / TOCTOU protection via socket IP pinning, TLS verification (`rejectUnauthorized: true`), CR/LF header guards, Bearer auth construction boundary, and 6-phase resource limits.
+  - Defined local offline test strategy (`docs/secure-outbound-transport-test-plan.md`) utilizing mock DNS resolvers and loopback HTTPS servers.
+  - Updated gateway threat model in `docs/security-threat-model.md` and roadmap in `docs/v4.3-planning.md`.
 
 
 ## [4.2.0] - 2026-07-17
