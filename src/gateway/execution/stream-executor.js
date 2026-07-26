@@ -8,6 +8,7 @@ import { normalizeOpenAIExecutionRequest } from '../adapters/openai-compatible/r
 import { createOpenAISSEParser } from '../adapters/openai-compatible/sse.js';
 import { validateGatewayResponse } from '../protocol/validation.js';
 import { EXECUTION_CONTRACT_VERSION, EXECUTION_ERROR_CATEGORIES } from '../protocol/constants.js';
+import { mapCategoryToStatus } from './error-status-mapper.js';
 
 function isObject(val) {
   return val !== null && typeof val === 'object' && !Array.isArray(val);
@@ -30,6 +31,33 @@ function isRawSocketOrStream(val) {
     return true;
   }
   return false;
+}
+
+const PROTOTYPE_FORBIDDEN = /^(?:__proto__|prototype|constructor)$/i;
+
+function safeDeepFreeze(val, depth = 0, seen = new WeakSet()) {
+  if (val === null || typeof val !== 'object') {
+    return val;
+  }
+  if (depth > 10 || seen.has(val)) {
+    return '[BoundedValue]';
+  }
+  seen.add(val);
+
+  if (Array.isArray(val)) {
+    const frozenArr = val.map((item) => safeDeepFreeze(item, depth + 1, seen));
+    return Object.freeze(frozenArr);
+  }
+
+  const frozenObj = {};
+  const keys = Object.keys(val);
+  for (const key of keys) {
+    if (PROTOTYPE_FORBIDDEN.test(key)) continue;
+    const desc = Object.getOwnPropertyDescriptor(val, key);
+    if (desc && (desc.get || desc.set)) continue;
+    frozenObj[key] = safeDeepFreeze(val[key], depth + 1, seen);
+  }
+  return Object.freeze(frozenObj);
 }
 
 export async function executeGovernedStream({
@@ -113,13 +141,14 @@ export async function executeGovernedStream({
     const safeCode = EXECUTION_ERROR_CATEGORIES.includes(rawCode) ? rawCode : mapValidatorErrorToCategory(rawCode);
     const safeCategory = EXECUTION_ERROR_CATEGORIES.includes(rawCategory) ? rawCategory : mapValidatorErrorToCategory(rawCategory || rawCode);
     const cleanMsg = sanitizeMsg(message);
+    const safeStatus = mapCategoryToStatus(safeCategory);
 
     const err = createExecutionError({
       contract_version: EXECUTION_CONTRACT_VERSION,
       code: safeCode,
       category: safeCategory,
       message: cleanMsg,
-      status,
+      status: safeStatus,
       provider_id: provId,
       request_id: execReqId,
       redacted: true,
@@ -301,9 +330,9 @@ export async function executeGovernedStream({
     if (sessionError) {
       const errVal = validateExecutionError(sessionError);
       if (errVal.success) {
-        safeErr = Object.freeze(JSON.parse(JSON.stringify(sessionError)));
+        safeErr = safeDeepFreeze(sessionError);
       } else {
-        safeErr = Object.freeze(createExecutionError({
+        safeErr = safeDeepFreeze(createExecutionError({
           contract_version: EXECUTION_CONTRACT_VERSION,
           code: 'internal_execution_error',
           category: 'internal_execution_error',
@@ -315,17 +344,21 @@ export async function executeGovernedStream({
       }
     }
 
-    const summary = Object.freeze({
+    const timingObj = safeDeepFreeze({
+      started_at: startTime,
+      completed_at: completedAt || getNow(),
+      duration_ms: (completedAt || getNow()) - startTime,
+    });
+
+    const usageObj = capturedUsage ? safeDeepFreeze(capturedUsage) : null;
+
+    const summary = safeDeepFreeze({
       state: sessionState,
       attempt_count: attemptCount,
       chunk_count: chunkCount,
       upstream_byte_count: cumulativeBytes,
-      timing: Object.freeze({
-        started_at: startTime,
-        completed_at: completedAt || getNow(),
-        duration_ms: (completedAt || getNow()) - startTime,
-      }),
-      usage: capturedUsage ? Object.freeze(JSON.parse(JSON.stringify(capturedUsage))) : null,
+      timing: timingObj,
+      usage: usageObj,
       finish_reason: finalFinishReason,
       safe_error: safeErr,
     });

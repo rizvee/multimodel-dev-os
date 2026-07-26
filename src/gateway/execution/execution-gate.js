@@ -9,6 +9,7 @@ import {
   STRICT_ENV_VAR_REGEX,
   PROTOTYPE_NAMES_PATTERN,
 } from '../protocol/constants.js';
+import { mapCategoryToStatus } from './error-status-mapper.js';
 
 function isObject(val) {
   return val !== null && typeof val === 'object' && !Array.isArray(val);
@@ -122,6 +123,7 @@ export function evaluateExecutionGate({
         code: errorCat,
         category: errorCat,
         message,
+        status: mapCategoryToStatus(errorCat),
         provider_id: provId,
         request_id: reqId,
         redacted: true,

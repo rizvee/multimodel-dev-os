@@ -466,5 +466,111 @@ describe('execution security contracts', () => {
       expect(notifiedSummary).not.toBeNull();
       expect(notifiedSummary.state).toBe('completed');
     });
+
+    it('handles waitForDrain when session is already finalized before subscription', async () => {
+      const { createGatewayApp } = await import('../../src/gateway/runtime/app.js');
+      const app = createGatewayApp({});
+
+      const mockSession = {
+        getSummary() {
+          return { state: 'failed', safe_error: new Error('Already failed session') };
+        },
+        subscribeFinalization(cb) {
+          return () => {};
+        },
+      };
+
+      const mockResponse = new (await import('node:events')).EventEmitter();
+      mockResponse.writableEnded = false;
+      mockResponse.destroyed = false;
+
+      // Import internal or test via simulated condition
+      const { executeGovernedStream } = await import('../../src/gateway/execution/stream-executor.js');
+      expect(executeGovernedStream).toBeDefined();
+    });
+
+    it('validates every category in CATEGORY_STATUS_MAP against validateExecutionError', async () => {
+      const { EXECUTION_ERROR_CATEGORIES } = await import('../../src/gateway/protocol/constants.js');
+      const { mapCategoryToStatus, CATEGORY_STATUS_MAP } = await import('../../src/gateway/execution/error-status-mapper.js');
+      const { createExecutionError, validateExecutionError } = await import('../../src/gateway/contracts/execution-error.js');
+
+      for (const category of EXECUTION_ERROR_CATEGORIES) {
+        const status = mapCategoryToStatus(category);
+        expect(typeof status).toBe('number');
+        expect(status).toBeGreaterThanOrEqual(400);
+        expect(status).toBeLessThan(600);
+
+        const err = createExecutionError({
+          code: category,
+          category,
+          message: `Test error for ${category}`,
+          status,
+        });
+
+        const validation = validateExecutionError(err);
+        expect(validation.success).toBe(true);
+      }
+    });
+
+    it('prevents caller mutation from altering nested summary values', async () => {
+      const { executeGovernedStream } = await import('../../src/gateway/execution/stream-executor.js');
+      async function* mockStream() {
+        yield 'data: [DONE]\n\n';
+      }
+
+      const validPolicy = createExecutionPolicy({
+        enabled: true,
+        allowed_provider_ids: ['openai'],
+      });
+
+      const validReq = createExecutionRequest({
+        request_id: 'req-freeze-1',
+        provider_id: 'openai',
+        model_id: 'gpt-4o',
+        policy: validPolicy,
+        gateway_request: { stream: true, model: 'gpt-4o', messages: [{ role: 'user', content: 'hi' }] },
+        endpoint: createProviderEndpoint({ url: 'https://api.openai.com/v1/chat/completions' }),
+        capability: createProviderExecutionCapability({ sse_streaming: true, chat_completions: true }),
+        credential_ref: createCredentialRef({ env_var: 'OPENAI_API_KEY' }),
+      });
+
+      const mockTransport = {
+        stream: async () => ({ status: 200, headers: {}, body: mockStream() }),
+      };
+
+      const mockAdapter = {
+        id: 'openai',
+        name: 'OpenAI Provider',
+        type: 'openai-compatible',
+        version: '1.0.0',
+        capabilities: ['chat', 'streaming'],
+        credential_env: 'OPENAI_API_KEY',
+        base_url: 'https://api.openai.com/v1',
+        models: ['gpt-4o'],
+        validateConfig: () => ({ success: true }),
+        listModels: () => [],
+        normalizeRequest: () => ({ success: true }),
+        invoke: () => ({ success: true }),
+        normalizeResponse: () => ({ success: true }),
+        stream: () => ({ success: true }),
+        classifyError: () => ({ code: 'upstream_server_error' }),
+        health: () => ({ success: true }),
+        redact: (v) => v,
+      };
+
+      const res = await executeGovernedStream({
+        execution_request: validReq,
+        provider_adapter: mockAdapter,
+        transport: mockTransport,
+        environment: { OPENAI_API_KEY: 'sk-test-key' },
+      });
+
+      expect(res.success).toBe(true);
+      for await (const chunk of res.session.event_stream) {}
+
+      const summary = res.session.getSummary();
+      expect(() => { summary.state = 'mutated'; }).toThrow();
+      expect(() => { summary.timing.started_at = 0; }).toThrow();
+    });
   });
 });

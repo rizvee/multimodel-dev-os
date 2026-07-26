@@ -56,11 +56,11 @@ Classification relies on static, reviewed address rules derived from the IANA IP
   - `2001:db8::/32` (Documentation)
   - `::ffff:0:0/96` (IPv4-mapped IPv6 - unmapped IPv4 portion normalized and classified against IPv4 rules)
 
-### DNS Resolution Architecture
-- DNS resolution uses `node:dns/promises` (`resolve4()` and `resolve6()`). `dns.lookup()` is avoided during validation to bypass OS `hosts` file manipulation and get raw DNS records.
+### DNS Resolution Architecture & Resolver Trust Model
+- **Direct Nameserver Queries**: DNS resolution uses `node:dns/promises` (`resolve4()` and `resolve6()`), which sends network DNS queries directly to configured nameservers. Standard OS getaddrinfo / `dns.lookup()` is intentionally avoided during address validation to prevent OS `hosts` file manipulation or local DNS cache poisoning from bypassing IP classification rules.
+- **Hosts-File & Split-Horizon Trade-off**: Because `resolve4()`/`resolve6()` bypasses OS `dns.lookup()`, local OS `/etc/hosts` mappings, split-horizon DNS overrides, enterprise local DNS proxies, and loopback redirects are **not** consulted. This creates an explicit security trade-off: raw DNS resolution prevents local hosts-file SSRF manipulation, but intentionally bypasses enterprise local/split-horizon host resolution overrides.
 - **Fail-Closed Policy**: Resolution queries return all IPv4 and IPv6 records. Every returned IP address is classified. If **any** returned IP address fails the public classification check, the entire resolution fails closed.
-- **Deterministic Selection**: Approved addresses are sorted deterministically; the first approved address is selected.
-- **Socket Pinning**: Socket connection pins directly to the selected approved IP using custom `lookup` in `https.request` to prevent an uncontrolled second DNS lookup between validation and connection.
+- **Planned Status**: Built-in DNS resolution and native transport remain PLANNED for Sprints F1/F2 and are not yet shipped in production code.
 
 ---
 

@@ -12,7 +12,7 @@ To uphold the project's zero-dependency, local-first safety posture while enabli
 - **Injected Connector / Socket Factory Seam**: Integration tests connect to local test servers (`127.0.0.1:0`) via an internal, test-only injected connector or socket factory seam.
 - **Internal Helper Isolation**: Test helpers and mock connectors are internal to `tests/` fixtures and are **never** exported through the package public API (`src/index.js` or `src/gateway/index.js`).
 - **Verifier Assertion**: Release verifiers assert that no test connector or private-network bypass capability reaches production runtime code.
-- **Certificate Management**: Test certificates for TLS testing are static synthetic fixtures stored in `tests/fixtures/certs/` or generated dynamically using Node.js standard-library `node:crypto` primitives. The test suite has zero dependency on globally installed `openssl` CLI executables.
+- **Certificate Management**: Test certificates for TLS testing are static synthetic PEM certificate fixtures stored in `tests/fixtures/certs/`. Standard Node.js `node:crypto` standard library does not provide a zero-dependency X.509 certificate generation API, so static PEM fixtures are committed to test fixtures rather than generated at runtime. The test suite has zero dependency on globally installed `openssl` CLI executables.
 
 ---
 
