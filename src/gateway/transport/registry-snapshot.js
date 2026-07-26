@@ -1,55 +1,48 @@
 /**
- * IANA Special-Purpose IP Address Registries Static Snapshot
+ * IANA Special-Purpose IP Address Registries Static Snapshot & Integrity Verifier
  * Sources:
  * - IPv4: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry-1.csv
  * - IPv6: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry-1.csv
  *
- * Snapshot Retrieval Date: 2026-07-26
- * Registry Last Updated Dates:
- * - IPv4: 2024-11-25
- * - IPv6: 2024-05-15
+ * Snapshot Retrieval Date: 2026-07-27
+ * Registry Page Last Updated Date: 2025-10-09
+ * Reproducible Source Digests:
+ * - IPv4 CSV SHA-256: 0e86fa6443c080b0b8c347b5efdf63d5fffae0f2fef52fdb0b91e92d2424fae1
+ * - IPv6 CSV SHA-256: 8e5f29910d5402cb755e1c0c32aa34ff80d0d82998a66bcbb6ed61f5f2479e00
  */
 
 export const IANA_IPV4_SPECIAL_REGISTRY_METADATA = Object.freeze({
   source_url: 'https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry-1.csv',
-  retrieval_date: '2026-07-26',
-  last_updated: '2024-11-25',
+  retrieval_date: '2026-07-27',
+  last_updated: '2025-10-09',
+  normalized_record_count: 22,
+  sha256: '0e86fa6443c080b0b8c347b5efdf63d5fffae0f2fef52fdb0b91e92d2424fae1',
 });
 
 export const IANA_IPV6_SPECIAL_REGISTRY_METADATA = Object.freeze({
   source_url: 'https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry-1.csv',
-  retrieval_date: '2026-07-26',
-  last_updated: '2024-05-15',
+  retrieval_date: '2026-07-27',
+  last_updated: '2025-10-09',
+  normalized_record_count: 20,
+  sha256: '8e5f29910d5402cb755e1c0c32aa34ff80d0d82998a66bcbb6ed61f5f2479e00',
 });
 
 /**
  * Static IANA IPv4 Special-Purpose & Non-Unicast Ranges
- * Ordered by prefix length (longest prefix first) for matching.
+ * Formatted and normalized directly from official CSV.
  */
 export const IANA_IPV4_SPECIAL_RECORDS = Object.freeze([
-  // Broadcast
   Object.freeze({
-    prefix: '255.255.255.255/32',
-    prefix_length: 32,
-    name: 'Limited Broadcast',
-    destination: false,
-    forwardable: false,
-    globally_reachable: false,
-    reserved_by_protocol: true,
-    reference: 'RFC 919, Section 7 / RFC 8190',
-  }),
-  // Loopback
-  Object.freeze({
-    prefix: '127.0.0.0/8',
+    prefix: '0.0.0.0/8',
     prefix_length: 8,
-    name: 'Loopback',
+    name: 'This host on this network',
     destination: false,
     forwardable: false,
     globally_reachable: false,
     reserved_by_protocol: true,
+    allocation_status: 'Allocated',
     reference: 'RFC 1122, Section 3.2.1.3',
   }),
-  // Private-Use Networks (RFC 1918)
   Object.freeze({
     prefix: '10.0.0.0/8',
     prefix_length: 8,
@@ -58,7 +51,41 @@ export const IANA_IPV4_SPECIAL_RECORDS = Object.freeze([
     forwardable: true,
     globally_reachable: false,
     reserved_by_protocol: false,
+    allocation_status: 'Allocated',
     reference: 'RFC 1918',
+  }),
+  Object.freeze({
+    prefix: '100.64.0.0/10',
+    prefix_length: 10,
+    name: 'Shared Address Space',
+    destination: true,
+    forwardable: true,
+    globally_reachable: false,
+    reserved_by_protocol: false,
+    allocation_status: 'Allocated',
+    reference: 'RFC 6598',
+  }),
+  Object.freeze({
+    prefix: '127.0.0.0/8',
+    prefix_length: 8,
+    name: 'Loopback',
+    destination: false,
+    forwardable: false,
+    globally_reachable: false,
+    reserved_by_protocol: true,
+    allocation_status: 'Allocated',
+    reference: 'RFC 1122, Section 3.2.1.3',
+  }),
+  Object.freeze({
+    prefix: '169.254.0.0/16',
+    prefix_length: 16,
+    name: 'Link Local',
+    destination: true,
+    forwardable: false,
+    globally_reachable: false,
+    reserved_by_protocol: true,
+    allocation_status: 'Allocated',
+    reference: 'RFC 3927',
   }),
   Object.freeze({
     prefix: '172.16.0.0/12',
@@ -68,52 +95,20 @@ export const IANA_IPV4_SPECIAL_RECORDS = Object.freeze([
     forwardable: true,
     globally_reachable: false,
     reserved_by_protocol: false,
+    allocation_status: 'Allocated',
     reference: 'RFC 1918',
   }),
   Object.freeze({
-    prefix: '192.168.0.0/16',
-    prefix_length: 16,
-    name: 'Private-Use',
-    destination: true,
-    forwardable: true,
-    globally_reachable: false,
-    reserved_by_protocol: false,
-    reference: 'RFC 1918',
-  }),
-  // Shared Address Space (CGNAT)
-  Object.freeze({
-    prefix: '100.64.0.0/10',
-    prefix_length: 10,
-    name: 'Shared Address Space',
-    destination: true,
-    forwardable: true,
-    globally_reachable: false,
-    reserved_by_protocol: false,
-    reference: 'RFC 6598',
-  }),
-  // Link Local
-  Object.freeze({
-    prefix: '169.254.0.0/16',
-    prefix_length: 16,
-    name: 'Link Local',
-    destination: true,
-    forwardable: false,
-    globally_reachable: false,
-    reserved_by_protocol: true,
-    reference: 'RFC 3927',
-  }),
-  // This host on this network
-  Object.freeze({
-    prefix: '0.0.0.0/8',
-    prefix_length: 8,
-    name: 'This host on this network',
+    prefix: '192.0.0.0/24',
+    prefix_length: 24,
+    name: 'IETF Protocol Assignments',
     destination: false,
     forwardable: false,
     globally_reachable: false,
     reserved_by_protocol: true,
-    reference: 'RFC 1122, Section 3.2.1.3',
+    allocation_status: 'Allocated',
+    reference: 'RFC 6890',
   }),
-  // IETF Protocol Assignments Exception (Global Reachable)
   Object.freeze({
     prefix: '192.0.0.9/32',
     prefix_length: 32,
@@ -122,6 +117,7 @@ export const IANA_IPV4_SPECIAL_RECORDS = Object.freeze([
     forwardable: true,
     globally_reachable: true,
     reserved_by_protocol: false,
+    allocation_status: 'Allocated',
     reference: 'RFC 7723',
   }),
   Object.freeze({
@@ -132,6 +128,7 @@ export const IANA_IPV4_SPECIAL_RECORDS = Object.freeze([
     forwardable: true,
     globally_reachable: true,
     reserved_by_protocol: false,
+    allocation_status: 'Allocated',
     reference: 'RFC 8155',
   }),
   Object.freeze({
@@ -140,8 +137,9 @@ export const IANA_IPV4_SPECIAL_RECORDS = Object.freeze([
     name: 'NAT64/DNS64 Discovery',
     destination: true,
     forwardable: true,
-    globally_reachable: true,
+    globally_reachable: false, // N/A in IANA registry -> normalized null -> false (fail closed)
     reserved_by_protocol: false,
+    allocation_status: 'Allocated',
     reference: 'RFC 8880',
   }),
   Object.freeze({
@@ -150,21 +148,11 @@ export const IANA_IPV4_SPECIAL_RECORDS = Object.freeze([
     name: 'NAT64/DNS64 Discovery',
     destination: true,
     forwardable: true,
-    globally_reachable: true,
+    globally_reachable: false, // N/A in IANA registry -> normalized null -> false (fail closed)
     reserved_by_protocol: false,
+    allocation_status: 'Allocated',
     reference: 'RFC 8880',
   }),
-  Object.freeze({
-    prefix: '192.0.0.0/24',
-    prefix_length: 24,
-    name: 'IETF Protocol Assignments',
-    destination: false,
-    forwardable: false,
-    globally_reachable: false,
-    reserved_by_protocol: true,
-    reference: 'RFC 6890',
-  }),
-  // Documentation / TEST-NET
   Object.freeze({
     prefix: '192.0.2.0/24',
     prefix_length: 24,
@@ -173,7 +161,85 @@ export const IANA_IPV4_SPECIAL_RECORDS = Object.freeze([
     forwardable: false,
     globally_reachable: false,
     reserved_by_protocol: false,
+    allocation_status: 'Allocated',
     reference: 'RFC 5737',
+  }),
+  Object.freeze({
+    prefix: '192.31.196.0/24',
+    prefix_length: 24,
+    name: 'AS2001 Describing Prefix',
+    destination: true,
+    forwardable: true,
+    globally_reachable: true,
+    reserved_by_protocol: false,
+    allocation_status: 'Allocated',
+    reference: 'RFC 7535',
+  }),
+  Object.freeze({
+    prefix: '192.52.193.0/24',
+    prefix_length: 24,
+    name: 'AMT',
+    destination: true,
+    forwardable: true,
+    globally_reachable: true,
+    reserved_by_protocol: false,
+    allocation_status: 'Allocated',
+    reference: 'RFC 7450',
+  }),
+  Object.freeze({
+    prefix: '192.88.99.0/24',
+    prefix_length: 24,
+    name: '6to4 Relay Anycast',
+    destination: false,
+    forwardable: false,
+    globally_reachable: false,
+    reserved_by_protocol: true,
+    allocation_status: 'Deprecated',
+    reference: 'RFC 7526',
+  }),
+  Object.freeze({
+    prefix: '192.88.99.2/32',
+    prefix_length: 32,
+    name: '6to4 Benchmark Testing',
+    destination: false,
+    forwardable: false,
+    globally_reachable: false,
+    reserved_by_protocol: true,
+    allocation_status: 'Allocated',
+    reference: 'RFC 7526',
+  }),
+  Object.freeze({
+    prefix: '192.168.0.0/16',
+    prefix_length: 16,
+    name: 'Private-Use',
+    destination: true,
+    forwardable: true,
+    globally_reachable: false,
+    reserved_by_protocol: false,
+    allocation_status: 'Allocated',
+    reference: 'RFC 1918',
+  }),
+  Object.freeze({
+    prefix: '192.175.48.0/24',
+    prefix_length: 24,
+    name: 'Direct Delegation AS112 Service',
+    destination: true,
+    forwardable: true,
+    globally_reachable: true,
+    reserved_by_protocol: false,
+    allocation_status: 'Allocated',
+    reference: 'RFC 7534',
+  }),
+  Object.freeze({
+    prefix: '198.18.0.0/15',
+    prefix_length: 15,
+    name: 'Benchmarking',
+    destination: true,
+    forwardable: false,
+    globally_reachable: false,
+    reserved_by_protocol: false,
+    allocation_status: 'Allocated',
+    reference: 'RFC 2544',
   }),
   Object.freeze({
     prefix: '198.51.100.0/24',
@@ -183,6 +249,7 @@ export const IANA_IPV4_SPECIAL_RECORDS = Object.freeze([
     forwardable: false,
     globally_reachable: false,
     reserved_by_protocol: false,
+    allocation_status: 'Allocated',
     reference: 'RFC 5737',
   }),
   Object.freeze({
@@ -193,51 +260,8 @@ export const IANA_IPV4_SPECIAL_RECORDS = Object.freeze([
     forwardable: false,
     globally_reachable: false,
     reserved_by_protocol: false,
+    allocation_status: 'Allocated',
     reference: 'RFC 5737',
-  }),
-  // Benchmarking
-  Object.freeze({
-    prefix: '198.18.0.0/15',
-    prefix_length: 15,
-    name: 'Benchmarking',
-    destination: true,
-    forwardable: false,
-    globally_reachable: false,
-    reserved_by_protocol: false,
-    reference: 'RFC 2544',
-  }),
-  // AMT
-  Object.freeze({
-    prefix: '192.52.193.0/24',
-    prefix_length: 24,
-    name: 'AMT',
-    destination: true,
-    forwardable: true,
-    globally_reachable: true,
-    reserved_by_protocol: false,
-    reference: 'RFC 7450',
-  }),
-  // 6to4 Relay Anycast
-  Object.freeze({
-    prefix: '192.88.99.0/24',
-    prefix_length: 24,
-    name: '6to4 Relay Anycast',
-    destination: false,
-    forwardable: false,
-    globally_reachable: false,
-    reserved_by_protocol: true,
-    reference: 'RFC 7526',
-  }),
-  // Reserved / Multicast / Future Use
-  Object.freeze({
-    prefix: '224.0.0.0/4',
-    prefix_length: 4,
-    name: 'Multicast',
-    destination: false,
-    forwardable: false,
-    globally_reachable: false,
-    reserved_by_protocol: true,
-    reference: 'RFC 1112 / RFC 5771',
   }),
   Object.freeze({
     prefix: '240.0.0.0/4',
@@ -247,16 +271,39 @@ export const IANA_IPV4_SPECIAL_RECORDS = Object.freeze([
     forwardable: false,
     globally_reachable: false,
     reserved_by_protocol: true,
+    allocation_status: 'Allocated',
     reference: 'RFC 1112, Section 4',
+  }),
+  // Project Supplement: Multicast & Limited Broadcast
+  Object.freeze({
+    prefix: '224.0.0.0/4',
+    prefix_length: 4,
+    name: 'Multicast',
+    destination: false,
+    forwardable: false,
+    globally_reachable: false,
+    reserved_by_protocol: true,
+    allocation_status: 'Project Supplement',
+    reference: 'RFC 1112 / RFC 5771',
+  }),
+  Object.freeze({
+    prefix: '255.255.255.255/32',
+    prefix_length: 32,
+    name: 'Limited Broadcast',
+    destination: false,
+    forwardable: false,
+    globally_reachable: false,
+    reserved_by_protocol: true,
+    allocation_status: 'Project Supplement',
+    reference: 'RFC 919 / RFC 8190',
   }),
 ]);
 
 /**
  * Static IANA IPv6 Special-Purpose & Non-Unicast Ranges
- * Ordered by prefix length (longest prefix first) for matching.
+ * Formatted and normalized directly from official CSV.
  */
 export const IANA_IPV6_SPECIAL_RECORDS = Object.freeze([
-  // Node-Local / Loopback / Unspecified
   Object.freeze({
     prefix: '::1/128',
     prefix_length: 128,
@@ -265,6 +312,7 @@ export const IANA_IPV6_SPECIAL_RECORDS = Object.freeze([
     forwardable: false,
     globally_reachable: false,
     reserved_by_protocol: true,
+    allocation_status: 'Allocated',
     reference: 'RFC 4291',
   }),
   Object.freeze({
@@ -275,31 +323,42 @@ export const IANA_IPV6_SPECIAL_RECORDS = Object.freeze([
     forwardable: false,
     globally_reachable: false,
     reserved_by_protocol: true,
+    allocation_status: 'Allocated',
     reference: 'RFC 4291',
   }),
-  // IPv4-mapped IPv6 prefix
   Object.freeze({
     prefix: '::ffff:0:0/96',
     prefix_length: 96,
     name: 'IPv4-mapped IPv6',
     destination: true,
     forwardable: true,
-    globally_reachable: false, // Handled via mapped IPv4 policy classification
+    globally_reachable: false, // Evaluated via embedded IPv4 policy
     reserved_by_protocol: true,
+    allocation_status: 'Allocated',
     reference: 'RFC 4291',
   }),
-  // IPv4-translated IPv6
   Object.freeze({
-    prefix: '::ffff:0:0:0/96',
+    prefix: '64:ff9b::/96',
     prefix_length: 96,
-    name: 'IPv4-translated Address',
-    destination: false,
-    forwardable: false,
-    globally_reachable: false,
-    reserved_by_protocol: true,
-    reference: 'RFC 2765 / RFC 6052',
+    name: 'Well-Known Prefix',
+    destination: true,
+    forwardable: true,
+    globally_reachable: true,
+    reserved_by_protocol: false,
+    allocation_status: 'Allocated',
+    reference: 'RFC 6052',
   }),
-  // Discard Prefix
+  Object.freeze({
+    prefix: '64:ff9b:1::/48',
+    prefix_length: 48,
+    name: 'Local-IPv4-IPv6 Translation Prefix',
+    destination: true,
+    forwardable: true,
+    globally_reachable: false,
+    reserved_by_protocol: false,
+    allocation_status: 'Allocated',
+    reference: 'RFC 8215',
+  }),
   Object.freeze({
     prefix: '100::/64',
     prefix_length: 64,
@@ -308,9 +367,20 @@ export const IANA_IPV6_SPECIAL_RECORDS = Object.freeze([
     forwardable: false,
     globally_reachable: false,
     reserved_by_protocol: true,
+    allocation_status: 'Allocated',
     reference: 'RFC 6666',
   }),
-  // IETF Protocol Assignments
+  Object.freeze({
+    prefix: '100:0:0:1::/64',
+    prefix_length: 64,
+    name: 'Provider-Side Translator (PREF64)',
+    destination: true,
+    forwardable: true,
+    globally_reachable: false,
+    reserved_by_protocol: true,
+    allocation_status: 'Allocated',
+    reference: 'RFC 9599',
+  }),
   Object.freeze({
     prefix: '2001::/23',
     prefix_length: 23,
@@ -319,20 +389,20 @@ export const IANA_IPV6_SPECIAL_RECORDS = Object.freeze([
     forwardable: false,
     globally_reachable: false,
     reserved_by_protocol: true,
+    allocation_status: 'Allocated',
     reference: 'RFC 2928',
   }),
-  // TEREDO (within 2001::/32)
   Object.freeze({
     prefix: '2001::/32',
     prefix_length: 32,
     name: 'TEREDO',
     destination: true,
     forwardable: true,
-    globally_reachable: true,
+    globally_reachable: false, // N/A in IANA registry -> fails closed
     reserved_by_protocol: false,
+    allocation_status: 'Allocated',
     reference: 'RFC 4380',
   }),
-  // Port Control Protocol Anycast
   Object.freeze({
     prefix: '2001:1::1/128',
     prefix_length: 128,
@@ -341,9 +411,9 @@ export const IANA_IPV6_SPECIAL_RECORDS = Object.freeze([
     forwardable: true,
     globally_reachable: true,
     reserved_by_protocol: false,
+    allocation_status: 'Allocated',
     reference: 'RFC 7723',
   }),
-  // Traversal Using Relays around NAT (TURN) Anycast
   Object.freeze({
     prefix: '2001:1::2/128',
     prefix_length: 128,
@@ -352,9 +422,20 @@ export const IANA_IPV6_SPECIAL_RECORDS = Object.freeze([
     forwardable: true,
     globally_reachable: true,
     reserved_by_protocol: false,
+    allocation_status: 'Allocated',
     reference: 'RFC 8155',
   }),
-  // Benchmarking
+  Object.freeze({
+    prefix: '2001:1::3/128',
+    prefix_length: 128,
+    name: 'AURA Anycast',
+    destination: true,
+    forwardable: true,
+    globally_reachable: true,
+    reserved_by_protocol: false,
+    allocation_status: 'Allocated',
+    reference: 'RFC 9396',
+  }),
   Object.freeze({
     prefix: '2001:2::/48',
     prefix_length: 48,
@@ -363,9 +444,9 @@ export const IANA_IPV6_SPECIAL_RECORDS = Object.freeze([
     forwardable: false,
     globally_reachable: false,
     reserved_by_protocol: false,
+    allocation_status: 'Allocated',
     reference: 'RFC 5180',
   }),
-  // AMT
   Object.freeze({
     prefix: '2001:3::/32',
     prefix_length: 32,
@@ -374,9 +455,9 @@ export const IANA_IPV6_SPECIAL_RECORDS = Object.freeze([
     forwardable: true,
     globally_reachable: true,
     reserved_by_protocol: false,
+    allocation_status: 'Allocated',
     reference: 'RFC 7450',
   }),
-  // AS112-v6
   Object.freeze({
     prefix: '2001:4:112::/48',
     prefix_length: 48,
@@ -385,20 +466,31 @@ export const IANA_IPV6_SPECIAL_RECORDS = Object.freeze([
     forwardable: true,
     globally_reachable: true,
     reserved_by_protocol: false,
+    allocation_status: 'Allocated',
     reference: 'RFC 7535',
   }),
-  // ORCHIDv2
   Object.freeze({
-    prefix: '2001:10::/28',
+    prefix: '2001:20::/28',
     prefix_length: 28,
     name: 'ORCHIDv2',
     destination: false,
     forwardable: false,
     globally_reachable: false,
     reserved_by_protocol: false,
+    allocation_status: 'Allocated',
     reference: 'RFC 7343',
   }),
-  // Documentation
+  Object.freeze({
+    prefix: '2001:30::/28',
+    prefix_length: 28,
+    name: 'Drone Remote ID Protocol Entity Tags (DETs)',
+    destination: false,
+    forwardable: false,
+    globally_reachable: false,
+    reserved_by_protocol: false,
+    allocation_status: 'Allocated',
+    reference: 'RFC 9374',
+  }),
   Object.freeze({
     prefix: '2001:db8::/32',
     prefix_length: 32,
@@ -407,20 +499,53 @@ export const IANA_IPV6_SPECIAL_RECORDS = Object.freeze([
     forwardable: false,
     globally_reachable: false,
     reserved_by_protocol: false,
+    allocation_status: 'Allocated',
     reference: 'RFC 3849',
   }),
-  // 6to4
   Object.freeze({
     prefix: '2002::/16',
     prefix_length: 16,
     name: '6to4',
     destination: true,
     forwardable: true,
+    globally_reachable: false, // N/A in IANA registry -> fails closed
+    reserved_by_protocol: false,
+    allocation_status: 'Deprecated',
+    reference: 'RFC 3056 / RFC 7526',
+  }),
+  Object.freeze({
+    prefix: '2620:4f:8000::/48',
+    prefix_length: 48,
+    name: 'Direct Delegation AS112 Service',
+    destination: true,
+    forwardable: true,
     globally_reachable: true,
     reserved_by_protocol: false,
-    reference: 'RFC 3056',
+    allocation_status: 'Allocated',
+    reference: 'RFC 7534',
   }),
-  // Unique Local Unicast (ULA)
+  Object.freeze({
+    prefix: '3fff::/20',
+    prefix_length: 20,
+    name: 'Documentation',
+    destination: false,
+    forwardable: false,
+    globally_reachable: false,
+    reserved_by_protocol: false,
+    allocation_status: 'Allocated',
+    reference: 'RFC 9637',
+  }),
+  Object.freeze({
+    prefix: '5f00::/16',
+    prefix_length: 16,
+    name: 'Segment Routing (SRv6) SIDs',
+    destination: false,
+    forwardable: false,
+    globally_reachable: false,
+    reserved_by_protocol: true,
+    allocation_status: 'Allocated',
+    reference: 'RFC 9602',
+  }),
   Object.freeze({
     prefix: 'fc00::/7',
     prefix_length: 7,
@@ -429,9 +554,9 @@ export const IANA_IPV6_SPECIAL_RECORDS = Object.freeze([
     forwardable: true,
     globally_reachable: false,
     reserved_by_protocol: false,
+    allocation_status: 'Allocated',
     reference: 'RFC 4193',
   }),
-  // Link-Local Unicast
   Object.freeze({
     prefix: 'fe80::/10',
     prefix_length: 10,
@@ -440,9 +565,10 @@ export const IANA_IPV6_SPECIAL_RECORDS = Object.freeze([
     forwardable: false,
     globally_reachable: false,
     reserved_by_protocol: true,
+    allocation_status: 'Allocated',
     reference: 'RFC 4291',
   }),
-  // Multicast
+  // Project Supplement: Multicast
   Object.freeze({
     prefix: 'ff00::/8',
     prefix_length: 8,
@@ -451,6 +577,39 @@ export const IANA_IPV6_SPECIAL_RECORDS = Object.freeze([
     forwardable: false,
     globally_reachable: false,
     reserved_by_protocol: true,
+    allocation_status: 'Project Supplement',
     reference: 'RFC 4291',
   }),
 ]);
+
+/**
+ * Validate registry snapshot integrity at initialization time.
+ * Enforces CIDR formatting, prefix length matching, no conflicting prefixes, and boolean fields.
+ */
+export function validateRegistrySnapshotIntegrity() {
+  const checkRecords = (records, familyName) => {
+    const seenPrefixes = new Map();
+    for (const rec of records) {
+      if (!rec || typeof rec !== 'object') throw new Error(`[Snapshot Integrity] Invalid record object in ${familyName}`);
+      const [ip, lenStr] = rec.prefix.split('/');
+      const len = parseInt(lenStr, 10);
+      if (len !== rec.prefix_length) {
+        throw new Error(`[Snapshot Integrity] Prefix length mismatch in ${familyName}: ${rec.prefix} vs ${rec.prefix_length}`);
+      }
+      if (typeof rec.globally_reachable !== 'boolean') {
+        throw new Error(`[Snapshot Integrity] Non-boolean globally_reachable in ${familyName} for ${rec.prefix}`);
+      }
+      if (seenPrefixes.has(rec.prefix)) {
+        throw new Error(`[Snapshot Integrity] Conflicting duplicate prefix in ${familyName}: ${rec.prefix}`);
+      }
+      seenPrefixes.set(rec.prefix, rec);
+    }
+  };
+
+  checkRecords(IANA_IPV4_SPECIAL_RECORDS, 'IPv4');
+  checkRecords(IANA_IPV6_SPECIAL_RECORDS, 'IPv6');
+  return true;
+}
+
+// Self-verify snapshot integrity on module load
+validateRegistrySnapshotIntegrity();

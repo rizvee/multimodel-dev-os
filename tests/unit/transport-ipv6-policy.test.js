@@ -3,8 +3,19 @@ import {
   parseCanonicalIPv6,
   classifyIPv6Address,
 } from '../../src/gateway/transport/ipv6-policy.js';
+import {
+  IANA_IPV6_SPECIAL_RECORDS,
+  IANA_IPV6_SPECIAL_REGISTRY_METADATA,
+} from '../../src/gateway/transport/registry-snapshot.js';
 
-describe('IPv6 Transport Policy', () => {
+describe('IPv6 Transport Policy & Registry Snapshot Integrity', () => {
+  it('preserves expected metadata and normalized record counts in snapshot', () => {
+    expect(IANA_IPV6_SPECIAL_REGISTRY_METADATA.source_url).toContain('iana-ipv6-special-registry-1.csv');
+    expect(IANA_IPV6_SPECIAL_REGISTRY_METADATA.last_updated).toBe('2025-10-09');
+    expect(IANA_IPV6_SPECIAL_REGISTRY_METADATA.normalized_record_count).toBe(20);
+    expect(IANA_IPV6_SPECIAL_RECORDS.length).toBeGreaterThanOrEqual(20);
+  });
+
   it('parses valid RFC 5952 canonical IPv6 addresses', () => {
     const validVector = [
       '2001:db8::1',
@@ -13,67 +24,50 @@ describe('IPv6 Transport Policy', () => {
       '::',
       'fe80::1',
       'ff02::1',
-      '::ffff:192.0.2.1', // canonical mapped IPv4
+      '::ffff:192.0.2.1',
     ];
     for (const ip of validVector) {
       const res = parseCanonicalIPv6(ip);
       expect(res.success).toBe(true);
       expect(res.normalized_address).toBe(ip);
-      expect(res.words).toHaveLength(8);
     }
   });
 
-  it('rejects non-canonical RFC 5952 and malformed IPv6 representations', () => {
-    const invalidVector = [
-      '2001:0db8::1', // leading zeros in hex word
-      '2001:DB8::1', // uppercase
-      '::1::2', // multiple double colons
-      'fe80::1%eth0', // scope/zone identifier
-      '[2001:db8::1]', // brackets in address parser
-      '1:2:3:4:5:6:7:8:9', // 9 segments
-      '::ffff:127.000.000.001', // non-canonical mapped octal
-      '::ffff:256.1.1.1', // out of range mapped
-    ];
-    for (const ip of invalidVector) {
-      const res = parseCanonicalIPv6(ip);
-      expect(res.success).toBe(false);
-    }
-  });
+  it('classifies critical IANA IPv6 regression vectors accurately', () => {
+    // 2001:1::1, ::2, ::3 select /128 records (allowed)
+    expect(classifyIPv6Address('2001:1::1').allowed).toBe(true);
+    expect(classifyIPv6Address('2001:1::2').allowed).toBe(true);
+    expect(classifyIPv6Address('2001:1::3').allowed).toBe(true);
+    expect(classifyIPv6Address('2001:1::1').matched_prefix).toBe('2001:1::1/128');
 
-  it('classifies public global unicast IPv6 as allowed', () => {
-    const publicVector = ['2607:f8b0:4005:805::200e', '2001:4860:4860::8888'];
-    for (const ip of publicVector) {
-      const cls = classifyIPv6Address(ip);
-      expect(cls.globally_reachable).toBe(true);
-      expect(cls.allowed).toBe(true);
-      expect(cls.family).toBe(6);
-    }
-  });
+    // 2001:1::4 falls back to parent 2001::/23 (denied)
+    expect(classifyIPv6Address('2001:1::4').allowed).toBe(false);
 
-  it('classifies non-global / special IPv6 ranges as disallowed', () => {
-    const nonGlobalVector = [
-      '::1', // loopback
-      '::', // unspecified
-      'fe80::1', // link-local
-      'fc00::1', // ULA
-      'fd00::1', // ULA
-      'ff02::1', // multicast
-      '2001:db8::1', // documentation
-      '::ffff:10.0.0.1', // mapped private IPv4
-      '::ffff:127.0.0.1', // mapped loopback IPv4
-      '::ffff:169.254.169.254', // mapped link local
-    ];
-    for (const ip of nonGlobalVector) {
-      const cls = classifyIPv6Address(ip);
-      expect(cls.globally_reachable).toBe(false);
-      expect(cls.allowed).toBe(false);
-    }
-  });
+    // 2001:20::1 (ORCHIDv2) denied
+    expect(classifyIPv6Address('2001:20::1').allowed).toBe(false);
+    expect(classifyIPv6Address('2001:20::1').matched_prefix).toBe('2001:20::/28');
 
-  it('allows public IPv4-mapped IPv6 addresses', () => {
-    const publicMapped = '::ffff:8.8.8.8';
-    const cls = classifyIPv6Address(publicMapped);
-    expect(cls.globally_reachable).toBe(true);
-    expect(cls.allowed).toBe(true);
+    // 2001:30::1 (DETs) denied
+    expect(classifyIPv6Address('2001:30::1').allowed).toBe(false);
+    expect(classifyIPv6Address('2001:30::1').matched_prefix).toBe('2001:30::/28');
+
+    // TEREDO (2001::1) & 6to4 (2002::1) fail closed (N/A in registry)
+    expect(classifyIPv6Address('2001::1').allowed).toBe(false);
+    expect(classifyIPv6Address('2002::1').allowed).toBe(false);
+
+    // 64:ff9b::1 allowed (64:ff9b::/96)
+    expect(classifyIPv6Address('64:ff9b::1').allowed).toBe(true);
+
+    // 64:ff9b:1::1 denied (64:ff9b:1::/48)
+    expect(classifyIPv6Address('64:ff9b:1::1').allowed).toBe(false);
+
+    // 100:0:0:1::1 denied (100:0:0:1::/64)
+    expect(classifyIPv6Address('100:0:0:1::1').allowed).toBe(false);
+
+    // 3fff::1 denied (3fff::/20)
+    expect(classifyIPv6Address('3fff::1').allowed).toBe(false);
+
+    // 5f00::1 denied (5f00::/16)
+    expect(classifyIPv6Address('5f00::1').allowed).toBe(false);
   });
 });

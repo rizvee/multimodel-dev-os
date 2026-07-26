@@ -129,4 +129,20 @@ describe('Runtime Backpressure Helper (waitForDrain)', () => {
 
     await drainPromise; // successfully resolved
   });
+
+  it('immediately cleans up returned unsubscribe function if subscribeFinalization settles synchronously', async () => {
+    const res = createFakeResponse();
+    let unsubscribed = false;
+
+    const mockSyncSession = {
+      getSummary() { return null; },
+      subscribeFinalization(cb) {
+        cb({ state: 'failed', safe_error: new Error('Sync failed session') });
+        return () => { unsubscribed = true; };
+      },
+    };
+
+    await expect(waitForDrain(res, null, mockSyncSession)).rejects.toThrow('Sync failed session');
+    expect(unsubscribed).toBe(true);
+  });
 });

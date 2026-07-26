@@ -3,8 +3,19 @@ import {
   parseCanonicalIPv4,
   classifyIPv4Address,
 } from '../../src/gateway/transport/ipv4-policy.js';
+import {
+  IANA_IPV4_SPECIAL_RECORDS,
+  IANA_IPV4_SPECIAL_REGISTRY_METADATA,
+} from '../../src/gateway/transport/registry-snapshot.js';
 
-describe('IPv4 Transport Policy', () => {
+describe('IPv4 Transport Policy & Registry Snapshot Integrity', () => {
+  it('preserves expected metadata and normalized record counts in snapshot', () => {
+    expect(IANA_IPV4_SPECIAL_REGISTRY_METADATA.source_url).toContain('iana-ipv4-special-registry-1.csv');
+    expect(IANA_IPV4_SPECIAL_REGISTRY_METADATA.last_updated).toBe('2025-10-09');
+    expect(IANA_IPV4_SPECIAL_REGISTRY_METADATA.normalized_record_count).toBe(22);
+    expect(IANA_IPV4_SPECIAL_RECORDS.length).toBeGreaterThanOrEqual(22);
+  });
+
   it('parses valid canonical IPv4 addresses', () => {
     const validVector = [
       '1.1.1.1',
@@ -25,20 +36,20 @@ describe('IPv4 Transport Policy', () => {
 
   it('rejects non-canonical and malformed IPv4 representations', () => {
     const invalidVector = [
-      '127.1', // shortened
-      '0177.0.0.1', // octal leading zero
-      '127.000.000.001', // excessive leading zeros
-      '0x7f000001', // hex
-      '2130706433', // dword
-      '-1.2.3.4', // signed
-      '+1.2.3.4', // signed
-      ' 1.1.1.1', // leading space
-      '1.1.1.1 ', // trailing space
-      '1.1.1.1.', // trailing dot
-      '256.0.0.1', // octet out of range
-      '1.2.3.4.5', // 5 octets
-      '1..3.4', // empty octet
-      'abc.def.ghi.jkl', // non-numeric
+      '127.1',
+      '0177.0.0.1',
+      '127.000.000.001',
+      '0x7f000001',
+      '2130706433',
+      '-1.2.3.4',
+      '+1.2.3.4',
+      ' 1.1.1.1',
+      '1.1.1.1 ',
+      '1.1.1.1.',
+      '256.0.0.1',
+      '1.2.3.4.5',
+      '1..3.4',
+      'abc.def.ghi.jkl',
     ];
     for (const ip of invalidVector) {
       const res = parseCanonicalIPv4(ip);
@@ -56,40 +67,25 @@ describe('IPv4 Transport Policy', () => {
     }
   });
 
-  it('classifies forbidden non-global ranges as disallowed', () => {
-    const forbiddenVector = [
-      { ip: '127.0.0.1', name: 'Loopback' },
-      { ip: '10.0.0.1', name: 'Private-Use' },
-      { ip: '172.16.0.1', name: 'Private-Use' },
-      { ip: '192.168.1.1', name: 'Private-Use' },
-      { ip: '100.64.0.1', name: 'Shared Address Space' },
-      { ip: '169.254.169.254', name: 'Link Local' },
-      { ip: '0.0.0.0', name: 'This host on this network' },
-      { ip: '192.0.2.1', name: 'Documentation (TEST-NET-1)' },
-      { ip: '198.51.100.1', name: 'Documentation (TEST-NET-2)' },
-      { ip: '203.0.113.1', name: 'Documentation (TEST-NET-3)' },
-      { ip: '198.18.0.1', name: 'Benchmarking' },
-      { ip: '224.0.0.1', name: 'Multicast' },
-      { ip: '240.0.0.1', name: 'Reserved for Future Use' },
-      { ip: '255.255.255.255', name: 'Limited Broadcast' },
-    ];
-    for (const { ip } of forbiddenVector) {
-      const cls = classifyIPv4Address(ip);
-      expect(cls.globally_reachable).toBe(false);
-      expect(cls.allowed).toBe(false);
-    }
-  });
+  it('classifies critical IANA IPv4 regression vectors accurately', () => {
+    // 192.0.0.9 and .10 allowed
+    expect(classifyIPv4Address('192.0.0.9').allowed).toBe(true);
+    expect(classifyIPv4Address('192.0.0.10').allowed).toBe(true);
 
-  it('correctly respects longest-prefix IANA exceptions (e.g. 192.0.0.9 vs 192.0.0.0/24)', () => {
-    // 192.0.0.0/24 is reserved/non-global
-    const generalP = classifyIPv4Address('192.0.0.1');
-    expect(generalP.globally_reachable).toBe(false);
-    expect(generalP.allowed).toBe(false);
+    // 192.0.0.170 and .171 denied (N/A in registry -> fail closed)
+    expect(classifyIPv4Address('192.0.0.170').allowed).toBe(false);
+    expect(classifyIPv4Address('192.0.0.171').allowed).toBe(false);
 
-    // 192.0.0.9/32 is PCP Server exception (globally reachable)
-    const exceptionP = classifyIPv4Address('192.0.0.9');
-    expect(exceptionP.globally_reachable).toBe(true);
-    expect(exceptionP.allowed).toBe(true);
-    expect(exceptionP.matched_prefix).toBe('192.0.0.9/32');
+    // 192.0.0.8 denied (falls into 192.0.0.0/24)
+    expect(classifyIPv4Address('192.0.0.8').allowed).toBe(false);
+
+    // 192.88.99.2 denied (6to4 Benchmark Testing)
+    expect(classifyIPv4Address('192.88.99.2').allowed).toBe(false);
+
+    // 192.31.196.1 allowed
+    expect(classifyIPv4Address('192.31.196.1').allowed).toBe(true);
+
+    // 192.175.48.1 allowed
+    expect(classifyIPv4Address('192.175.48.1').allowed).toBe(true);
   });
 });

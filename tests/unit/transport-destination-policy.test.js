@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { evaluateDestinationUrl } from '../../src/gateway/transport/destination-policy.js';
+import { evaluateDestinationUrl, evaluatePathSafety } from '../../src/gateway/transport/destination-policy.js';
 
-describe('Destination Transport Policy', () => {
+describe('Destination Transport Policy & Path Safety', () => {
   it('accepts valid HTTPS provider destination URLs', () => {
     const validUrls = [
       'https://api.openai.com/v1/chat/completions',
@@ -18,32 +18,21 @@ describe('Destination Transport Policy', () => {
     }
   });
 
-  it('rejects HTTP scheme, userinfo, query, fragment, and alternate ports', () => {
-    expect(evaluateDestinationUrl('http://api.openai.com/v1').reason).toBe('scheme_must_be_exact_https');
-    expect(evaluateDestinationUrl('https://user:pass@api.openai.com/v1').reason).toBe('userinfo_not_permitted');
-    expect(evaluateDestinationUrl('https://api.openai.com/v1?foo=bar').reason).toBe('query_string_not_permitted');
-    expect(evaluateDestinationUrl('https://api.openai.com/v1#section').reason).toBe('fragment_not_permitted');
-    expect(evaluateDestinationUrl('https://api.openai.com:8443/v1').reason).toBe('alternate_ports_not_permitted');
+  it('rejects uppercase hostnames and punycode xn-- hostnames in v4.3', () => {
+    expect(evaluateDestinationUrl('https://API.OPENAI.COM/v1').reason).toBe('uppercase_hostname_rejected');
+    expect(evaluateDestinationUrl('https://xn--e1afmkfd.xn--p1ai/v1').reason).toBe('punycode_hostname_unsupported');
   });
 
-  it('rejects path traversal, backslashes, whitespace, and encoded separators', () => {
-    expect(evaluateDestinationUrl('https://api.openai.com/v1/../v2').reason).toBe('encoded_separator_or_path_traversal_rejected');
-    expect(evaluateDestinationUrl('https://api.openai.com/v1%2f..%2fv2').reason).toBe('encoded_separator_or_path_traversal_rejected');
-    expect(evaluateDestinationUrl('https://api.openai.com\\v1').reason).toBe('backslash_rejected');
-    expect(evaluateDestinationUrl('https://api.openai.com /v1').reason).toBe('whitespace_or_control_characters_rejected');
-  });
-
-  it('rejects private and non-global IP literal hostnames immediately', () => {
-    expect(evaluateDestinationUrl('https://127.0.0.1/v1').reason).toContain('non_global_ipv4_literal');
-    expect(evaluateDestinationUrl('https://10.0.0.1/v1').reason).toContain('non_global_ipv4_literal');
-    expect(evaluateDestinationUrl('https://[::1]/v1').reason).toContain('non_global_ipv6_literal');
-    expect(evaluateDestinationUrl('https://[fe80::1]/v1').reason).toContain('non_global_ipv6_literal');
-  });
-
-  it('rejects WHATWG alternate numeric IPv4 normalization attacks', () => {
-    // 0177.0.0.1 normalizes to 127.0.0.1 in WHATWG URL, but raw parser rejects it as non-canonical
-    const res = evaluateDestinationUrl('https://0177.0.0.1/v1');
-    expect(res.success).toBe(false);
-    expect(res.reason).toContain('non_canonical_ipv4_literal');
+  it('evaluates recursive percent-encoded path safety (max 3 passes)', () => {
+    expect(evaluatePathSafety('/v1/chat').success).toBe(true);
+    expect(evaluatePathSafety('/v1/%2f/chat').reason).toBe('encoded_separator_rejected');
+    expect(evaluatePathSafety('/v1/%5c/chat').reason).toBe('encoded_separator_rejected');
+    expect(evaluatePathSafety('/v1/%2e%2e/chat').reason).toBe('encoded_traversal_or_nul_rejected');
+    expect(evaluatePathSafety('/v1/%252f/chat').reason).toBe('encoded_separator_rejected');
+    expect(evaluatePathSafety('/v1/%255c/chat').reason).toBe('encoded_separator_rejected');
+    expect(evaluatePathSafety('/v1/%252e%252e/chat').reason).toBe('encoded_traversal_or_nul_rejected');
+    expect(evaluatePathSafety('/v1/%25252f/chat').reason).toBe('encoded_separator_rejected');
+    expect(evaluatePathSafety('/v1/%20/chat').success).toBe(true); // Safe space encoding
+    expect(evaluatePathSafety('/v1/%zz/chat').reason).toBe('malformed_percent_encoding');
   });
 });

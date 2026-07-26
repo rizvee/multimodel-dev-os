@@ -883,4 +883,21 @@ export async function checkGatewayContracts() {
   } else {
     fail('Canonical IP parsers failed to reject non-canonical syntax');
   }
+
+  // F1 Hardened Critical Vector Verifier Checks
+  const ip192_9 = classifyAddress('192.0.0.9');
+  const ip192_170 = classifyAddress('192.0.0.170');
+  const ip64_ff9b_1 = classifyAddress('64:ff9b:1::1');
+  const ip2001_1_1 = classifyAddress('2001:1::1');
+
+  if (
+    ip192_9.allowed === true &&
+    ip192_170.allowed === false &&
+    ip64_ff9b_1.allowed === false &&
+    ip2001_1_1.matched_prefix === '2001:1::1/128'
+  ) {
+    pass('Critical IANA regression vectors (192.0.0.9, 192.0.0.170, 64:ff9b:1::1, 2001:1::1) verify accurately');
+  } else {
+    fail('Critical IANA regression vectors failed verification');
+  }
 }

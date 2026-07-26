@@ -43,9 +43,8 @@ export function classifyAddress(input) {
 }
 
 /**
- * Pure evaluation of a resolved address set (e.g. from DNS resolution).
- * Fail-closed: Every address in the set MUST be globally reachable and valid.
- * Deterministic selection: IPv4 before IPv6, then ascending numeric order.
+ * Hardened evaluation of a resolved address set.
+ * Validates plain data records without getters/setters/accessors/prototype pollution.
  */
 export function evaluateResolvedAddressSet(records) {
   if (!Array.isArray(records)) {
@@ -64,35 +63,51 @@ export function evaluateResolvedAddressSet(records) {
   const seenAddresses = new Set();
   let minTtl = Infinity;
 
+  const ALLOWED_RECORD_KEYS = new Set(['address', 'family', 'ttl']);
+
   for (let i = 0; i < records.length; i++) {
     const rec = records[i];
 
-    if (!rec || typeof rec !== 'object') {
+    if (!rec || typeof rec !== 'object' || Array.isArray(rec)) {
       return Object.freeze({ success: false, error: 'invalid_record_object', index: i });
     }
 
-    // Prototype safety checks
-    const keys = Object.keys(rec);
+    // Prototype check: must be Object.prototype or null
+    const proto = Object.getPrototypeOf(rec);
+    if (proto !== Object.prototype && proto !== null) {
+      return Object.freeze({ success: false, error: 'record_prototype_must_be_object_or_null', index: i });
+    }
+
+    // Key check & property descriptor audit before reading properties
+    const keys = Object.getOwnPropertyNames(rec);
     for (const key of keys) {
-      if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
-        return Object.freeze({ success: false, error: 'prototype_sensitive_key_rejected', key });
+      if (!ALLOWED_RECORD_KEYS.has(key)) {
+        return Object.freeze({ success: false, error: 'unpermitted_record_property_key', key, index: i });
+      }
+      const desc = Object.getOwnPropertyDescriptor(rec, key);
+      if (!desc || desc.get || desc.set || typeof desc.value === 'function') {
+        return Object.freeze({ success: false, error: 'accessor_or_method_property_rejected', key, index: i });
       }
     }
 
-    // Own property check
+    // Required own data properties
     if (!Object.prototype.hasOwnProperty.call(rec, 'address') || !Object.prototype.hasOwnProperty.call(rec, 'family')) {
       return Object.freeze({ success: false, error: 'missing_required_record_properties', index: i });
     }
 
     const { address, family, ttl } = rec;
 
+    if (typeof address !== 'string' || address.length === 0 || address.length > 45) {
+      return Object.freeze({ success: false, error: 'invalid_address_string_length', index: i });
+    }
+
     if (family !== 4 && family !== 6) {
       return Object.freeze({ success: false, error: 'invalid_address_family', family, index: i });
     }
 
-    if (typeof ttl === 'number') {
-      if (ttl < 0 || !Number.isInteger(ttl)) {
-        return Object.freeze({ success: false, error: 'invalid_ttl_value', ttl, index: i });
+    if (ttl !== undefined) {
+      if (typeof ttl !== 'number' || ttl < 0 || !Number.isInteger(ttl) || ttl > 604800) {
+        return Object.freeze({ success: false, error: 'invalid_ttl_value', index: i });
       }
       if (ttl < minTtl) minTtl = ttl;
     }
@@ -108,9 +123,8 @@ export function evaluateResolvedAddressSet(records) {
       return Object.freeze({
         success: false,
         error: 'non_global_or_forbidden_address_in_set',
-        address,
-        classification: classification.classification,
         index: i,
+        classification: classification.classification,
       });
     }
 

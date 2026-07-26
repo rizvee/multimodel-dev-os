@@ -54,12 +54,12 @@ function ipv4ToNumeric(ipStr) {
 function isIPv4InCidr(ipNumeric, prefixIpStr, prefixLength) {
   const prefixNumeric = ipv4ToNumeric(prefixIpStr);
   if (prefixLength === 0) return true;
-  const mask = ((0xffffffff << (32 - prefixLength)) >>> 0);
+  const mask = prefixLength === 32 ? 0xffffffff : (((0xffffffff << (32 - prefixLength)) >>> 0));
   return (ipNumeric & mask) === (prefixNumeric & mask);
 }
 
 /**
- * Classify a canonical IPv4 address string against IANA special-purpose registry & longest-prefix matching.
+ * Classify a canonical IPv4 address string against IANA special-purpose registry using TRUE longest-prefix matching.
  */
 export function classifyIPv4Address(input) {
   const parseResult = parseCanonicalIPv4(input);
@@ -79,28 +79,42 @@ export function classifyIPv4Address(input) {
 
   const ipNumeric = parseResult.numeric_value;
 
-  // Longest-prefix matching: records in IANA_IPV4_SPECIAL_RECORDS are pre-sorted by prefix_length descending where specific overrides come first
-  // E.g., 192.0.0.9/32 (globally_reachable: true) comes before 192.0.0.0/24 (globally_reachable: false)
+  // Real Longest-Prefix Matching: collect ALL matching records and select the one with the max prefix_length
+  const matchingRecords = [];
   for (const record of IANA_IPV4_SPECIAL_RECORDS) {
     const [prefixIp, prefixLenStr] = record.prefix.split('/');
     const prefixLength = parseInt(prefixLenStr, 10);
     if (isIPv4InCidr(ipNumeric, prefixIp, prefixLength)) {
-      const isGlobal = record.globally_reachable === true;
-      return Object.freeze({
-        family: 4,
-        normalized_address: parseResult.normalized_address,
-        globally_reachable: isGlobal,
-        allowed: isGlobal,
-        classification: record.name,
-        matched_prefix: record.prefix,
-        prefix_length: record.prefix_length,
-        registry_source: IANA_IPV4_SPECIAL_REGISTRY_METADATA.source_url,
-        reference: record.reference,
-      });
+      matchingRecords.push(record);
     }
   }
 
-  // Default-Public Rule: If an address is outside registered special-purpose / non-unicast ranges, it is globally reachable
+  if (matchingRecords.length > 0) {
+    // Sort matching records by prefix_length descending; deterministic tie-breaker if same length
+    matchingRecords.sort((a, b) => {
+      if (b.prefix_length !== a.prefix_length) {
+        return b.prefix_length - a.prefix_length;
+      }
+      return a.prefix.localeCompare(b.prefix);
+    });
+
+    const bestRecord = matchingRecords[0];
+    const isGlobal = bestRecord.globally_reachable === true;
+
+    return Object.freeze({
+      family: 4,
+      normalized_address: parseResult.normalized_address,
+      globally_reachable: isGlobal,
+      allowed: isGlobal,
+      classification: bestRecord.name,
+      matched_prefix: bestRecord.prefix,
+      prefix_length: bestRecord.prefix_length,
+      registry_source: IANA_IPV4_SPECIAL_REGISTRY_METADATA.source_url,
+      reference: bestRecord.reference,
+    });
+  }
+
+  // Default-Public Rule: Outside registered special-purpose ranges
   return Object.freeze({
     family: 4,
     normalized_address: parseResult.normalized_address,

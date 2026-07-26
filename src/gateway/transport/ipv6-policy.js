@@ -42,13 +42,11 @@ export function parseCanonicalIPv6(input) {
       return Object.freeze({ success: false, error: `mapped_ipv4_invalid: ${ipv4Result.error}` });
     }
 
-    // Convert mapped IPv4 to 128-bit BigInt
-    // ::ffff:a.b.c.d -> words [0,0,0,0,0,0xffff, (a<<8)+b, (c<<8)+d]
     const [a, b, c, d] = ipv4Result.octets;
     const w6 = (a << 8) | b;
     const w7 = (c << 8) | d;
     const words = Object.freeze([0, 0, 0, 0, 0, 0xffff, w6, w7]);
-    
+
     let bigintVal = 0n;
     bigintVal = (bigintVal << 16n) | 0xffffn;
     bigintVal = (bigintVal << 16n) | BigInt(w6);
@@ -100,14 +98,14 @@ export function parseCanonicalIPv6(input) {
     if (!/^[0-9a-f]{1,4}$/.test(part)) {
       return Object.freeze({ success: false, error: 'invalid_hex_segment' });
     }
-    // Strict RFC 5952: no unnecessary leading zeros (e.g. '0001' must be '1', '0000' must be '0')
+    // Strict RFC 5952: no unnecessary leading zeros
     if (part.length > 1 && part.startsWith('0')) {
       return Object.freeze({ success: false, error: 'unnecessary_leading_zero' });
     }
     words.push(parseInt(part, 16));
   }
 
-  // Verify RFC 5952 canonical formatting (compression of longest zero run, leftmost tie-breaker)
+  // Verify RFC 5952 canonical formatting
   const canonicalString = formatRfc5952(words);
   if (canonicalString !== input) {
     return Object.freeze({ success: false, error: 'non_canonical_rfc5952_format' });
@@ -128,11 +126,7 @@ export function parseCanonicalIPv6(input) {
   });
 }
 
-/**
- * Format 8 16-bit words into strict RFC 5952 canonical IPv6 text.
- */
 function formatRfc5952(words) {
-  // Find longest zero run of length >= 2
   let maxRunStart = -1;
   let maxRunLen = 0;
   let currentRunStart = -1;
@@ -181,24 +175,23 @@ function ipv6CidrToBigInt(prefixStr) {
   const [ipStr, lenStr] = prefixStr.split('/');
   const prefixLength = parseInt(lenStr, 10);
 
-  // Helper for CIDR parsing without requiring full RFC 5952 canonical check for snapshot prefixes
   const [left, right] = ipStr.includes('::') ? ipStr.split('::') : [ipStr, ''];
   const pLeft = left ? left.split(':') : [];
   const pRight = right ? right.split(':') : [];
   const missing = 8 - (pLeft.length + pRight.length);
   const allHex = [...pLeft, ...new Array(missing).fill('0'), ...pRight];
-  
+
   let val = 0n;
   for (const h of allHex) {
     val = (val << 16n) | BigInt(parseInt(h || '0', 16));
   }
 
-  const mask = prefixLength === 0 ? 0n : ((~0n) << BigInt(128 - prefixLength)) & ((1n << 128n) - 1n);
+  const mask = prefixLength === 0 ? 0n : (((~0n) << BigInt(128 - prefixLength)) & ((1n << 128n) - 1n));
   return { prefixBigInt: val, prefixLength, mask };
 }
 
 /**
- * Classify a canonical IPv6 address string against IANA special-purpose registry & longest-prefix matching.
+ * Classify a canonical IPv6 address string against IANA special-purpose registry using TRUE longest-prefix matching.
  */
 export function classifyIPv6Address(input) {
   const parseResult = parseCanonicalIPv6(input);
@@ -216,7 +209,6 @@ export function classifyIPv6Address(input) {
     });
   }
 
-  // Special handling for IPv4-mapped IPv6 Addresses: classify mapped IPv4 portion directly
   if (parseResult.is_mapped_ipv4) {
     const mappedClass = classifyIPv4Address(parseResult.mapped_ipv4_address);
     return Object.freeze({
@@ -235,22 +227,37 @@ export function classifyIPv6Address(input) {
 
   const ipBigInt = parseResult.bigint_value;
 
+  // Real Longest-Prefix Matching
+  const matchingRecords = [];
   for (const record of IANA_IPV6_SPECIAL_RECORDS) {
     const { prefixBigInt, prefixLength, mask } = ipv6CidrToBigInt(record.prefix);
     if ((ipBigInt & mask) === (prefixBigInt & mask)) {
-      const isGlobal = record.globally_reachable === true;
-      return Object.freeze({
-        family: 6,
-        normalized_address: parseResult.normalized_address,
-        globally_reachable: isGlobal,
-        allowed: isGlobal,
-        classification: record.name,
-        matched_prefix: record.prefix,
-        prefix_length: record.prefix_length,
-        registry_source: IANA_IPV6_SPECIAL_REGISTRY_METADATA.source_url,
-        reference: record.reference,
-      });
+      matchingRecords.push(record);
     }
+  }
+
+  if (matchingRecords.length > 0) {
+    matchingRecords.sort((a, b) => {
+      if (b.prefix_length !== a.prefix_length) {
+        return b.prefix_length - a.prefix_length;
+      }
+      return a.prefix.localeCompare(b.prefix);
+    });
+
+    const bestRecord = matchingRecords[0];
+    const isGlobal = bestRecord.globally_reachable === true;
+
+    return Object.freeze({
+      family: 6,
+      normalized_address: parseResult.normalized_address,
+      globally_reachable: isGlobal,
+      allowed: isGlobal,
+      classification: bestRecord.name,
+      matched_prefix: bestRecord.prefix,
+      prefix_length: bestRecord.prefix_length,
+      registry_source: IANA_IPV6_SPECIAL_REGISTRY_METADATA.source_url,
+      reference: bestRecord.reference,
+    });
   }
 
   // Default-Public Rule for IPv6

@@ -68,7 +68,14 @@ export function waitForDrain(response, signal, session = null) {
     }
 
     if (typeof session?.subscribeFinalization === 'function') {
-      unsubscribeFinalization = session.subscribeFinalization(handleSummary);
+      const unsub = session.subscribeFinalization(handleSummary);
+      if (settled || cleanedUp) {
+        if (typeof unsub === 'function') {
+          try { unsub(); } catch (_) {}
+        }
+      } else {
+        unsubscribeFinalization = unsub;
+      }
     } else if (session?.completion && typeof session.completion.then === 'function') {
       session.completion.then(handleSummary).catch(() => {});
     }

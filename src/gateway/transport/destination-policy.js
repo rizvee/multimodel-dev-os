@@ -6,11 +6,10 @@ import {
   parseCanonicalIPv6,
   classifyIPv6Address,
 } from './ipv6-policy.js';
-import { classifyAddress } from './address-policy.js';
 
 /**
- * Pure Destination URL Policy Evaluator.
- * Validates target endpoint URLs against raw-input, scheme, path, hostname, and IP literal rules.
+ * Pure Destination Authority & Raw URL Evaluator.
+ * Parses raw authority before WHATWG URL normalization.
  */
 export function evaluateDestinationUrl(input) {
   if (typeof input !== 'string') {
@@ -29,56 +28,7 @@ export function evaluateDestinationUrl(input) {
     });
   }
 
-  // Raw-input safety checks (before WHATWG URL parsing to prevent silent normalization attacks)
-  if (/[\s\r\n\t\0]/.test(input)) {
-    return Object.freeze({
-      success: false,
-      error: 'endpoint_invalid',
-      reason: 'whitespace_or_control_characters_rejected',
-    });
-  }
-
-  if (input.includes('\\')) {
-    return Object.freeze({
-      success: false,
-      error: 'endpoint_invalid',
-      reason: 'backslash_rejected',
-    });
-  }
-
-  if (/[^\x20-\x7E]/.test(input)) {
-    return Object.freeze({
-      success: false,
-      error: 'endpoint_invalid',
-      reason: 'non_ascii_characters_rejected',
-    });
-  }
-
-  if (input.includes('@')) {
-    return Object.freeze({
-      success: false,
-      error: 'endpoint_forbidden',
-      reason: 'userinfo_not_permitted',
-    });
-  }
-
-  if (input.includes('?')) {
-    return Object.freeze({
-      success: false,
-      error: 'endpoint_forbidden',
-      reason: 'query_string_not_permitted',
-    });
-  }
-
-  if (input.includes('#')) {
-    return Object.freeze({
-      success: false,
-      error: 'endpoint_forbidden',
-      reason: 'fragment_not_permitted',
-    });
-  }
-
-  // Scheme check
+  // Exact lowercase scheme check
   if (!input.startsWith('https://')) {
     return Object.freeze({
       success: false,
@@ -87,44 +37,86 @@ export function evaluateDestinationUrl(input) {
     });
   }
 
-  // Path traversal checks (raw & percent-encoded)
-  const lowerInput = input.toLowerCase();
-  if (
-    lowerInput.includes('%5c') || // \
-    lowerInput.includes('%2f') || // /
-    lowerInput.includes('%2e%2e') || // ..
-    lowerInput.includes('..') ||
-    lowerInput.includes('.%2e') ||
-    lowerInput.includes('%2e.')
-  ) {
+  // Extract raw authority and raw path prior to WHATWG normalization
+  const urlWithoutScheme = input.slice(8);
+  const slashIndex = urlWithoutScheme.indexOf('/');
+  const rawAuthority = slashIndex === -1 ? urlWithoutScheme : urlWithoutScheme.slice(0, slashIndex);
+  const rawPath = slashIndex === -1 ? '/' : urlWithoutScheme.slice(slashIndex);
+
+  if (!rawAuthority || rawAuthority.trim() === '') {
     return Object.freeze({
       success: false,
       error: 'endpoint_invalid',
-      reason: 'encoded_separator_or_path_traversal_rejected',
+      reason: 'empty_authority_rejected',
     });
   }
 
-  // Parse using WHATWG URL parser
-  let parsedUrl;
-  try {
-    parsedUrl = new URL(input);
-  } catch (_) {
+  // Reject raw userinfo
+  if (rawAuthority.includes('@')) {
     return Object.freeze({
       success: false,
-      error: 'endpoint_invalid',
-      reason: 'malformed_url',
+      error: 'endpoint_forbidden',
+      reason: 'userinfo_not_permitted',
     });
   }
 
-  if (parsedUrl.protocol !== 'https:') {
+  if (rawPath.includes('?')) {
     return Object.freeze({
       success: false,
-      error: 'endpoint_invalid',
-      reason: 'scheme_must_be_exact_https',
+      error: 'endpoint_forbidden',
+      reason: 'query_string_not_permitted',
     });
   }
 
-  if (parsedUrl.port !== '' && parsedUrl.port !== '443') {
+  if (rawPath.includes('#')) {
+    return Object.freeze({
+      success: false,
+      error: 'endpoint_forbidden',
+      reason: 'fragment_not_permitted',
+    });
+  }
+
+  // Extract raw hostname and port from authority
+  let rawHost = rawAuthority;
+  let rawPort = null;
+
+  if (rawAuthority.startsWith('[')) {
+    const closeBracket = rawAuthority.indexOf(']');
+    if (closeBracket === -1) {
+      return Object.freeze({
+        success: false,
+        error: 'endpoint_invalid',
+        reason: 'malformed_bracketed_ipv6_authority',
+      });
+    }
+    rawHost = rawAuthority.slice(0, closeBracket + 1);
+    const portPart = rawAuthority.slice(closeBracket + 1);
+    if (portPart.startsWith(':')) {
+      rawPort = portPart.slice(1);
+    } else if (portPart !== '') {
+      return Object.freeze({
+        success: false,
+        error: 'endpoint_invalid',
+        reason: 'malformed_port_after_bracketed_ipv6',
+      });
+    }
+  } else {
+    if (rawAuthority.includes(':')) {
+      const parts = rawAuthority.split(':');
+      if (parts.length > 2) {
+        return Object.freeze({
+          success: false,
+          error: 'endpoint_invalid',
+          reason: 'unbracketed_ipv6_literal_rejected',
+        });
+      }
+      rawHost = parts[0];
+      rawPort = parts[1];
+    }
+  }
+
+  // Explicit port check
+  if (rawPort !== null && rawPort !== '443') {
     return Object.freeze({
       success: false,
       error: 'endpoint_forbidden',
@@ -132,24 +124,16 @@ export function evaluateDestinationUrl(input) {
     });
   }
 
-  // Extract host component directly from raw input before WHATWG URL normalization
-  const hostMatch = input.match(/^https:\/\/([^/:]+)/i);
-  const rawHostInput = hostMatch ? hostMatch[1] : parsedUrl.hostname;
-  const rawHostname = parsedUrl.hostname;
-
-  // Check raw host input for alternate/non-canonical IPv4 numeric syntax (octal, hex, dword, leading zeros)
-  if (/^[\d.xXa-fA-F]+$/.test(rawHostInput)) {
-    const rawIpParse = parseCanonicalIPv4(rawHostInput);
-    if (!rawIpParse.success) {
-      return Object.freeze({
-        success: false,
-        error: 'endpoint_invalid',
-        reason: `non_canonical_ipv4_literal: ${rawIpParse.error}`,
-      });
-    }
+  // Raw Host checks
+  if (rawHost.includes('%')) {
+    return Object.freeze({
+      success: false,
+      error: 'endpoint_invalid',
+      reason: 'percent_encoding_in_hostname_rejected',
+    });
   }
 
-  if (rawHostname.endsWith('.')) {
+  if (rawHost.endsWith('.')) {
     return Object.freeze({
       success: false,
       error: 'endpoint_invalid',
@@ -157,32 +141,15 @@ export function evaluateDestinationUrl(input) {
     });
   }
 
-  if (rawHostname.includes('*')) {
-    return Object.freeze({
-      success: false,
-      error: 'endpoint_invalid',
-      reason: 'wildcard_hostname_rejected',
-    });
-  }
-
-  if (rawHostname.includes('%')) {
-    return Object.freeze({
-      success: false,
-      error: 'endpoint_invalid',
-      reason: 'zone_identifier_rejected',
-    });
-  }
-
-  // Check if IP literal
   let isIpLiteral = false;
   let addressFamily = null;
   let normalizedAddress = null;
   let classificationResult = null;
 
-  if (rawHostname.startsWith('[') && rawHostname.endsWith(']')) {
+  if (rawHost.startsWith('[') && rawHost.endsWith(']')) {
     isIpLiteral = true;
-    const ipv6Text = rawHostname.slice(1, -1);
-    const p6 = parseCanonicalIPv6(ipv6Text);
+    const rawIpv6Text = rawHost.slice(1, -1);
+    const p6 = parseCanonicalIPv6(rawIpv6Text);
     if (!p6.success) {
       return Object.freeze({
         success: false,
@@ -200,9 +167,9 @@ export function evaluateDestinationUrl(input) {
     }
     addressFamily = 6;
     normalizedAddress = p6.normalized_address;
-  } else if (/^[\d.]+$/.test(rawHostname)) {
+  } else if (/^[\d.xXa-fA-F+-]+$/.test(rawHost)) {
     isIpLiteral = true;
-    const p4 = parseCanonicalIPv4(rawHostname);
+    const p4 = parseCanonicalIPv4(rawHost);
     if (!p4.success) {
       return Object.freeze({
         success: false,
@@ -221,8 +188,16 @@ export function evaluateDestinationUrl(input) {
     addressFamily = 4;
     normalizedAddress = p4.normalized_address;
   } else {
-    // DNS Hostname checks
-    if (!rawHostname.includes('.')) {
+    // Hostname checks
+    if (/[A-Z]/.test(rawHost)) {
+      return Object.freeze({
+        success: false,
+        error: 'endpoint_invalid',
+        reason: 'uppercase_hostname_rejected',
+      });
+    }
+
+    if (!rawHost.includes('.')) {
       return Object.freeze({
         success: false,
         error: 'endpoint_invalid',
@@ -230,7 +205,7 @@ export function evaluateDestinationUrl(input) {
       });
     }
 
-    if (rawHostname.length > 253) {
+    if (rawHost.length > 253) {
       return Object.freeze({
         success: false,
         error: 'endpoint_invalid',
@@ -238,13 +213,20 @@ export function evaluateDestinationUrl(input) {
       });
     }
 
-    const labels = rawHostname.split('.');
+    const labels = rawHost.split('.');
     for (const label of labels) {
       if (label.length === 0 || label.length > 63) {
         return Object.freeze({
           success: false,
           error: 'endpoint_invalid',
           reason: 'invalid_label_length',
+        });
+      }
+      if (label.startsWith('xn--') || label.includes('xn--')) {
+        return Object.freeze({
+          success: false,
+          error: 'endpoint_invalid',
+          reason: 'punycode_hostname_unsupported',
         });
       }
       if (label.startsWith('-') || label.endsWith('-')) {
@@ -271,23 +253,23 @@ export function evaluateDestinationUrl(input) {
     }
   }
 
-  // Normalized path check
-  const pathname = parsedUrl.pathname;
-  if (!pathname.startsWith('/')) {
+  // Recursive Path Safety Check
+  const pathEval = evaluatePathSafety(rawPath);
+  if (!pathEval.success) {
     return Object.freeze({
       success: false,
       error: 'endpoint_invalid',
-      reason: 'pathname_must_be_absolute',
+      reason: pathEval.reason,
     });
   }
 
   return Object.freeze({
     success: true,
-    canonical_url: `https://${rawHostname}${pathname}`,
+    canonical_url: `https://${rawHost}${pathEval.normalized_path}`,
     scheme: 'https',
-    hostname: rawHostname,
+    hostname: rawHost,
     port: 443,
-    pathname,
+    pathname: pathEval.normalized_path,
     is_ip_literal: isIpLiteral,
     address_family: addressFamily,
     normalized_address: normalizedAddress,
@@ -299,4 +281,83 @@ export function evaluateDestinationUrl(input) {
       allows_userinfo: false,
     }),
   });
+}
+
+/**
+ * Pure Recursive Path Safety Evaluator with max 3 decode passes.
+ */
+export function evaluatePathSafety(rawPath) {
+  if (typeof rawPath !== 'string' || !rawPath.startsWith('/')) {
+    return { success: false, reason: 'pathname_must_be_absolute' };
+  }
+
+  if (/[\s\r\n\t\0]/.test(rawPath)) {
+    return { success: false, reason: 'whitespace_or_control_characters_rejected' };
+  }
+
+  if (rawPath.includes('\\')) {
+    return { success: false, reason: 'backslash_rejected' };
+  }
+
+  // Multi-pass percent decoding (max 3 passes) to detect nested / recursive traversal & control encodings
+  let currentPass = rawPath;
+  const maxPasses = 3;
+
+  for (let passIndex = 0; passIndex < maxPasses; passIndex++) {
+    // Check for malformed percent encoding: % followed by non-hex
+    if (/%(?![0-9a-fA-F]{2})/.test(currentPass)) {
+      return { success: false, reason: 'malformed_percent_encoding' };
+    }
+
+    // Check for forbidden encoded items before decoding pass
+    const lowerPass = currentPass.toLowerCase();
+
+    // Check encoded slashes & backslashes
+    if (lowerPass.includes('%2f') || lowerPass.includes('%5c')) {
+      return { success: false, reason: 'encoded_separator_rejected' };
+    }
+
+    // Check encoded dot traversal
+    if (
+      lowerPass.includes('%2e%2e') ||
+      lowerPass.includes('.%2e') ||
+      lowerPass.includes('%2e.') ||
+      lowerPass.includes('..') ||
+      lowerPass.includes('%00')
+    ) {
+      return { success: false, reason: 'encoded_traversal_or_nul_rejected' };
+    }
+
+    // Decode one level
+    let decoded;
+    try {
+      decoded = decodeURIComponent(currentPass);
+    } catch (_) {
+      return { success: false, reason: 'malformed_percent_encoding' };
+    }
+
+    if (decoded === currentPass) {
+      // Stable decoding reached cleanly
+      break;
+    }
+    currentPass = decoded;
+  }
+
+  // After decoding passes, verify final path structure has no traversal or control characters (allow space)
+  if (currentPass.includes('\\') || currentPass.includes('..') || /[\r\n\t\0]/.test(currentPass)) {
+    return { success: false, reason: 'path_traversal_or_control_rejected' };
+  }
+
+  // Path segment check
+  const segments = rawPath.split('/');
+  for (const seg of segments) {
+    if (seg === '.' || seg === '..') {
+      return { success: false, reason: 'dot_traversal_segment_rejected' };
+    }
+  }
+
+  return {
+    success: true,
+    normalized_path: rawPath,
+  };
 }

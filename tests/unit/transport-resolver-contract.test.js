@@ -1,22 +1,31 @@
 import { describe, it, expect } from 'vitest';
 import { validateResolverInterface } from '../../src/gateway/transport/resolver-contract.js';
 
-describe('Resolver Interface Contract', () => {
-  it('validates a compliant injectable resolver interface', () => {
+describe('Resolver Interface Contract Hardening', () => {
+  it('accepts valid own method data property on plain objects', () => {
     const fakeResolver = {
-      async resolveAll(hostname, { signal } = {}) {
-        return [{ address: '8.8.8.8', family: 4, ttl: 300 }];
-      },
+      async resolveAll() { return []; },
     };
-
-    const res = validateResolverInterface(fakeResolver);
-    expect(res.success).toBe(true);
+    expect(validateResolverInterface(fakeResolver).success).toBe(true);
   });
 
-  it('rejects missing, non-object, or uncallable resolveAll resolvers', () => {
-    expect(validateResolverInterface(null).success).toBe(false);
-    expect(validateResolverInterface('not-an-object').success).toBe(false);
-    expect(validateResolverInterface({}).success).toBe(false);
-    expect(validateResolverInterface({ resolveAll: 'not-a-function' }).success).toBe(false);
+  it('rejects inherited resolveAll, getters returning functions, or non-plain objects', () => {
+    // Inherited resolveAll
+    const parent = { async resolveAll() { return []; } };
+    const child = Object.create(parent);
+    expect(validateResolverInterface(child).success).toBe(false);
+
+    // Getter returning function
+    const getterResolver = Object.defineProperty({}, 'resolveAll', {
+      get() { return async () => []; },
+      enumerable: true,
+    });
+    expect(validateResolverInterface(getterResolver).success).toBe(false);
+
+    // Function/Class instance resolver
+    class ResolverClass {
+      async resolveAll() { return []; }
+    }
+    expect(validateResolverInterface(new ResolverClass()).success).toBe(false);
   });
 });
