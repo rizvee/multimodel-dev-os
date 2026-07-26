@@ -34,5 +34,20 @@ describe('Destination Transport Policy & Path Safety', () => {
     expect(evaluatePathSafety('/v1/%25252f/chat').reason).toBe('encoded_separator_rejected');
     expect(evaluatePathSafety('/v1/%20/chat').success).toBe(true); // Safe space encoding
     expect(evaluatePathSafety('/v1/%zz/chat').reason).toBe('malformed_percent_encoding');
+    expect(evaluatePathSafety('/v1/\x01/chat').reason).toBe('literal_control_characters_rejected');
+    expect(evaluatePathSafety('/v1/%2525252f/chat').reason).toBe('undecoded_percent_sequence_remaining_after_max_passes');
+
+    // 4- and 5-layer recursive encodings
+    expect(evaluatePathSafety('/v1/%2525255c/chat').reason).toBe('undecoded_percent_sequence_remaining_after_max_passes');
+    expect(evaluatePathSafety('/v1/%2525252e%2525252e/chat').reason).toBe('undecoded_percent_sequence_remaining_after_max_passes');
+    expect(evaluatePathSafety('/v1/%252525252f/chat').reason).toBe('undecoded_percent_sequence_remaining_after_max_passes');
+    expect(evaluatePathSafety('/v1/%252525255c/chat').reason).toBe('undecoded_percent_sequence_remaining_after_max_passes');
+
+    // Control character encodings
+    expect(evaluatePathSafety('/v1/%01/chat').reason).toBe('literal_control_characters_rejected');
+    expect(evaluatePathSafety('/v1/%08/chat').reason).toBe('literal_control_characters_rejected');
+    expect(evaluatePathSafety('/v1/%0b/chat').reason).toBe('literal_control_characters_rejected');
+    expect(evaluatePathSafety('/v1/%1f/chat').reason).toBe('literal_control_characters_rejected');
+    expect(evaluatePathSafety('/v1/%7f/chat').reason).toBe('literal_control_characters_rejected');
   });
 });

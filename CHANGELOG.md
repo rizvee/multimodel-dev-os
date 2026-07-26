@@ -34,10 +34,14 @@
   - Hardened HTTP client disconnect handling with guarded `aborted` / `close` listeners.
   - Hardened request ID sanitization (`validateAndSanitizeRequestId`) ensuring both client header IDs and custom `requestIdFactory()` outputs conform to ASCII length/pattern rules or fall back to UUIDs.
   - Aligned formal JSON schemas (`gateway-error.schema.json` and `gateway-runtime-error.schema.json`) with `additionalProperties: false` at outer/inner levels.
-- **v4.3 Sprint E2 — Governed External SSE Streaming Integration**:
-  - Implemented governed external SSE streaming executor (`executeGovernedStream`) in `src/gateway/execution/stream-executor.js`.
-  - Extended transport interface (`transport.stream()`) supporting status, headers, async iterable body, and credential destruction.
-  - Integrated governed external streaming into `/v1/chat/completions` route in `src/gateway/runtime/app.js`.
+- **v4.3 Sprint F1 — Pure Destination, IP-Address & Resolved-Address Policy (Hardened)**:
+  - Created static snapshot of official IANA IPv4 and IPv6 Special-Purpose Address Registries (`2025-10-09`) with SHA-256 digests and initialization-time integrity verification (`validateRegistrySnapshotIntegrity`).
+  - Implemented true longest-prefix CIDR matching algorithm across IPv4 (`classifyIPv4Address`) and IPv6 (`classifyIPv6Address`) ensuring specific range overrides (e.g. `192.0.0.9/32`, `2001:1::1/128`) correctly supersede parent protocol blocks.
+  - Built raw authority URL pre-parser (`evaluateDestinationUrl`) rejecting octal/hex IPv4, uppercase hostnames, and ASCII punycode (`xn--`) before WHATWG URL normalization.
+  - Implemented multi-pass (max 3) recursive path safety evaluator (`evaluatePathSafety`) rejecting nested percent-encoded separators (`%2f`, `%5c`), traversal (`%2e%2e`), and control encodings (`%00`).
+  - Hardened resolved address set evaluator (`evaluateResolvedAddressSet`) and resolver contract validator (`validateResolverInterface`) with property descriptor auditing to reject getters, setters, accessors, methods, and prototype pollution.
+  - Extracted internal backpressure helper (`waitForDrain`) into `src/gateway/runtime/backpressure.js` with immediate cleanup of synchronous subscriptions.
+  - Integrated `evaluateDestinationUrl()` into gateway validation and execution gate without network, DNS, socket, or external dependencies.
   - Enforced preflight validation, mid-stream safe SSE error payloads, backpressure handling (`waitForDrain`), client disconnect / abort handling, single credential destruction, and zero network primitives in stream executor.
   - Added integration test suite `tests/integration/gateway-governed-runtime-stream.test.js` and documentation in `docs/gateway-streaming.md`.
 - **v4.3 Sprint F0 / E2.1 — Secure Outbound Transport Threat Model & E2 Contract Closure**:

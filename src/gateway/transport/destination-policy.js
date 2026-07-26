@@ -8,8 +8,8 @@ import {
 } from './ipv6-policy.js';
 
 /**
- * Pure Destination Authority & Raw URL Evaluator.
- * Parses raw authority before WHATWG URL normalization.
+ * Pure Destination Authority & WHATWG Equivalence URL Evaluator.
+ * Validates raw authority/path before WHATWG URL parsing and verifies 100% equivalence.
  */
 export function evaluateDestinationUrl(input) {
   if (typeof input !== 'string') {
@@ -263,9 +263,57 @@ export function evaluateDestinationUrl(input) {
     });
   }
 
+  // WHATWG URL Equivalence Verification
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(input);
+  } catch (_) {
+    return Object.freeze({
+      success: false,
+      error: 'endpoint_invalid',
+      reason: 'whatwg_url_parse_failed',
+    });
+  }
+
+  if (parsedUrl.protocol !== 'https:') {
+    return Object.freeze({ success: false, error: 'endpoint_invalid', reason: 'whatwg_scheme_mismatch' });
+  }
+  if (parsedUrl.username !== '' || parsedUrl.password !== '') {
+    return Object.freeze({ success: false, error: 'endpoint_forbidden', reason: 'whatwg_userinfo_mismatch' });
+  }
+  if (parsedUrl.search !== '' || parsedUrl.hash !== '') {
+    return Object.freeze({ success: false, error: 'endpoint_forbidden', reason: 'whatwg_query_or_hash_mismatch' });
+  }
+  if (parsedUrl.port !== '' && parsedUrl.port !== '443') {
+    return Object.freeze({ success: false, error: 'endpoint_forbidden', reason: 'whatwg_port_mismatch' });
+  }
+
+  // Compare raw host and WHATWG parsed host
+  let expectedWhatwgHost = rawHost.toLowerCase();
+  if (isIpLiteral && addressFamily === 6) {
+    expectedWhatwgHost = `[${normalizedAddress}]`;
+  }
+  if (parsedUrl.hostname !== expectedWhatwgHost && parsedUrl.hostname !== rawHost) {
+    return Object.freeze({
+      success: false,
+      error: 'endpoint_invalid',
+      reason: 'whatwg_hostname_normalization_mismatch',
+    });
+  }
+
+  if (parsedUrl.pathname !== pathEval.normalized_path) {
+    return Object.freeze({
+      success: false,
+      error: 'endpoint_invalid',
+      reason: 'whatwg_pathname_normalization_mismatch',
+    });
+  }
+
+  const canonicalUrl = `https://${rawHost}${pathEval.normalized_path}`;
+
   return Object.freeze({
     success: true,
-    canonical_url: `https://${rawHost}${pathEval.normalized_path}`,
+    canonical_url: canonicalUrl,
     scheme: 'https',
     hostname: rawHost,
     port: 443,
@@ -284,32 +332,37 @@ export function evaluateDestinationUrl(input) {
 }
 
 /**
- * Pure Recursive Path Safety Evaluator with max 3 decode passes.
+ * Hardened Path Safety Evaluator with literal control check and max 3 decode passes.
  */
 export function evaluatePathSafety(rawPath) {
   if (typeof rawPath !== 'string' || !rawPath.startsWith('/')) {
     return { success: false, reason: 'pathname_must_be_absolute' };
   }
 
-  if (/[\s\r\n\t\0]/.test(rawPath)) {
-    return { success: false, reason: 'whitespace_or_control_characters_rejected' };
+  // Reject literal control characters [\x00-\x1f\x7f] and whitespace
+  if (/[\x00-\x1f\x7f\s]/.test(rawPath)) {
+    return { success: false, reason: 'literal_control_characters_rejected' };
   }
 
   if (rawPath.includes('\\')) {
     return { success: false, reason: 'backslash_rejected' };
   }
 
-  // Multi-pass percent decoding (max 3 passes) to detect nested / recursive traversal & control encodings
+  // Multi-pass percent decoding (max 3 passes)
   let currentPass = rawPath;
   const maxPasses = 3;
 
   for (let passIndex = 0; passIndex < maxPasses; passIndex++) {
+    // Reject control characters before and after every pass
+    if (/[\x00-\x1f\x7f]/.test(currentPass)) {
+      return { success: false, reason: 'literal_control_characters_rejected' };
+    }
+
     // Check for malformed percent encoding: % followed by non-hex
     if (/%(?![0-9a-fA-F]{2})/.test(currentPass)) {
       return { success: false, reason: 'malformed_percent_encoding' };
     }
 
-    // Check for forbidden encoded items before decoding pass
     const lowerPass = currentPass.toLowerCase();
 
     // Check encoded slashes & backslashes
@@ -317,7 +370,7 @@ export function evaluatePathSafety(rawPath) {
       return { success: false, reason: 'encoded_separator_rejected' };
     }
 
-    // Check encoded dot traversal
+    // Check encoded dot traversal & NUL
     if (
       lowerPass.includes('%2e%2e') ||
       lowerPass.includes('.%2e') ||
@@ -328,7 +381,6 @@ export function evaluatePathSafety(rawPath) {
       return { success: false, reason: 'encoded_traversal_or_nul_rejected' };
     }
 
-    // Decode one level
     let decoded;
     try {
       decoded = decodeURIComponent(currentPass);
@@ -337,18 +389,21 @@ export function evaluatePathSafety(rawPath) {
     }
 
     if (decoded === currentPass) {
-      // Stable decoding reached cleanly
       break;
     }
     currentPass = decoded;
   }
 
-  // After decoding passes, verify final path structure has no traversal or control characters (allow space)
-  if (currentPass.includes('\\') || currentPass.includes('..') || /[\r\n\t\0]/.test(currentPass)) {
+  // Fail closed if any undecoded percent sequence remains after 3 passes
+  if (/%[0-9a-fA-F]{2}/.test(currentPass)) {
+    return { success: false, reason: 'undecoded_percent_sequence_remaining_after_max_passes' };
+  }
+
+  // Verify final path structure
+  if (currentPass.includes('\\') || currentPass.includes('..') || /[\x00-\x1f\x7f]/.test(currentPass)) {
     return { success: false, reason: 'path_traversal_or_control_rejected' };
   }
 
-  // Path segment check
   const segments = rawPath.split('/');
   for (const seg of segments) {
     if (seg === '.' || seg === '..') {

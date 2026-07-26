@@ -1,10 +1,18 @@
 /**
- * Resolver Interface Descriptor Contract Validator (Sprint F1 Hardened)
- *
- * Preferred contract:
- *   resolver.resolveAll(hostname, { signal }) -> Promise<Array<{ address: string, family: 4|6, ttl?: number }>>
+ * Resolver Interface Descriptor Contract Validator (Sprint F1 Hardened & Proxy Guarded)
  */
 export function validateResolverInterface(resolver) {
+  let proto;
+  try {
+    proto = Object.getPrototypeOf(resolver);
+  } catch (_) {
+    return Object.freeze({
+      success: false,
+      error: 'resolver_proxy_trap_failed',
+      message: 'Proxy trap or inspection error during prototype lookup',
+    });
+  }
+
   if (!resolver || typeof resolver !== 'object' || Array.isArray(resolver)) {
     return Object.freeze({
       success: false,
@@ -13,8 +21,6 @@ export function validateResolverInterface(resolver) {
     });
   }
 
-  // Reject functions, arrays, dates, regexes
-  const proto = Object.getPrototypeOf(resolver);
   if (proto !== Object.prototype && proto !== null) {
     return Object.freeze({
       success: false,
@@ -23,8 +29,16 @@ export function validateResolverInterface(resolver) {
     });
   }
 
-  // Check own property descriptor for resolveAll without accessing property getter
-  const desc = Object.getOwnPropertyDescriptor(resolver, 'resolveAll');
+  let desc;
+  try {
+    desc = Object.getOwnPropertyDescriptor(resolver, 'resolveAll');
+  } catch (_) {
+    return Object.freeze({
+      success: false,
+      error: 'resolver_descriptor_trap_failed',
+      message: 'Proxy trap error during property descriptor lookup',
+    });
+  }
 
   if (!desc) {
     return Object.freeze({

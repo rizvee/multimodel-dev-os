@@ -31,7 +31,7 @@ All provider endpoints undergo strict canonicalization prior to resolution:
 - **IP Literals**: IPv4 literals must be in canonical 4-octet dotted decimal format (`1.2.3.4`). Rejects octal, hex, dword, or leading-zero representations. IPv6 literals must be canonical without zone identifiers (`%eth0`).
 
 ### IP Address Classification Source & Policy
-Classification relies on static, reviewed address rules derived from the IANA IPv4 and IPv6 Special-Purpose Address Registries (Snapshot: 2026-07-15; RFC 6890, RFC 1918, RFC 4193, RFC 4291, RFC 6598, RFC 5737).
+Classification relies on static, reviewed address rules derived from the IANA IPv4 and IPv6 Special-Purpose Address Registries (Snapshot: 2026-07-27; SHA-256 IPv4: e4a1c06ecf8e934ed5ae30977a1477a78957da1a5fb602fc855e3f74bf01c8ac; SHA-256 IPv6: 8b0e181a4ef0c71fcb25403c40702f2050c2f6dc198156b6ec1a5fb746c9a73e).
 
 **Classification Rule**: Permit strictly addresses that are explicitly globally reachable. Fail closed on any unknown, malformed, non-global, reserved, or private range.
 

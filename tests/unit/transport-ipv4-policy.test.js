@@ -4,16 +4,18 @@ import {
   classifyIPv4Address,
 } from '../../src/gateway/transport/ipv4-policy.js';
 import {
-  IANA_IPV4_SPECIAL_RECORDS,
+  IANA_IPV4_OFFICIAL_RECORDS,
   IANA_IPV4_SPECIAL_REGISTRY_METADATA,
 } from '../../src/gateway/transport/registry-snapshot.js';
 
 describe('IPv4 Transport Policy & Registry Snapshot Integrity', () => {
-  it('preserves expected metadata and normalized record counts in snapshot', () => {
+  it('preserves exact metadata and normalized record counts in snapshot', () => {
     expect(IANA_IPV4_SPECIAL_REGISTRY_METADATA.source_url).toContain('iana-ipv4-special-registry-1.csv');
     expect(IANA_IPV4_SPECIAL_REGISTRY_METADATA.last_updated).toBe('2025-10-09');
-    expect(IANA_IPV4_SPECIAL_REGISTRY_METADATA.normalized_record_count).toBe(22);
-    expect(IANA_IPV4_SPECIAL_RECORDS.length).toBeGreaterThanOrEqual(22);
+    expect(IANA_IPV4_SPECIAL_REGISTRY_METADATA.official_row_count).toBe(25);
+    expect(IANA_IPV4_SPECIAL_REGISTRY_METADATA.normalized_record_count).toBe(26);
+    expect(IANA_IPV4_SPECIAL_REGISTRY_METADATA.supplement_record_count).toBe(1);
+    expect(IANA_IPV4_OFFICIAL_RECORDS.length).toBe(26);
   });
 
   it('parses valid canonical IPv4 addresses', () => {
@@ -68,24 +70,29 @@ describe('IPv4 Transport Policy & Registry Snapshot Integrity', () => {
   });
 
   it('classifies critical IANA IPv4 regression vectors accurately', () => {
+    // 0.0.0.0 selects /32 (This host on this network)
+    expect(classifyIPv4Address('0.0.0.0').matched_prefix).toBe('0.0.0.0/32');
+    expect(classifyIPv4Address('0.0.0.0').allowed).toBe(false);
+
+    // 192.0.0.1 selects /29
+    expect(classifyIPv4Address('192.0.0.1').matched_prefix).toBe('192.0.0.0/29');
+    expect(classifyIPv4Address('192.0.0.1').allowed).toBe(false);
+
+    // 192.0.0.8 selects /32 (IPv4 dummy address)
+    expect(classifyIPv4Address('192.0.0.8').matched_prefix).toBe('192.0.0.8/32');
+    expect(classifyIPv4Address('192.0.0.8').allowed).toBe(false);
+
     // 192.0.0.9 and .10 allowed
     expect(classifyIPv4Address('192.0.0.9').allowed).toBe(true);
     expect(classifyIPv4Address('192.0.0.10').allowed).toBe(true);
 
-    // 192.0.0.170 and .171 denied (N/A in registry -> fail closed)
+    // 192.0.0.170 and .171 denied (N/A in registry -> null -> fail closed)
     expect(classifyIPv4Address('192.0.0.170').allowed).toBe(false);
+    expect(classifyIPv4Address('192.0.0.170').globally_reachable).toBe(null);
     expect(classifyIPv4Address('192.0.0.171').allowed).toBe(false);
 
-    // 192.0.0.8 denied (falls into 192.0.0.0/24)
-    expect(classifyIPv4Address('192.0.0.8').allowed).toBe(false);
-
-    // 192.88.99.2 denied (6to4 Benchmark Testing)
+    // 192.88.99.2 denied (6to4 Benchmark Testing, terminated)
     expect(classifyIPv4Address('192.88.99.2').allowed).toBe(false);
-
-    // 192.31.196.1 allowed
-    expect(classifyIPv4Address('192.31.196.1').allowed).toBe(true);
-
-    // 192.175.48.1 allowed
-    expect(classifyIPv4Address('192.175.48.1').allowed).toBe(true);
+    expect(classifyIPv4Address('192.88.99.2').active).toBe(false);
   });
 });

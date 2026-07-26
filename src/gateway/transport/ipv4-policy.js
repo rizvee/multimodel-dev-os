@@ -1,6 +1,6 @@
 import {
-  IANA_IPV4_SPECIAL_RECORDS,
   IANA_IPV4_SPECIAL_REGISTRY_METADATA,
+  COMBINED_IPV4_RECORDS,
 } from './registry-snapshot.js';
 
 /**
@@ -48,15 +48,14 @@ function ipv4ToNumeric(ipStr) {
   return parsed.numeric_value;
 }
 
-/**
- * Check if a 32-bit numeric IPv4 address falls into an IPv4 CIDR prefix.
- */
-function isIPv4InCidr(ipNumeric, prefixIpStr, prefixLength) {
-  const prefixNumeric = ipv4ToNumeric(prefixIpStr);
-  if (prefixLength === 0) return true;
-  const mask = prefixLength === 32 ? 0xffffffff : (((0xffffffff << (32 - prefixLength)) >>> 0));
-  return (ipNumeric & mask) === (prefixNumeric & mask);
-}
+// Precompile IPv4 CIDR records once
+const PRECOMPILED_IPV4_RECORDS = COMBINED_IPV4_RECORDS.map(rec => {
+  const [prefixIp, prefixLenStr] = rec.prefix.split('/');
+  const prefixLength = parseInt(prefixLenStr, 10);
+  const prefixNumeric = ipv4ToNumeric(prefixIp);
+  const mask = prefixLength === 0 ? 0 : (((0xffffffff << (32 - prefixLength)) >>> 0));
+  return { ...rec, prefixNumeric, prefixLength, mask };
+});
 
 /**
  * Classify a canonical IPv4 address string against IANA special-purpose registry using TRUE longest-prefix matching.
@@ -69,6 +68,7 @@ export function classifyIPv4Address(input) {
       normalized_address: null,
       globally_reachable: false,
       allowed: false,
+      active: false,
       classification: 'malformed_ipv4',
       matched_prefix: null,
       prefix_length: 0,
@@ -79,47 +79,51 @@ export function classifyIPv4Address(input) {
 
   const ipNumeric = parseResult.numeric_value;
 
-  // Real Longest-Prefix Matching: collect ALL matching records and select the one with the max prefix_length
+  // Real Longest-Prefix Matching
   const matchingRecords = [];
-  for (const record of IANA_IPV4_SPECIAL_RECORDS) {
-    const [prefixIp, prefixLenStr] = record.prefix.split('/');
-    const prefixLength = parseInt(prefixLenStr, 10);
-    if (isIPv4InCidr(ipNumeric, prefixIp, prefixLength)) {
+  for (const record of PRECOMPILED_IPV4_RECORDS) {
+    if ((ipNumeric & record.mask) === (record.prefixNumeric & record.mask)) {
       matchingRecords.push(record);
     }
   }
 
   if (matchingRecords.length > 0) {
-    // Sort matching records by prefix_length descending; deterministic tie-breaker if same length
     matchingRecords.sort((a, b) => {
-      if (b.prefix_length !== a.prefix_length) {
-        return b.prefix_length - a.prefix_length;
+      if (b.prefixLength !== a.prefixLength) {
+        return b.prefixLength - a.prefixLength;
       }
       return a.prefix.localeCompare(b.prefix);
     });
 
     const bestRecord = matchingRecords[0];
-    const isGlobal = bestRecord.globally_reachable === true;
+    const isEffectiveAllowed = (
+      bestRecord.active === true &&
+      bestRecord.destination === true &&
+      bestRecord.globally_reachable === true
+    );
 
     return Object.freeze({
       family: 4,
       normalized_address: parseResult.normalized_address,
-      globally_reachable: isGlobal,
-      allowed: isGlobal,
+      globally_reachable: bestRecord.globally_reachable,
+      allowed: isEffectiveAllowed,
+      active: bestRecord.active,
       classification: bestRecord.name,
       matched_prefix: bestRecord.prefix,
-      prefix_length: bestRecord.prefix_length,
+      prefix_length: bestRecord.prefixLength,
       registry_source: IANA_IPV4_SPECIAL_REGISTRY_METADATA.source_url,
       reference: bestRecord.reference,
+      raw_official_record: bestRecord,
     });
   }
 
-  // Default-Public Rule: Outside registered special-purpose ranges
+  // Default-Public Rule for IPv4 outside special-purpose ranges
   return Object.freeze({
     family: 4,
     normalized_address: parseResult.normalized_address,
     globally_reachable: true,
     allowed: true,
+    active: true,
     classification: 'Global Unicast',
     matched_prefix: '0.0.0.0/0',
     prefix_length: 0,

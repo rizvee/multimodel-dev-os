@@ -29,13 +29,14 @@ The key gateway boundaries and threat controls are:
 | **URL Syntax Validation** | Validator Layer | `validator-enforced` | Validates strict HTTPS scheme, parses valid URL format, and rejects invalid structures in `validateProviderEndpoint()`. |
 | **Trusted Endpoint Binding** | Gate / Executor Layer | `executor-enforced` | Asserts that `execution_request.endpoint` matches the provider's registered endpoint metadata before execution. |
 | **Hostname Allowlisting** | Gate / Executor Layer | `contract-defined` | Contract requires provider configuration to allowlist target hosts, evaluated prior to transport invocation. |
-| **DNS Resolution** | Transport Layer | `planned` | Asynchronous resolution of hostnames to IPv4/IPv6 addresses via `node:dns/promises`. |
-| **IP Classification** | Transport Layer | `planned` | Strict classification and fail-closed rejection of private, loopback, link-local, multicast, CGNAT, and reserved IP ranges. |
-| **Connection-Time Address Pinning** | Transport Layer | `planned` | Connecting directly to pre-resolved and validated IP address using custom `lookup` in `node:https` or direct socket creation in `node:net` / `node:tls`. |
-| **TLS Certificate Validation** | Transport Layer | `planned` | Native TLS verification using `rejectUnauthorized: true` while preserving original hostname for SNI and host header matching. |
+| **DNS Resolution Interface Contract** | Transport Layer | `contract-enforced` | Hardened descriptor validator (`validateResolverInterface`) rejecting accessors, methods, and throwing Proxy traps. |
+| **IP Classification Policy** | Transport Layer | `policy-enforced` | Static IANA IPv4/IPv6 special-purpose registry snapshot (`2025-10-09`), true longest-prefix CIDR classification, NAT64 embedded IPv4 evaluation, and `2000::/3` global unicast boundary enforcement. |
+| **Resolved Address Set Audit** | Transport Layer | `policy-enforced` | Hardened set evaluator (`evaluateResolvedAddressSet`) with property descriptor auditing rejecting getters, symbol keys, and prototype pollution. |
+| **Connection-Time Address Pinning** | Transport Layer | `planned` | Connecting directly to pre-resolved and validated IP address using custom `lookup` in `node:https` or direct socket creation in `node:net` / `node:tls` (Sprint F2). |
+| **TLS Certificate Validation** | Transport Layer | `planned` | Native TLS verification using `rejectUnauthorized: true` while preserving original hostname for SNI and host header matching (Sprint F2). |
 | **Redirect Handling** | Gate / Transport Layer | `validator-enforced` | Validator enforces `follow_redirects: false`; transport strictly rejects 3xx responses without following target locations. |
 | **Request/Response Byte Limits** | Executor Layer | `executor-enforced` | Enforces `max_request_bytes` and `max_response_bytes` at payload normalization and streaming levels. |
-| **Credential / Header Construction** | Transport Layer | `planned` | Header constructed exclusively inside final transport boundary using `ResolvedCredential.withSecret()`. |
+| **Credential / Header Construction** | Transport Layer | `planned` | Header constructed exclusively inside final transport boundary using `ResolvedCredential.withSecret()` (Sprint F2). |
 | **Timeout & Cancellation** | Executor / Runtime | `executor-enforced` | Lifecycle timeouts (`request_timeout_ms`, `response_timeout_ms`) and `AbortSignal` propagation managed by executor. |
 | **Observability Redaction** | Observability Layer | `runtime-enforced` | Strips prompts, completions, credentials, and sensitive headers from event metrics and trace logs. |
 

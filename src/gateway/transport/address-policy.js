@@ -27,6 +27,7 @@ export function classifyAddress(input) {
       normalized_address: null,
       globally_reachable: false,
       allowed: false,
+      active: false,
       classification: 'invalid_input',
       matched_prefix: null,
       prefix_length: 0,
@@ -43,8 +44,42 @@ export function classifyAddress(input) {
 }
 
 /**
- * Hardened evaluation of a resolved address set.
- * Validates plain data records without getters/setters/accessors/prototype pollution.
+ * Exception-safe, proxy-trap-guarded inspection helper.
+ */
+function safeGetPrototypeOf(obj) {
+  try {
+    return Object.getPrototypeOf(obj);
+  } catch (_) {
+    return false;
+  }
+}
+
+function safeGetOwnPropertyNames(obj) {
+  try {
+    return Object.getOwnPropertyNames(obj);
+  } catch (_) {
+    return null;
+  }
+}
+
+function safeGetOwnPropertySymbols(obj) {
+  try {
+    return Object.getOwnPropertySymbols(obj);
+  } catch (_) {
+    return null;
+  }
+}
+
+function safeGetOwnPropertyDescriptor(obj, key) {
+  try {
+    return Object.getOwnPropertyDescriptor(obj, key);
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Hardened evaluation of a resolved address set with Proxy trap guards and safe descriptor inspection.
  */
 export function evaluateResolvedAddressSet(records) {
   if (!Array.isArray(records)) {
@@ -73,36 +108,52 @@ export function evaluateResolvedAddressSet(records) {
     }
 
     // Prototype check: must be Object.prototype or null
-    const proto = Object.getPrototypeOf(rec);
-    if (proto !== Object.prototype && proto !== null) {
+    const proto = safeGetPrototypeOf(rec);
+    if (proto === false || (proto !== Object.prototype && proto !== null)) {
       return Object.freeze({ success: false, error: 'record_prototype_must_be_object_or_null', index: i });
     }
 
+    // Symbol keys check
+    const symbols = safeGetOwnPropertySymbols(rec);
+    if (!symbols || symbols.length > 0) {
+      return Object.freeze({ success: false, error: 'symbol_property_keys_rejected', index: i });
+    }
+
     // Key check & property descriptor audit before reading properties
-    const keys = Object.getOwnPropertyNames(rec);
+    const keys = safeGetOwnPropertyNames(rec);
+    if (!keys) {
+      return Object.freeze({ success: false, error: 'failed_to_inspect_property_names', index: i });
+    }
+
     for (const key of keys) {
       if (!ALLOWED_RECORD_KEYS.has(key)) {
-        return Object.freeze({ success: false, error: 'unpermitted_record_property_key', key, index: i });
+        return Object.freeze({ success: false, error: 'unpermitted_record_property_key', index: i });
       }
-      const desc = Object.getOwnPropertyDescriptor(rec, key);
+      const desc = safeGetOwnPropertyDescriptor(rec, key);
       if (!desc || desc.get || desc.set || typeof desc.value === 'function') {
-        return Object.freeze({ success: false, error: 'accessor_or_method_property_rejected', key, index: i });
+        return Object.freeze({ success: false, error: 'accessor_or_method_property_rejected', index: i });
       }
     }
 
     // Required own data properties
-    if (!Object.prototype.hasOwnProperty.call(rec, 'address') || !Object.prototype.hasOwnProperty.call(rec, 'family')) {
-      return Object.freeze({ success: false, error: 'missing_required_record_properties', index: i });
+    try {
+      if (!Object.prototype.hasOwnProperty.call(rec, 'address') || !Object.prototype.hasOwnProperty.call(rec, 'family')) {
+        return Object.freeze({ success: false, error: 'missing_required_record_properties', index: i });
+      }
+    } catch (_) {
+      return Object.freeze({ success: false, error: 'proxy_trap_rejected', index: i });
     }
 
-    const { address, family, ttl } = rec;
+    const address = safeGetOwnPropertyDescriptor(rec, 'address')?.value;
+    const family = safeGetOwnPropertyDescriptor(rec, 'family')?.value;
+    const ttl = safeGetOwnPropertyDescriptor(rec, 'ttl')?.value;
 
     if (typeof address !== 'string' || address.length === 0 || address.length > 45) {
       return Object.freeze({ success: false, error: 'invalid_address_string_length', index: i });
     }
 
     if (family !== 4 && family !== 6) {
-      return Object.freeze({ success: false, error: 'invalid_address_family', family, index: i });
+      return Object.freeze({ success: false, error: 'invalid_address_family', index: i });
     }
 
     if (ttl !== undefined) {
@@ -116,7 +167,7 @@ export function evaluateResolvedAddressSet(records) {
     const classification = classifyAddress(address);
 
     if (classification.family !== family) {
-      return Object.freeze({ success: false, error: 'family_mismatch_with_parsed_address', declared_family: family, index: i });
+      return Object.freeze({ success: false, error: 'family_mismatch_with_parsed_address', index: i });
     }
 
     if (!classification.allowed || !classification.globally_reachable) {
@@ -149,9 +200,7 @@ export function evaluateResolvedAddressSet(records) {
     }
   }
 
-  // Deterministic Sorting Rule:
-  // 1. IPv4 (family 4) before IPv6 (family 6)
-  // 2. Ascending numeric order within family
+  // Deterministic Sorting Rule
   approvedRecords.sort((a, b) => {
     if (a.family !== b.family) {
       return a.family - b.family;
