@@ -825,5 +825,62 @@ export async function checkGatewayContracts() {
   } else {
     fail('executeStreamRoute returned invalid execution error code or category');
   }
-}
 
+  // --- Sprint F1 Pure Destination and Address Policy Verifier Assertions ---
+  const sprintF1Files = [
+    'src/gateway/transport/registry-snapshot.js',
+    'src/gateway/transport/ipv4-policy.js',
+    'src/gateway/transport/ipv6-policy.js',
+    'src/gateway/transport/address-policy.js',
+    'src/gateway/transport/destination-policy.js',
+    'src/gateway/transport/resolver-contract.js',
+    'src/gateway/transport/index.js',
+    'src/gateway/runtime/backpressure.js',
+    'tests/unit/transport-ipv4-policy.test.js',
+    'tests/unit/transport-ipv6-policy.test.js',
+    'tests/unit/transport-address-policy.test.js',
+    'tests/unit/transport-destination-policy.test.js',
+    'tests/unit/transport-resolver-contract.test.js',
+    'tests/unit/runtime-backpressure.test.js',
+    'docs/destination-address-policy.md',
+  ];
+  checkFilesExist(sprintF1Files, 'Sprint F1 transport source, test suite, and documentation exist');
+  checkAdapterForbiddenPrimitives('src/gateway/transport', 'No network, credential, env, or socket primitives in transport modules');
+
+  // Verify backpressure helper is NOT exported in package index
+  const gatewayPkgExports = await import('../../src/gateway/index.js');
+  if (gatewayPkgExports.waitForDrain === undefined) {
+    pass('Backpressure helper (waitForDrain) is internal-only and omitted from public package exports');
+  } else {
+    fail('Backpressure helper (waitForDrain) leaked into public package exports');
+  }
+
+  // Behavioral check on F1 transport policy
+  const { evaluateDestinationUrl, evaluateResolvedAddressSet, classifyAddress, parseCanonicalIPv4, parseCanonicalIPv6 } = await import('../../src/gateway/transport/index.js');
+
+  const pubDestCheck = evaluateDestinationUrl('https://api.openai.com/v1/chat/completions');
+  const privDestCheck = evaluateDestinationUrl('https://127.0.0.1/v1/chat/completions');
+  if (pubDestCheck.success === true && privDestCheck.success === false) {
+    pass('Destination policy permits public HTTPS endpoints and denies private network endpoints');
+  } else {
+    fail('Destination policy failed public/private URL classification check');
+  }
+
+  const mixedSetCheck = evaluateResolvedAddressSet([
+    { address: '8.8.8.8', family: 4 },
+    { address: '10.0.0.1', family: 4 },
+  ]);
+  if (mixedSetCheck.success === false && mixedSetCheck.error === 'non_global_or_forbidden_address_in_set') {
+    pass('Resolved address set fails closed if ANY resolved address is non-global');
+  } else {
+    fail('Resolved address set failed to fail-closed on non-global address');
+  }
+
+  const parseCanonicalBadOctal = parseCanonicalIPv4('0177.0.0.1');
+  const parseCanonicalBadIpv6Upper = parseCanonicalIPv6('2001:DB8::1');
+  if (parseCanonicalBadOctal.success === false && parseCanonicalBadIpv6Upper.success === false) {
+    pass('Canonical IPv4 and IPv6 parsers reject octal and uppercase non-canonical syntax');
+  } else {
+    fail('Canonical IP parsers failed to reject non-canonical syntax');
+  }
+}

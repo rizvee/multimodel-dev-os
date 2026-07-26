@@ -468,8 +468,7 @@ describe('execution security contracts', () => {
     });
 
     it('handles waitForDrain when session is already finalized before subscription', async () => {
-      const { createGatewayApp } = await import('../../src/gateway/runtime/app.js');
-      const app = createGatewayApp({});
+      const { waitForDrain } = await import('../../src/gateway/runtime/backpressure.js');
 
       const mockSession = {
         getSummary() {
@@ -484,9 +483,7 @@ describe('execution security contracts', () => {
       mockResponse.writableEnded = false;
       mockResponse.destroyed = false;
 
-      // Import internal or test via simulated condition
-      const { executeGovernedStream } = await import('../../src/gateway/execution/stream-executor.js');
-      expect(executeGovernedStream).toBeDefined();
+      await expect(waitForDrain(mockResponse, null, mockSession)).rejects.toThrow('Already failed session');
     });
 
     it('validates every category in CATEGORY_STATUS_MAP against validateExecutionError', async () => {

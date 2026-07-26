@@ -57,10 +57,10 @@ Classification relies on static, reviewed address rules derived from the IANA IP
   - `::ffff:0:0/96` (IPv4-mapped IPv6 - unmapped IPv4 portion normalized and classified against IPv4 rules)
 
 ### DNS Resolution Architecture & Resolver Trust Model
-- **Direct Nameserver Queries**: DNS resolution uses `node:dns/promises` (`resolve4()` and `resolve6()`), which sends network DNS queries directly to configured nameservers. Standard OS getaddrinfo / `dns.lookup()` is intentionally avoided during address validation to prevent OS `hosts` file manipulation or local DNS cache poisoning from bypassing IP classification rules.
-- **Hosts-File & Split-Horizon Trade-off**: Because `resolve4()`/`resolve6()` bypasses OS `dns.lookup()`, local OS `/etc/hosts` mappings, split-horizon DNS overrides, enterprise local DNS proxies, and loopback redirects are **not** consulted. This creates an explicit security trade-off: raw DNS resolution prevents local hosts-file SSRF manipulation, but intentionally bypasses enterprise local/split-horizon host resolution overrides.
+- **Direct Nameserver Queries**: DNS resolution plans to use `node:dns/promises` (`resolve4()` and `resolve6()`), which send network DNS queries directly to configured DNS servers. Standard OS getaddrinfo / `dns.lookup()` is intentionally avoided during address validation to bypass OS `hosts` file manipulation.
+- **Resolver Trust & DNS Poisoning Limitations**: Direct DNS queries bypass OS `hosts` file lookups, but still query configured DNS servers. These configured servers may be local stub resolvers, enterprise caching proxies, split-horizon resolvers, or compromised DNS servers. Therefore, direct DNS queries **do not eliminate DNS poisoning risks**; robust IP classification and socket connection pinning remain mandatory.
 - **Fail-Closed Policy**: Resolution queries return all IPv4 and IPv6 records. Every returned IP address is classified. If **any** returned IP address fails the public classification check, the entire resolution fails closed.
-- **Planned Status**: Built-in DNS resolution and native transport remain PLANNED for Sprints F1/F2 and are not yet shipped in production code.
+- **Sprint F1 & F2 Scope**: Sprint F1 implements pure destination, IP-address, and resolved-address policies without any default DNS resolver implementation or network execution. Built-in DNS resolution, socket pinning, and native HTTPS transport remain PLANNED for Sprint F2.
 
 ---
 

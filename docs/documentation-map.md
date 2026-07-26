@@ -127,6 +127,7 @@ Track active development and long-term release roadmaps:
 | Release state tracking | [Release State](release-state.md) | Official release statuses across npm, GitHub, and dev lane. |
 | Product roadmap | [Future AI OS Roadmap](future-ai-os-roadmap.md) | Long-term product tracks and architectural vision. |
 | Threat model | [Security Threat Model](security-threat-model.md) | Security boundaries, credential policies, and SSRF guards. |
+| Secure outbound transport | [Outbound Transport Design](secure-outbound-transport-design.md) & [Destination Address Policy](destination-address-policy.md) | Outbound transport threat model and pure destination address policy. |
 | Guardrails & action hooks | [Hooks and Guardrails](hooks-and-guardrails.md) | Intercepting file writes and command executions. |
 
 ---

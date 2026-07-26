@@ -1,3 +1,4 @@
+import { evaluateDestinationUrl } from '../transport/destination-policy.js';
 import {
   ALLOWED_TRANSPORT_HEADERS,
   CHAT_MESSAGE_ROLES,
@@ -575,22 +576,10 @@ export function validateProviderEndpoint(endpoint) {
   if (!isString(endpoint.url)) {
     addError(result, 'configuration_error', 'url', 'url must be a non-empty string');
   } else {
-    let parsed;
-    try {
-      parsed = new URL(endpoint.url);
-    } catch {
-      addError(result, 'configuration_error', 'url', 'url must be a valid URL');
-    }
-    if (parsed) {
-      if (!EXECUTION_PROTOCOLS.includes(parsed.protocol.replace(':', ''))) {
-        addError(result, 'policy_denied', 'url', `url protocol must be one of: ${EXECUTION_PROTOCOLS.join(', ')}`);
-      }
-      if (parsed.username || parsed.password) {
-        addError(result, 'policy_denied', 'url', 'url must not contain embedded credentials');
-      }
-      if (isPrivateOrLocalHost(parsed.hostname)) {
-        addError(result, 'policy_denied', 'url', 'url must not target private or local network addresses');
-      }
+    const destEval = evaluateDestinationUrl(endpoint.url);
+    if (!destEval.success) {
+      const errCode = destEval.error === 'endpoint_forbidden' ? 'policy_denied' : 'configuration_error';
+      addError(result, errCode, 'url', `invalid provider endpoint url: ${destEval.reason}`);
     }
   }
   if (endpoint.protocol !== undefined && endpoint.protocol !== 'https') {

@@ -10,6 +10,7 @@ import {
   PROTOTYPE_NAMES_PATTERN,
 } from '../protocol/constants.js';
 import { mapCategoryToStatus } from './error-status-mapper.js';
+import { evaluateDestinationUrl } from '../transport/destination-policy.js';
 
 function isObject(val) {
   return val !== null && typeof val === 'object' && !Array.isArray(val);
@@ -30,18 +31,18 @@ export function validateEndpointBinding({ endpoint = null, base_url = null } = {
   const rawEndpointUrl = endpoint.url.trim();
   const rawBaseUrl = base_url.trim();
 
-  if (/%2e|%2f|\/\.\./i.test(rawEndpointUrl)) {
-    return { success: false, code: 'endpoint_forbidden', reason: 'Endpoint URL contains illegal path traversal' };
+  const destEval = evaluateDestinationUrl(rawEndpointUrl);
+  if (!destEval.success) {
+    return { success: false, code: destEval.error, reason: destEval.reason };
   }
 
-  let endUrl;
-  let baseUrl;
-  try {
-    endUrl = new URL(rawEndpointUrl);
-    baseUrl = new URL(rawBaseUrl);
-  } catch (_) {
-    return { success: false, code: 'endpoint_invalid', reason: 'Invalid URL format' };
+  const baseEval = evaluateDestinationUrl(rawBaseUrl);
+  if (!baseEval.success) {
+    return { success: false, code: 'endpoint_forbidden', reason: `Base URL invalid: ${baseEval.reason}` };
   }
+
+  let endUrl = new URL(rawEndpointUrl);
+  let baseUrl = new URL(rawBaseUrl);
 
   if (endUrl.protocol !== 'https:' || baseUrl.protocol !== 'https:') {
     return { success: false, code: 'endpoint_forbidden', reason: 'HTTPS protocol is required' };

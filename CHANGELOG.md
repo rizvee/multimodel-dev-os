@@ -50,8 +50,16 @@
   - Designed zero-runtime-dependency native transport architecture (`docs/secure-outbound-transport-design.md`) selecting Option A (Native Pinned-Address HTTPS Transport) utilizing `node:https`, `node:dns/promises`, `node:net`, and `node:tls`.
   - Defined canonical URL canonicalization rules, IPv4/IPv6 classification, DNS rebinding / TOCTOU protection via socket IP pinning, TLS verification (`rejectUnauthorized: true`), CR/LF header guards, Bearer auth construction boundary, and 6-phase resource limits.
   - Defined local offline test strategy (`docs/secure-outbound-transport-test-plan.md`) with explicit test seam boundaries and synthetic certificate guidelines.
-  - Updated gateway threat model in `docs/security-threat-model.md`, architecture roadmap in `docs/v4.3-planning.md`, and streaming guide in `docs/gateway-streaming.md`.
-
+- **v4.3 Sprint F1 — Pure Destination, IP-Address & Resolved-Address Policy**:
+  - Implemented pure transport policy layer in `src/gateway/transport/` (`registry-snapshot.js`, `ipv4-policy.js`, `ipv6-policy.js`, `address-policy.js`, `destination-policy.js`, `resolver-contract.js`).
+  - Added static IANA Special-Purpose IP Address Registries snapshot with source URLs, retrieval dates, last-updated dates, and RFC references.
+  - Implemented strict canonical IPv4 parser (`parseCanonicalIPv4`) and longest-prefix IPv4 address classifier (`classifyIPv4Address`).
+  - Implemented strict RFC 5952 canonical IPv6 parser (`parseCanonicalIPv6`) with IPv4-mapped IPv6 classification and longest-prefix IPv6 address classifier (`classifyIPv6Address`).
+  - Implemented universal address classifier (`classifyAddress`) and fail-closed resolved address set evaluator (`evaluateResolvedAddressSet`) with deterministic IPv4-first, ascending-numeric sorting rules.
+  - Implemented pure destination URL evaluator (`evaluateDestinationUrl`) enforcing strict HTTPS scheme, path traversal prevention, raw non-ASCII / backslash / whitespace / control character rejection, query/fragment/userinfo absence, and non-global IP literal checks.
+  - Implemented injectable resolver interface validator (`validateResolverInterface`).
+  - Extracted internal backpressure helper (`waitForDrain`) into `src/gateway/runtime/backpressure.js` with full unit test coverage.
+  - Created documentation in `docs/destination-address-policy.md` and updated `docs/secure-outbound-transport-design.md` with DNS poisoning trade-offs.
 
 ## [4.2.0] - 2026-07-17
 
